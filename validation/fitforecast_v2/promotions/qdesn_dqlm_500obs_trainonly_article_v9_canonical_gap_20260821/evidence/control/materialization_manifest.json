@@ -1,0 +1,19 @@
+{
+  "schema_version": "qdesn_canonical_gap_mcmc_v2_materialization_v1",
+  "generated_at": "2026-08-20 00:31:00.580605",
+  "git_commit": "ec9a921c9adf4e183a4ce4e61ba7714a91f7f779",
+  "canonical_source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_canonical_gap_mcmc_v2_20260820_003025/materialization/canonical_source_registry.csv",
+  "canonical_source_registry_sha256": "ef8d83fb7c657dada928da3cf0427f73a3d70f98aae88886618bea0e81b13e46",
+  "target_cells": 4,
+  "candidate_profiles": 64,
+  "stage_counts": {
+    "smoke": 2,
+    "calibration": 4,
+    "screen": 128
+  },
+  "planned_maximum": {
+    "refine": 36,
+    "confirmation": 24
+  },
+  "exact_exal_method": "m0_v_collapsed_support_logit"
+}

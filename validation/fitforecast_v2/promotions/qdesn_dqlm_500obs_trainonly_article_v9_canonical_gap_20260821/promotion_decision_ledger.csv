@@ -1,0 +1,5 @@
+"target_cell_id","metric","candidate_id","refine_value","current_value","gain","confirmation_value","strict_improvement","promoted_to_v9","promoted_value","diagnostics_used_as_promotion_gate"
+"al_normal_t0p05","forecast_qtrue_mae_H1000","cgcv2_al_normal_t0p05_01_64121b0e9b",6.62929312969277,8.41010688108774,1.78081375139497,6.91659380458911,TRUE,TRUE,6.91659380458911,FALSE
+"al_normal_t0p05","forecast_check_loss_H1000","cgcv2_al_normal_t0p05_01_64121b0e9b",1.18767614285232,1.22089963319577,0.0332234903434454,1.20016989478546,TRUE,TRUE,1.20016989478546,FALSE
+"exal_gausmix_t0p50","forecast_qtrue_mae_H1000","cgcv2_exal_gausmix_t0p50_01_4c129b0c50",1.44192736441993,2.56227388031046,1.12034651589053,1.4196448639744,TRUE,TRUE,1.4196448639744,FALSE
+"exal_gausmix_t0p50","forecast_check_loss_H1000","cgcv2_exal_gausmix_t0p50_01_4c129b0c50",5.48527363066756,5.61010267681073,0.124829046143171,5.48673029777657,TRUE,TRUE,5.48673029777657,FALSE

@@ -1,0 +1,5 @@
+"job_id","status","finite","binary"
+"calibration__cgcv2_al_normal_t0p05_09_16e33a952c__canonical_article__calibration_r01__c01","SUCCESS",TRUE,0
+"calibration__cgcv2_al_normal_t0p50_09_316f03ccb0__canonical_article__calibration_r01__c01","SUCCESS",TRUE,0
+"calibration__cgcv2_exal_gausmix_t0p50_09_5d54e651e6__canonical_article__calibration_r01__c01","SUCCESS",TRUE,0
+"calibration__cgcv2_exal_normal_t0p50_09_1d1e13def8__canonical_article__calibration_r01__c01","SUCCESS",TRUE,0

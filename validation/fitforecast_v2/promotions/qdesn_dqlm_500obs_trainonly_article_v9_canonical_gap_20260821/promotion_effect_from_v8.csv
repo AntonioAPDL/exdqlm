@@ -1,0 +1,5 @@
+"inference","model_variant","family","tau","metric","authoritative_v8_value","authoritative_v9_value","absolute_gain","relative_gain_pct","source_promotion_id"
+"mcmc","qdesn_al_rhs_ns","normal",0.05,"forecast_qtrue_mae_H1000",8.41010688108774,6.91659380458911,1.49351307649863,17.7585504871189,"qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821"
+"mcmc","qdesn_exal_rhs_ns","gausmix",0.5,"forecast_qtrue_mae_H1000",2.56227388031046,1.4196448639744,1.14262901633606,44.5943357232995,"qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821"
+"mcmc","qdesn_al_rhs_ns","normal",0.05,"forecast_check_loss_H1000",1.22089963319577,1.20016989478546,0.02072973841031,1.69790684235434,"qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821"
+"mcmc","qdesn_exal_rhs_ns","gausmix",0.5,"forecast_check_loss_H1000",5.61010267681073,5.48673029777657,0.123372379034159,2.19911089228575,"qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821"

@@ -1,0 +1,17 @@
+{
+  "job_id": "confirmation__cgcv2_exal_gausmix_t0p50_01_4c129b0c50__canonical_article__confirmation_r03__c03",
+  "stage": "confirmation",
+  "target_cell_id": "exal_gausmix_t0p50",
+  "candidate_id": "cgcv2_exal_gausmix_t0p50_01_4c129b0c50",
+  "source_id": "canonical_article",
+  "reservoir_seed_id": "confirmation_r03",
+  "chain_id": 3,
+  "likelihood_target": "exal",
+  "inference_method_id": "m0_v_collapsed_support_logit",
+  "pid": 3071430,
+  "host": "muscat.be.ucsc.edu",
+  "started_at": "2026-08-21 12:25:46.136544",
+  "config_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_canonical_gap_mcmc_v2_20260820_003025/materialization/configs/confirmation/confirmation__cgcv2_exal_gausmix_t0p50_01_4c129b0c50__canonical_article__confirmation_r03__c03.json",
+  "config_sha256": "2e04d5b95f79abe0b5bc00596d6711c8117b2f9c4da0e8bebb26df68429411f3",
+  "git_commit": "ec9a921c9adf4e183a4ce4e61ba7714a91f7f779"
+}

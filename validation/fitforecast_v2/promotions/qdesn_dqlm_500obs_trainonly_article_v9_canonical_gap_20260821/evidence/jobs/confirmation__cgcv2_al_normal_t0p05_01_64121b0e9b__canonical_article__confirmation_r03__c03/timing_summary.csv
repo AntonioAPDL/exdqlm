@@ -1,0 +1,2 @@
+"created_at","mode","inference_method","likelihood_family","beta_prior_type","n_quantiles","T_use","H_forecast","total_stage_seconds","n_timed_steps","max_stage_tag","max_stage_seconds"
+"2026-08-21 12:32:45.447123","real","mcmc","al","rhs_ns",1,1812,1000,396.759224176407,6,"fit_al_on_X_train(p=0.05, method=mcmc, prior=rhs_ns)",181.518780469894

@@ -1,0 +1,8 @@
+{
+  "schema_version": "qdesn_canonical_gap_mcmc_v2_closeout_v1",
+  "generated_at": "2026-08-21 12:35:29.62857",
+  "decision": "STRICT_GAINS_ELIGIBLE_FOR_PROMOTION",
+  "confirmed_jobs": 6,
+  "promotable_metrics": 4,
+  "diagnostics_are_veto": false
+}

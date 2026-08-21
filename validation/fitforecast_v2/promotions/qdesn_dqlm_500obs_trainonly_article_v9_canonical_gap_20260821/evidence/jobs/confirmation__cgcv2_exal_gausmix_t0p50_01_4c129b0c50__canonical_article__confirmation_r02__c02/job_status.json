@@ -1,0 +1,38 @@
+{
+  "job_id": "confirmation__cgcv2_exal_gausmix_t0p50_01_4c129b0c50__canonical_article__confirmation_r02__c02",
+  "stage": "confirmation",
+  "target_cell_id": "exal_gausmix_t0p50",
+  "candidate_id": "cgcv2_exal_gausmix_t0p50_01_4c129b0c50",
+  "source_id": "canonical_article",
+  "reservoir_seed_id": "confirmation_r02",
+  "chain_id": 2,
+  "likelihood_target": "exal",
+  "status": "SUCCESS",
+  "started_at": "2026-08-21 12:25:45.711893",
+  "finished_at": "2026-08-21 12:35:18.519229",
+  "elapsed_seconds": 567.103890657425,
+  "target_metrics": ["forecast_qtrue_mae_H1000", "forecast_check_loss_H1000"],
+  "metric_values": {
+    "fit_qtrue_rmse": 1.7381569186035,
+    "forecast_qtrue_mae_H1000": 1.47706134852856,
+    "forecast_check_loss_H1000": 5.49377271104141
+  },
+  "current_metric_values": {
+    "fit_qtrue_rmse": 0.917668125233735,
+    "forecast_qtrue_mae_H1000": 2.56227388031046,
+    "forecast_check_loss_H1000": 5.61010267681073
+  },
+  "comparator_metric_values": {
+    "fit_qtrue_rmse": 2.2258568528283,
+    "forecast_qtrue_mae_H1000": 1.93210577568537,
+    "forecast_check_loss_H1000": 5.55623876866689
+  },
+  "config_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_canonical_gap_mcmc_v2_20260820_003025/materialization/configs/confirmation/confirmation__cgcv2_exal_gausmix_t0p50_01_4c129b0c50__canonical_article__confirmation_r02__c02.json",
+  "config_sha256": "40e080e7a8f9ab291fa62b3b61f6a430dc3d8346a3354de40e1ff197bb945d1d",
+  "observed_sha256": "48952c36ac16a0644ddd76eb2934830c52c9ffafd2b92216ef2687775272f82e",
+  "source_registry_sha256": "ef8d83fb7c657dada928da3cf0427f73a3d70f98aae88886618bea0e81b13e46",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "inference_method_id": "m0_v_collapsed_support_logit",
+  "error_message": null,
+  "binary_payloads_remaining": 0
+}

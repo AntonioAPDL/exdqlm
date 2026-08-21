@@ -1,0 +1,17 @@
+{
+  "job_id": "confirmation__cgcv2_al_normal_t0p05_01_64121b0e9b__canonical_article__confirmation_r02__c02",
+  "stage": "confirmation",
+  "target_cell_id": "al_normal_t0p05",
+  "candidate_id": "cgcv2_al_normal_t0p05_01_64121b0e9b",
+  "source_id": "canonical_article",
+  "reservoir_seed_id": "confirmation_r02",
+  "chain_id": 2,
+  "likelihood_target": "al",
+  "inference_method_id": "sigma_then_gamma",
+  "pid": 3071424,
+  "host": "muscat.be.ucsc.edu",
+  "started_at": "2026-08-21 12:25:45.921235",
+  "config_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_canonical_gap_mcmc_v2_20260820_003025/materialization/configs/confirmation/confirmation__cgcv2_al_normal_t0p05_01_64121b0e9b__canonical_article__confirmation_r02__c02.json",
+  "config_sha256": "51c6ed7115f4b9f1e27a6a94a3879c6dbbfbabc0ed33e9bd474e029c05d7c338",
+  "git_commit": "ec9a921c9adf4e183a4ce4e61ba7714a91f7f779"
+}

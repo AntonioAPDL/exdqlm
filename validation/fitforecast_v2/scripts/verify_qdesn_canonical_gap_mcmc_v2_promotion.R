@@ -238,9 +238,11 @@ delta_keys <- with(delta, paste(inference, model_variant, family,
 expected_delta_keys <- character()
 for (metric in metric_columns) {
   changed <- which(abs(interface[[metric]] - article_base[[metric]]) > 1e-12)
-  expected_delta_keys <- c(expected_delta_keys, with(interface[changed, ], paste(
-    inference, model_variant, family, sprintf("%.2f", tau), metric
-  )))
+  if (length(changed)) {
+    expected_delta_keys <- c(expected_delta_keys, with(interface[changed, ], paste(
+      inference, model_variant, family, sprintf("%.2f", tau), metric
+    )))
+  }
 }
 if (!setequal(delta_keys, expected_delta_keys)) {
   stop("The cumulative article delta is incomplete.", call. = FALSE)

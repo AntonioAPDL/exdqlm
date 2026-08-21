@@ -1,0 +1,3 @@
+"target_cell_id","candidate_id","family","tau","likelihood_target","D","n","n_tilde","m","alpha","rho","pi_w","pi_in","rhs_tau0","readout_y_lags","reservoir_lags","washout","effective_readout_dimension","inference_method_id"
+"al_normal_t0p05","cgcv2_al_normal_t0p05_01_64121b0e9b","normal",0.05,"al",1,"40","",12,"0.08","0.35","0.3","0.15",1e-08,1,0,300,47,"sigma_then_gamma"
+"exal_gausmix_t0p50","cgcv2_exal_gausmix_t0p50_01_4c129b0c50","gausmix",0.5,"exal",1,"40","",12,"0.08","0.35","0.3","0.15",1e-08,1,0,300,47,"m0_v_collapsed_support_logit"

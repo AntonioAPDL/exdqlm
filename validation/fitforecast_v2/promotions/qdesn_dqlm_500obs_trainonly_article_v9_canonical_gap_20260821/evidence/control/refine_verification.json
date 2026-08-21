@@ -1,0 +1,26 @@
+{
+  "schema_version": "qdesn_canonical_gap_mcmc_v2_verification_v1",
+  "generated_at": "2026-08-21 12:25:31.437308",
+  "stage": "refine",
+  "decision": "PASS",
+  "checks": {
+    "targets": true,
+    "profiles": true,
+    "novelty": true,
+    "capacity": true,
+    "sources": true,
+    "parent_hashes": true,
+    "plans": true,
+    "configs": true,
+    "jobs": true,
+    "manifest": true,
+    "branch": true,
+    "runtime_rows": true,
+    "runtime_success": true,
+    "runtime_metrics": true,
+    "runtime_storage": true,
+    "materialization_storage": true
+  },
+  "runtime_rows": 36,
+  "forbidden_payloads": []
+}

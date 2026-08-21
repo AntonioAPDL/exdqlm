@@ -1,0 +1,286 @@
+{
+  "pipeline": {
+    "mode": "real",
+    "entrypoint": "scripts/pipeline_real_main.R",
+    "compatibility_source_commit": "c232d457463e007d473a3fe9b2469e70c3a1ab2a"
+  },
+  "inputs": {
+    "file_obs": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_canonical_gap_mcmc_v2/staged_source_windows/gausmix/tau_0p50/m12_w300/observed.csv"
+  },
+  "dataset": {
+    "mode": "real",
+    "T_full": 1812,
+    "T_use": 1812,
+    "n_train": 812,
+    "H_forecast": 1000
+  },
+  "preprocessing": {
+    "scope": "train_only",
+    "index_space": "absolute_input_row",
+    "fit_row_start": 1,
+    "fit_row_end": 812,
+    "fit_row_count": 812,
+    "fit_rows_contiguous": true,
+    "fit_row_indices_sha256": "be0eb8ba8ee1617ca17e9a61f1c086f732b572efe6d91fd02731fcb771f3647a",
+    "analysis_row_start": 1,
+    "analysis_row_end": 1812,
+    "analysis_row_count": 1812,
+    "heldout_row_count": 1000,
+    "heldout_response_used_for_scaling": false,
+    "heldout_covariates_used_for_scaling": false,
+    "scale_y": true,
+    "scale_x": true,
+    "y_center": 204.104146466006,
+    "y_scale": 26.8040557538024,
+    "x_center": [-8.59069873697028e-05, 0.00246005424908929, -0.00017139544453243, 0.00245106905017442, -0.955614275019758],
+    "x_scale": [0.70667493924517, 0.708404904801821, 0.706687576531639, 0.708392313791306, 0.448275794245189],
+    "x_columns": ["period90_sin_h1", "period90_cos_h1", "period90_sin_h2", "period90_cos_h2", "period90_trend_z"]
+  },
+  "cfg": {
+    "pipeline": {
+      "mode": "real",
+      "verbose": true
+    },
+    "split": {
+      "use_last": true,
+      "T_use": 1812,
+      "train_n": 812
+    },
+    "p_vec": 0.5,
+    "columns": {
+      "y": "y",
+      "x": ["period90_sin_h1", "period90_cos_h1", "period90_sin_h2", "period90_cos_h2", "period90_trend_z"]
+    },
+    "lags": {
+      "m_y": 1,
+      "m_x": 0,
+      "y": null,
+      "x": 0
+    },
+    "preproc": {
+      "scale_y": true,
+      "scale_x": true
+    },
+    "desn": {
+      "D": 1,
+      "n": 40,
+      "n_tilde": [],
+      "m": 12,
+      "alpha": 0.08,
+      "rho": 0.35,
+      "act_f": "tanh",
+      "act_k": "identity",
+      "pi_w": 0.3,
+      "pi_in": 0.15,
+      "washout": 300,
+      "add_bias": true,
+      "seed": 50231707
+    },
+    "readout": {
+      "include_input": true,
+      "reservoir_lags": 0,
+      "input_position": "after_reservoir",
+      "input_mode": "raw_y_lags"
+    },
+    "decomposition": {
+      "enabled": false
+    },
+    "sampling": {
+      "nd_draws": 200,
+      "chunk": 100
+    },
+    "forecast": {
+      "mode": "origin",
+      "horizon": 30,
+      "train_last_window": 18,
+      "fore_last_window": 18,
+      "protocol": "rolling_origin_no_refit_state_update",
+      "origin_stride": 30,
+      "primary_lead_export": true
+    },
+    "ij": {
+      "use_ij_correction": false,
+      "nd_draws": 0
+    },
+    "synthesis": {
+      "isotonic": false,
+      "rearrange": false,
+      "grid_M": 151,
+      "n_samp": 200,
+      "seed": 850024
+    },
+    "diagnostics": {
+      "calibration": false,
+      "pit": false,
+      "scores": true,
+      "lead_eval": false,
+      "fan_charts": false,
+      "plots": false
+    },
+    "cpp": {
+      "use_postpred": false,
+      "postpred_omp": false,
+      "postpred_precompute": false,
+      "postpred_threads": 1
+    },
+    "outputs": {
+      "save": true,
+      "keep_draws": false,
+      "thesis_subset": false,
+      "keep_mcmc_vb_init": false,
+      "retention_profile": "storage_light_canonical_gap_mcmc_v2",
+      "save_forecast_objects": false,
+      "save_compact_fit_paths": true,
+      "save_metric_summaries": true,
+      "retain_full_rds_on_failure": false
+    },
+    "inference": {
+      "method": "mcmc",
+      "likelihood_family": "exal",
+      "readout_scale": true,
+      "mcmc": {
+        "n_burn": 5000,
+        "n_mcmc": 20000,
+        "thin": 1,
+        "verbose": true,
+        "progress_every": 50,
+        "init_from_vb": true,
+        "vb_warm_start_control": {
+          "method": "ldvb",
+          "max_iter": 300,
+          "min_iter_elbo": 80,
+          "n_samp_xi": 1000,
+          "progress_every": 50,
+          "verbose": false,
+          "sigmagam": {
+            "freeze_warmup_iters": 10,
+            "force_after_warmup": true,
+            "postwarmup_damping": 0.5,
+            "postwarmup_damping_iters": 3,
+            "min_postwarmup_updates": 1
+          },
+          "rhs_trace": true,
+          "rhs_deep": false,
+          "rhs": {
+            "freeze_tau_iters": 50,
+            "freeze_tau_warmup_iters": 50,
+            "tau_local_tol": 0.0005,
+            "min_tau_updates": 2,
+            "force_tau_after_warmup": true
+          }
+        },
+        "store_latent_draws": false,
+        "store_rhs_draws": false,
+        "transforms": {
+          "use_log_sigma": true,
+          "sigma_eta_bounds": [-20, 20]
+        },
+        "rhs": {
+          "freeze_tau_burnin_iters": 500,
+          "freeze_tau_only_during_burn": true,
+          "width_adapt": {
+            "enabled": false,
+            "warmup_iters": 0,
+            "only_during_burn": true,
+            "target_score_low": -0.75,
+            "target_score_high": 0.75,
+            "step_size": 0.015,
+            "width_min": 0.02,
+            "width_max": 1.8
+          }
+        },
+        "sigmagam": {
+          "freeze_burnin_iters": 50,
+          "freeze_only_during_burn": true,
+          "force_after_warmup": true,
+          "delay_adapt_until_after_warmup": true,
+          "delay_laplace_refresh_until_after_warmup": true
+        },
+        "slice": {
+          "core_update_mode": "m0_v_collapsed_support_logit",
+          "width_gamma": 4,
+          "width_sigma": 0.3,
+          "width_rhs_lambda": 0.18,
+          "width_rhs_tau": 0.1,
+          "width_rhs_c2": 0.07,
+          "width_rhs_tau_c2_block": 0.22,
+          "rhs_global_block_update": "transformed_tau_c2_block",
+          "rhs_transformed_block_passes": 3,
+          "core_extra_passes": 0,
+          "max_steps_out": 100,
+          "max_shrink": 360,
+          "max_steps_out_sigma": 160,
+          "max_shrink_sigma": 420
+        },
+        "priors": {
+          "gamma": {
+            "mu0": 0,
+            "s20": 10
+          },
+          "sigma": {
+            "a": 1,
+            "b": 1
+          },
+          "beta": {
+            "type": "rhs_ns",
+            "ridge": {
+              "tau2": 20
+            },
+            "rhs_ns": {
+              "tau0": 1e-08,
+              "a_zeta": 2,
+              "b_zeta": 1,
+              "s2": 1,
+              "shrink_intercept": false,
+              "intercept_prec": 1e-10,
+              "n_inner": 2,
+              "var_floor": 1e-08
+            }
+          }
+        },
+        "control": {
+          "rng_seed": 146060526,
+          "seed": 184895076
+        },
+        "vb_warm_start_seed": 155132547
+      }
+    },
+    "metrics": {
+      "primary_windows": ["train_effective", "rolling_forecast_leads"],
+      "fit_window_role": "effective_train_post_lag_washout",
+      "forecast_window_role": "contiguous_forecast_block_after_train_origin",
+      "train_effective_source_indices": {
+        "TT500": [8501, 9000],
+        "TT5000": [4001, 9000]
+      },
+      "forecast_source_indices": [9001, 10000],
+      "forecast_horizons": [100, 1000],
+      "rolling_origin": {
+        "enabled": true,
+        "require_lead_export": true,
+        "forecast_protocol": "rolling_origin_no_refit_state_update",
+        "state_update_method": "forecast_lattice_observed_lag_state_update_no_refit",
+        "refit_per_origin": false,
+        "max_lead_configured": 30,
+        "origin_stride": 30
+      },
+      "backward_compatible_holdout_alias": "forecast_H1000",
+      "posterior_metric_draws": 200,
+      "qtrue_metrics": ["mae", "rmse", "bias", "corr", "median_ae", "p90_ae"],
+      "quantile_calibration_metrics": ["pinball_tau", "coverage", "coverage_minus_tau", "coverage_error"],
+      "runtime_metrics": ["runtime_sec", "runtime_sec_per_1k_eval", "runtime_sec_per_1k_train_eval"]
+    },
+    "validation_spec_id": "canonical_gap_mcmc_v2__confirmation__cgcv2_exal_gausmix_t0p50_01_4c129b0c50__canonical_article__confirmation_r03__c03",
+    "validation_stage": "all",
+    "validation": {
+      "stream_child_stdout": true,
+      "timeout_seconds": 604800,
+      "timeout_kill_after_seconds": 60
+    },
+    "telemetry": {
+      "progress_every": 50,
+      "heartbeat_seconds": 1800,
+      "stale_seconds": 1800
+    }
+  }
+}

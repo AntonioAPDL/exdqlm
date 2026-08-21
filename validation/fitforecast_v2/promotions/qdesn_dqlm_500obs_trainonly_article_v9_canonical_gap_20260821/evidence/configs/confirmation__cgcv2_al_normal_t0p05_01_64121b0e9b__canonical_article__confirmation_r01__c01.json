@@ -1,0 +1,410 @@
+{
+  "schema_version": "qdesn_canonical_gap_mcmc_v2_job_v1",
+  "job_id": "confirmation__cgcv2_al_normal_t0p05_01_64121b0e9b__canonical_article__confirmation_r01__c01",
+  "stage": "confirmation",
+  "target_cell_id": "al_normal_t0p05",
+  "candidate_id": "cgcv2_al_normal_t0p05_01_64121b0e9b",
+  "chain_id": 1,
+  "reservoir_seed_id": "confirmation_r01",
+  "reservoir_seed": 144669038,
+  "seed_contract_mode": "paired_target_cell_panel_independent_of_source_and_candidate",
+  "source_id": "canonical_article",
+  "source_role": "canonical_confirmation",
+  "objective_metric": "forecast_qtrue_mae_H1000",
+  "current_value": 8.41010688108774,
+  "comparator_value": 3.82939574999438,
+  "spec_id": "canonical_gap_mcmc_v2__confirmation__cgcv2_al_normal_t0p05_01_64121b0e9b__canonical_article__confirmation_r01__c01",
+  "observed_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_canonical_gap_mcmc_v2/staged_source_windows/normal/tau_0p05/m12_w300/observed.csv",
+  "observed_sha256": "1efef8aff21ec4ca8e1ee31367cdb1be104fd4059a37dbbbd6a7f337fcb94fce",
+  "source_registry_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/reports/shared_fitforecast_v2_orchestration/qdesn_canonical_gap_mcmc_v2_20260820_003025/materialization/canonical_source_registry.csv",
+  "source_registry_sha256": "ef8d83fb7c657dada928da3cf0427f73a3d70f98aae88886618bea0e81b13e46",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "inference_method_id": "sigma_then_gamma",
+  "profile": {
+    "D": 1,
+    "n": "40",
+    "n_tilde": "",
+    "m": 12,
+    "alpha": "0.08",
+    "rho": "0.35",
+    "pi_w": "0.3",
+    "pi_in": "0.15",
+    "rhs_tau0": 1e-08,
+    "readout_y_lags": 1,
+    "reservoir_lags": 0,
+    "washout": 300,
+    "layer_shape": "expanding",
+    "alpha_pattern": "weakly_increasing",
+    "rho_pattern": "weakly_increasing",
+    "expected_degree": 12,
+    "total_states": 40,
+    "max_alpha": 0.08,
+    "min_alpha": 0.08,
+    "mean_alpha": 0.08,
+    "max_rho": 0.35,
+    "min_rho": 0.35,
+    "mean_rho": 0.35,
+    "design_role": "canonical_direct_novel_screen",
+    "selection_arm": "arm_01",
+    "target_cell_id": "al_normal_t0p05",
+    "family": "normal",
+    "tau": 0.05,
+    "priority": "A",
+    "objective_metric": "forecast_qtrue_mae_H1000",
+    "current_value": 8.41010688108774,
+    "comparator_value": 3.82939574999438,
+    "parent_anchor_id": "al_normal_t0p05__fe8dfef9d0d8",
+    "likelihood_target": "al",
+    "target_metrics": "forecast_qtrue_mae_H1000;forecast_check_loss_H1000",
+    "effective_readout_dimension": 47,
+    "profile_signature": "1|40||12|0.08|0.35|0.3|0.15|1e-08|1|0|300",
+    "candidate_id": "cgcv2_al_normal_t0p05_01_64121b0e9b",
+    "screening_profile_id": "cgcv2_al_normal_t0p05_01_64121b0e9b"
+  },
+  "config": {
+    "pipeline": {
+      "mode": "real",
+      "verbose": true
+    },
+    "split": {
+      "use_last": true,
+      "T_use": 1812,
+      "train_n": 812
+    },
+    "p_vec": 0.05,
+    "columns": {
+      "y": "y",
+      "x": ["period90_sin_h1", "period90_cos_h1", "period90_sin_h2", "period90_cos_h2", "period90_trend_z"]
+    },
+    "lags": {
+      "m_y": 1,
+      "m_x": 0,
+      "y": null,
+      "x": 0
+    },
+    "preproc": {
+      "scale_y": true,
+      "scale_x": true
+    },
+    "desn": {
+      "D": 1,
+      "n": 40,
+      "n_tilde": [],
+      "m": 12,
+      "alpha": 0.08,
+      "rho": 0.35,
+      "act_f": "tanh",
+      "act_k": "identity",
+      "pi_w": 0.3,
+      "pi_in": 0.15,
+      "washout": 300,
+      "add_bias": true,
+      "seed": 232808685
+    },
+    "readout": {
+      "include_input": true,
+      "reservoir_lags": 0,
+      "input_position": "after_reservoir",
+      "input_mode": "raw_y_lags"
+    },
+    "decomposition": {
+      "enabled": false
+    },
+    "sampling": {
+      "nd_draws": 200,
+      "chunk": 100
+    },
+    "forecast": {
+      "mode": "origin",
+      "horizon": 30,
+      "train_last_window": 18,
+      "fore_last_window": 18,
+      "protocol": "rolling_origin_no_refit_state_update",
+      "origin_stride": 30,
+      "primary_lead_export": true
+    },
+    "ij": {
+      "use_ij_correction": false,
+      "nd_draws": 0
+    },
+    "synthesis": {
+      "isotonic": false,
+      "rearrange": false,
+      "grid_M": 151,
+      "n_samp": 200,
+      "seed": 850015
+    },
+    "diagnostics": {
+      "calibration": false,
+      "pit": false,
+      "scores": true,
+      "lead_eval": false,
+      "fan_charts": false,
+      "plots": false
+    },
+    "cpp": {
+      "use_postpred": false,
+      "postpred_omp": false,
+      "postpred_precompute": false,
+      "postpred_threads": 1
+    },
+    "outputs": {
+      "save": true,
+      "keep_draws": false,
+      "thesis_subset": false,
+      "keep_mcmc_vb_init": false,
+      "retention_profile": "storage_light_canonical_gap_mcmc_v2",
+      "save_forecast_objects": false,
+      "save_compact_fit_paths": true,
+      "save_metric_summaries": true,
+      "retain_full_rds_on_failure": false
+    },
+    "inference": {
+      "method": "mcmc",
+      "likelihood_family": "al",
+      "readout_scale": true,
+      "mcmc": {
+        "n_burn": 5000,
+        "n_mcmc": 20000,
+        "thin": 1,
+        "verbose": true,
+        "progress_every": 50,
+        "init_from_vb": true,
+        "vb_warm_start_control": {
+          "method": "ldvb",
+          "max_iter": 300,
+          "min_iter_elbo": 80,
+          "n_samp_xi": 1000,
+          "progress_every": 50,
+          "verbose": false,
+          "sigmagam": {
+            "freeze_warmup_iters": 10,
+            "force_after_warmup": true,
+            "postwarmup_damping": 0.5,
+            "postwarmup_damping_iters": 3,
+            "min_postwarmup_updates": 1
+          },
+          "rhs_trace": true,
+          "rhs_deep": false,
+          "rhs": {
+            "freeze_tau_iters": 50,
+            "freeze_tau_warmup_iters": 50,
+            "tau_local_tol": 0.0005,
+            "min_tau_updates": 2,
+            "force_tau_after_warmup": true
+          }
+        },
+        "store_latent_draws": false,
+        "store_rhs_draws": false,
+        "transforms": {
+          "use_log_sigma": true,
+          "sigma_eta_bounds": [-20, 20]
+        },
+        "rhs": {
+          "freeze_tau_burnin_iters": 500,
+          "freeze_tau_only_during_burn": true,
+          "width_adapt": {
+            "enabled": false,
+            "warmup_iters": 0,
+            "only_during_burn": true,
+            "target_score_low": -0.75,
+            "target_score_high": 0.75,
+            "step_size": 0.015,
+            "width_min": 0.02,
+            "width_max": 1.8
+          }
+        },
+        "sigmagam": {
+          "freeze_burnin_iters": 50,
+          "freeze_only_during_burn": true,
+          "force_after_warmup": true,
+          "delay_adapt_until_after_warmup": true,
+          "delay_laplace_refresh_until_after_warmup": true
+        },
+        "slice": {
+          "core_update_mode": "sigma_then_gamma",
+          "width_gamma": 0.42,
+          "width_sigma": 0.3,
+          "width_rhs_lambda": 0.18,
+          "width_rhs_tau": 0.1,
+          "width_rhs_c2": 0.07,
+          "width_rhs_tau_c2_block": 0.22,
+          "rhs_global_block_update": "transformed_tau_c2_block",
+          "rhs_transformed_block_passes": 3,
+          "core_extra_passes": 2,
+          "max_steps_out": 100,
+          "max_shrink": 360,
+          "max_steps_out_sigma": 160,
+          "max_shrink_sigma": 420
+        },
+        "priors": {
+          "gamma": {
+            "mu0": 0,
+            "s20": 10
+          },
+          "sigma": {
+            "a": 1,
+            "b": 1
+          },
+          "beta": {
+            "type": "rhs_ns",
+            "ridge": {
+              "tau2": 20
+            },
+            "rhs_ns": {
+              "tau0": 1e-08,
+              "a_zeta": 2,
+              "b_zeta": 1,
+              "s2": 1,
+              "shrink_intercept": false,
+              "intercept_prec": 1e-10,
+              "n_inner": 2,
+              "var_floor": 1e-08
+            }
+          }
+        },
+        "control": {
+          "rng_seed": 209482733,
+          "seed": 247844593
+        },
+        "vb_warm_start_seed": 49964244
+      }
+    },
+    "metrics": {
+      "primary_windows": ["train_effective", "rolling_forecast_leads"],
+      "fit_window_role": "effective_train_post_lag_washout",
+      "forecast_window_role": "contiguous_forecast_block_after_train_origin",
+      "train_effective_source_indices": {
+        "TT500": [8501, 9000],
+        "TT5000": [4001, 9000]
+      },
+      "forecast_source_indices": [9001, 10000],
+      "forecast_horizons": [100, 1000],
+      "rolling_origin": {
+        "enabled": true,
+        "require_lead_export": true,
+        "forecast_protocol": "rolling_origin_no_refit_state_update",
+        "state_update_method": "forecast_lattice_observed_lag_state_update_no_refit",
+        "refit_per_origin": false,
+        "max_lead_configured": 30,
+        "origin_stride": 30
+      },
+      "backward_compatible_holdout_alias": "forecast_H1000",
+      "posterior_metric_draws": 200,
+      "qtrue_metrics": ["mae", "rmse", "bias", "corr", "median_ae", "p90_ae"],
+      "quantile_calibration_metrics": ["pinball_tau", "coverage", "coverage_minus_tau", "coverage_error"],
+      "runtime_metrics": ["runtime_sec", "runtime_sec_per_1k_eval", "runtime_sec_per_1k_train_eval"]
+    },
+    "validation_spec_id": "canonical_gap_mcmc_v2__confirmation__cgcv2_al_normal_t0p05_01_64121b0e9b__canonical_article__confirmation_r01__c01",
+    "validation_stage": "all",
+    "validation": {
+      "stream_child_stdout": true,
+      "timeout_seconds": 604800,
+      "timeout_kill_after_seconds": 60
+    },
+    "telemetry": {
+      "progress_every": 50,
+      "heartbeat_seconds": 1800,
+      "stale_seconds": 1800
+    }
+  },
+  "root_spec": {
+    "source_root_kind": "dynamic",
+    "source_scenario": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+    "source_family": "normal",
+    "tau": 0.05,
+    "fit_size": 500,
+    "effective_fit_size": 500,
+    "source_total_size": 1812,
+    "source_window_label": "effTT500_m12_w300_trainEnd9000_H1000",
+    "raw_start_source_index": 8189,
+    "raw_end_source_index": 10000,
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_start_source_index": 9001,
+    "forecast_end_source_index": 10000,
+    "beta_prior_type": "rhs_ns",
+    "source_fit_input_dir": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p05/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90",
+    "source_report_root": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p05/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90",
+    "source_series_wide_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_canonical_gap_mcmc_v2/staged_source_windows/normal/tau_0p05/m12_w300/series_wide.csv",
+    "source_series_wide_sha256": "fdc14c967268e8cd48cc2118c134e1a70cf446b3684a801a472a757601680122",
+    "source_selection_indices_path": "/data/jaguir26/local/src/exdqlm__wt__qdesn_canonical_gap_mcmc_v2_1p0p0/results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_canonical_gap_mcmc_v2/staged_source_windows/normal/tau_0p05/m12_w300/selection_indices.csv",
+    "source_selection_indices_sha256": "f1cc94cfb3f36e9fb97dbde5620db40bf6c574f22e65566a467eab436d9198e0",
+    "source_sim_path": "/data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p05/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90/sim_output.rds",
+    "source_sim_sha256": "32e6509cb5463a4a6fa23b7dbee5ac980b3be9eafb01296029d10a0e3ed13d82",
+    "source_reference_root_count": 1,
+    "source_reference_priors": "default",
+    "source_current_rhsns_member": false,
+    "source_legacy_rhs_member": false,
+    "reservoir_profile": "cgcv2_al_normal_t0p05_01_64121b0e9b",
+    "screening_profile_id": "cgcv2_al_normal_t0p05_01_64121b0e9b",
+    "screening_stage": "qdesn_dynamic_fitforecast_v2_500obs_canonical_gap_mcmc_v2",
+    "screening_wave": "confirmation",
+    "profile_role": "canonical_direct_novel_screen",
+    "rhs_tau0": 1e-08,
+    "readout_y_lags": 1,
+    "reservoir_lags": 0,
+    "dimension_p_estimate": 47,
+    "p_over_n_tt500": 0.094,
+    "enabled": true,
+    "dataset_cell_id": "dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p05__efftt_500",
+    "scenario": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+    "seed": 123,
+    "desn_seed": 232808685,
+    "mcmc_seed": 247844593,
+    "mcmc_rng_seed": 209482733,
+    "vb_warm_start_seed": 49964244,
+    "synthesis_seed": 850015,
+    "root_id": "confirmation__cgcv2_al_normal_t0p05_01_64121b0e9b__canonical_article__confirmation_r01__c01",
+    "likelihood_family": "al",
+    "reservoir_seed_id": "confirmation_r01",
+    "reservoir_seed_contract": "paired_target_cell_panel_independent_of_source_and_candidate",
+    "source_latent_seed": "NA",
+    "source_noise_seed": "NA",
+    "effective_readout_dimension": 47,
+    "maximum_effective_readout_dimension": 900
+  },
+  "study_contract": {
+    "package_version": "1.0.0",
+    "canonical_source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+    "development_source_registry_sha256": "ef8d83fb7c657dada928da3cf0427f73a3d70f98aae88886618bea0e81b13e46",
+    "preprocessing_scope": "train_only",
+    "train_window": [8501, 9000],
+    "forecast_window": [9001, 10000],
+    "max_lead": 30,
+    "origin_stride": 30,
+    "effective_readout_dimension": 47,
+    "maximum_effective_readout_dimension": 900,
+    "seed_contract": {
+      "source_seed_fields": ["source_latent_seed", "source_noise_seed"],
+      "reservoir_seed_id": "confirmation_r01",
+      "reservoir_seed": 144669038,
+      "reservoir_seed_independent_of_source": true,
+      "reservoir_seed_independent_of_candidate": true,
+      "chain_seed_independent": true
+    },
+    "article_promotion_automatic": false,
+    "full_confirmation_requires_explicit_approval": true,
+    "validation_stage": "qdesn_dynamic_fitforecast_v2_500obs_canonical_gap_mcmc_v2",
+    "tier": "A",
+    "metric_specific_authority": true,
+    "posterior_recycled_as_prior": false,
+    "authority_interface": "qdesn_dqlm_500obs_trainonly_article_v8_forecast_gap_adaptive_20260819",
+    "canonical_data_screening": true,
+    "diagnostics_are_promotion_veto": false,
+    "promotion_requires_strict_metric_gain": true,
+    "global_specification_required": false
+  },
+  "likelihood_target": "al",
+  "target_metrics": ["forecast_qtrue_mae_H1000", "forecast_check_loss_H1000"],
+  "current_metric_values": {
+    "fit_qtrue_rmse": 2.77930616092277,
+    "forecast_qtrue_mae_H1000": 8.41010688108774,
+    "forecast_check_loss_H1000": 1.22089963319577
+  },
+  "comparator_metric_values": {
+    "fit_qtrue_rmse": 1.93507209370306,
+    "forecast_qtrue_mae_H1000": 3.82939574999438,
+    "forecast_check_loss_H1000": 1.10333423076769
+  }
+}
