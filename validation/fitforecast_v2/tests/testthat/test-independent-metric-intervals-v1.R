@@ -64,6 +64,7 @@ testthat::test_that("launch and publication ownership remain lane-scoped", {
     "run_independent_metric_intervals_v1_job.R",
     "verify_independent_metric_intervals_v1_plan.R",
     "closeout_independent_metric_intervals_v1.R",
+    "promote_independent_metric_intervals_v1.R",
     "run_independent_metric_intervals_v1_pipeline.sh"
   ))
   text <- paste(unlist(lapply(scripts, readLines, warn = FALSE)), collapse = "\n")
@@ -73,6 +74,18 @@ testthat::test_that("launch and publication ownership remain lane-scoped", {
   testthat::expect_match(text, "READY_FOR_INTEGRATION", fixed = TRUE)
   testthat::expect_match(text, "IMI_V1_LAUNCH_APPROVED", fixed = TRUE)
   testthat::expect_match(text, "m0_v_collapsed_support_logit", fixed = TRUE)
+})
+
+testthat::test_that("article interval assets disclose metric-level warnings", {
+  closeout <- readLines(file.path(
+    harness_root, "scripts", "closeout_independent_metric_intervals_v1.R"
+  ), warn = FALSE)
+  text <- paste(closeout, collapse = "\n")
+  testthat::expect_match(text, "fit_diagnostic_grade", fixed = TRUE)
+  testthat::expect_match(text, "forecast_mae_diagnostic_grade", fixed = TRUE)
+  testthat::expect_match(text, "forecast_check_diagnostic_grade", fixed = TRUE)
+  testthat::expect_match(text, "textsuperscript", fixed = TRUE)
+  testthat::expect_match(text, "warnings; %d warning-marked metrics", fixed = TRUE)
 })
 
 testthat::test_that("pipeline limits numerical threads before R starts", {

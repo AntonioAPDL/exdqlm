@@ -189,13 +189,19 @@ model_tex <- c(
 )
 family_tex <- c(normal = "Gaussian", laplace = "Laplace", gausmix = "Gaussian mixture")
 metric_specs <- list(
-  list(point = "fit_qtrue_rmse", lo = "fit_cri_lower", hi = "fit_cri_upper"),
-  list(point = "forecast_qtrue_mae_H1000", lo = "forecast_mae_cri_lower", hi = "forecast_mae_cri_upper"),
-  list(point = "forecast_check_loss_H1000", lo = "forecast_check_cri_lower", hi = "forecast_check_cri_upper")
+  list(point = "fit_qtrue_rmse", lo = "fit_cri_lower", hi = "fit_cri_upper",
+       diagnostic = "fit_diagnostic_grade"),
+  list(point = "forecast_qtrue_mae_H1000", lo = "forecast_mae_cri_lower",
+       hi = "forecast_mae_cri_upper", diagnostic = "forecast_mae_diagnostic_grade"),
+  list(point = "forecast_check_loss_H1000", lo = "forecast_check_cri_lower",
+       hi = "forecast_check_cri_upper", diagnostic = "forecast_check_diagnostic_grade")
 )
 cell_tex <- function(row, spec, best) {
   mean_text <- fmt(row[[spec$point]])
   if (isTRUE(best)) mean_text <- paste0("\\textbf{", mean_text, "}")
+  if (identical(as.character(row[[spec$diagnostic]]), "WARN")) {
+    mean_text <- paste0(mean_text, "\\textsuperscript{\\(\\dagger\\)}")
+  }
   paste0("\\shortstack{", mean_text, "\\\\{\\scriptsize [",
          fmt(row[[spec$lo]]), ", ", fmt(row[[spec$hi]]), "]}}")
 }
@@ -226,9 +232,12 @@ render_family <- function(inference, family) {
   }
   qualifier <- if (inference == "vb") "Approximate posterior" else "Posterior"
   label_family <- if (family == "gausmix") "gausmix" else family
+  diagnostic_note <- if (inference == "mcmc") {
+    " A dagger marks a metric-level warning in the supporting diagnostics; warnings are disclosed and are not used as exclusion rules."
+  } else ""
   caption <- sprintf(
-    "%s metric intervals for the %s single-quantile simulation family. Entries report posterior means with equal-tailed 95\\%% credible intervals in brackets. Fit RMSE compares conditional-quantile draws with the oracle training path; forecast MAE and check loss aggregate the fixed rolling-origin grid. Lower posterior means are better, and boldface marks the lowest displayed mean within each target level and criterion. Intervals condition on the fixed simulated data, evaluation design, and reservoir realization; VB intervals are approximate.",
-    qualifier, family_tex[[family]]
+    "%s metric intervals for the %s single-quantile simulation family. Entries report posterior means with equal-tailed 95\\%% credible intervals in brackets. Fit RMSE compares conditional-quantile draws with the oracle training path; forecast MAE and check loss aggregate the fixed rolling-origin grid. Lower posterior means are better, and boldface marks the lowest displayed mean within each target level and criterion. Intervals condition on the fixed simulated data, evaluation design, and reservoir realization; VB intervals are approximate.%s",
+    qualifier, family_tex[[family]], diagnostic_note
   )
   c(lines, "\\bottomrule", "\\end{tabular}",
     paste0("\\caption{", caption, "}"),
@@ -253,10 +262,22 @@ for (inference in c("mcmc", "vb")) {
   asset_paths <- c(asset_paths, master)
 }
 prose_path <- file.path(asset_root, "qdesn_validation_500obs_metric_intervals_prose.tex")
+diagnostic_pass_n <- sum(diagnostic_table$diagnostic_grade == "PASS")
+diagnostic_warn_n <- sum(diagnostic_table$diagnostic_grade == "WARN")
+displayed_warning_n <- sum(c(
+  interface$fit_diagnostic_grade,
+  interface$forecast_mae_diagnostic_grade,
+  interface$forecast_check_diagnostic_grade
+) == "WARN")
 writeLines(c(
   "Each metric is recomputed for every retained conditional-quantile draw. Table entries report the posterior mean and equal-tailed 95\\% credible interval of the resulting draw-wise metric. The fit criterion is oracle-path RMSE over the 500-observation training window; forecast MAE and check loss aggregate the same 1,000 rolling-origin lead-target pairs used by the point comparison. These intervals condition on the fixed simulated data set, evaluation grid, and case-specific reservoir realization, and therefore do not represent repeated-simulation or reservoir-design uncertainty. Variational Bayes intervals are approximate.",
   "",
-  "The displayed specifications remain metric- and case-specific selections frozen before this interval campaign. Q--DESN and exQ--DESN intervals use conditional-quantile path draws; DQLM and exDQLM use latent-state quantile draws. Response-predictive draws are not used to form the metric intervals."
+  "The displayed specifications remain metric- and case-specific selections frozen before this interval campaign. Q--DESN and exQ--DESN intervals use conditional-quantile path draws; DQLM and exDQLM use latent-state quantile draws. Response-predictive draws are not used to form the metric intervals.",
+  "",
+  sprintf(
+    "Among the %d pooled MCMC source--metric diagnostics, %d pass and %d are warnings; %d warning-marked metrics contribute to displayed table cells. Warnings remain disclosure fields and do not alter metric inclusion.",
+    nrow(diagnostic_table), diagnostic_pass_n, diagnostic_warn_n, displayed_warning_n
+  )
 ), prose_path, useBytes = TRUE)
 asset_paths <- c(asset_paths, prose_path)
 asset_manifest <- data.frame(
