@@ -232,12 +232,15 @@ render_family <- function(inference, family) {
   }
   qualifier <- if (inference == "vb") "Approximate posterior" else "Posterior"
   label_family <- if (family == "gausmix") "gausmix" else family
+  approximation_note <- if (inference == "vb") {
+    " Variational Bayes intervals are approximate."
+  } else ""
   diagnostic_note <- if (inference == "mcmc") {
     " A dagger marks a metric-level warning in the supporting diagnostics; warnings are disclosed and are not used as exclusion rules."
   } else ""
   caption <- sprintf(
-    "%s metric intervals for the %s single-quantile simulation family. Entries report posterior means with equal-tailed 95\\%% credible intervals in brackets. Fit RMSE compares conditional-quantile draws with the oracle training path; forecast MAE and check loss aggregate the fixed rolling-origin grid. Lower posterior means are better, and boldface marks the lowest displayed mean within each target level and criterion. Intervals condition on the fixed simulated data, evaluation design, and reservoir realization; VB intervals are approximate.%s",
-    qualifier, family_tex[[family]], diagnostic_note
+    "%s metric intervals for the %s single-quantile simulation family. Entries report posterior means with equal-tailed 95\\%% credible intervals in brackets. Fit RMSE compares conditional-quantile draws with the oracle training path; forecast MAE and check loss aggregate the fixed rolling-origin grid. Lower posterior means are better, and boldface marks the lowest displayed mean within each target level and criterion. Intervals condition on the fixed simulated data, evaluation design, and reservoir realization.%s%s",
+    qualifier, family_tex[[family]], approximation_note, diagnostic_note
   )
   c(lines, "\\bottomrule", "\\end{tabular}",
     paste0("\\caption{", caption, "}"),
