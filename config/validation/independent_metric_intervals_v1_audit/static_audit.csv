@@ -1,0 +1,11 @@
+"check","pass"
+"authority_interface_exists",TRUE
+"authority_manifest_exists",TRUE
+"article_rows_72",TRUE
+"metric_roles_216",TRUE
+"source_identities_90",TRUE
+"vb_sources_36",TRUE
+"mcmc_sources_54",TRUE
+"production_jobs_198",TRUE
+"qdesn_requests_resolved",TRUE
+"source_metric_values_finite",TRUE

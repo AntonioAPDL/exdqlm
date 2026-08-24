@@ -255,7 +255,10 @@ ffv2_run_row <- function(config_path,
     suppressPackageStartupMessages(pkgload::load_all(config$repo_root, quiet = TRUE))
     stored_draws <- as.integer((config$budget %||% list())$stored_draws %||% 2000L)
     forecast_draws_n <- as.integer((config$budget %||% list())$forecast_draws %||% 2000L)
-    seed <- 100000L + as.integer(config$row_id)
+    seed <- as.integer(config$seed %||% (100000L + as.integer(config$row_id)))[1L]
+    if (!is.finite(seed) || seed < 1L) {
+      stop("Row RNG seed must be a positive finite integer.", call. = FALSE)
+    }
 
     read_existing_summary <- function(path, role) {
       if (is.null(path) || !file.exists(path)) {
@@ -280,13 +283,61 @@ ffv2_run_row <- function(config_path,
       fit_draws <- ffv2_post_pred_draws(fit, nrow(data$train), seed = seed, n_draws = stored_draws)
       fit_qhat <- ffv2_fit_qhat(fit)
       if (is.null(fit_qhat)) fit_qhat <- apply(fit_draws, 1L, stats::median, na.rm = TRUE)
-      ffv2_path_summary(
+      out <- ffv2_path_summary(
         row_df = data$train,
         draws = fit_draws,
         tau = config$tau,
         split_role = "fit_train",
         qhat_override = fit_qhat
       )
+      interval_cfg <- ffv2_metric_interval_cfg(config)
+      if (isTRUE(interval_cfg$enabled)) {
+        q_draws <- ffv2_dqlm_conditional_quantile_draws(fit, interval_cfg$draws)
+        if (nrow(q_draws) != nrow(data$train)) {
+          stop("DQLM/exDQLM fit interval draws are not aligned to the training window.",
+               call. = FALSE)
+        }
+        err <- sweep(q_draws, 1L, as.numeric(data$train$q_true), "-")
+        attr(out, "metric_interval_fit") <- data.frame(
+          draw_id = seq_len(ncol(q_draws)),
+          source_draw_index = as.integer(attr(q_draws, "source_draw_index")),
+          fit_rmse = sqrt(colMeans(err^2, na.rm = TRUE)),
+          draw_source = "latent_conditional_quantile_F_theta",
+          stringsAsFactors = FALSE
+        )
+      }
+      out
+    }
+
+    write_metric_intervals <- function(fit_summary, forecast_summary) {
+      interval_cfg <- ffv2_metric_interval_cfg(config)
+      if (!isTRUE(interval_cfg$enabled)) return(invisible(NULL))
+      fit_part <- attr(fit_summary, "metric_interval_fit")
+      forecast_part <- attr(forecast_summary, "metric_interval_forecast")
+      if (is.null(fit_part) || is.null(forecast_part)) {
+        stop("Metric interval components are missing from the fit or forecast stage.",
+             call. = FALSE)
+      }
+      n <- min(nrow(fit_part), nrow(forecast_part))
+      if (n < 2L) stop("Metric interval components contain fewer than two draws.", call. = FALSE)
+      metric_draws <- data.frame(
+        chain_id = as.integer((config$metric_intervals %||% list())$chain_id %||%
+                                config$chain_id %||% 1L),
+        draw_id = seq_len(n),
+        source_draw_index = as.integer(fit_part$source_draw_index[seq_len(n)]),
+        fit_rmse = as.numeric(fit_part$fit_rmse[seq_len(n)]),
+        forecast_mae = as.numeric(forecast_part$forecast_mae[seq_len(n)]),
+        forecast_check_loss = as.numeric(
+          forecast_part$forecast_check_loss[seq_len(n)]
+        ),
+        draw_source = paste(
+          as.character(fit_part$draw_source[[1L]]),
+          as.character(forecast_part$draw_source[[1L]]),
+          sep = "+"
+        ),
+        stringsAsFactors = FALSE
+      )
+      ffv2_write_metric_interval_artifacts(config, metric_draws)
     }
 
     compute_forecast_summary <- function(fit, data) {
@@ -447,6 +498,8 @@ ffv2_run_row <- function(config_path,
 
       forecast_summary <- compute_forecast_summary(fit, data)
     }
+
+    write_metric_intervals(fit_summary, forecast_summary)
 
     ffv2_record_progress(
       config,

@@ -216,6 +216,10 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
   origins <- sort(unique(as.integer(grid$forecast_origin_source_index)))
   n_draws <- as.integer(n_draws %||% 2000L)[1L]
   if (!is.finite(n_draws) || n_draws < 1L) n_draws <- 2000L
+  interval_cfg <- ffv2_metric_interval_cfg(config)
+  interval_abs_error <- if (isTRUE(interval_cfg$enabled)) numeric(interval_cfg$draws) else NULL
+  interval_check_loss <- if (isTRUE(interval_cfg$enabled)) numeric(interval_cfg$draws) else NULL
+  interval_rows <- 0L
   rows <- list()
   row_i <- 0L
   for (origin_idx in seq_along(origins)) {
@@ -248,6 +252,13 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
       n.samp = n_draws,
       seed = as.integer(seed) + origin_idx
     )
+    latent_quantile_draws <- if (isTRUE(interval_cfg$enabled)) {
+      ffv2_latent_forecast_draws(
+        forecast,
+        n_draws = interval_cfg$draws,
+        seed = as.integer(seed) + 100000L + origin_idx
+      )
+    } else NULL
     for (j in seq_len(nrow(origin_grid))) {
       lead <- as.integer(origin_grid$forecast_lead[[j]])
       target <- as.integer(origin_grid$target_source_index[[j]])
@@ -259,6 +270,15 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
       draw_row <- matrix(forecast$samp.fore[lead, ], nrow = 1L)
       qhat <- as.numeric(forecast$ff[[lead]])
       qs <- ffv2_quantile_columns(draw_row)
+      if (isTRUE(interval_cfg$enabled)) {
+        latent_row <- as.numeric(latent_quantile_draws[lead, ])
+        interval_abs_error <- interval_abs_error +
+          abs(latent_row - as.numeric(target_row$q_true[[1L]]))
+        interval_check_loss <- interval_check_loss + ffv2_check_loss(
+          as.numeric(target_row$y[[1L]]), latent_row, as.numeric(config$tau)
+        )
+        interval_rows <- interval_rows + 1L
+      }
       row_i <- row_i + 1L
       rows[[row_i]] <- cbind(
         data.frame(
@@ -305,7 +325,21 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
     message = "Rolling-origin forecast completed"
   )
   out <- ffv2_bind_rows(rows)
-  out[order(as.integer(out$forecast_origin_source_index), as.integer(out$forecast_lead)), , drop = FALSE]
+  out <- out[order(as.integer(out$forecast_origin_source_index), as.integer(out$forecast_lead)), , drop = FALSE]
+  if (isTRUE(interval_cfg$enabled)) {
+    if (interval_rows != 1000L) {
+      stop(sprintf("Rolling metric interval contract requires 1000 rows; found %d.",
+                   interval_rows), call. = FALSE)
+    }
+    attr(out, "metric_interval_forecast") <- data.frame(
+      draw_id = seq_len(interval_cfg$draws),
+      forecast_mae = interval_abs_error / interval_rows,
+      forecast_check_loss = interval_check_loss / interval_rows,
+      draw_source = "latent_state_quantile_ff_fQ",
+      stringsAsFactors = FALSE
+    )
+  }
+  out
 }
 
 ffv2_rolling_lead_metrics <- function(config, forecast_summary) {

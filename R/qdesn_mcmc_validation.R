@@ -1484,6 +1484,27 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
       }
     )
   }
+  interval_cfg <- .qdesn_validation_metric_interval_cfg(defaults)
+  metric_intervals <- list(
+    status = if (isTRUE(interval_cfg$enabled)) "MISSING" else "DISABLED",
+    draws = NA_character_, summary = NA_character_, manifest = NA_character_, rows = 0L
+  )
+  metric_interval_error <- NA_character_
+  if (isTRUE(interval_cfg$enabled) && !is.null(summary_obj)) {
+    metric_intervals <- tryCatch(
+      .qdesn_validation_write_metric_interval_artifacts(
+        summary_obj = summary_obj,
+        root_spec = root_spec,
+        method_dir = method_dir,
+        defaults = defaults
+      ),
+      error = function(e) {
+        metric_interval_error <<- conditionMessage(e)
+        list(status = "FAIL", draws = NA_character_, summary = NA_character_,
+             manifest = NA_character_, rows = 0L)
+      }
+    )
+  }
 
   status_chr <- toupper(as.character(status %||% NA_character_)[1L])
   success_like <- identical(status_chr, "SUCCESS")
@@ -1500,6 +1521,11 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     as.integer(compact_paths$holdout_rows %||% 0L) > 0L
   compact_ready <- !isTRUE(cfg$save_compact_fit_paths) ||
     (is.na(compact_error) && isTRUE(compact_fit_paths_ready) && isTRUE(alignment_ready))
+  metric_intervals_ready <- !isTRUE(interval_cfg$required) ||
+    (identical(as.character(metric_intervals$status), "PASS") &&
+       as.integer(metric_intervals$rows %||% 0L) >= 2L &&
+       is.na(metric_interval_error))
+  compact_ready <- isTRUE(compact_ready) && isTRUE(metric_intervals_ready)
   should_prune_forecast <- !isTRUE(cfg$save_forecast_objects) &&
     file.exists(forecast_path) &&
     isTRUE(compact_ready) &&
@@ -1563,6 +1589,15 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     compact_fit_paths_ready = isTRUE(compact_fit_paths_ready),
     compact_ready_for_pruning = isTRUE(compact_ready),
     compact_error = compact_error,
+    metric_intervals_enabled = isTRUE(interval_cfg$enabled),
+    metric_intervals_required = isTRUE(interval_cfg$required),
+    metric_intervals_status = metric_intervals$status,
+    metric_intervals_ready_for_pruning = isTRUE(metric_intervals_ready),
+    metric_interval_draws_path = metric_intervals$draws,
+    metric_interval_summary_path = metric_intervals$summary,
+    metric_interval_manifest_path = metric_intervals$manifest,
+    metric_interval_draw_rows = as.integer(metric_intervals$rows %||% 0L),
+    metric_interval_error = metric_interval_error,
     forecast_objects_path = normalizePath(forecast_path, winslash = "/", mustWork = FALSE),
     forecast_objects_bytes_before = as.numeric(forecast_bytes_before),
     forecast_objects_prune_requested = isTRUE(should_prune_forecast),
@@ -1580,6 +1615,12 @@ qdesn_validation_build_pipeline_cfg <- function(root_spec, defaults, method = c(
     rhs_trace_exists_after = file.exists(rhs_trace_path)
   )
   .qdesn_validation_write_json(file.path(method_dir, "manifest", "output_retention.json"), manifest)
+  if (isTRUE(success_like) && isTRUE(interval_cfg$required) && !isTRUE(metric_intervals_ready)) {
+    detail <- if (!is.na(metric_interval_error) && nzchar(metric_interval_error)) {
+      metric_interval_error
+    } else "required metric interval artifacts are missing"
+    stop(sprintf("Required Q-DESN metric interval export failed: %s", detail), call. = FALSE)
+  }
   if (isTRUE(required_lead_export_failure)) {
     detail <- if (!is.na(compact_error) && nzchar(compact_error)) {
       compact_error

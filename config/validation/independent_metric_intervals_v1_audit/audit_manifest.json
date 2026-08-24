@@ -1,0 +1,33 @@
+{
+  "schema_version": "independent_metric_intervals_v1",
+  "generated_at": "2026-08-23 22:51:11 EDT",
+  "authority_id": "qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821",
+  "authority_interface_path": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821/qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821_interface.csv",
+  "authority_interface_sha256": "eb697b6f3e366581d158a41ecd2213761486be769b541439d2d862d840ea4b27",
+  "authority_manifest_path": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821/qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821_manifest.json",
+  "authority_manifest_sha256": "b5a87a3b5a69ac36a1a16ee8a2638ca3d374ea1d6a80b6b72ba44901376a3993",
+  "article_rows": 72,
+  "metric_roles": 216,
+  "source_identities": 90,
+  "planned_jobs": 198,
+  "checks_pass": 10,
+  "checks_total": 10,
+  "files": [
+    {
+      "role": "metric_role_ledger",
+      "path": "metric_role_ledger.csv"
+    },
+    {
+      "role": "source_replay_registry",
+      "path": "source_replay_registry.csv"
+    },
+    {
+      "role": "request_catalog",
+      "path": "request_catalog.csv"
+    },
+    {
+      "role": "static_audit",
+      "path": "static_audit.csv"
+    }
+  ]
+}
