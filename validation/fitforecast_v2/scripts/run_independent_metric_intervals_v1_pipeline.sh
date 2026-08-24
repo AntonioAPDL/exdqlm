@@ -9,6 +9,17 @@ WORKERS="${WORKERS:-20}"
 STATE_ROOT="${STATE_ROOT:-${REPO_ROOT}/reports/shared_fitforecast_v2_orchestration/${RUN_ID}}"
 PIPELINE_LOG="${STATE_ROOT}/pipeline.stdout.log"
 
+# Apply numerical-library limits before R initializes its thread pools.
+export OMP_NUM_THREADS=1
+export OMP_THREAD_LIMIT=1
+export OMP_DYNAMIC=FALSE
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export BLIS_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export RCPP_PARALLEL_NUM_THREADS=1
+
 branch="$(git -C "${REPO_ROOT}" branch --show-current)"
 if [[ "${branch}" != "validation/independent-metric-intervals-v1-1.0.0" ]]; then
   echo "Refusing to run from unexpected branch: ${branch}" >&2

@@ -74,3 +74,18 @@ testthat::test_that("launch and publication ownership remain lane-scoped", {
   testthat::expect_match(text, "IMI_V1_LAUNCH_APPROVED", fixed = TRUE)
   testthat::expect_match(text, "m0_v_collapsed_support_logit", fixed = TRUE)
 })
+
+testthat::test_that("pipeline limits numerical threads before R starts", {
+  pipeline <- readLines(file.path(
+    harness_root, "scripts", "run_independent_metric_intervals_v1_pipeline.sh"
+  ), warn = FALSE)
+  required <- c(
+    "export OMP_NUM_THREADS=1",
+    "export OMP_THREAD_LIMIT=1",
+    "export OPENBLAS_NUM_THREADS=1",
+    "export MKL_NUM_THREADS=1",
+    "export BLIS_NUM_THREADS=1",
+    "export RCPP_PARALLEL_NUM_THREADS=1"
+  )
+  testthat::expect_true(all(required %in% pipeline))
+})
