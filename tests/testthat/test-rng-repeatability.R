@@ -171,17 +171,31 @@ test_that("stochastic helpers are repeatable across fresh R processes and thread
   run_child <- function(threads) {
     out_file <- tempfile("exdqlm-rng-child-", fileext = ".rds")
     on.exit(unlink(out_file), add = TRUE)
+    env_names <- c(
+      "OMP_NUM_THREADS", "OMP_THREAD_LIMIT", "OPENBLAS_NUM_THREADS",
+      "MKL_NUM_THREADS", "BLIS_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"
+    )
+    old_env <- Sys.getenv(env_names, unset = NA_character_)
+    on.exit({
+      for (nm in env_names) {
+        if (is.na(old_env[[nm]])) {
+          Sys.unsetenv(nm)
+        } else {
+          do.call(Sys.setenv, stats::setNames(as.list(old_env[[nm]]), nm))
+        }
+      }
+    }, add = TRUE)
+    Sys.setenv(
+      OMP_NUM_THREADS = as.character(threads),
+      OMP_THREAD_LIMIT = as.character(threads),
+      OPENBLAS_NUM_THREADS = "1",
+      MKL_NUM_THREADS = "1",
+      BLIS_NUM_THREADS = "1",
+      VECLIB_MAXIMUM_THREADS = "1"
+    )
     status <- system2(
       file.path(R.home("bin"), "Rscript"),
       args = c("--vanilla", shQuote(child_script), shQuote(out_file)),
-      env = c(
-        sprintf("OMP_NUM_THREADS=%d", threads),
-        sprintf("OMP_THREAD_LIMIT=%d", threads),
-        "OPENBLAS_NUM_THREADS=1",
-        "MKL_NUM_THREADS=1",
-        "BLIS_NUM_THREADS=1",
-        "VECLIB_MAXIMUM_THREADS=1"
-      ),
       stdout = TRUE,
       stderr = TRUE
     )
