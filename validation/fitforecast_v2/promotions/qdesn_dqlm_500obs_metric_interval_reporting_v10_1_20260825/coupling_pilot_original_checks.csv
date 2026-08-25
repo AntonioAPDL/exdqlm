@@ -1,0 +1,9 @@
+"check","pass"
+"jobs_33_success",TRUE
+"coupling_hashes_match",TRUE
+"three_chains_per_source",TRUE
+"primary_replay_matches_v10",FALSE
+"finite_paired_statistics",TRUE
+"mean_invariance",TRUE
+"no_overlap_conclusion_change",TRUE
+"no_heavy_binaries",TRUE

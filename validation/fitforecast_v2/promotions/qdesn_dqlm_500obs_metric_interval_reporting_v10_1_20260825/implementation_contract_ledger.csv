@@ -1,0 +1,5 @@
+"engine","component","implementation_file","implementation_function","rows","draw_source","audit_result"
+"qdesn","fit","R/qdesn_validation_metric_intervals.R",".qdesn_validation_metric_draws_from_summary",500,"mu_draws_tr","MATCHES_DECLARED_NATIVE_CONTRACT"
+"qdesn","forecast","R/qdesn_validation_metric_intervals.R",".qdesn_validation_metric_draws_from_summary",1000,"mu_by_origin","MATCHES_DECLARED_NATIVE_CONTRACT"
+"dqlm","fit","validation/fitforecast_v2/R/metric_intervals_v1.R","ffv2_dqlm_conditional_quantile_draws",500,"samp.theta projected by FF","MATCHES_DECLARED_NATIVE_CONTRACT"
+"dqlm","forecast","validation/fitforecast_v2/R/exdqlm_rolling_state.R","ffv2_rolling_exdqlm_forecast_summary",1000,"latent ff/fQ marginals","MATCHES_DECLARED_NATIVE_CONTRACT"

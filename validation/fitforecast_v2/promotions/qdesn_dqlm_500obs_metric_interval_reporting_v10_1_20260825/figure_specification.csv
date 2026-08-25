@@ -1,0 +1,7 @@
+"inference","metric_role","metric_label","expected_rows","width_inches","height_inches","png_dpi","point_shape","interval_probability"
+"mcmc","fit","Fit RMSE",36,7.2,6.6,600,"x",0.95
+"mcmc","forecast_mae","Forecast MAE",36,7.2,6.6,600,"x",0.95
+"mcmc","forecast_check","Forecast check loss",36,7.2,6.6,600,"x",0.95
+"vb","fit","Fit RMSE",36,7.2,6.6,600,"x",0.95
+"vb","forecast_mae","Forecast MAE",36,7.2,6.6,600,"x",0.95
+"vb","forecast_check","Forecast check loss",36,7.2,6.6,600,"x",0.95

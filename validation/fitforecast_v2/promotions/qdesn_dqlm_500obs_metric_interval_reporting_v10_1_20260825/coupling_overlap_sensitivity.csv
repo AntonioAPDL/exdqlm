@@ -1,0 +1,13 @@
+"family","tau","metric","contract","winner","winner_mean","runner_up","runner_up_mean","winner_runner_intervals_overlap","current_overlap","overlap_conclusion_changed"
+"gausmix",0.05,"forecast_check_loss","current","dqlm",1.52146432371021,"qdesn_exal_rhs_ns",1.57437108248999,TRUE,TRUE,FALSE
+"gausmix",0.05,"forecast_check_loss","dependence_bound","dqlm",1.52146432371021,"qdesn_exal_rhs_ns",1.57437108248999,TRUE,TRUE,FALSE
+"gausmix",0.05,"forecast_check_loss","matched_product","dqlm",1.52146432371021,"qdesn_exal_rhs_ns",1.57437108248999,TRUE,TRUE,FALSE
+"gausmix",0.05,"forecast_mae","current","dqlm",3.4836904456989,"qdesn_exal_rhs_ns",3.69714047264842,TRUE,TRUE,FALSE
+"gausmix",0.05,"forecast_mae","dependence_bound","dqlm",3.4836904456989,"qdesn_exal_rhs_ns",3.69714047264842,TRUE,TRUE,FALSE
+"gausmix",0.05,"forecast_mae","matched_product","dqlm",3.4836904456989,"qdesn_exal_rhs_ns",3.69714047264842,TRUE,TRUE,FALSE
+"normal",0.25,"forecast_check_loss","current","qdesn_exal_rhs_ns",3.39048251653754,"qdesn_al_rhs_ns",3.40016787944602,TRUE,TRUE,FALSE
+"normal",0.25,"forecast_check_loss","dependence_bound","qdesn_exal_rhs_ns",3.39048251653754,"qdesn_al_rhs_ns",3.40016787944602,TRUE,TRUE,FALSE
+"normal",0.25,"forecast_check_loss","matched_product","qdesn_exal_rhs_ns",3.39048251653754,"qdesn_al_rhs_ns",3.40016787944602,TRUE,TRUE,FALSE
+"normal",0.25,"forecast_mae","current","qdesn_exal_rhs_ns",3.00375681380105,"qdesn_al_rhs_ns",3.15532472379181,TRUE,TRUE,FALSE
+"normal",0.25,"forecast_mae","dependence_bound","qdesn_exal_rhs_ns",3.00375681380105,"qdesn_al_rhs_ns",3.15532472379181,TRUE,TRUE,FALSE
+"normal",0.25,"forecast_mae","matched_product","qdesn_exal_rhs_ns",3.00375681380105,"qdesn_al_rhs_ns",3.15532472379181,TRUE,TRUE,FALSE

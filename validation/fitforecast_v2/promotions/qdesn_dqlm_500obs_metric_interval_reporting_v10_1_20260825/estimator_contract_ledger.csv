@@ -1,0 +1,3 @@
+"engine","fit_draw_contract","forecast_draw_contract","response_predictive_draws_used","implementation_status","primary_interval_status"
+"qdesn","aligned posterior readout draw across the 500-row training path","native posterior readout identity aligned across rolling origins and leads",FALSE,"MATCHES_DECLARED_NATIVE_CONTRACT","RETAIN"
+"dqlm","aligned sampled state path across the 500-row training path","product coupling of origin-lead latent quantile marginals from ff and fQ",FALSE,"MATCHES_DECLARED_NATIVE_CONTRACT","RETAIN"
