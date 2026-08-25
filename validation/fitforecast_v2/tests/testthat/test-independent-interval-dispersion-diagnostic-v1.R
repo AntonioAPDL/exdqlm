@@ -78,6 +78,23 @@ testthat::test_that("sentinel authority and launch scripts remain lane scoped", 
   testthat::expect_match(text, "OMP_NUM_THREADS=1", fixed = TRUE)
 })
 
+testthat::test_that("both pipeline entrypoints export the recursion counterfactual", {
+  pipelines <- file.path(repo_root, "scripts", c(
+    "pipeline_sim_main.R",
+    "pipeline_real_main.R"
+  ))
+  testthat::expect_true(all(file.exists(pipelines)))
+  for (pipeline in pipelines) {
+    text <- paste(readLines(pipeline, warn = FALSE), collapse = "\n")
+    testthat::expect_match(text, "dispersion_diagnostic", fixed = TRUE)
+    testthat::expect_match(text, "recursion_mode = \"conditional_mean_plugin\"",
+                           fixed = TRUE)
+    testthat::expect_match(text, "mu_by_origin_conditional_mean_plugin",
+                           fixed = TRUE)
+    testthat::expect_match(text, "dispersion_diagnostic_contract", fixed = TRUE)
+  }
+})
+
 testthat::test_that("tau0-only follow-up is mechanism gated", {
   pooled <- data.frame(
     replay_id = c("a", "b"), model_variant = "qdesn_al_rhs_ns",
