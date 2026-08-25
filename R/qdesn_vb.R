@@ -1134,7 +1134,13 @@ exal_vb_posterior_draws <- function(fit_exal, nd = 1000L) {
   }
   sigma <- exp(ell)
 
-  list(beta = B, sigma = sigma, gamma = gamma, nd = nd)
+  list(
+    beta = B,
+    sigma = sigma,
+    gamma = gamma,
+    nd = nd,
+    source_draw_index = seq_len(nd)
+  )
 }
 
 #' Posterior predictive samples for an exAL-LDVB regression
@@ -1940,6 +1946,9 @@ forecast_paths.qdesn_fit <- function(
 #' @param mix_nd number of mixture draws per target (defaults to nd)
 #' @param keep_origin_draws if FALSE, drop per-origin draws after mixture
 #' @param draws optional posterior draws list from exal_vb_posterior_draws()
+#' @param recursion_mode recursive posterior-predictive histories (the default)
+#'   or a diagnostic conditional-mean plug-in history. The latter changes only
+#'   recursive future lag inputs and is not the primary forecast estimator.
 #' @return list with per-origin draws (optional) and mixture draws per target
 #' @export
 forecast_lattice.qdesn_fit <- function(
@@ -1952,13 +1961,15 @@ forecast_lattice.qdesn_fit <- function(
   chunk = 256L,
   seed = NULL,
   keep_origin_draws = TRUE,
-  draws = NULL
+  draws = NULL,
+  recursion_mode = c("posterior_predictive", "conditional_mean_plugin")
 ) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   origins <- as.integer(origins)
   y_all <- as.numeric(y_all)
+  recursion_mode <- match.arg(recursion_mode)
 
   if (is.null(y_obs_last)) y_obs_last <- length(y_all)
   y_obs_last <- as.integer(y_obs_last)
@@ -2127,6 +2138,10 @@ forecast_lattice.qdesn_fit <- function(
       }
     }
 
+    noise_draws <- if (identical(recursion_mode, "conditional_mean_plugin")) {
+      zero <- matrix(0, nrow = H, ncol = nd_eff)
+      list(s = zero, v = zero, z = zero)
+    } else NULL
     out <- forecast_paths.qdesn_fit(
       object, H = H, nd = nd_eff,
       y_hist = y_hist,
@@ -2139,6 +2154,7 @@ forecast_lattice.qdesn_fit <- function(
       readout_spec = spec,
       draws = draws,
       origin_index = tau,
+      noise_draws = noise_draws,
       cpp_fallback_note = (i == 1L)
     )
 
@@ -2205,6 +2221,16 @@ forecast_lattice.qdesn_fit <- function(
     yrep_by_origin = yrep_list,
     mu_by_origin = mu_list,
     mix = list(y = mix_y, mu = mix_mu),
-    lead_weights = base_w
+    lead_weights = base_w,
+    recursion_mode = recursion_mode,
+    source_draw_index = as.integer(draws$source_draw_index %||% seq_len(nd_eff)),
+    draw_parameters = data.frame(
+      source_draw_index = as.integer(draws$source_draw_index %||% seq_len(nd_eff)),
+      beta_intercept = as.numeric(draws$beta[, 1L]),
+      beta_norm = sqrt(rowSums(as.matrix(draws$beta)^2)),
+      sigma = as.numeric(draws$sigma),
+      gamma = as.numeric(draws$gamma),
+      stringsAsFactors = FALSE
+    )
   )
 }

@@ -22,6 +22,10 @@ if (!nzchar(state_root)) {
 state_root <- normalizePath(state_root, winslash = "/", mustWork = TRUE)
 plan_path <- file.path(state_root, "manifests", "job_plan.csv")
 plan <- ffv2_read_csv(plan_path)
+materialization_path <- file.path(state_root, "manifests", "materialization_manifest.json")
+campaign_schema <- if (file.exists(materialization_path)) {
+  as.character(ffv2_read_json(materialization_path)$schema_version %||% imi_v1_schema)[1L]
+} else imi_v1_schema
 
 pid_alive <- function(pid) {
   pid <- suppressWarnings(as.integer(pid)[1L])
@@ -120,7 +124,7 @@ ffv2_ensure_dir(health_root)
 ffv2_write_csv(detail, file.path(health_root, "job_health_current.csv"))
 ffv2_write_csv(summary, file.path(health_root, "summary_current.csv"))
 payload <- list(
-  schema_version = imi_v1_schema,
+  schema_version = campaign_schema,
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
   state_root = state_root, planned = nrow(detail),
   completed = sum(detail$status == "SUCCESS"),
