@@ -234,7 +234,7 @@ test_that("transfer-function wrappers support componentwise tf.df and full exDQL
   expect_equal(fit_mcmc$dim.df, c(1, 1, 1, 1))
   expect_true(all(is.finite(as.numeric(fit_mcmc$samp.gamma))))
   expect_true(all(is.finite(as.numeric(fit_mcmc$samp.sigma))))
-  expect_identical(fit_mcmc$mh.diagnostics$proposal, "slice")
+  expect_identical(fit_mcmc$mh.diagnostics$proposal, "collapsed_slice")
   expect_true(is.finite(fit_mcmc$median.kt))
 
   set.seed(20260423)

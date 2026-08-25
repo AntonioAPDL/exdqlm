@@ -64,7 +64,7 @@ with \code{plot()} when a display is defined.
 
 \itemize{
 \item Dynamic Bayesian quantile state-space inference with
-Laplace-delta variational Bayes (LDVB) as the main variational
+structured Laplace-delta variational Bayes (LDVB) as the main variational
 Bayes (VB) engine, Markov chain Monte Carlo (MCMC) for posterior
 simulation, and legacy importance-sampling variational Bayes (ISVB)
 retained for compatibility and historical comparisons.
@@ -81,7 +81,29 @@ static APIs.
 shared blocks: RHS-family \code{tau} scheduling plus exAL
 \verb{(sigma, gamma)} warmup in VB and MCMC entry points, with explicit
 controls available only when users need to override the defaults.
+\item Structured exAL scale-skewness updates: unrestricted exAL LDVB fits
+use a \verb{q(gamma) q(sigma | gamma)} block by default, and unrestricted
+exAL MCMC fits use an exact scale-collapsed gamma slice transition
+by default.
 \item Optional C++ acceleration for selected state-space computations.
+}
+}
+
+\section{Release changes in 1.1.1}{
+
+\itemize{
+\item Stochastic compiled helper paths were made serial and controlled by
+the R random-number generator, improving exact repeatability under
+fixed seeds.
+\item The default unrestricted exAL MCMC kernel changed to
+\code{mh.proposal = "collapsed_slice"}, which integrates out \code{sigma} for
+the gamma slice step and then redraws \code{sigma} from its exact GIG
+conditional. Legacy kernels remain available when selected
+explicitly.
+\item The default unrestricted exAL LDVB scale-skewness factor changed to
+a structured \verb{q(gamma) q(sigma | gamma)} approximation. The previous
+two-dimensional Laplace-delta factor remains available through
+\code{exal_make_vb_sigmagam_control(factorization = "laplace_delta")}.
 }
 }
 
@@ -134,8 +156,8 @@ diagnostic and keeps advanced KL sensitivity details under
 \item \code{options(exdqlm.use_cpp_mcmc = TRUE|FALSE)} – MCMC backend routing (optional; default TRUE).
 \item \code{options(exdqlm.cpp_mcmc_mode = "strict"|"fast")} – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
 \item \code{options(exdqlm.cpp_threads = numeric)} – Reserved compatibility
-option for eligible compiled paths. Stochastic compiled samplers use serial
-\proglang{R}-controlled RNG streams in version 1.1.1 and later.
+option for eligible compiled paths. Stochastic compiled samplers use
+serial \proglang{R}-controlled RNG streams in version 1.1.1 and later.
 }
 }
 

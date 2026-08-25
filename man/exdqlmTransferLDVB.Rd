@@ -130,8 +130,11 @@ If \code{dqlm.ind=FALSE}, the list also contains:
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the LD (Laplace-Delta) approximation for the
-variational distribution of \code{sigma} and \code{gamma} (means, transformed Hessian, and ELBO components).
+\item \code{gammasig.out} - List containing the variational approximation for
+\code{sigma} and \code{gamma}. In the default structured factor this includes the
+bounded-logit gamma quadrature grid and conditional GIG scale summaries;
+in the legacy Laplace-delta factor it includes the transformed mean and
+covariance.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 \item \code{fix.gamma} Logical value indicating whether gamma was fixed at \code{gam.init}.
 }

@@ -119,7 +119,7 @@ test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
   expect_no_error(plot(one_model, type = "coefficients"))
 })
 
-test_that("static MCMC default proposal is slice", {
+test_that("static MCMC default proposal is scale-collapsed slice", {
   set.seed(20260410)
   dat <- tiny_static_truth_case(n = 24L, p0 = 0.25)
 
@@ -133,8 +133,11 @@ test_that("static MCMC default proposal is slice", {
     verbose = FALSE
   )
 
-  expect_identical(fit$mh.diagnostics$proposal, "slice")
+  expect_identical(fit$mh.diagnostics$proposal, "collapsed_slice")
   expect_true(isTRUE(fit$mh.diagnostics$kernel_exact))
+  expect_true(isTRUE(fit$mh.diagnostics$sigma_collapsed))
+  expect_true(isTRUE(fit$mh.diagnostics$conditional_sigma_redraw))
+  expect_identical(fit$mh.diagnostics$transformed_state, c("eta_collapsed_sigma"))
   expect_true(isTRUE(fit$mh.diagnostics$signoff_ready))
   expect_true(is.na(fit$accept.rate))
 })
@@ -270,7 +273,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
       verbose = FALSE
     )
   )
-  expect_identical(fit_mcmc$mh.diagnostics$proposal, "slice")
+  expect_identical(fit_mcmc$mh.diagnostics$proposal, "collapsed_slice")
   expect_true(all(is.finite(as.matrix(fit_mcmc$samp.beta))))
   expect_false(isTRUE(fit_mcmc$beta_prior$summary$collapse_flag))
 

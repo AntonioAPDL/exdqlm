@@ -9,6 +9,22 @@
 - Added repeatability checks covering compiled samplers and small dynamic and
   static MCMC workflows under repeated seeds.
 
+## exAL scale-skewness inference
+- Changed the default MCMC update for dynamic and static exAL likelihood fits
+  to `mh.proposal = "collapsed_slice"`. This exact-target transition samples
+  `gamma` after analytically integrating out `sigma`, then redraws `sigma`
+  from its exact conditional GIG distribution at the new `gamma`. The legacy
+  `"slice"`, `"laplace_rw"`, and `"rw"` kernels remain available when selected
+  explicitly.
+- Changed the default LDVB scale-skewness block for dynamic and static exAL
+  likelihood fits to a structured `q(gamma) q(sigma | gamma)` approximation
+  using 151-node bounded-logit quadrature for `gamma` and conditional GIG
+  moments for `sigma`. The previous two-dimensional Laplace-delta block remains
+  available with `exal_make_vb_sigmagam_control(factorization = "laplace_delta")`.
+- Added focused tests for the structured scale-skewness moments, repeatable
+  structured posterior draws, default kernel selection, and legacy-factor
+  opt-in behavior.
+
 # exdqlm 1.1.0
 
 ## JSS resubmission design updates

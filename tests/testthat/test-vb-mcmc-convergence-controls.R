@@ -213,7 +213,7 @@ test_that("dynamic MCMC supports VB warm start and MH diagnostics", {
   expect_true(is.data.frame(fit$diagnostics$s_block$trace))
 })
 
-test_that("dynamic MCMC default proposal is slice", {
+test_that("dynamic MCMC default proposal is scale-collapsed slice", {
   set.seed(1035)
   TT <- 18
   y <- stats::rnorm(TT, sd = 0.25)
@@ -236,8 +236,11 @@ test_that("dynamic MCMC default proposal is slice", {
     verbose = FALSE
   )
 
-  expect_identical(fit$mh.diagnostics$proposal, "slice")
+  expect_identical(fit$mh.diagnostics$proposal, "collapsed_slice")
   expect_false(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
+  expect_true(isTRUE(fit$mh.diagnostics$sigma_collapsed))
+  expect_true(isTRUE(fit$mh.diagnostics$conditional_sigma_redraw))
+  expect_identical(fit$mh.diagnostics$transformed_state, c("logit_gamma_collapsed_sigma"))
   expect_true(is.list(fit$mh.diagnostics$laplace_refresh))
 })
 

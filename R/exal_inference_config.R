@@ -1,6 +1,9 @@
 # Internal shared defaults for the package-native warmup baseline.
 .exal_default_vb_sigmagam_profile <- function() {
   list(
+    factorization = "structured",
+    structured_grid_size = 151L,
+    structured_span_sd = 6,
     freeze_warmup_iters = 10L,
     force_after_warmup = TRUE,
     postwarmup_damping = 0.6,
@@ -81,6 +84,14 @@
 #'
 #' @param freeze_warmup_iters Non-negative integer; number of early VB iterations
 #'   during which the `(sigma, gamma)` block is held fixed.
+#' @param factorization Character; `"structured"` uses the
+#'   `q(gamma) q(sigma | gamma)` scale-skewness factorization. The legacy
+#'   two-dimensional Laplace-delta factor can be requested with
+#'   `"laplace_delta"`.
+#' @param structured_grid_size Odd integer; number of quadrature nodes for the
+#'   structured gamma factor. The package default is 151.
+#' @param structured_span_sd Numeric; local quadrature half-width in curvature
+#'   standard deviations for the structured gamma factor.
 #' @param force_after_warmup Logical; force one immediate post-warmup update.
 #' @param postwarmup_damping Numeric in `(0, 1]`; damping applied after warmup.
 #' @param postwarmup_damping_iters Non-negative integer; number of damped
@@ -94,12 +105,18 @@
 #' default exAL `(sigma, gamma)` warmup profile.
 #' @export
 exal_make_vb_sigmagam_control <- function(
+    factorization = NULL,
+    structured_grid_size = NULL,
+    structured_span_sd = NULL,
     freeze_warmup_iters = NULL,
     force_after_warmup = NULL,
     postwarmup_damping = NULL,
     postwarmup_damping_iters = NULL,
     min_postwarmup_updates = NULL) {
   cfg <- list()
+  if (!is.null(factorization)) cfg$factorization <- factorization
+  if (!is.null(structured_grid_size)) cfg$structured_grid_size <- structured_grid_size
+  if (!is.null(structured_span_sd)) cfg$structured_span_sd <- structured_span_sd
   if (!is.null(freeze_warmup_iters)) cfg$freeze_warmup_iters <- freeze_warmup_iters
   if (!is.null(force_after_warmup)) cfg$force_after_warmup <- force_after_warmup
   if (!is.null(postwarmup_damping)) cfg$postwarmup_damping <- postwarmup_damping

@@ -1,7 +1,11 @@
-#' exDQLM - LDVB algorithm (Laplace-Delta)
+#' exDQLM - LDVB algorithm
 #'
 #' The function applies a Laplace-Delta Variational Bayes (LDVB) algorithm to
-#' estimate the posterior of an exDQLM.
+#' estimate the posterior of an exDQLM. For unrestricted exAL fits, the
+#' default scale-skewness block uses a structured
+#' \eqn{q(\gamma)q(\sigma \mid \gamma)} approximation; the previous
+#' two-dimensional Laplace-delta block remains available through
+#' \code{vb_control$sigmagam}.
 #'
 #' @usage
 #' exdqlmLDVB(y, p0, model, df, dim.df, fix.gamma = FALSE, gam.init = NA,
@@ -67,8 +71,11 @@
 #'   \item `seq.gamma` - Sequence of gamma estimated by the algorithm until convergence.
 #'   \item `samp.gamma` - Posterior sample of skewness parameter gamma variational distribution.
 #'   \item `samp.sts` - Posterior sample of latent parameters, s_t, variational distributions.
-#'   \item `gammasig.out` - List containing the LD (Laplace-Delta) approximation for the
-#'   variational distribution of `sigma` and `gamma` (means, transformed Hessian, and ELBO components).
+#'   \item `gammasig.out` - List containing the variational approximation for
+#'   `sigma` and `gamma`. In the default structured factor this includes the
+#'   bounded-logit gamma quadrature grid and conditional GIG scale summaries;
+#'   in the legacy Laplace-delta factor it includes the transformed mean and
+#'   covariance.
 #'   \item `sts.out` - List containing the variational distributions of latent parameters s_t.
 #'   \item `fix.gamma` Logical value indicating whether gamma was fixed at `gam.init`.
 
@@ -101,6 +108,12 @@
 #'         exDQLM latent \eqn{s_t} VB block. Supported fields are
 #'         `freeze_warmup_iters`, `force_after_warmup`, and
 #'         `min_postwarmup_updates`.
+#'   \item \code{exdqlm.dynamic.ldvb.sigmagam}: optional controls for the exAL
+#'         \eqn{(\sigma,\gamma)} VB block. The default
+#'         \code{factorization = "structured"} uses
+#'         \eqn{q(\gamma)q(\sigma \mid \gamma)}. Use
+#'         \code{factorization = "laplace_delta"} for the legacy
+#'         two-dimensional transformed Gaussian factor.
 #' }
 #'
 #' @examples
@@ -355,6 +368,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
   sigmagam_cfg <- ld_ctrl$sigmagam %||% .exal_sigmagam_vb_controls(NULL)
   sigmagam_cfg <- .exal_clamp_vb_sigmagam_control(sigmagam_cfg, max_iter = max_iter)
   sts_cfg <- ld_ctrl$sts %||% .exdqlm_sts_vb_controls(NULL)
+  structured_sigmagam <- identical(sigmagam_cfg$factorization, "structured")
   sigmagam_required_postwarmup_updates <- if (sigmagam_cfg$freeze_warmup_iters > 0L) {
     max(1L, sigmagam_cfg$min_postwarmup_updates)
   } else {
@@ -557,7 +571,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     return(list(exps=exps,vars=vars,exps2=exps2,standard.forecast.errors=standard.forecast.errors,sm=sm,sC=sC,fm=m,fC=C))
   }
 
-  # function approximate q(sigma,gamma) with Laplace-Delta + ELBO via log-normalizer
+  # Approximate q(sigma,gamma) with the selected scale-skewness factor.
   log_prior_gamma <- function(gamma) {
     .gamma_log_prior_trunc_t(gamma, bounds = c(L, U), PriorGamma = PriorGamma)
   }
@@ -792,6 +806,83 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
     eta_prev <- eta_hat
     ell_prev <- ell_hat
     Sigma_prev <- Sig_eta_ell
+    if (identical(sigmagam_cfg$factorization, "structured") &&
+        !isTRUE(fix.gamma) && !isTRUE(fix.sigma)) {
+      structured <- .exal_sigmagam_structured_update(
+        stats = .exal_sigmagam_stats(
+          sum_einv_quad = ld_cache$sum_einv_quad,
+          sum_t = ld_cache$sum_t,
+          sum_v = ld_cache$sum_uts,
+          sum_s_einv_t = ld_cache$sum_s_einv_t,
+          sum_s = ld_cache$sum_s,
+          sum_s2_einv = ld_cache$sum_s2_einv,
+          n = length(y_vec),
+          a_sigma = PriorSigma$a_sig,
+          b_sigma = PriorSigma$b_sig
+        ),
+        p0 = p0,
+        bounds = c(L, U),
+        PriorSigma = PriorSigma,
+        log_prior_gamma = log_prior_gamma,
+        eta_start = eta_hat,
+        eta_lo = ld_ctrl$eta_lo,
+        eta_hi = ld_ctrl$eta_hi,
+        logit_eps = ld_ctrl$logit_eps,
+        grid_size = sigmagam_cfg$structured_grid_size,
+        span_sd = sigmagam_cfg$structured_span_sd
+      )
+      eta_hat <<- structured$structured$eta_mean
+      ell_hat <<- structured$E.log.sig
+      Sig_eta_ell <<- structured$Hess.LD
+      objective_committed <- as.numeric(structured$structured$logZ_eta)
+      structured$ld <- list(
+        eta_prev = eta_prev,
+        ell_prev = ell_prev,
+        eta = eta_hat,
+        ell = ell_hat,
+        eta_raw = structured$structured$eta_mode,
+        ell_raw = structured$E.log.sig,
+        gamma_raw = .exal_gamma_from_eta(structured$structured$eta_mode, L, U),
+        sigma_raw = structured$E.sigma,
+        optim_convergence = structured$structured$optimizer_convergence,
+        objective = objective_committed,
+        objective_candidate = objective_committed,
+        objective_committed = objective_committed,
+        objective_gap = 0,
+        optimizer_method = "structured_grid",
+        used_fallback = structured$structured$used_fallback,
+        used_optim_fallback = structured$structured$used_fallback,
+        used_numeric_hessian = FALSE,
+        used_identity_hessian = FALSE,
+        used_cov_floor = FALSE,
+        commit_mode = "structured",
+        bad_mode = FALSE,
+        cycle_detected = FALSE,
+        stabilized = FALSE,
+        stabilize_reason = NA_character_,
+        hess_condition = NA_real_,
+        cov_condition = NA_real_,
+        cov_eig_min = min(eigen(Sig_eta_ell, symmetric = TRUE, only.values = TRUE)$values),
+        cov_eig_max = max(eigen(Sig_eta_ell, symmetric = TRUE, only.values = TRUE)$values),
+        factorization = structured$factorization,
+        candidate_mode_quality = list(
+          grad_inf_norm = NA_real_,
+          neg_hess_min_eig = NA_real_,
+          local_mode_pass = TRUE
+        ),
+        committed_mode_quality = list(
+          grad_inf_norm = NA_real_,
+          neg_hess_min_eig = NA_real_,
+          local_mode_pass = TRUE
+        ),
+        mode_quality = list(
+          grad_inf_norm = NA_real_,
+          neg_hess_min_eig = NA_real_,
+          local_mode_pass = TRUE
+        )
+      )
+      return(structured)
+    }
     ld <- find_mode_ld(c(eta_hat, ell_hat), state = state)
     candidate <- list(
       gamma = g_from_eta(ld$eta_hat),
@@ -900,6 +991,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       V.sigma = NA_real_,
       E.log.inv.sigma = -as.numeric(moms$E_log_sig),
       elbo_logZ = NULL,
+      factorization = "laplace_delta",
       ld = list(
         eta_prev = eta_prev,
         ell_prev = ell_prev,
@@ -1006,7 +1098,7 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
       L0 <- -0.5 * length(y) * (gs$E.log.sig.b - gs$E.log.sig)
       lik <- L0 + L1 + L2 + L3 + L4 + L5 + L6 + L7 + L8
 
-      # add sigma,gamma prior + entropy (Laplace-Delta block)
+      # add sigma,gamma prior + entropy for the selected scale-skewness block
       elbo_gs <- gs$E.prior.sig.gam + gs$entrop
 
       total <- as.numeric(lik + H_theta + H_sts + H_uts + elbo_gs)
@@ -1443,22 +1535,31 @@ exdqlmLDVB <- function(y, p0, model, df, dim.df,
 
   ### posterior samples ------------------------------------------------------
 
-  # Draw (sigma, gamma) from the LD Gaussian on (theta_s, theta_g), then transform
-  LD_mu <- as.numeric(new.gamsig.out$E.theta)      # length 2
-  LD_S  <- as.matrix(new.gamsig.out$Hess.LD)       # 2x2 covariance in (theta_s, theta_g)
-  # robust factorization for sampling
-  Lfac <- try(chol(LD_S), silent = TRUE)
-  if (inherits(Lfac, "try-error")) {
-    eig <- eigen((LD_S + t(LD_S))/2, symmetric = TRUE)
-    vals <- pmax(eig$values, .Machine$double.eps)
-    Lfac <- eig$vectors %*% diag(sqrt(vals), 2) %*% t(eig$vectors)
+  # Draw (sigma, gamma) from the selected variational scale-skewness factor.
+  if (identical(new.gamsig.out$factorization, "structured_qgamma_qsigma_given_gamma")) {
+    siggam_draws <- .exal_sigmagam_structured_sample(
+      new.gamsig.out,
+      n.samp,
+      context = "exdqlmLDVB_structured_sigmagam"
+    )
+    samp.sigma <- siggam_draws$sigma
+    samp.gamma <- siggam_draws$gamma
+  } else {
+    LD_mu <- as.numeric(new.gamsig.out$E.theta) # (eta, ell)
+    LD_S <- as.matrix(new.gamsig.out$Hess.LD)
+    Lfac <- try(chol(LD_S), silent = TRUE)
+    if (inherits(Lfac, "try-error")) {
+      eig <- eigen((LD_S + t(LD_S)) / 2, symmetric = TRUE)
+      vals <- pmax(eig$values, .Machine$double.eps)
+      Lfac <- eig$vectors %*% diag(sqrt(vals), 2) %*% t(eig$vectors)
+    }
+    Z <- matrix(stats::rnorm(2L * n.samp), nrow = 2L)
+    TH <- LD_mu + Lfac %*% Z
+    theta_g <- TH[1L, ]
+    theta_s <- TH[2L, ]
+    samp.gamma <- L + (U - L) * stats::plogis(theta_g)
+    samp.sigma <- exp(theta_s)
   }
-  Z  <- matrix(stats::rnorm(2L * n.samp), nrow = 2L)
-  TH <- LD_mu + Lfac %*% Z
-  theta_s <- TH[1L, ]
-  theta_g <- TH[2L, ]
-  samp.sigma <- exp(theta_s)
-  samp.gamma <- L + (U - L) * stats::plogis(theta_g)
 
   # toggles
   use_cpp_samplers <- isTRUE(getOption("exdqlm.use_cpp_samplers", FALSE))

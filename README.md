@@ -30,6 +30,9 @@ The current release provides:
 - standardized **variational Bayes (VB) trace diagnostics** at
   `fit$diagnostics$vb_trace` for the evidence lower bound (ELBO),
   `sigma`, `gamma`, and convergence deltas
+- structured exAL scale-skewness inference: LDVB uses a
+  `q(gamma) q(sigma | gamma)` block by default, and MCMC uses an
+  exact scale-collapsed gamma slice transition by default
 - static shrinkage priors `beta_prior = "ridge"`, `"rhs"`, and
   `"rhs_ns"`
 - post hoc **posterior-predictive synthesis** via
@@ -70,7 +73,7 @@ pak::pak("AntonioAPDL/exdqlm")
   package via `exalStaticLDVB()` and `exalStaticMCMC()`, rather than
   living in a separate code path or companion repository.
 - **Multiple inference engines** are available depending on the use
-  case: deterministic Laplace-delta variational Bayes (`LDVB`) as the main
+  case: structured Laplace-delta variational Bayes (`LDVB`) as the main
   dynamic VB engine, posterior simulation (`MCMC`), and legacy fast
   approximate dynamic VB (`ISVB`) when older workflows need to be reproduced.
 - **User-facing VB diagnostics are standardized** through
@@ -131,10 +134,17 @@ have to assemble nested warmup lists just to get a stable first fit.
 - `beta_prior = "rhs"` and `beta_prior = "rhs_ns"` keep the package's
   shared `tau` warmup schedule on by default.
 - exAL VB entry points (`exalStaticLDVB()`, `exdqlmLDVB()`) apply a
-  light automatic warmup for the `(sigma, gamma)` block.
+  light automatic warmup for the `(sigma, gamma)` block. For unrestricted
+  exAL fits, the default VB scale-skewness block uses a structured
+  `q(gamma) q(sigma | gamma)` approximation with conditional GIG moments for
+  `sigma`; the previous two-dimensional Laplace-delta block remains available
+  through `exal_make_vb_sigmagam_control(factorization = "laplace_delta")`.
 - exAL MCMC entry points (`exalStaticMCMC()`, `exdqlmMCMC()`) apply a
   light automatic `(sigma, gamma)` warmup and keep VB warm starts
-  available for the harder cases where they help.
+  available for the harder cases where they help. Their default unrestricted
+  exAL kernel is `mh.proposal = "collapsed_slice"`, an exact-target update
+  that slices `gamma` after integrating out `sigma` and then redraws `sigma`
+  from its exact conditional distribution.
 - Advanced warmup control remains available through `vb_control` and
   `mcmc_control`, but those controls are now intended as the
   **override path**, not the default user workflow.
@@ -367,7 +377,6 @@ fit_rhs <- exalStaticMCMC(
   y = y, X = X, p0 = 0.5,
   beta_prior = "rhs",
   n.burn = 200, n.mcmc = 200, thin = 1,
-  mh.proposal = "slice",
   trace.diagnostics = FALSE,
   verbose = FALSE
 )
@@ -383,7 +392,6 @@ fit_rhs_ns <- exalStaticMCMC(
     shrink_intercept = FALSE
   ),
   n.burn = 200, n.mcmc = 200, thin = 1,
-  mh.proposal = "slice",
   trace.diagnostics = FALSE,
   verbose = FALSE
 )

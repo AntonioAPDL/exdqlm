@@ -29,7 +29,7 @@ exdqlmTransferMCMC(
   init.from.vb = TRUE,
   vb_init_controls = NULL,
   vb_init_fit = NULL,
-  mh.proposal = c("slice", "laplace_rw", "rw"),
+  mh.proposal = c("collapsed_slice", "slice", "laplace_rw", "rw"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
@@ -127,12 +127,14 @@ backward compatibility.}
 \item{vb_init_fit}{Optional precomputed VB fit object. If supplied, warm start
 uses this object directly and does not rerun VB internally.}
 
-\item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew block.
-\code{"slice"} (default) uses
-an exact sigma GIG update plus a bounded univariate slice sampler directly
-on \code{gamma}; \code{"laplace_rw"} uses a Laplace-informed covariance then RW;
-and \code{"rw"} uses joint random-walk MH on \verb{(log sigma, logit gamma)}.
-This choice is separate from the VB warm-start method.}
+\item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew
+block. \code{"collapsed_slice"} (default) integrates out \code{sigma} for the
+bounded gamma slice step and then redraws \code{sigma} from its exact GIG
+conditional. \code{"slice"} keeps the previous exact conditional sigma draw
+followed by bounded slice sampling directly on \code{gamma}. \code{"laplace_rw"}
+uses a Laplace-informed covariance then RW, and \code{"rw"} uses joint
+random-walk MH on \verb{(log sigma, logit gamma)}. This choice is separate from
+the VB warm-start method.}
 
 \item{mh.adapt}{Logical; adapt MH proposal scale during burn-in.}
 
@@ -147,7 +149,8 @@ This choice is separate from the VB warm-start method.}
 \item{mh.min_burn_adapt}{Minimum burn-in iterations required to enable adaptation.}
 
 \item{slice.width}{Positive numeric width for the bounded slice sampler when
-\code{mh.proposal = "slice"}. Default \code{0.1} for parity with \code{bqrgal}.}
+\code{mh.proposal} is \code{"collapsed_slice"} or \code{"slice"}. Default \code{0.1} for
+parity with \code{bqrgal}.}
 
 \item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
 expansions for the slice sampler.}

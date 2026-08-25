@@ -53,6 +53,35 @@
 .exal_sigmagam_vb_controls <- function(sigmagam_cfg = NULL) {
   sigmagam_cfg <- .exal_list_with_defaults(.exal_default_vb_sigmagam_profile(), sigmagam_cfg)
 
+  factorization <- as.character(
+    sigmagam_cfg$factorization %||%
+      sigmagam_cfg$method %||%
+      sigmagam_cfg$sigmagam_factorization %||%
+      .exal_default_vb_sigmagam_profile()$factorization
+  )[1L]
+  if (!nzchar(factorization) || is.na(factorization)) factorization <- "structured"
+  factorization <- match.arg(factorization, c("structured", "laplace_delta", "ld"))
+  if (identical(factorization, "ld")) factorization <- "laplace_delta"
+
+  structured_grid_size <- suppressWarnings(as.integer(
+    sigmagam_cfg$structured_grid_size %||%
+      sigmagam_cfg$grid_size %||%
+      .exal_default_vb_sigmagam_profile()$structured_grid_size
+  )[1L])
+  if (!is.finite(structured_grid_size) || structured_grid_size < 21L) {
+    structured_grid_size <- .exal_default_vb_sigmagam_profile()$structured_grid_size
+  }
+  if (structured_grid_size %% 2L == 0L) structured_grid_size <- structured_grid_size + 1L
+
+  structured_span_sd <- as.numeric(
+    sigmagam_cfg$structured_span_sd %||%
+      sigmagam_cfg$span_sd %||%
+      .exal_default_vb_sigmagam_profile()$structured_span_sd
+  )[1L]
+  if (!is.finite(structured_span_sd) || structured_span_sd <= 0) {
+    structured_span_sd <- .exal_default_vb_sigmagam_profile()$structured_span_sd
+  }
+
   freeze_warmup_iters <- suppressWarnings(as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
       sigmagam_cfg$freeze_sigmagam_warmup_iters %||%
@@ -88,6 +117,9 @@
   }
 
   list(
+    factorization = factorization,
+    structured_grid_size = structured_grid_size,
+    structured_span_sd = structured_span_sd,
     freeze_warmup_iters = freeze_warmup_iters,
     force_after_warmup = if (is.null(sigmagam_cfg$force_after_warmup)) TRUE else isTRUE(sigmagam_cfg$force_after_warmup),
     postwarmup_damping = postwarmup_damping,
@@ -929,8 +961,8 @@
 #' @param n_samp_xi Integer; retained for backward compatibility in the
 #'   Laplace-Delta block. Under the current delta-only implementation this
 #'   value is ignored.
-#' @param ld_controls Optional list of controls for the Laplace-Delta block.
-#'   Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
+#' @param ld_controls Optional list of controls for the exAL scale-skewness
+#'   block. Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 #'   \code{"bfgs"}), \code{direct_commit}, \code{damping},
 #'   \code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
 #'   \code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
@@ -964,8 +996,11 @@
 #'   \item \code{qs}: list with \code{mu} (length n), \code{tau2} (length n),
 #'         \code{E_s}, \code{E_s2}.
 #'   \item \code{qsiggam}: list with \code{eta_hat}, \code{ell_hat},
-#'         \code{Sigma} (2x2), approximate means
-#'         \code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
+#'         \code{Sigma} (2x2 summary covariance), approximate means
+#'         \code{gamma_mean}, \code{sigma_mean}, the \code{xi} expectations,
+#'         and the selected scale-skewness \code{factorization}. Under the
+#'         default structured factor, this list also stores the gamma
+#'         quadrature grid and conditional GIG scale summaries.
 #'   \item \code{samp.sigma}, \code{samp.gamma}: posterior samples from the
 #'         variational approximation for the scale and skewness parameters. In
 #'         the AL special case (\code{dqlm.ind = TRUE}), \code{samp.gamma} is a
@@ -983,9 +1018,10 @@
 #'         including a standardized VB iteration trace at
 #'         \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
 #'         convergence deltas), state/sigma/gamma/ELBO deltas, stopping reason,
-#'         and Laplace-Delta block trace diagnostics, including
+#'         and scale-skewness block trace diagnostics, including
 #'         replicated-\code{xi} controls, automatic stabilization /
-#'         cycle-detection fields, and final local-mode quality checks. For RHS
+#'         cycle-detection fields, and final local-mode quality checks for the
+#'         legacy Laplace-delta factor. For RHS
 #'         fits this also includes \code{diagnostics$rhs} with the resolved
 #'         preflight configuration and collapse diagnostics.
 #' }
@@ -995,15 +1031,16 @@
 #' \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
 #' This factorization induces a blockwise coordinate-ascent variational
 #' inference scheme. The \eqn{(\sigma,\gamma)} block is the only nonconjugate
-#' component, so LDVB approximates it in transformed coordinates
-#' \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
-#' The \code{xi} expectations needed by the remaining block updates are then
-#' computed with a second-order Delta approximation. The \code{xi} expectations
-#' used in the updates can be computed either from a
-#' deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
-#' Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
-#' optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
-#' stabilized RHS-family readout implementation. For RHS-family priors, the
+#' component. By default, LDVB uses a structured
+#' \eqn{q(\gamma)q(\sigma \mid \gamma)} factor: \code{gamma} is represented on
+#' the bounded-logit scale
+#' \eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))}, and \code{sigma} is summarized
+#' through its conditional GIG moments given \code{gamma}. This weakens the
+#' gamma-scale dependence while retaining the same variational target used by
+#' the other block updates. The previous two-dimensional Laplace-delta factor
+#' on \eqn{(\eta,\ell)} with \eqn{\ell=\log\sigma} remains available through
+#' \code{exal_make_vb_sigmagam_control(factorization = "laplace_delta")}. For
+#' RHS-family priors, the
 #' prior block uses \code{tau} warmup/freeze scheduling to avoid the
 #' early-collapse regime where global shrinkage drives all slope coefficients
 #' toward zero before the likelihood-side variational factors stabilize.
@@ -1311,6 +1348,7 @@ exalStaticLDVB <- function(
   }
 
   ld_cache <- NULL
+  structured_sigmagam_moments <- NULL
 
   # log-kernel for q(sigma,gamma) as a function of (eta, ell)
   log_qsiggam <- function(par) {
@@ -1493,6 +1531,62 @@ exalStaticLDVB <- function(
     )
   }
 
+  find_mode_structured <- function(eta0) {
+    stats <- .exal_sigmagam_stats(
+      sum_einv_quad = ld_cache$sum_einv_quad,
+      sum_t = ld_cache$sum_t,
+      sum_v = ld_cache$sum_Ev,
+      sum_s_einv_t = ld_cache$sum_s_einv_t,
+      sum_s = ld_cache$sum_s,
+      sum_s2_einv = ld_cache$sum_s2_einv,
+      n = n,
+      a_sigma = a_sigma,
+      b_sigma = b_sigma
+    )
+    structured <- .exal_sigmagam_structured_update(
+      stats = stats,
+      p0 = p0,
+      bounds = c(L, U),
+      PriorSigma = list(a_sig = a_sigma, b_sig = b_sigma),
+      log_prior_gamma = log_prior_gamma,
+      eta_start = eta0,
+      eta_lo = ld_ctrl$eta_lo,
+      eta_hi = ld_ctrl$eta_hi,
+      logit_eps = ld_ctrl$logit_eps,
+      grid_size = sigmagam_cfg$structured_grid_size,
+      span_sd = sigmagam_cfg$structured_span_sd
+    )
+    eig <- eigen(structured$Hess.LD, symmetric = TRUE, only.values = TRUE)$values
+    list(
+      eta_hat = as.numeric(structured$structured$eta_mean),
+      ell_hat = as.numeric(structured$E.log.sig),
+      Sigma = structured$Hess.LD,
+      objective = as.numeric(structured$structured$logZ_eta),
+      optim_convergence = structured$structured$optimizer_convergence,
+      optimizer_method = "structured_grid",
+      used_optim_fallback = structured$structured$used_fallback,
+      used_trust_step = FALSE,
+      trust_step_scale = NA_real_,
+      trust_step_norm = 0,
+      trust_reason = "structured",
+      used_numeric_hessian = FALSE,
+      used_identity_hessian = FALSE,
+      used_cov_floor = FALSE,
+      used_fallback = structured$structured$used_fallback,
+      hessian_refreshed = FALSE,
+      hessian_backend = "structured",
+      H = matrix(NA_real_, 2L, 2L),
+      hess_condition = NA_real_,
+      cov_condition = NA_real_,
+      cov_eig_min = min(eig),
+      cov_eig_max = max(eig),
+      cov_eig_raw_min = min(eig),
+      cov_eig_raw_max = max(eig),
+      factorization = structured$factorization,
+      structured_moments = structured
+    )
+  }
+
   # --- main loop -------------------------------------------------------------
   t0 <- proc.time()[3]
   .exdqlm_progress(
@@ -1548,6 +1642,7 @@ exalStaticLDVB <- function(
   conv_ctrl <- .vb_joint_controls(tol_state = tol, has_gamma = TRUE)
   sigmagam_cfg <- ld_ctrl$sigmagam %||% .exal_sigmagam_vb_controls(NULL)
   sigmagam_cfg <- .exal_clamp_vb_sigmagam_control(sigmagam_cfg, max_iter = max_iter)
+  structured_sigmagam <- identical(sigmagam_cfg$factorization, "structured")
   sigmagam_required_postwarmup_updates <- if (sigmagam_cfg$freeze_warmup_iters > 0L) {
     max(1L, sigmagam_cfg$min_postwarmup_updates)
   } else {
@@ -1682,7 +1777,10 @@ exalStaticLDVB <- function(
       do_ld_update <- TRUE
     }
     ld_mode_start <- if (isTRUE(ld_ctrl$profile_timing) && isTRUE(do_ld_update)) proc.time()[3] else NA_real_
-    if (isTRUE(do_ld_update)) {
+    if (isTRUE(do_ld_update) && isTRUE(structured_sigmagam)) {
+      ld <- find_mode_structured(eta_hat)
+      structured_sigmagam_moments <- ld$structured_moments
+    } else if (isTRUE(do_ld_update)) {
       hessian_refresh_every_use <- if (isTRUE(stabilize_active)) {
         ld_ctrl$hessian_refresh_stabilized_every
       } else {
@@ -1764,7 +1862,8 @@ exalStaticLDVB <- function(
       } else {
         ld_ctrl$candidate_mode_check_every
       }
-      do_candidate_mode_check <- (isTRUE(ld_ctrl$auto_stabilize) || isTRUE(ld_ctrl$reject_bad_mode_commit)) &&
+      do_candidate_mode_check <- !isTRUE(structured_sigmagam) &&
+        (isTRUE(ld_ctrl$auto_stabilize) || isTRUE(ld_ctrl$reject_bad_mode_commit)) &&
         (iter == 1L || ((iter - 1L) %% candidate_check_every_use) == 0L)
       ld_mode_quality_candidate_start <- if (isTRUE(ld_ctrl$profile_timing) && do_candidate_mode_check) proc.time()[3] else NA_real_
       ld_candidate_mode_quality_iter <- if (do_candidate_mode_check) {
@@ -1795,7 +1894,7 @@ exalStaticLDVB <- function(
     }
     ld_stabilized <- FALSE
     ld_stabilize_reason <- NA_character_
-    if (isTRUE(ld_ctrl$auto_stabilize)) {
+    if (isTRUE(ld_ctrl$auto_stabilize) && !isTRUE(structured_sigmagam)) {
       if (isTRUE(ld_ctrl$direct_commit) &&
           (!isTRUE(stabilize_active)) &&
           isTRUE(do_ld_update) &&
@@ -1824,18 +1923,22 @@ exalStaticLDVB <- function(
       }
     }
     xi_damping_use <- if (isTRUE(ld_stabilized)) ld_ctrl$stabilize_xi_damping else ld_ctrl$xi_damping
-    active_xi_method <- "delta"
+    active_xi_method <- if (isTRUE(structured_sigmagam)) "structured" else "delta"
     postwarmup_damping_active <- isTRUE(
       sigmagam_cfg$postwarmup_damping < 1 &&
         sigmagam_cfg$postwarmup_damping_iters > 0L &&
         iter > sigmagam_cfg$freeze_warmup_iters &&
         (iter - sigmagam_cfg$freeze_warmup_iters) <= sigmagam_cfg$postwarmup_damping_iters
     )
-    use_direct_commit <- isTRUE(do_ld_update) && isTRUE(ld_ctrl$direct_commit) && !isTRUE(ld_stabilized) &&
-      !isTRUE(postwarmup_damping_active) &&
-      !(isTRUE(ld_ctrl$reject_bad_mode_commit) && isTRUE(ld_bad_mode_iter))
+    use_direct_commit <- isTRUE(do_ld_update) &&
+      (isTRUE(structured_sigmagam) ||
+         (isTRUE(ld_ctrl$direct_commit) && !isTRUE(ld_stabilized) &&
+            !isTRUE(postwarmup_damping_active) &&
+            !(isTRUE(ld_ctrl$reject_bad_mode_commit) && isTRUE(ld_bad_mode_iter))))
     ld_commit_mode <- if (!isTRUE(do_ld_update)) {
       "hold"
+    } else if (isTRUE(structured_sigmagam)) {
+      "structured"
     } else if (use_direct_commit) {
       "direct"
     } else {
@@ -1900,7 +2003,11 @@ exalStaticLDVB <- function(
       ld_commit_elapsed <- proc.time()[3] - ld_commit_start
       timing_totals["ld_commit"] <- timing_totals["ld_commit"] + ld_commit_elapsed
     }
-    ld_committed_objective <- as.numeric(log_qsiggam(c(eta_hat, ell_hat)))
+    ld_committed_objective <- if (isTRUE(structured_sigmagam) && !is.null(ld$structured_moments)) {
+      as.numeric(ld$structured_moments$structured$logZ_eta)
+    } else {
+      as.numeric(log_qsiggam(c(eta_hat, ell_hat)))
+    }
     ld_objective_gap_abs <- abs(as.numeric(ld$objective - ld_committed_objective))
     stabilization_release_ok <- isTRUE(stabilize_active) &&
       !isTRUE(ld_cycle_detected) &&
@@ -1928,7 +2035,7 @@ exalStaticLDVB <- function(
         stabilize_release_count <- 0L
       }
     }
-    do_committed_mode_check <- isTRUE(do_ld_update) &&
+    do_committed_mode_check <- !isTRUE(structured_sigmagam) && isTRUE(do_ld_update) &&
       (ld_ctrl$committed_mode_check_every > 0L) &&
       (!isTRUE(ld_stabilized) || isTRUE(ld_ctrl$committed_mode_check_stabilized)) &&
       (iter == 1L || ((iter - 1L) %% ld_ctrl$committed_mode_check_every) == 0L)
@@ -1952,7 +2059,7 @@ exalStaticLDVB <- function(
       timing_totals["ld_mode_quality_committed"] <- timing_totals["ld_mode_quality_committed"] + ld_mode_quality_committed_elapsed
     }
 
-    # update xi under Gaussian (eta,ell); reuse when the LD state is held fixed
+    # update xi under the selected scale-skewness factor; reuse when held fixed
     xi_eval_start <- if (isTRUE(ld_ctrl$profile_timing) && isTRUE(do_ld_update)) proc.time()[3] else NA_real_
     if (!isTRUE(do_ld_update)) {
       xis_eval_raw <- list(
@@ -1971,6 +2078,23 @@ exalStaticLDVB <- function(
       )
       xis_raw <- xis
       xis_new <- xis
+    } else if (isTRUE(structured_sigmagam)) {
+      xis_eval_raw <- list(
+        value = ld$structured_moments$xi,
+        mcse_mean = NA_real_,
+        mcse_max = NA_real_,
+        replicate_count = 0L,
+        stabilization = list(
+          stabilized = FALSE,
+          alpha = 1,
+          triggered_keys = character(0),
+          fallback_keys = character(0),
+          positive_keys = c("xi1", "xi_lambda2", "xi_A2"),
+          floor = 1e-12
+        )
+      )
+      xis_raw <- xis_eval_raw$value
+      xis_new <- xis_raw
     } else {
       xis_eval_raw <- compute_xi(
         eta_hat,
@@ -2086,10 +2210,14 @@ exalStaticLDVB <- function(
     # (11) Entropy H(q(s)) for TN(mu, tau^2) on (0, Inf)
     H_qs <- .exdqlm_pos_truncnorm_entropy(qs_mu, qs_tau2)
 
-    # (12) H(q(sigma,gamma)) = H(q(eta,ell)) + E_q[log|J(eta,ell)|]
-    # for sigma=exp(ell), gamma=L+(U-L)logit^{-1}(eta).
-    logdetSig <- as.numeric(determinant(Sig_eta_ell, logarithm = TRUE)$modulus)
-    H_qsg     <- 0.5 * ( 2 * (1 + log(2*pi)) + logdetSig ) + xis$zeta_logJ
+    # (12) Entropy of q(sigma,gamma). The legacy LD factor is Gaussian on
+    # (eta, ell); the structured factor stores its own quadrature/GIG entropy.
+    if (isTRUE(structured_sigmagam) && !is.null(structured_sigmagam_moments)) {
+      H_qsg <- structured_sigmagam_moments$entrop
+    } else {
+      logdetSig <- as.numeric(determinant(Sig_eta_ell, logarithm = TRUE)$modulus)
+      H_qsg <- 0.5 * (2 * (1 + log(2 * pi)) + logdetSig) + xis$zeta_logJ
+    }
 
     # Put it together
     elbo_new <- lik_norm + lik_quad1 + lik_cross +
@@ -2135,17 +2263,21 @@ exalStaticLDVB <- function(
     delta_elbo <- c(delta_elbo, d_elbo)
 
     if (step$stop_now) {
-      iter_mode_quality <- .exal_static_ld_mode_quality(
-        log_q_fn = log_qsiggam,
-        par = c(eta_hat, ell_hat),
-        grad_tol = ld_ctrl$mode_grad_tol,
-        min_eig = ld_ctrl$mode_min_eig,
-        hessian_backend = ld_ctrl$hessian_backend
-      )
-      ld_signoff_ready <- .exal_static_ld_signoff_ready(
-        mode_quality = iter_mode_quality,
-        stabilize_active = stabilize_active
-      )
+      if (isTRUE(structured_sigmagam)) {
+        ld_signoff_ready <- TRUE
+      } else {
+        iter_mode_quality <- .exal_static_ld_mode_quality(
+          log_q_fn = log_qsiggam,
+          par = c(eta_hat, ell_hat),
+          grad_tol = ld_ctrl$mode_grad_tol,
+          min_eig = ld_ctrl$mode_min_eig,
+          hessian_backend = ld_ctrl$hessian_backend
+        )
+        ld_signoff_ready <- .exal_static_ld_signoff_ready(
+          mode_quality = iter_mode_quality,
+          stabilize_active = stabilize_active
+        )
+      }
     }
 
     if (isTRUE(ld_ctrl$store_trace)) {
@@ -2180,7 +2312,7 @@ exalStaticLDVB <- function(
         eta_step_used = eta_step_used,
         ell_step_used = ell_step_used,
         xi_rel_drift = rel_xi,
-        xi_method = "delta",
+        xi_method = active_xi_method,
         xi_mcse_mean = as.numeric(xis_eval_raw$mcse_mean)[1],
         xi_mcse_max = as.numeric(xis_eval_raw$mcse_max)[1],
         xi_replicates = 0L,
@@ -2206,10 +2338,10 @@ exalStaticLDVB <- function(
         ld_bad_mode = ld_bad_mode_iter,
         ld_mode_grad_inf_norm_candidate = if (!is.null(ld_candidate_mode_quality_iter)) ld_candidate_mode_quality_iter$grad_inf_norm else NA_real_,
         ld_mode_neg_hess_min_eig_candidate = if (!is.null(ld_candidate_mode_quality_iter)) ld_candidate_mode_quality_iter$neg_hess_min_eig else NA_real_,
-        ld_mode_local_pass_candidate = if (!is.null(ld_candidate_mode_quality_iter)) isTRUE(ld_candidate_mode_quality_iter$local_mode_pass) else NA,
+        ld_mode_local_pass_candidate = if (isTRUE(structured_sigmagam)) TRUE else if (!is.null(ld_candidate_mode_quality_iter)) isTRUE(ld_candidate_mode_quality_iter$local_mode_pass) else NA,
         ld_mode_grad_inf_norm_committed = if (!is.null(ld_committed_mode_quality_iter)) ld_committed_mode_quality_iter$grad_inf_norm else NA_real_,
         ld_mode_neg_hess_min_eig_committed = if (!is.null(ld_committed_mode_quality_iter)) ld_committed_mode_quality_iter$neg_hess_min_eig else NA_real_,
-        ld_mode_local_pass_committed = if (!is.null(ld_committed_mode_quality_iter)) isTRUE(ld_committed_mode_quality_iter$local_mode_pass) else NA,
+        ld_mode_local_pass_committed = if (isTRUE(structured_sigmagam)) TRUE else if (!is.null(ld_committed_mode_quality_iter)) isTRUE(ld_committed_mode_quality_iter$local_mode_pass) else NA,
         ld_cycle_detected = ld_cycle_detected,
         ld_stabilized = ld_stabilized,
         ld_stabilize_reason = if (!is.na(ld_stabilize_reason)) ld_stabilize_reason else "",
@@ -2276,7 +2408,7 @@ exalStaticLDVB <- function(
         ld_cycle_detected = ld_cycle_detected,
         ld_stabilized = ld_stabilized,
         ld_stabilize_reason = if (!is.na(ld_stabilize_reason)) ld_stabilize_reason else "",
-        xi_method = "delta",
+        xi_method = active_xi_method,
         sigmagam_frozen = isTRUE(sigmagam_warmup_active),
         sigmagam_update_reason = sigmagam_update_reason,
         sigmagam_forced_postwarmup = isTRUE(sigmagam_forced_postwarmup),
@@ -2353,20 +2485,32 @@ exalStaticLDVB <- function(
   t1 <- proc.time()[3]
   timing_totals["other"] <- max((t1 - t0) - sum(timing_totals[names(timing_totals) != "other"]), 0)
 
-  # approximate means for gamma, sigma from LD mode
-  gamma_mean <- g_from_eta(eta_hat)
-  sigma_mean <- exp(ell_hat)
-  mode_quality <- .exal_static_ld_mode_quality(
-    log_q_fn = log_qsiggam,
-    par = c(eta_hat, ell_hat),
-    grad_tol = ld_ctrl$mode_grad_tol,
-    min_eig = ld_ctrl$mode_min_eig,
-    hessian_backend = ld_ctrl$hessian_backend
-  )
-  ld_signoff_ready <- .exal_static_ld_signoff_ready(
-    mode_quality = mode_quality,
-    stabilize_active = stabilize_active
-  )
+  if (isTRUE(structured_sigmagam) && !is.null(structured_sigmagam_moments)) {
+    gamma_mean <- structured_sigmagam_moments$E.gam
+    sigma_mean <- structured_sigmagam_moments$E.sigma
+    mode_quality <- list(
+      grad_inf_norm = NA_real_,
+      neg_hess_min_eig = NA_real_,
+      local_mode_pass = TRUE,
+      factorization = structured_sigmagam_moments$factorization
+    )
+    ld_signoff_ready <- TRUE
+  } else {
+    # approximate means for gamma, sigma from LD mode
+    gamma_mean <- g_from_eta(eta_hat)
+    sigma_mean <- exp(ell_hat)
+    mode_quality <- .exal_static_ld_mode_quality(
+      log_q_fn = log_qsiggam,
+      par = c(eta_hat, ell_hat),
+      grad_tol = ld_ctrl$mode_grad_tol,
+      min_eig = ld_ctrl$mode_min_eig,
+      hessian_backend = ld_ctrl$hessian_backend
+    )
+    ld_signoff_ready <- .exal_static_ld_signoff_ready(
+      mode_quality = mode_quality,
+      stabilize_active = stabilize_active
+    )
+  }
   ld_trace_df <- if (isTRUE(ld_ctrl$store_trace)) {
     keep <- Filter(Negate(is.null), ld_trace_rows[seq_len(iter)])
     if (length(keep)) do.call(rbind, keep) else data.frame()
@@ -2400,6 +2544,7 @@ exalStaticLDVB <- function(
         cov_floor_rate = mean(as.logical(tail_df$ld_used_cov_floor), na.rm = TRUE),
         update_rate = mean(as.logical(tail_df$ld_updated), na.rm = TRUE),
         direct_commit_rate = mean(tail_df$ld_commit_mode == "direct", na.rm = TRUE),
+        structured_commit_rate = mean(tail_df$ld_commit_mode == "structured", na.rm = TRUE),
         damped_commit_rate = mean(tail_df$ld_commit_mode == "damped", na.rm = TRUE),
         hold_commit_rate = mean(tail_df$ld_commit_mode == "hold", na.rm = TRUE),
         objective_gap_median = stats::median(tail_df$ld_objective_gap, na.rm = TRUE)
@@ -2430,11 +2575,29 @@ exalStaticLDVB <- function(
     qbeta = list(m = m_beta, V = V_beta),
     qv    = list(chi = chi, psi = psi, E_v = E_v, E_inv_v = E_inv_v),
     qs    = list(mu = qs_mu, tau2 = qs_tau2, E_s = E_s, E_s2 = E_s2),
-    qsiggam = list(
-      eta_hat = eta_hat, ell_hat = ell_hat, Sigma = Sig_eta_ell,
-      gamma_mean = gamma_mean, sigma_mean = sigma_mean,
-      xi = xis
-    ),
+    qsiggam = {
+      qsg <- list(
+        eta_hat = eta_hat,
+        ell_hat = ell_hat,
+        Sigma = Sig_eta_ell,
+        gamma_mean = gamma_mean,
+        sigma_mean = sigma_mean,
+        xi = xis,
+        factorization = if (isTRUE(structured_sigmagam) && !is.null(structured_sigmagam_moments)) {
+          structured_sigmagam_moments$factorization
+        } else {
+          "laplace_delta"
+        }
+      )
+      if (isTRUE(structured_sigmagam) && !is.null(structured_sigmagam_moments)) {
+        qsg$structured <- structured_sigmagam_moments$structured
+        qsg$entropy <- structured_sigmagam_moments$entrop
+        qsg$E.log.sigma <- structured_sigmagam_moments$E.log.sig
+        qsg$V.gamma <- structured_sigmagam_moments$V.gam
+        qsg$V.sigma <- structured_sigmagam_moments$V.sigma
+      }
+      qsg
+    },
     converged = converged,
     iter = iter,
     run.time = as.numeric(t1 - t0),

@@ -125,3 +125,75 @@ test_that("static MCMC path is repeatable under a fixed seed", {
     expect_identical(fit_1[[nm]], fit_2[[nm]], info = nm)
   }
 })
+
+test_that("stochastic helpers are repeatable across fresh R processes and thread settings", {
+  skip_on_cran()
+
+  child_script <- tempfile("exdqlm-rng-child-", fileext = ".R")
+  on.exit(unlink(child_script), add = TRUE)
+
+  writeLines(
+    c(
+      "library(exdqlm)",
+      "out_file <- commandArgs(trailingOnly = TRUE)[[1L]]",
+      "set.seed(2026082411)",
+      "gig <- exdqlm:::sample_gig_devroye_vector(",
+      "  n_samples = 6L, p = 0.5, a = 1.3,",
+      "  b_vec = seq(0.4, 1.6, length.out = 5L)",
+      ")",
+      "set.seed(2026082412)",
+      "trn <- exdqlm:::sample_truncnorm(",
+      "  n_samp = 5L, TT = 4L,",
+      "  sts_mu = c(-0.3, 0.0, 0.2, 0.6),",
+      "  sts_sig2 = c(0.6, 0.9, 1.2, 1.5)",
+      ")",
+      "model <- as.exdqlm(list(m0 = 0, C0 = matrix(1, 1, 1), FF = 1, GG = 1))",
+      "set.seed(2026082413)",
+      "fit <- exdqlmMCMC(",
+      "  y = c(0.10, -0.04, 0.09, -0.02, 0.05),",
+      "  p0 = 0.5, model = model, df = 0.95, dim.df = 1,",
+      "  dqlm.ind = FALSE, fix.gamma = FALSE, fix.sigma = TRUE,",
+      "  sig.init = 1, gam.init = 0, n.burn = 3, n.mcmc = 6,",
+      "  init.from.isvb = FALSE, verbose = FALSE",
+      ")",
+      "saveRDS(",
+      "  list(",
+      "    gig = gig, trn = trn,",
+      "    gamma = fit$samp.gamma, theta = fit$samp.theta,",
+      "    post_pred = fit$samp.post.pred",
+      "  ),",
+      "  out_file",
+      ")"
+    ),
+    child_script
+  )
+
+  run_child <- function(threads) {
+    out_file <- tempfile("exdqlm-rng-child-", fileext = ".rds")
+    on.exit(unlink(out_file), add = TRUE)
+    status <- system2(
+      file.path(R.home("bin"), "Rscript"),
+      args = c("--vanilla", shQuote(child_script), shQuote(out_file)),
+      env = c(
+        sprintf("OMP_NUM_THREADS=%d", threads),
+        sprintf("OMP_THREAD_LIMIT=%d", threads),
+        "OPENBLAS_NUM_THREADS=1",
+        "MKL_NUM_THREADS=1",
+        "BLIS_NUM_THREADS=1",
+        "VECLIB_MAXIMUM_THREADS=1"
+      ),
+      stdout = TRUE,
+      stderr = TRUE
+    )
+    expect_false(inherits(status, "try-error"))
+    expect_true(file.exists(out_file), info = paste(status, collapse = "\n"))
+    readRDS(out_file)
+  }
+
+  omp1_a <- run_child(1L)
+  omp1_b <- run_child(1L)
+  omp4 <- run_child(4L)
+
+  expect_identical(omp1_a, omp1_b)
+  expect_identical(omp1_a, omp4)
+})

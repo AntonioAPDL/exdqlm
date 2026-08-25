@@ -305,7 +305,6 @@ plot.exalStaticFit <- function(x, X = NULL, add = FALSE, col = "purple",
 #' fit_mcmc <- exalStaticMCMC(
 #'   y = y, X = X, p0 = 0.25,
 #'   n.burn = 60, n.mcmc = 60,
-#'   mh.proposal = "slice",
 #'   verbose = FALSE
 #' )
 #' out <- diagnostics(fit_ldvb, fit_mcmc, ref = q_true)

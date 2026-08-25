@@ -52,7 +52,7 @@
 #' @section Distinctive features:
 #' \itemize{
 #'   \item Dynamic Bayesian quantile state-space inference with
-#'         Laplace-delta variational Bayes (LDVB) as the main variational
+#'         structured Laplace-delta variational Bayes (LDVB) as the main variational
 #'         Bayes (VB) engine, Markov chain Monte Carlo (MCMC) for posterior
 #'         simulation, and legacy importance-sampling variational Bayes (ISVB)
 #'         retained for compatibility and historical comparisons.
@@ -69,7 +69,27 @@
 #'         shared blocks: RHS-family `tau` scheduling plus exAL
 #'         `(sigma, gamma)` warmup in VB and MCMC entry points, with explicit
 #'         controls available only when users need to override the defaults.
+#'   \item Structured exAL scale-skewness updates: unrestricted exAL LDVB fits
+#'         use a `q(gamma) q(sigma | gamma)` block by default, and unrestricted
+#'         exAL MCMC fits use an exact scale-collapsed gamma slice transition
+#'         by default.
 #'   \item Optional C++ acceleration for selected state-space computations.
+#' }
+#'
+#' @section Release changes in 1.1.1:
+#' \itemize{
+#'   \item Stochastic compiled helper paths were made serial and controlled by
+#'         the R random-number generator, improving exact repeatability under
+#'         fixed seeds.
+#'   \item The default unrestricted exAL MCMC kernel changed to
+#'         `mh.proposal = "collapsed_slice"`, which integrates out `sigma` for
+#'         the gamma slice step and then redraws `sigma` from its exact GIG
+#'         conditional. Legacy kernels remain available when selected
+#'         explicitly.
+#'   \item The default unrestricted exAL LDVB scale-skewness factor changed to
+#'         a structured `q(gamma) q(sigma | gamma)` approximation. The previous
+#'         two-dimensional Laplace-delta factor remains available through
+#'         `exal_make_vb_sigmagam_control(factorization = "laplace_delta")`.
 #' }
 #'
 #' @section Release changes in 1.1.0:
