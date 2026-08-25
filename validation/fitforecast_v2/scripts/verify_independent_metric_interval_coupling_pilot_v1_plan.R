@@ -42,7 +42,7 @@ checks <- data.frame(
     sum(plan$engine == "qdesn") == 21L,
     sum(plan$engine == "dqlm") == 12L,
     setequal(unique(paste(plan$family, plan$tau)), c("normal 0.25", "gausmix 0.05")),
-    identical(config_hashes, as.character(plan$config_sha256)),
+    imic_v1_hash_vectors_equal(config_hashes, plan$config_sha256),
     all(coupling_enabled),
     all(exal_m0),
     length(unique(plan$cpu_id)) >= 1L,

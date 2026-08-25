@@ -5,6 +5,13 @@ testthat::test_that("coupling sensitivity is opt-in", {
   testthat::expect_true(ffv2_metric_coupling_cfg(enabled)$enabled)
 })
 
+testthat::test_that("config hash comparisons ignore incidental vector names", {
+  observed <- stats::setNames(c("abc", "def"), c("/tmp/a", "/tmp/b"))
+  testthat::expect_true(imic_v1_hash_vectors_equal(observed, c("abc", "def")))
+  testthat::expect_false(imic_v1_hash_vectors_equal(observed, c("abc", "xyz")))
+  testthat::expect_false(imic_v1_hash_vectors_equal(observed, "abc"))
+})
+
 testthat::test_that("Q-DESN origin permutations are deterministic marginal bijections", {
   a <- .qdesn_validation_origin_permutation(400L, seed = 8123L,
                                             origin_source_index = 9000L)

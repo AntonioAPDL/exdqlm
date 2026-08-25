@@ -73,6 +73,14 @@ imic_v1_relative_numeric_error <- function(observed, expected) {
     pmax(1, abs(as.numeric(expected)))
 }
 
+imic_v1_hash_vectors_equal <- function(observed, expected) {
+  observed <- unname(as.character(observed))
+  expected <- unname(as.character(expected))
+  length(observed) == length(expected) && length(observed) > 0L &&
+    all(!is.na(observed) & !is.na(expected) & nzchar(observed) &
+          nzchar(expected) & observed == expected)
+}
+
 imic_v1_recompute_source_summaries <- function(draw_index,
                                                 promotion_dir = imic_v1_promotion_dir()) {
   required <- c("job_id", "replay_id", "engine", "inference", "model_variant",
