@@ -217,8 +217,11 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
   n_draws <- as.integer(n_draws %||% 2000L)[1L]
   if (!is.finite(n_draws) || n_draws < 1L) n_draws <- 2000L
   interval_cfg <- ffv2_metric_interval_cfg(config)
+  coupling_cfg <- ffv2_metric_coupling_cfg(config)
   interval_abs_error <- if (isTRUE(interval_cfg$enabled)) numeric(interval_cfg$draws) else NULL
   interval_check_loss <- if (isTRUE(interval_cfg$enabled)) numeric(interval_cfg$draws) else NULL
+  common_abs_error <- if (isTRUE(coupling_cfg$enabled)) numeric(interval_cfg$draws) else NULL
+  common_check_loss <- if (isTRUE(coupling_cfg$enabled)) numeric(interval_cfg$draws) else NULL
   interval_rows <- 0L
   rows <- list()
   row_i <- 0L
@@ -259,6 +262,11 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
         seed = as.integer(seed) + 100000L + origin_idx
       )
     } else NULL
+    common_quantile_draws <- if (isTRUE(coupling_cfg$enabled)) {
+      do.call(rbind, lapply(seq_len(nrow(latent_quantile_draws)), function(lead) {
+        sort(as.numeric(latent_quantile_draws[lead, ]))
+      }))
+    } else NULL
     for (j in seq_len(nrow(origin_grid))) {
       lead <- as.integer(origin_grid$forecast_lead[[j]])
       target <- as.integer(origin_grid$target_source_index[[j]])
@@ -278,6 +286,14 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
           as.numeric(target_row$y[[1L]]), latent_row, as.numeric(config$tau)
         )
         interval_rows <- interval_rows + 1L
+      }
+      if (isTRUE(coupling_cfg$enabled)) {
+        common_row <- as.numeric(common_quantile_draws[lead, ])
+        common_abs_error <- common_abs_error +
+          abs(common_row - as.numeric(target_row$q_true[[1L]]))
+        common_check_loss <- common_check_loss + ffv2_check_loss(
+          as.numeric(target_row$y[[1L]]), common_row, as.numeric(config$tau)
+        )
       }
       row_i <- row_i + 1L
       rows[[row_i]] <- cbind(
@@ -338,6 +354,26 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
       draw_source = "latent_state_quantile_ff_fQ",
       stringsAsFactors = FALSE
     )
+    if (isTRUE(coupling_cfg$enabled)) {
+      attr(out, "metric_interval_coupling") <- rbind(
+        data.frame(
+          coupling_mode = "origin_independent",
+          draw_id = seq_len(interval_cfg$draws),
+          forecast_mae = interval_abs_error / interval_rows,
+          forecast_check_loss = interval_check_loss / interval_rows,
+          draw_source = "latent_state_quantile_ff_fQ_origin_independent",
+          stringsAsFactors = FALSE
+        ),
+        data.frame(
+          coupling_mode = "common_marginal_rank",
+          draw_id = seq_len(interval_cfg$draws),
+          forecast_mae = common_abs_error / interval_rows,
+          forecast_check_loss = common_check_loss / interval_rows,
+          draw_source = "latent_state_quantile_ff_fQ_common_marginal_rank",
+          stringsAsFactors = FALSE
+        )
+      )
+    }
   }
   out
 }

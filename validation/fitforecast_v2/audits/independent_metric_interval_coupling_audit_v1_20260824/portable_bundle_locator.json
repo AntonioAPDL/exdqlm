@@ -1,0 +1,12 @@
+{
+  "schema_version": "independent_metric_interval_coupling_audit_v1",
+  "generated_at": "2026-08-24 23:59:43 EDT",
+  "archive_filename": "metric_intervals_v10_evidence_bundle_v1_20260824.tar.gz",
+  "local_archive_path": "/data/jaguir26/local/artifacts/independent_qdesn_validation/metric_intervals_v10_evidence_bundle_v1_20260824.tar.gz",
+  "archive_bytes": 33250242,
+  "archive_sha256": "d0dfedba140be3b2d50252ab25661a4c0bf11ebac7fd93f6041460f7614ec805",
+  "bundle_root": "/data/jaguir26/local/artifacts/independent_qdesn_validation/metric_intervals_v10_evidence_bundle_v1_20260824",
+  "bundle_file_manifest_sha256": "f9373f23f2df3e05feaaa09f8f6d82390b5cade8ea5e77762c51a3576506ef2d",
+  "payload_files": 1059,
+  "metric_draw_files": 198
+}

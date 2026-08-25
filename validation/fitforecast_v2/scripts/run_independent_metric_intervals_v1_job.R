@@ -105,6 +105,11 @@ tryCatch({
     draws_path <- file.path(job$job_root, "tables", "metric_draws.csv.gz")
     summary_path <- file.path(job$job_root, "tables", "metric_interval_summary.csv")
     interval_manifest_path <- file.path(job$job_root, "manifest", "metric_interval_manifest.json")
+    coupling_enabled <- isTRUE(
+      job$config$metrics$posterior_metric_intervals$coupling_sensitivity$enabled
+    )
+    coupling_draws_path <- file.path(job$job_root, "tables", "metric_coupling_draws.csv.gz")
+    coupling_summary_path <- file.path(job$job_root, "tables", "metric_coupling_summary.csv")
     binary_paths <- list.files(job$job_root, pattern = "[.](rds|rda|RData)$",
                                recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
     if (length(binary_paths)) {
@@ -121,6 +126,9 @@ tryCatch({
     remaining <- list.files(job$job_root, pattern = "[.](rds|rda|RData)$",
                             recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
     required <- c(draws_path, summary_path, interval_manifest_path)
+    if (coupling_enabled) {
+      required <- c(required, coupling_draws_path, coupling_summary_path)
+    }
     if (any(!file.exists(required)) || length(remaining)) {
       stop("Q-DESN interval artifacts are incomplete or heavy binaries remain.", call. = FALSE)
     }
@@ -132,7 +140,16 @@ tryCatch({
       metric_interval_summary_sha256 = ffv2_file_sha256(summary_path),
       metric_interval_manifest_path = interval_manifest_path,
       metric_interval_manifest_sha256 = ffv2_file_sha256(interval_manifest_path),
-      metric_draws = nrow(draws), heavy_binary_count = 0L
+      metric_draws = nrow(draws),
+      metric_coupling_draws_path = if (coupling_enabled) coupling_draws_path else NULL,
+      metric_coupling_draws_sha256 = if (coupling_enabled) {
+        ffv2_file_sha256(coupling_draws_path)
+      } else NULL,
+      metric_coupling_summary_path = if (coupling_enabled) coupling_summary_path else NULL,
+      metric_coupling_summary_sha256 = if (coupling_enabled) {
+        ffv2_file_sha256(coupling_summary_path)
+      } else NULL,
+      heavy_binary_count = 0L
     )
   } else {
     config <- ffv2_read_json(config_path)
@@ -144,6 +161,14 @@ tryCatch({
     ffv2_run_row(config_path, force = FALSE, validation_stage = "all")
     required <- c(config$metric_draws_path, config$metric_interval_summary_path,
                   config$metric_interval_manifest_path)
+    coupling_enabled <- isTRUE(
+      (config$metric_intervals %||% list())$coupling_sensitivity$enabled
+    )
+    if (coupling_enabled) {
+      required <- c(required, config$metric_coupling_draws_path,
+                    config$metric_coupling_summary_path,
+                    config$metric_coupling_manifest_path)
+    }
     if (any(!file.exists(required))) stop("DQLM interval artifacts are incomplete.", call. = FALSE)
     draws <- ffv2_read_csv(config$metric_draws_path)
     binary_candidates <- c(config$fit_handoff_path, config$vb_init_handoff_path)
@@ -160,7 +185,20 @@ tryCatch({
       metric_interval_summary_sha256 = ffv2_file_sha256(config$metric_interval_summary_path),
       metric_interval_manifest_path = config$metric_interval_manifest_path,
       metric_interval_manifest_sha256 = ffv2_file_sha256(config$metric_interval_manifest_path),
-      metric_draws = nrow(draws), heavy_binary_count = 0L
+      metric_draws = nrow(draws),
+      metric_coupling_draws_path = if (coupling_enabled) {
+        config$metric_coupling_draws_path
+      } else NULL,
+      metric_coupling_draws_sha256 = if (coupling_enabled) {
+        ffv2_file_sha256(config$metric_coupling_draws_path)
+      } else NULL,
+      metric_coupling_summary_path = if (coupling_enabled) {
+        config$metric_coupling_summary_path
+      } else NULL,
+      metric_coupling_summary_sha256 = if (coupling_enabled) {
+        ffv2_file_sha256(config$metric_coupling_summary_path)
+      } else NULL,
+      heavy_binary_count = 0L
     )
   }
   status <- "SUCCESS"

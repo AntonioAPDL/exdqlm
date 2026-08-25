@@ -1,0 +1,12 @@
+replay_id,engine,model_variant,family,tau,article_roles,pilot_role,rationale
+imi_v1_source_038,dqlm,dqlm,normal,0.25,forecast_mae;forecast_check,easy_reference,Stable linear-model reference in the representative central-tail cell
+imi_v1_source_041,dqlm,exdqlm,normal,0.25,forecast_mae;forecast_check,easy_reference,Stable extended linear-model reference in the representative central-tail cell
+imi_v1_source_044,qdesn,qdesn_al_rhs_ns,normal,0.25,forecast_mae,easy_reference,Published AL-RHS forecast-MAE source in the representative central-tail cell
+imi_v1_source_076,qdesn,qdesn_exal_rhs_ns,normal,0.25,forecast_mae,easy_reference,Published exAL-RHS forecast-MAE source in the representative central-tail cell
+imi_v1_source_085,qdesn,qdesn_al_rhs_ns,normal,0.25,forecast_check,easy_reference,Published AL-RHS forecast-check source in the representative central-tail cell
+imi_v1_source_086,qdesn,qdesn_exal_rhs_ns,normal,0.25,forecast_check,easy_reference,Published exAL-RHS forecast-check source in the representative central-tail cell
+imi_v1_source_061,dqlm,dqlm,gausmix,0.05,forecast_mae;forecast_check,hard_reference,Stable linear-model reference in the difficult lower-tail mixture cell
+imi_v1_source_064,dqlm,exdqlm,gausmix,0.05,forecast_mae;forecast_check,hard_reference,Stable extended linear-model reference in the difficult lower-tail mixture cell
+imi_v1_source_067,qdesn,qdesn_al_rhs_ns,gausmix,0.05,forecast_mae,hard_reference,Published AL-RHS forecast-MAE source in the difficult lower-tail mixture cell
+imi_v1_source_082,qdesn,qdesn_exal_rhs_ns,gausmix,0.05,forecast_mae;forecast_check,hard_reference,Published exAL-RHS forecast source in the difficult lower-tail mixture cell
+imi_v1_source_090,qdesn,qdesn_al_rhs_ns,gausmix,0.05,forecast_check,hard_reference,Published AL-RHS forecast-check source in the difficult lower-tail mixture cell

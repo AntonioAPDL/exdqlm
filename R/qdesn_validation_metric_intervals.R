@@ -14,6 +14,45 @@
   )
 }
 
+.qdesn_validation_metric_coupling_cfg <- function(defaults = NULL) {
+  metrics <- (defaults %||% list())$metrics %||% list()
+  x <- ((metrics$posterior_metric_intervals %||% list())$coupling_sensitivity %||%
+          list())
+  seed <- as.integer(x$seed %||% 20260824L)[1L]
+  if (!is.finite(seed) || seed < 1L) seed <- 20260824L
+  list(
+    enabled = isTRUE(x$enabled),
+    seed = seed,
+    modes = as.character(x$modes %||%
+      c("native_aligned", "origin_independent_permutation")),
+    decision_contract = as.character(x$decision_contract %||%
+      "paired_marginal_coupling_sensitivity_v1")[1L]
+  )
+}
+
+.qdesn_validation_with_seed <- function(seed, code) {
+  old <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  } else NULL
+  on.exit({
+    if (is.null(old)) {
+      if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    } else assign(".Random.seed", old, envir = .GlobalEnv)
+  }, add = TRUE)
+  set.seed(as.integer(seed)[1L])
+  force(code)
+}
+
+.qdesn_validation_origin_permutation <- function(n_draws, seed, origin_source_index) {
+  n_draws <- as.integer(n_draws)[1L]
+  keyed_seed <- (as.double(seed) + 104729 * as.double(origin_source_index)) %%
+    (.Machine$integer.max - 1)
+  keyed_seed <- as.integer(keyed_seed + 1)
+  .qdesn_validation_with_seed(keyed_seed, sample.int(n_draws, n_draws, replace = FALSE))
+}
+
 .qdesn_validation_even_draw_indices <- function(n_available, n_keep) {
   n_available <- as.integer(n_available)[1L]
   n_keep <- as.integer(n_keep)[1L]
@@ -35,6 +74,7 @@
                                                          root_spec,
                                                          defaults = NULL) {
   cfg <- .qdesn_validation_metric_interval_cfg(defaults)
+  coupling_cfg <- .qdesn_validation_metric_coupling_cfg(defaults)
   if (!isTRUE(cfg$enabled)) return(data.frame(stringsAsFactors = FALSE))
   fits_fc <- (summary_obj$forecast_objects %||% list())$fits_fc %||% list()
   if (!length(fits_fc)) stop("Metric intervals require forecast_objects$fits_fc.", call. = FALSE)
@@ -113,6 +153,13 @@
   scale_spec <- .qdesn_validation_lead_export_scale_spec(forecast_full)
   abs_sum <- numeric(length(draw_idx))
   check_sum <- numeric(length(draw_idx))
+  product_abs_sum <- if (isTRUE(coupling_cfg$enabled)) numeric(length(draw_idx)) else NULL
+  product_check_sum <- if (isTRUE(coupling_cfg$enabled)) numeric(length(draw_idx)) else NULL
+  product_maps <- if (isTRUE(coupling_cfg$enabled)) {
+    lapply(origins_local, function(origin) {
+      .qdesn_validation_origin_permutation(length(draw_idx), coupling_cfg$seed, origin)
+    })
+  } else NULL
   tau <- as.numeric(root_spec$tau)[1L]
   for (i in seq_len(nrow(grid))) {
     origin_pos <- match(local_origin[[i]], origins_local)
@@ -128,6 +175,15 @@
     target <- local_target[[i]]
     abs_sum <- abs_sum + abs(q - q_true[[target]])
     check_sum <- check_sum + .qdesn_validation_metric_check_loss(y[[target]], q, tau)
+    if (isTRUE(coupling_cfg$enabled)) {
+      product_cols <- draw_idx[product_maps[[origin_pos]]]
+      q_product <- as.numeric(.qdesn_validation_apply_lead_export_scale(
+        matrix(mu[lead, product_cols], nrow = 1L), scale_spec
+      ))
+      product_abs_sum <- product_abs_sum + abs(q_product - q_true[[target]])
+      product_check_sum <- product_check_sum +
+        .qdesn_validation_metric_check_loss(y[[target]], q_product, tau)
+    }
   }
   out <- data.frame(
     chain_id = cfg$chain_id,
@@ -141,6 +197,28 @@
   )
   metric_matrix <- as.matrix(out[c("fit_rmse", "forecast_mae", "forecast_check_loss")])
   if (any(!is.finite(metric_matrix))) stop("Q-DESN metric draws contain non-finite values.", call. = FALSE)
+  if (isTRUE(coupling_cfg$enabled)) {
+    attr(out, "metric_coupling_draws") <- rbind(
+      data.frame(
+        chain_id = cfg$chain_id,
+        draw_id = seq_along(draw_idx),
+        coupling_mode = "native_aligned",
+        forecast_mae = abs_sum / nrow(grid),
+        forecast_check_loss = check_sum / nrow(grid),
+        draw_source = "mu_by_origin_native_aligned",
+        stringsAsFactors = FALSE
+      ),
+      data.frame(
+        chain_id = cfg$chain_id,
+        draw_id = seq_along(draw_idx),
+        coupling_mode = "origin_independent_permutation",
+        forecast_mae = product_abs_sum / nrow(grid),
+        forecast_check_loss = product_check_sum / nrow(grid),
+        draw_source = "mu_by_origin_origin_independent_permutation",
+        stringsAsFactors = FALSE
+      )
+    )
+  }
   out
 }
 
@@ -171,6 +249,31 @@
   }))
 }
 
+.qdesn_validation_metric_coupling_summary <- function(draws) {
+  blocks <- split(draws, as.character(draws$coupling_mode))
+  out <- do.call(rbind, lapply(blocks, function(block) {
+    do.call(rbind, lapply(c("forecast_mae", "forecast_check_loss"), function(metric) {
+      x <- as.numeric(block[[metric]])
+      qs <- stats::quantile(x, c(0.025, 0.5, 0.975), names = FALSE,
+                            type = 8, na.rm = TRUE)
+      data.frame(
+        coupling_mode = as.character(block$coupling_mode[[1L]]),
+        metric = metric,
+        posterior_mean = mean(x),
+        posterior_sd = stats::sd(x),
+        cri_lower = qs[[1L]],
+        posterior_median = qs[[2L]],
+        cri_upper = qs[[3L]],
+        n_draws = length(x),
+        n_chains = length(unique(draws$chain_id)),
+        stringsAsFactors = FALSE
+      )
+    }))
+  }))
+  rownames(out) <- NULL
+  out
+}
+
 .qdesn_validation_write_metric_interval_artifacts <- function(summary_obj,
                                                                root_spec,
                                                                method_dir,
@@ -181,6 +284,7 @@
                 manifest = NA_character_, rows = 0L))
   }
   draws <- .qdesn_validation_metric_draws_from_summary(summary_obj, root_spec, defaults)
+  coupling_draws <- attr(draws, "metric_coupling_draws")
   summary <- .qdesn_validation_metric_interval_summary(
     draws, method = as.character((summary_obj$summary$inference_method %||% root_spec$method %||% "mcmc")[1L]),
     estimator_id = cfg$estimator_id
@@ -192,6 +296,8 @@
   draws_path <- file.path(method_dir, "tables", "metric_draws.csv.gz")
   summary_path <- file.path(method_dir, "tables", "metric_interval_summary.csv")
   manifest_path <- file.path(method_dir, "manifest", "metric_interval_manifest.json")
+  coupling_draws_path <- file.path(method_dir, "tables", "metric_coupling_draws.csv.gz")
+  coupling_summary_path <- file.path(method_dir, "tables", "metric_coupling_summary.csv")
   dir.create(dirname(draws_path), recursive = TRUE, showWarnings = FALSE)
   con <- gzfile(draws_path, open = "wt")
   tryCatch(
@@ -200,6 +306,33 @@
   )
   .qdesn_validation_write_df(summary, summary_path)
   sha <- function(path) digest::digest(file = path, algo = "sha256", serialize = FALSE)
+  coupling_cfg <- .qdesn_validation_metric_coupling_cfg(defaults)
+  coupling_manifest <- NULL
+  if (isTRUE(coupling_cfg$enabled)) {
+    if (is.null(coupling_draws) || !nrow(coupling_draws)) {
+      stop("Enabled Q-DESN coupling sensitivity did not produce draws.", call. = FALSE)
+    }
+    coupling_summary <- .qdesn_validation_metric_coupling_summary(coupling_draws)
+    con <- gzfile(coupling_draws_path, open = "wt")
+    tryCatch(
+      utils::write.csv(coupling_draws, con, row.names = FALSE, na = ""),
+      finally = close(con)
+    )
+    .qdesn_validation_write_df(coupling_summary, coupling_summary_path)
+    coupling_manifest <- list(
+      schema_version = "independent_metric_interval_coupling_sensitivity_v1",
+      modes = sort(unique(as.character(coupling_draws$coupling_mode))),
+      decision_contract = coupling_cfg$decision_contract,
+      metric_coupling_draws_path = normalizePath(
+        coupling_draws_path, winslash = "/", mustWork = TRUE
+      ),
+      metric_coupling_draws_sha256 = sha(coupling_draws_path),
+      metric_coupling_summary_path = normalizePath(
+        coupling_summary_path, winslash = "/", mustWork = TRUE
+      ),
+      metric_coupling_summary_sha256 = sha(coupling_summary_path)
+    )
+  }
   manifest <- list(
     schema_version = "independent_metric_intervals_v1",
     generated_at = as.character(Sys.time()),
@@ -214,7 +347,8 @@
     metric_draws_sha256 = sha(draws_path),
     metric_interval_summary_path = normalizePath(summary_path, winslash = "/", mustWork = TRUE),
     metric_interval_summary_sha256 = sha(summary_path),
-    heavy_binary_retained = FALSE
+    heavy_binary_retained = FALSE,
+    coupling_sensitivity = coupling_manifest
   )
   .qdesn_validation_write_json(manifest_path, manifest)
   list(
@@ -222,6 +356,10 @@
     draws = normalizePath(draws_path, winslash = "/", mustWork = TRUE),
     summary = normalizePath(summary_path, winslash = "/", mustWork = TRUE),
     manifest = normalizePath(manifest_path, winslash = "/", mustWork = TRUE),
-    rows = nrow(draws)
+    rows = nrow(draws),
+    coupling_draws = if (is.null(coupling_manifest)) NA_character_ else
+      normalizePath(coupling_draws_path, winslash = "/", mustWork = TRUE),
+    coupling_summary = if (is.null(coupling_manifest)) NA_character_ else
+      normalizePath(coupling_summary_path, winslash = "/", mustWork = TRUE)
   )
 }

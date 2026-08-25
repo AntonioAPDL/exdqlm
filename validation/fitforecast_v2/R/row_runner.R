@@ -338,6 +338,16 @@ ffv2_run_row <- function(config_path,
         stringsAsFactors = FALSE
       )
       ffv2_write_metric_interval_artifacts(config, metric_draws)
+      coupling_part <- attr(forecast_summary, "metric_interval_coupling")
+      if (isTRUE(ffv2_metric_coupling_cfg(config)$enabled)) {
+        if (is.null(coupling_part) || !nrow(coupling_part)) {
+          stop("Enabled coupling sensitivity did not produce forecast draws.", call. = FALSE)
+        }
+        coupling_part$chain_id <- as.integer(
+          (config$metric_intervals %||% list())$chain_id %||% config$chain_id %||% 1L
+        )
+        ffv2_write_metric_coupling_artifacts(config, coupling_part)
+      }
     }
 
     compute_forecast_summary <- function(fit, data) {

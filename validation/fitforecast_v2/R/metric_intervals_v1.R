@@ -16,6 +16,46 @@ ffv2_metric_interval_cfg <- function(config = list()) {
   )
 }
 
+ffv2_metric_coupling_cfg <- function(config = list()) {
+  x <- ((config$metric_intervals %||% list())$coupling_sensitivity %||% list())
+  enabled <- ffv2_truthy(x$enabled %||% FALSE)
+  seed <- as.integer(x$seed %||% 20260824L)[1L]
+  if (!is.finite(seed) || seed < 1L) seed <- 20260824L
+  list(
+    enabled = enabled,
+    seed = seed,
+    modes = as.character(x$modes %||%
+      c("origin_independent", "common_marginal_rank")),
+    decision_contract = as.character(x$decision_contract %||%
+      "paired_marginal_coupling_sensitivity_v1")[1L]
+  )
+}
+
+ffv2_with_seed <- function(seed, code) {
+  old <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  } else NULL
+  on.exit({
+    if (is.null(old)) {
+      if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    } else assign(".Random.seed", old, envir = .GlobalEnv)
+  }, add = TRUE)
+  set.seed(as.integer(seed)[1L])
+  force(code)
+}
+
+ffv2_standard_normal_matrix <- function(n_rows, n_draws, seed) {
+  n_rows <- as.integer(n_rows)[1L]
+  n_draws <- as.integer(n_draws)[1L]
+  if (!is.finite(n_rows) || n_rows < 1L || !is.finite(n_draws) || n_draws < 2L) {
+    stop("Standard-normal coupling matrix dimensions are invalid.", call. = FALSE)
+  }
+  ffv2_with_seed(seed, matrix(stats::rnorm(n_rows * n_draws),
+                              nrow = n_rows, ncol = n_draws))
+}
+
 ffv2_even_draw_indices <- function(n_available, n_keep) {
   n_available <- as.integer(n_available)[1L]
   n_keep <- as.integer(n_keep)[1L]
@@ -209,23 +249,85 @@ ffv2_dqlm_conditional_quantile_draws <- function(fit, n_draws) {
   out
 }
 
-ffv2_latent_forecast_draws <- function(forecast, n_draws, seed) {
+ffv2_latent_forecast_draws <- function(forecast,
+                                       n_draws,
+                                       seed,
+                                       standard_normal_draws = NULL) {
   n_draws <- as.integer(n_draws)[1L]
   ff <- as.numeric(forecast$ff)
   fQ <- pmax(as.numeric(forecast$fQ), 0)
-  old <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-  } else NULL
-  on.exit({
-    if (is.null(old)) {
-      if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-        rm(".Random.seed", envir = .GlobalEnv)
-      }
-    } else assign(".Random.seed", old, envir = .GlobalEnv)
-  }, add = TRUE)
-  set.seed(as.integer(seed)[1L])
-  sweep(matrix(stats::rnorm(length(ff) * n_draws), nrow = length(ff), ncol = n_draws),
-        1L, sqrt(fQ), "*") + ff
+  z <- if (is.null(standard_normal_draws)) {
+    ffv2_standard_normal_matrix(length(ff), n_draws, seed)
+  } else {
+    out <- as.matrix(standard_normal_draws)
+    if (nrow(out) < length(ff) || ncol(out) != n_draws) {
+      stop("Supplied standard-normal coupling matrix is not forecast aligned.", call. = FALSE)
+    }
+    out[seq_along(ff), , drop = FALSE]
+  }
+  sweep(z, 1L, sqrt(fQ), "*") + ff
+}
+
+ffv2_metric_coupling_summary <- function(coupling_draws) {
+  required <- c("coupling_mode", "forecast_mae", "forecast_check_loss")
+  missing <- setdiff(required, names(coupling_draws))
+  if (length(missing)) {
+    stop(sprintf("Coupling draw table is missing: %s", paste(missing, collapse = ", ")),
+         call. = FALSE)
+  }
+  blocks <- split(coupling_draws, as.character(coupling_draws$coupling_mode))
+  rows <- lapply(blocks, function(block) {
+    do.call(rbind, lapply(c("forecast_mae", "forecast_check_loss"), function(metric) {
+      x <- as.numeric(block[[metric]])
+      qs <- stats::quantile(x, ffv2_metric_interval_probs, names = FALSE,
+                            type = 8, na.rm = TRUE)
+      data.frame(
+        coupling_mode = as.character(block$coupling_mode[[1L]]),
+        metric = metric,
+        posterior_mean = mean(x, na.rm = TRUE),
+        posterior_sd = stats::sd(x, na.rm = TRUE),
+        cri_lower = qs[[1L]],
+        posterior_median = qs[[2L]],
+        cri_upper = qs[[3L]],
+        n_draws = sum(is.finite(x)),
+        n_chains = length(unique(as.integer(block$chain_id %||% 1L))),
+        stringsAsFactors = FALSE
+      )
+    }))
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+ffv2_write_metric_coupling_artifacts <- function(config, coupling_draws) {
+  cfg <- ffv2_metric_coupling_cfg(config)
+  if (!isTRUE(cfg$enabled)) return(invisible(NULL))
+  draws_path <- as.character(config$metric_coupling_draws_path %||% "")[1L]
+  summary_path <- as.character(config$metric_coupling_summary_path %||% "")[1L]
+  manifest_path <- as.character(config$metric_coupling_manifest_path %||% "")[1L]
+  if (!nzchar(draws_path) || !nzchar(summary_path) || !nzchar(manifest_path)) {
+    stop("Coupling-sensitivity output paths are required when enabled.", call. = FALSE)
+  }
+  summary <- ffv2_metric_coupling_summary(coupling_draws)
+  ffv2_write_csv_gz(coupling_draws, draws_path)
+  ffv2_write_csv(summary, summary_path)
+  manifest <- list(
+    schema_version = "independent_metric_interval_coupling_sensitivity_v1",
+    generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+    row_key = as.character(config$row_key %||% NA_character_),
+    source_replay_id = as.character(config$source_replay_id %||% NA_character_),
+    chain_id = as.integer(config$chain_id %||% 1L),
+    modes = sort(unique(as.character(coupling_draws$coupling_mode))),
+    decision_contract = cfg$decision_contract,
+    metric_coupling_draws_path = normalizePath(draws_path, winslash = "/", mustWork = TRUE),
+    metric_coupling_draws_sha256 = ffv2_file_sha256(draws_path),
+    metric_coupling_summary_path = normalizePath(summary_path, winslash = "/", mustWork = TRUE),
+    metric_coupling_summary_sha256 = ffv2_file_sha256(summary_path),
+    heavy_binary_retained = FALSE
+  )
+  ffv2_write_json(manifest, manifest_path)
+  invisible(manifest)
 }
 
 ffv2_metric_chain_diagnostics <- function(metric_draws) {

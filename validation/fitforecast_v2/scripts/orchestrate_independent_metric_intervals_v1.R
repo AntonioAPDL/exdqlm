@@ -84,13 +84,19 @@ worker_script <- file.path(harness_root, "scripts", "run_independent_metric_inte
 run_one <- function(row) {
   log_path <- file.path(state_root, "logs", paste0(row$job_id[[1L]], ".stdout.log"))
   ffv2_ensure_dir(dirname(log_path))
-  status <- system2(
-    Sys.which("Rscript"),
-    c(shQuote(worker_script), "--repo-root", shQuote(repo_root),
-      "--state-root", shQuote(state_root), "--engine", shQuote(row$engine[[1L]]),
-      "--job-id", shQuote(row$job_id[[1L]]), "--config", shQuote(row$config_path[[1L]])),
-    stdout = log_path, stderr = log_path
-  )
+  worker_args <- c(shQuote(worker_script), "--repo-root", shQuote(repo_root),
+                   "--state-root", shQuote(state_root), "--engine",
+                   shQuote(row$engine[[1L]]), "--job-id", shQuote(row$job_id[[1L]]),
+                   "--config", shQuote(row$config_path[[1L]]))
+  cpu_id <- suppressWarnings(as.integer(row$cpu_id %||% NA_integer_)[1L])
+  status <- if (is.finite(cpu_id)) {
+    taskset <- Sys.which("taskset")
+    if (!nzchar(taskset)) stop("taskset is required for a CPU-pinned plan.", call. = FALSE)
+    system2(taskset, c("-c", as.character(cpu_id), shQuote(Sys.which("Rscript")),
+                       worker_args), stdout = log_path, stderr = log_path)
+  } else {
+    system2(Sys.which("Rscript"), worker_args, stdout = log_path, stderr = log_path)
+  }
   data.frame(job_id = row$job_id[[1L]], exit_status = as.integer(status),
              log_path = normalizePath(log_path, winslash = "/", mustWork = TRUE),
              stringsAsFactors = FALSE)

@@ -1,0 +1,13 @@
+{
+  "schema_version": "independent_metric_interval_coupling_audit_v1",
+  "generated_at": "2026-08-25 00:00:09 EDT",
+  "status": "PASS",
+  "bundle_root": "/data/jaguir26/local/artifacts/independent_qdesn_validation/metric_intervals_v10_evidence_bundle_v1_20260824",
+  "bundle_file_manifest_sha256": "f9373f23f2df3e05feaaa09f8f6d82390b5cade8ea5e77762c51a3576506ef2d",
+  "metric_draw_files": 198,
+  "source_identities": 90,
+  "source_metric_rows": 270,
+  "mismatches": 0,
+  "checks_sha256": "66b2915c512cd9bd2c4e2535a4abbe8d8267e8b0a651e86a45a6111e48170938",
+  "comparison_sha256": "9f13380ec8ab7c6977a15ba1ba5a22efb6b3afeba02e98443869c1336f16cccf"
+}
