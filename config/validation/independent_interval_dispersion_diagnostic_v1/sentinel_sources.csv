@@ -4,5 +4,5 @@ imi_v1_source_075,qdesn_exal_rhs_ns,normal,0.05,extreme_width,ssv2_normal_t0p05_
 imi_v1_source_082,qdesn_exal_rhs_ns,gausmix,0.05,hard_tail,qdesn__gausmix__0p05__tt500__rhs_ns__mcmc__exal__45c25fd0ade821,Hard lower-tail mixture case with a compact historical design
 imi_v1_source_083,qdesn_exal_rhs_ns,gausmix,0.25,extreme_width,plrv1_exal_gausmix_t0p25_08_576957a0bd,Large central-tail exAL interval with low tau0
 imi_v1_source_055,qdesn_al_rhs_ns,laplace,0.05,hard_tail,qdesn__laplace__0p05__tt500__rhs_ns__mcmc__al__f3d109dc7144a9,Heavy-tail AL lower-tail stress case
-imi_v1_source_057,qdesn_al_rhs_ns,laplace,0.50,lower_width_control,qdesn__laplace__0p50__tt500__rhs_ns__mcmc__al__412d95be19e89c,Lower-width AL control under the same evaluation protocol
-imi_v1_source_060,qdesn_exal_rhs_ns,laplace,0.50,lower_width_control,qdesn__laplace__0p50__tt500__rhs_ns__mcmc__exal__fcd6fee84b5301,Lower-width exact-M0 exAL control
+imi_v1_source_078,qdesn_al_rhs_ns,laplace,0.50,lower_width_control,qdesn__laplace__0p50__tt500__rhs_ns__mcmc__al__412d95be19e89c,Lower-width AL forecast-MAE control under the same evaluation protocol
+imi_v1_source_080,qdesn_exal_rhs_ns,laplace,0.50,lower_width_control,qdesn__laplace__0p50__tt500__rhs_ns__mcmc__exal__fcd6fee84b5301,Lower-width exact-M0 exAL forecast-MAE control
