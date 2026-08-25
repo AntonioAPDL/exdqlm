@@ -1,71 +1,88 @@
-## exdqlm 1.1.0
+## exdqlm 1.1.1
 
 ### Release context
 
-This release updates CRAN version 1.0.0 with package-design and documentation
-improvements made while preparing the accompanying JSS software article for
-resubmission.
+This is a narrow reproducibility and inference-stability update to CRAN
+version 1.1.0. The update was prepared while revising the accompanying Journal
+of Statistical Software article after editorial prescreening comments on the
+replication materials. The package API, exported object classes, and
+manuscript-level statistical claims are unchanged.
 
-The main changes are user-facing but backward compatible:
+The main changes are:
 
-- Dynamic fitted objects now inherit from the shared `exdqlmFit` class while
-  retaining their existing first class names (`exdqlmLDVB`, `exdqlmMCMC`, and
-  legacy `exdqlmISVB`).
-- Static fitted objects now inherit from the shared `exalStaticFit` class while
-  retaining their existing first class names (`exalStaticLDVB` and
-  `exalStaticMCMC`).
-- Fitted models and post-processing objects have more informative `print()` and
-  `summary()` methods.
-- Dynamic fits now support standard post-processing methods: `plot(fit)`,
-  `plot(fit, type = "component")`, `plot(fit, type = "state")`, and
-  `predict(fit, ...)`.
-- Diagnostic constructors now return visible diagnostic objects that can be
-  printed, summarized, and plotted with standard methods.
-- `exdqlmForecast()` now returns forecast objects visibly and uses
-  `plot = FALSE` by default. Explicit `plot = TRUE` remains supported.
-- Documentation now describes the shared object families and the standard method
-  workflow directly.
-
-Existing named helper functions such as `exdqlmPlot()`, `compPlot()`,
-`exdqlmForecast()`, `exdqlmDiagnostics()`, `exalStaticDiagnostics()`, and
-`exdqlmForecastDiagnostics()` remain available.
+- compiled stochastic helper routines now use serial R-controlled random-number
+  streams for manuscript-relevant stochastic paths, avoiding OpenMP worker RNG
+  calls and wall-clock/thread-indexed private seeds;
+- repeated-seed tests were added for compiled stochastic helpers and small
+  dynamic/static MCMC workflows;
+- the default MCMC update for dynamic and static exAL likelihood fits now uses
+  a scale-collapsed gamma slice transition followed by an exact conditional GIG
+  redraw for sigma;
+- the default LDVB scale-skewness block for dynamic and static exAL likelihood
+  fits now uses a structured `q(gamma) q(sigma | gamma)` approximation;
+- legacy MCMC and LDVB scale-skewness options remain available by explicit
+  user selection.
 
 ### Test environments
 
 - Local: AlmaLinux/Rocky-compatible Linux (x86_64), R 4.6.0 (2026-04-24).
-- Local development tools available for this check included `pandoc` 3.9.0.2
-  and the R package `V8`, so README/NEWS and HTML math rendering checks ran.
-- Local commands used:
-  - `Rscript -e 'source("tests/testthat/setup-cran-thread-controls.R"); pkgload::load_all("."); testthat::test_dir("tests/testthat", reporter = "summary")'`
-  - `R CMD build .`
-  - `R CMD check --no-manual --run-donttest exdqlm_1.1.0.tar.gz`
+- GitHub Actions:
+  - Ubuntu release;
+  - Ubuntu devel;
+  - Ubuntu oldrel-1;
+  - macOS release;
+  - Windows release.
+- R-hub:
+  - Linux R-devel;
+  - Windows R-devel;
+  - macOS ARM64 R-devel.
+
+### Local commands
+
+- `R CMD build .`
+- `R CMD check --as-cran exdqlm_1.1.1.tar.gz`
+- targeted package repeatability tests for compiled stochastic helpers and
+  dynamic/static MCMC workflows.
 
 ### R CMD check results
 
-- `0 errors | 0 warnings | 0 notes`.
+- Local `R CMD check --as-cran`: `0 errors | 0 warnings | 2 notes`.
+- GitHub Actions matrix: passed on all configured platforms.
+- R-hub matrix: passed on all configured platforms.
+
+The two local notes are expected:
+
+1. the package specifies C++17;
+2. the installed package size is dominated by the compiled shared library.
+
+### Reverse dependencies
+
+No reverse dependencies were found for `exdqlm` on CRAN under Depends, Imports,
+LinkingTo, or Suggests.
 
 ### Notes for CRAN
 
-1) Timing relative to version 1.0.0
+1) Timing relative to version 1.1.0
 
-- This update follows version 1.0.0 closely because the accompanying software
-  article was returned editorially by JSS before external review with a request
-  to improve and document the package class/method design. The changes in this
-  release address those package-design comments while preserving compatibility
-  with the 1.0.0 API.
+- This update follows version 1.1.0 closely because the JSS prescreening
+  process identified reproducibility-interface concerns in the article archive.
+  While investigating those differences, we found and corrected stochastic
+  helper paths that should not depend on OpenMP worker RNG behavior. The update
+  also stabilizes the exAL scale-skewness default inference blocks. These
+  changes are backward compatible.
 
 2) CPU time during tests
 
-- As in version 1.0.0, the test entrypoint caps native OpenMP/BLAS thread
+- As in earlier releases, the test entrypoint caps native OpenMP/BLAS thread
   counts before loading the package. Heavyweight inference/backend-validation
-  files are skipped on CRAN while lighter API, regression, class, method, and
-  diagnostic tests remain covered by the CRAN suite.
+  files are skipped on CRAN while lighter API, regression, class, method,
+  diagnostic, and reproducibility tests remain covered by the CRAN suite.
 
 3) Installed size note
 
-- This package includes compiled C++ backends (Rcpp/RcppArmadillo), and the
-  shared library is expected to remain the dominant contributor to installed
-  package size.
+- This package includes compiled C++ backends through Rcpp/RcppArmadillo and
+  RcppEigen. The shared library is expected to remain the dominant contributor
+  to installed package size.
 
 4) Compiler hardening flag note
 
