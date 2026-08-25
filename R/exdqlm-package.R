@@ -115,8 +115,9 @@
 #'   \item `options(exdqlm.use_cpp_postpred = TRUE|FALSE)` – C++ posterior predictive sampler (optional; default FALSE).
 #'   \item `options(exdqlm.use_cpp_mcmc = TRUE|FALSE)` – MCMC backend routing (optional; default TRUE).
 #'   \item `options(exdqlm.cpp_mcmc_mode = "strict"|"fast")` – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
-#'   \item `options(exdqlm.cpp_threads = numeric)` – Positive integer thread cap for eligible
-#'         OpenMP-enabled C++ paths (`1L` forces single-thread; default `1L`).
+#'   \item `options(exdqlm.cpp_threads = numeric)` – Reserved compatibility
+#'         option for eligible compiled paths. Stochastic compiled samplers use
+#'         serial \proglang{R}-controlled RNG streams in version 1.1.1 and later.
 #' }
 #'
 #' @useDynLib exdqlm, .registration = TRUE

@@ -133,8 +133,9 @@ diagnostic and keeps advanced KL sensitivity details under
 \item \code{options(exdqlm.use_cpp_postpred = TRUE|FALSE)} – C++ posterior predictive sampler (optional; default FALSE).
 \item \code{options(exdqlm.use_cpp_mcmc = TRUE|FALSE)} – MCMC backend routing (optional; default TRUE).
 \item \code{options(exdqlm.cpp_mcmc_mode = "strict"|"fast")} – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
-\item \code{options(exdqlm.cpp_threads = numeric)} – Positive integer thread cap for eligible
-OpenMP-enabled C++ paths (\code{1L} forces single-thread; default \code{1L}).
+\item \code{options(exdqlm.cpp_threads = numeric)} – Reserved compatibility
+option for eligible compiled paths. Stochastic compiled samplers use serial
+\proglang{R}-controlled RNG streams in version 1.1.1 and later.
 }
 }
 

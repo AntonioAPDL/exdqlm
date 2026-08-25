@@ -1,3 +1,14 @@
+# exdqlm 1.1.1
+
+## Reproducibility fix
+- Corrected compiled stochastic helper routines so GIG draws,
+  positive-truncated-normal draws, posterior predictive simulation, and
+  compiled multivariate-normal draws use serial R-controlled RNG streams.
+  These paths no longer use OpenMP worker threads, wall-clock seeds, fixed
+  private Boost RNG streams, or thread-indexed seeds for stochastic draws.
+- Added repeatability checks covering compiled samplers and small dynamic and
+  static MCMC workflows under repeated seeds.
+
 # exdqlm 1.1.0
 
 ## JSS resubmission design updates
