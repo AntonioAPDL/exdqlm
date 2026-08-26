@@ -95,3 +95,87 @@ based primarily on strict forecast-MAE improvement, with forecast check loss,
 fit RMSE, width, and coverage retained as supporting evidence. Article-safe
 assets are handed to the integration coordinator only after a complete frozen
 closeout.
+
+## Completed execution and diagnosis
+
+The pilot and full campaign are complete. The full campaign identifier is
+`independent_origin_horizon_attribution_v1_full_20260826_021943`. It pools three
+chains for each of seven predeclared cells: 21/21 jobs succeeded, 6 pilot jobs
+were reused by verified hash, 15 jobs were newly executed, and every retained
+job has 4,000 draw-specific metric draws. All 16 final closeout checks pass.
+There are no active campaign processes and no retained `.rds`, `.rda`, or
+`.RData` payloads.
+
+Final decision:
+`ATTRIBUTION_COMPLETE_NO_TAU0_CAUSAL_PILOT_AUTHORIZED`.
+
+| Cell | Family / model / level | MAE mean | 95% width | Origin covariance | Late/early | Oracle coverage | Error mode |
+|---|---|---:|---:|---:|---:|---:|---|
+| `055` | Laplace / AL-RHS / 0.05 | 7.652 | 6.029 | 0.931 | 1.087 | 0.988 | Dispersion-dominant |
+| `073` | Gaussian / AL-RHS / 0.05 | 7.462 | 9.304 | 0.961 | 0.970 | 0.645 | Location-error-dominant |
+| `075` | Gaussian / exAL-RHS / 0.05 | 3.571 | 6.489 | 0.957 | 1.003 | 0.891 | Location-error-dominant |
+| `078` | Laplace / AL-RHS / 0.50 | 1.819 | 3.689 | 0.953 | 1.051 | 1.000 | Dispersion-dominant |
+| `080` | Laplace / exAL-RHS / 0.50 | 1.884 | 3.649 | 0.953 | 1.031 | 1.000 | Dispersion-dominant |
+| `082` | Gaussian mixture / exAL-RHS / 0.05 | 3.786 | 7.443 | 0.961 | 1.020 | 0.970 | Mixed |
+| `083` | Gaussian mixture / exAL-RHS / 0.25 | 3.471 | 7.511 | 0.957 | 0.981 | 1.000 | Dispersion-dominant |
+
+The diagnosis is stable across all seven cells:
+
+- Posterior forecast losses move coherently across origins and leads. Origin
+  covariance explains 93.1--96.1% of aggregate metric variance, and lead-loss
+  correlation remains material throughout the 30-step horizon.
+- Late-horizon forecast MAE is not systematically worse. Late/early ratios are
+  0.970--1.087, far below the predeclared 1.25 horizon-instability threshold.
+- No small group of temporal blocks dominates. Top-20% origin loss shares are
+  0.249--0.327, below the 0.35 concentration threshold.
+- The incomplete final origin is not responsible. Removing it changes posterior
+  mean MAE by at most 1.21% and interval width by at most 1.04%.
+- The strongest RHS-scale median Spearman association has absolute magnitude
+  only 0.018--0.077. No cell approaches the causal `tau0` gate.
+- Gaussian lower-tail cells `073` and `075` are chiefly location/design-bias
+  cases, not excess-RHS-variance cases. Cell `075` has a stable association with
+  the readout intercept, which further argues for location calibration rather
+  than indiscriminate prior tightening.
+
+These intervals are therefore not wide because 34 origins and 30 leads were
+naively treated as independent observations. Each posterior draw is kept aligned
+over the full forecast surface, so common parameter uncertainty correctly
+survives averaging. A smaller `tau0` could narrow coefficient draws, but the
+observed width does not track the RHS scale and narrowing alone would not show
+that calibration or forecast accuracy improved.
+
+## Recommended scientific continuation
+
+1. Retain the current `tau0` values for these seven cells. Do not launch a broad
+   smaller-`tau0` screen merely to make intervals visually narrower.
+2. For Gaussian lower-tail cells `073` and `075`, design a separate case-specific
+   location/design-bias study. Evaluate intercept behavior, oracle-path bias,
+   feature design, and likelihood/location specification while preserving the
+   current 1,000-target estimator.
+3. For the four dispersion-dominant cells and mixed cell `082`, inspect
+   common-mode posterior components, especially intercept, likelihood scale,
+   and propagated latent-state uncertainty. Any intervention must be tested with
+   matched seeds against forecast MAE, check loss, interval width, and oracle
+   coverage; narrower intervals alone are not a success criterion.
+4. A future `tau0` experiment must remain case-specific and causal: hold the
+   selected DESN design fixed, vary only `tau0`, use matched seeds, and reject a
+   narrower result if forecast performance or coverage deteriorates.
+5. Do not alter article tables from this diagnostic campaign. It explains the
+   interval mechanism but produces no replacement performance metric.
+
+## Operational closeout
+
+The live full launch exposed a CPU-indexing defect when six reused pilot rows
+preceded 15 new rows. Three active jobs were initially assigned the same cores
+as another active cell; their complete process trees were moved live to free
+cores 41--43 without restart. The effective assignment is recorded in
+`runtime_core_reassignment_ledger.csv`. Materialization now indexes cores only
+over newly executed jobs, requires one unique core per new job, and verifies the
+effective assignment before execution and closeout.
+
+Health reporting now counts the 5,000 burn-in and 20,000 retained iterations as
+25,000 total MCMC iterations and falls back to the live sampler log when the
+retained-draw trace is not yet available. The pooled closeout implementation was
+also changed from repeated full-table scans to replay-block grouping. Its output
+was compared against the original pooled table and matched exactly, with maximum
+absolute numerical difference zero.

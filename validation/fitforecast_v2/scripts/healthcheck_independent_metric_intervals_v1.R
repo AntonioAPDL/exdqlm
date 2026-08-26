@@ -44,21 +44,33 @@ status_rows <- lapply(seq_len(nrow(plan)), function(i) {
   progress_current <- NA_integer_
   progress_target <- NA_integer_
   progress_phase <- ""
+  progress_source <- ""
   if (row$engine[[1L]] == "qdesn") {
     progress_path <- file.path(row$job_root[[1L]], "progress_trace.csv")
     method <- as.character(row$inference[[1L]])
     if (method == "mcmc") {
-      progress_target <- as.integer(cfg$config$inference$mcmc$n_mcmc)
-      progress_phase <- "retained_mcmc"
+      progress <- ffv2_qdesn_mcmc_total_progress(
+        progress_path = progress_path,
+        log_path = file.path(row$job_root[[1L]], "logs", "pipeline_child_live.log"),
+        n_burn = cfg$config$inference$mcmc$n_burn,
+        n_mcmc = cfg$config$inference$mcmc$n_mcmc
+      )
+      progress_current <- progress$current
+      progress_target <- progress$target
+      progress_phase <- "mcmc_total"
+      progress_source <- progress$source
     } else {
       progress_target <- as.integer(cfg$config$inference$vb$max_iter)
       progress_phase <- "vb"
-    }
-    if (file.exists(progress_path)) {
-      p <- tryCatch(ffv2_read_csv(progress_path), error = function(...) data.frame())
-      values <- suppressWarnings(as.integer(p$step %||% integer(0)))
-      values <- values[is.finite(values)]
-      if (length(values)) progress_current <- max(values)
+      if (file.exists(progress_path)) {
+        p <- tryCatch(ffv2_read_csv(progress_path), error = function(...) data.frame())
+        values <- suppressWarnings(as.integer(p$step %||% integer(0)))
+        values <- values[is.finite(values)]
+        if (length(values)) {
+          progress_current <- max(values)
+          progress_source <- "progress_trace"
+        }
+      }
     }
   } else {
     progress_path <- as.character(cfg$row_progress_path %||% "")
@@ -75,10 +87,16 @@ status_rows <- lapply(seq_len(nrow(plan)), function(i) {
         suppressWarnings(as.integer(p$mcmc_iter %||% p$current_iter %||% integer(0)))
       } else suppressWarnings(as.integer(p$vb_iter %||% p$current_iter %||% integer(0)))
       candidates <- candidates[is.finite(candidates)]
-      if (length(candidates)) progress_current <- max(candidates)
+      if (length(candidates)) {
+        progress_current <- max(candidates)
+        progress_source <- "row_progress"
+      }
     }
   }
-  if (status == "SUCCESS") progress_current <- progress_target
+  if (status == "SUCCESS") {
+    progress_current <- progress_target
+    if (!nzchar(progress_source)) progress_source <- "terminal_status"
+  }
   data.frame(
     job_id = row$job_id[[1L]], engine = row$engine[[1L]],
     inference = row$inference[[1L]], model_variant = row$model_variant[[1L]],
@@ -88,7 +106,8 @@ status_rows <- lapply(seq_len(nrow(plan)), function(i) {
     elapsed_seconds = as.numeric((payload %||% list())$elapsed_seconds %||% NA_real_),
     metric_draws = as.integer((payload %||% list())$metric_draws %||% NA_integer_),
     expected_draws = as.integer(row$expected_draws[[1L]]),
-    progress_phase = progress_phase, iteration_current = progress_current,
+    progress_phase = progress_phase, progress_source = progress_source,
+    iteration_current = progress_current,
     iteration_target = progress_target,
     iteration_pct = if (is.finite(progress_current) && is.finite(progress_target) && progress_target > 0)
       round(100 * progress_current / progress_target, 1) else NA_real_,

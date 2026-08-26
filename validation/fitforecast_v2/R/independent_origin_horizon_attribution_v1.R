@@ -162,34 +162,69 @@ imoh_v1_pool_group_draws <- function(status_index) {
 }
 
 imoh_v1_pool_group_summary <- function(group_draws) {
-  keys <- unique(group_draws[c(
+  key_names <- c(
     "replay_id", "model_variant", "family", "tau_level", "sentinel_role",
     "scope", "group_type", "group_value", "n_targets"
-  )])
+  )
   metrics <- c("forecast_mae", "forecast_check_loss", "oracle_bias", "oracle_rmse")
-  rows <- vector("list", nrow(keys) * length(metrics))
+  replay_ids <- unique(group_draws$replay_id)
+  rows <- vector("list", length(replay_ids) * 600L)
   k <- 0L
-  for (i in seq_len(nrow(keys))) {
-    keep <- Reduce(`&`, Map(function(name) {
-      as.character(group_draws[[name]]) == as.character(keys[[name]][[i]])
-    }, c("replay_id", "scope", "group_type", "group_value")))
-    for (metric in metrics) {
-      x <- as.numeric(group_draws[[metric]][keep])
-      qs <- stats::quantile(x, c(0.025, 0.5, 0.975), names = FALSE,
-                            type = 8, na.rm = TRUE)
-      k <- k + 1L
-      rows[[k]] <- data.frame(
-        keys[i, , drop = FALSE], metric = metric,
-        posterior_mean = mean(x), posterior_sd = stats::sd(x),
-        cri_lower = qs[[1L]], posterior_median = qs[[2L]],
-        cri_upper = qs[[3L]], cri_width = qs[[3L]] - qs[[1L]],
-        n_draws = sum(is.finite(x)), n_chains = length(unique(
-          group_draws$chain_id[keep]
-        )), stringsAsFactors = FALSE
-      )
+  for (replay_id in replay_ids) {
+    block <- group_draws[group_draws$replay_id == replay_id, , drop = FALSE]
+    group_id <- interaction(
+      block$scope, block$group_type, block$group_value, block$n_targets,
+      drop = TRUE, lex.order = TRUE
+    )
+    indices <- split(seq_len(nrow(block)), group_id)
+    for (index in indices) {
+      key <- block[index[[1L]], key_names, drop = FALSE]
+      n_chains <- length(unique(block$chain_id[index]))
+      for (metric in metrics) {
+        x <- as.numeric(block[[metric]][index])
+        finite <- is.finite(x)
+        qs <- stats::quantile(x[finite], c(0.025, 0.5, 0.975), names = FALSE,
+                              type = 8, na.rm = TRUE)
+        k <- k + 1L
+        rows[[k]] <- data.frame(
+          key, metric = metric,
+          posterior_mean = mean(x[finite]), posterior_sd = stats::sd(x[finite]),
+          cri_lower = qs[[1L]], posterior_median = qs[[2L]],
+          cri_upper = qs[[3L]], cri_width = qs[[3L]] - qs[[1L]],
+          n_draws = sum(finite), n_chains = n_chains,
+          stringsAsFactors = FALSE
+        )
+      }
     }
   }
   do.call(rbind, rows[seq_len(k)])
+}
+
+imoh_v1_pool_covariance_lag <- function(status_index) {
+  chain <- imoh_v1_read_chain_artifact(status_index, "covariance_lag_path")
+  key_names <- c(
+    "replay_id", "model_variant", "family", "tau_level", "sentinel_role",
+    "scope", "group_type", "metric", "separation", "n_pairs"
+  )
+  keys <- unique(chain[key_names])
+  measures <- c(
+    "mean_covariance", "median_covariance", "mean_correlation", "median_correlation"
+  )
+  rows <- lapply(seq_len(nrow(keys)), function(i) {
+    keep <- Reduce(`&`, Map(function(name) {
+      as.character(chain[[name]]) == as.character(keys[[name]][[i]])
+    }, c("replay_id", "scope", "group_type", "metric", "separation")))
+    values <- chain[keep, measures, drop = FALSE]
+    means <- vapply(values, mean, numeric(1L), na.rm = TRUE)
+    sds <- vapply(values, stats::sd, numeric(1L), na.rm = TRUE)
+    names(means) <- paste0("chain_mean_", names(means))
+    names(sds) <- paste0("chain_sd_", names(sds))
+    data.frame(
+      keys[i, , drop = FALSE], as.list(means), as.list(sds),
+      n_chains = length(unique(chain$chain_id[keep])), stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
 }
 
 imoh_v1_pool_variance <- function(group_draws) {
@@ -245,20 +280,23 @@ imoh_v1_read_chain_artifact <- function(status_index, field) {
   do.call(rbind, pieces)
 }
 
-imoh_v1_parameter_signal <- function(parameter_associations) {
+imoh_v1_parameter_signal <- function(parameter_associations,
+                                     parameters = c("tau", "c2", "lambda_mean")) {
   rhs <- parameter_associations[
     parameter_associations$scope == "all_targets" &
       parameter_associations$group_type == "all" &
-      parameter_associations$metric == "forecast_mae" &
-      parameter_associations$parameter %in% c("tau", "c2", "lambda_mean"), ,
+      parameter_associations$metric == "forecast_mae", ,
     drop = FALSE
   ]
+  if (!is.null(parameters)) rhs <- rhs[rhs$parameter %in% parameters, , drop = FALSE]
   if (!nrow(rhs)) return(data.frame(stringsAsFactors = FALSE))
   keys <- unique(rhs[c("replay_id", "parameter")])
   rows <- lapply(seq_len(nrow(keys)), function(i) {
     keep <- rhs$replay_id == keys$replay_id[[i]] &
       rhs$parameter == keys$parameter[[i]]
     x <- rhs$spearman[keep]
+    x <- x[is.finite(x)]
+    if (!length(x)) return(NULL)
     data.frame(
       replay_id = keys$replay_id[[i]], parameter = keys$parameter[[i]],
       median_spearman = stats::median(x, na.rm = TRUE),
@@ -267,11 +305,14 @@ imoh_v1_parameter_signal <- function(parameter_associations) {
       n_chains = sum(is.finite(x)), stringsAsFactors = FALSE
     )
   })
+  rows <- Filter(Negate(is.null), rows)
+  if (!length(rows)) return(data.frame(stringsAsFactors = FALSE))
   do.call(rbind, rows)
 }
 
 imoh_v1_cell_diagnosis <- function(group_summary, variance, target_summary,
-                                   path_structure, parameter_signal) {
+                                   path_structure, parameter_signal,
+                                   all_parameter_signal = parameter_signal) {
   cells <- unique(group_summary[c("replay_id", "model_variant", "family",
                                    "tau_level", "sentinel_role")])
   rows <- lapply(seq_len(nrow(cells)), function(i) {
@@ -291,6 +332,12 @@ imoh_v1_cell_diagnosis <- function(group_summary, variance, target_summary,
         group_summary$group_type == "all" & group_summary$metric == "forecast_mae", ,
       drop = FALSE
     ]
+    balanced_metric <- group_summary[
+      group_summary$replay_id == id &
+        group_summary$scope == "balanced_complete_origins" &
+        group_summary$group_type == "all" & group_summary$metric == "forecast_mae", ,
+      drop = FALSE
+    ]
     origin_var <- variance[
       variance$replay_id == id & variance$scope == "all_targets" &
         variance$group_type == "origin" & variance$metric == "forecast_mae", ,
@@ -307,6 +354,9 @@ imoh_v1_cell_diagnosis <- function(group_summary, variance, target_summary,
       drop = FALSE
     ]
     signal <- parameter_signal[parameter_signal$replay_id == id, , drop = FALSE]
+    all_signal <- all_parameter_signal[
+      all_parameter_signal$replay_id == id, , drop = FALSE
+    ]
     early <- mean(lead$posterior_mean[as.numeric(lead$group_value) <= 5])
     late <- mean(lead$posterior_mean[as.numeric(lead$group_value) >= 26])
     contribution <- origin$posterior_mean * origin$n_targets
@@ -314,11 +364,20 @@ imoh_v1_cell_diagnosis <- function(group_summary, variance, target_summary,
     top_share <- sum(sort(contribution, decreasing = TRUE)[seq_len(top_n)]) /
       sum(contribution)
     best_signal <- if (nrow(signal)) signal[which.max(abs(signal$median_spearman)), ] else NULL
+    best_all_signal <- if (nrow(all_signal)) {
+      all_signal[which.max(abs(all_signal$median_spearman)), ]
+    } else NULL
     stable_rhs <- !is.null(best_signal) && best_signal$n_chains == 3L &&
       best_signal$min_abs_spearman >= 0.20 &&
       abs(best_signal$median_spearman) >= 0.35 &&
       best_signal$sign_consistency == 1
     coverage <- mean(target$oracle_covered, na.rm = TRUE)
+    mean_q_sd <- mean(target$posterior_sd_q, na.rm = TRUE)
+    mean_q_width <- mean(target$q_cri_width, na.rm = TRUE)
+    mean_point_error <- mean(target$point_path_abs_error, na.rm = TRUE)
+    mean_draw_error <- mean(target$posterior_mean_abs_error, na.rm = TRUE)
+    jensen_gap <- mean(target$mae_jensen_gap, na.rm = TRUE)
+    dispersion_fraction <- jensen_gap / all_metric$posterior_mean[[1L]]
     covariance_dominant <- origin_var$covariance_fraction[[1L]] >= 0.70
     horizon_dominant <- is.finite(late / early) && late / early >= 1.25
     origin_concentrated <- is.finite(top_share) && top_share >= 0.35
@@ -331,9 +390,34 @@ imoh_v1_cell_diagnosis <- function(group_summary, variance, target_summary,
     } else {
       "combined_origin_horizon_and_common_mode"
     }
+    error_mode <- if (is.finite(dispersion_fraction) && dispersion_fraction >= 0.35) {
+      "posterior_dispersion_dominant"
+    } else if (is.finite(dispersion_fraction) && dispersion_fraction <= 0.15) {
+      "posterior_location_error_dominant"
+    } else {
+      "mixed_location_and_dispersion"
+    }
+    tau0_eligible <- stable_rhs && coverage >= 0.95
+    next_action <- if (tau0_eligible) {
+      "run_case_specific_tau0_causal_pilot"
+    } else if (coverage < 0.95 || error_mode == "posterior_location_error_dominant") {
+      "target_case_specific_location_and_design_bias"
+    } else if (pattern == "global_cross_origin_posterior_dependence") {
+      "retain_tau0_and_audit_common_mode_uncertainty"
+    } else if (pattern == "long_horizon_performance_instability") {
+      "target_dynamic_memory_and_long_horizon_design"
+    } else if (pattern == "localized_time_block_instability") {
+      "target_regime_and_origin_robustness"
+    } else {
+      "target_joint_origin_horizon_structure"
+    }
     data.frame(
       cells[i, , drop = FALSE], aggregate_mae_mean = all_metric$posterior_mean[[1L]],
       aggregate_mae_cri_width = all_metric$cri_width[[1L]],
+      balanced_mae_mean_ratio = balanced_metric$posterior_mean[[1L]] /
+        all_metric$posterior_mean[[1L]],
+      balanced_mae_width_ratio = balanced_metric$cri_width[[1L]] /
+        all_metric$cri_width[[1L]],
       early_lead_mae = early, late_lead_mae = late,
       late_to_early_mae_ratio = late / early,
       origin_top20pct_loss_share = top_share,
@@ -341,16 +425,64 @@ imoh_v1_cell_diagnosis <- function(group_summary, variance, target_summary,
       lead_covariance_fraction = lead_var$covariance_fraction[[1L]],
       global_shift_energy_fraction = mean(structure$fraction, na.rm = TRUE),
       oracle_path_coverage = coverage,
+      mean_posterior_q_sd = mean_q_sd,
+      mean_quantile_cri_width = mean_q_width,
+      mean_point_path_abs_error = mean_point_error,
+      mean_draw_specific_abs_error = mean_draw_error,
+      mae_jensen_gap = jensen_gap,
+      dispersion_contribution_fraction = dispersion_fraction,
+      error_mode = error_mode,
       strongest_rhs_parameter = if (is.null(best_signal)) NA_character_ else
         best_signal$parameter[[1L]],
       strongest_rhs_median_spearman = if (is.null(best_signal)) NA_real_ else
         best_signal$median_spearman[[1L]],
       strongest_rhs_sign_consistency = if (is.null(best_signal)) NA_real_ else
         best_signal$sign_consistency[[1L]],
+      strongest_any_parameter = if (is.null(best_all_signal)) NA_character_ else
+        best_all_signal$parameter[[1L]],
+      strongest_any_median_spearman = if (is.null(best_all_signal)) NA_real_ else
+        best_all_signal$median_spearman[[1L]],
+      strongest_any_sign_consistency = if (is.null(best_all_signal)) NA_real_ else
+        best_all_signal$sign_consistency[[1L]],
       primary_pattern = pattern,
-      tau0_causal_pilot_eligible = stable_rhs && coverage >= 0.95,
+      tau0_causal_pilot_eligible = tau0_eligible,
+      recommended_next_action = next_action,
       stringsAsFactors = FALSE
     )
   })
   do.call(rbind, rows)
+}
+
+imoh_v1_effective_cpu_assignment <- function(plan, state_root = NULL) {
+  active <- plan$campaign_phase != "full_reused_pilot"
+  out <- data.frame(
+    job_id = plan$job_id[active], campaign_phase = plan$campaign_phase[active],
+    planned_cpu_id = as.integer(plan$cpu_id[active]),
+    effective_cpu_id = as.integer(plan$cpu_id[active]),
+    reassigned = FALSE, reassigned_at = "", reason = "",
+    stringsAsFactors = FALSE
+  )
+  ledger_path <- if (is.null(state_root)) "" else
+    file.path(state_root, "manifests", "runtime_core_reassignment_ledger.csv")
+  ledger <- if (nzchar(ledger_path) && file.exists(ledger_path)) {
+    ffv2_read_csv(ledger_path)
+  } else data.frame()
+  ledger_valid <- TRUE
+  if (nrow(ledger)) {
+    ledger_valid <- !anyDuplicated(ledger$job_id) &&
+      all(ledger$job_id %in% out$job_id) &&
+      all(is.finite(as.integer(ledger$effective_cpu_id)))
+    if (ledger_valid) {
+      index <- match(ledger$job_id, out$job_id)
+      ledger_valid <- all(as.integer(ledger$planned_cpu_id) == out$planned_cpu_id[index])
+      out$effective_cpu_id[index] <- as.integer(ledger$effective_cpu_id)
+      out$reassigned[index] <- TRUE
+      out$reassigned_at[index] <- as.character(ledger$reassigned_at)
+      out$reason[index] <- as.character(ledger$reason)
+    }
+  }
+  attr(out, "assignment_pass") <- isTRUE(ledger_valid) && nrow(out) > 0L &&
+    all(is.finite(out$effective_cpu_id)) && !anyDuplicated(out$effective_cpu_id)
+  attr(out, "ledger_path") <- ledger_path
+  out
 }

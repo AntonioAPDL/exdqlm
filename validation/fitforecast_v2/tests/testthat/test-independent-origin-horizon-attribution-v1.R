@@ -106,6 +106,7 @@ testthat::test_that("origin-horizon campaign remains lane scoped and staged", {
   scripts <- file.path(harness_root, "scripts", c(
     "materialize_independent_origin_horizon_attribution_v1.R",
     "verify_independent_origin_horizon_attribution_v1_plan.R",
+    "verify_independent_origin_horizon_attribution_v1_closeout.R",
     "closeout_independent_origin_horizon_attribution_v1.R",
     "run_independent_origin_horizon_attribution_v1_pipeline.sh"
   ))
@@ -141,4 +142,83 @@ testthat::test_that("interval orchestration creates the health log directory fir
   testthat::expect_length(ensure_line, 1L)
   testthat::expect_length(run_line, 1L)
   testthat::expect_true(log_line < ensure_line && ensure_line < run_line)
+})
+
+testthat::test_that("Q-DESN health progress includes burn-in and live-log fallback", {
+  root <- tempfile("qdesn-total-progress-")
+  dir.create(root)
+  trace <- file.path(root, "progress_trace.csv")
+  log <- file.path(root, "pipeline_child_live.log")
+  utils::write.csv(data.frame(method = "mcmc", step = c(1L, 200L)), trace,
+                   row.names = FALSE)
+  writeLines(c(
+    "burn-in iteration 4950 | sigma=0.1",
+    "MCMC iteration 5300 | sigma=0.1"
+  ), log)
+  progress <- ffv2_qdesn_mcmc_total_progress(trace, log, 5000L, 20000L)
+  testthat::expect_identical(progress$current, 5300L)
+  testthat::expect_identical(progress$target, 25000L)
+  testthat::expect_identical(progress$source, "retained_trace+live_log")
+
+  writeLines("MCMC iteration 26000 | sigma=0.1", log)
+  progress <- ffv2_qdesn_mcmc_total_progress(trace, log, 5000L, 20000L)
+  testthat::expect_identical(progress$current, 25000L)
+})
+
+testthat::test_that("effective CPU audit resolves only documented live reassignments", {
+  plan <- data.frame(
+    job_id = c("reused", "a", "b"),
+    campaign_phase = c("full_reused_pilot", "full", "full"),
+    cpu_id = c(10L, 11L, 11L), stringsAsFactors = FALSE
+  )
+  root <- tempfile("origin-horizon-cpu-")
+  dir.create(file.path(root, "manifests"), recursive = TRUE)
+  unresolved <- imoh_v1_effective_cpu_assignment(plan, root)
+  testthat::expect_false(attr(unresolved, "assignment_pass"))
+
+  utils::write.csv(data.frame(
+    job_id = "b", planned_cpu_id = 11L, effective_cpu_id = 12L,
+    reassigned_at = "test", reason = "documented test move"
+  ), file.path(root, "manifests", "runtime_core_reassignment_ledger.csv"),
+  row.names = FALSE)
+  resolved <- imoh_v1_effective_cpu_assignment(plan, root)
+  testthat::expect_true(attr(resolved, "assignment_pass"))
+  testthat::expect_equal(resolved$effective_cpu_id, c(11L, 12L))
+  testthat::expect_equal(sum(resolved$reassigned), 1L)
+})
+
+testthat::test_that("materialization assigns cores only to newly executed jobs", {
+  materializer <- readLines(file.path(
+    harness_root, "scripts", "materialize_independent_origin_horizon_attribution_v1.R"
+  ), warn = FALSE)
+  text <- paste(materializer, collapse = "\n")
+  testthat::expect_match(text, "new_job_index <- 0L", fixed = TRUE)
+  testthat::expect_match(text, "unique_one_core_per_new_job", fixed = TRUE)
+  testthat::expect_match(text, "One unique CPU is required per newly materialized job",
+                         fixed = TRUE)
+})
+
+testthat::test_that("closeout emits dependence and action evidence", {
+  closeout <- paste(readLines(file.path(
+    harness_root, "scripts", "closeout_independent_origin_horizon_attribution_v1.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(closeout, "pooled_covariance_lag_summary.csv", fixed = TRUE)
+  testthat::expect_match(closeout, "origin_lead_correlation_decay.pdf", fixed = TRUE)
+  testthat::expect_match(closeout, "recommended_next_action", fixed = TRUE)
+  testthat::expect_match(closeout, "unique_active_cpu_assignment", fixed = TRUE)
+})
+
+testthat::test_that("parameter signal drops parameters without finite evidence", {
+  associations <- data.frame(
+    scope = "all_targets", group_type = "all", metric = "forecast_mae",
+    replay_id = rep("cell", 4L),
+    parameter = c("gamma", "gamma", "tau", "tau"),
+    spearman = c(NA_real_, NA_real_, 0.2, 0.3), stringsAsFactors = FALSE
+  )
+  signal <- testthat::expect_warning(
+    imoh_v1_parameter_signal(associations, parameters = NULL), NA
+  )
+  testthat::expect_identical(signal$parameter, "tau")
+  testthat::expect_equal(signal$median_spearman, 0.25)
+  testthat::expect_equal(signal$n_chains, 2L)
 })

@@ -20,6 +20,7 @@ configs <- lapply(plan$config_path, ffv2_read_json)
 all_text <- as.character(unlist(configs, use.names = FALSE))
 reused <- plan$campaign_phase == "full_reused_pilot"
 declared_reused <- as.integer(manifest$reused_pilot_jobs %||% 0L)
+cpu_assignment <- imoh_v1_effective_cpu_assignment(plan, state_root)
 reuse_contract_pass <- sum(reused) == declared_reused
 if (declared_reused > 0L) {
   ledger_path <- as.character(manifest$pilot_reuse_ledger_path %||% "")
@@ -52,7 +53,8 @@ checks <- data.frame(
             "config_hashes", "attribution_required", "dispersion_required",
             "case_specific_frozen", "storage_light", "all1000_and_balanced990",
             "verified_pilot_reuse", "new_job_count_contract",
-            "no_stale_home_paths", "no_existing_heavy_binaries"),
+            "unique_active_cpu_assignment", "no_stale_home_paths",
+            "no_existing_heavy_binaries"),
   pass = c(
     nrow(plan) == expected_jobs,
     length(unique(plan$replay_id)) == expected_sources,
@@ -84,6 +86,7 @@ checks <- data.frame(
     reuse_contract_pass,
     as.integer(manifest$newly_materialized_jobs %||% nrow(plan)) ==
       nrow(plan) - declared_reused,
+    isTRUE(attr(cpu_assignment, "assignment_pass")),
     !any(startsWith(all_text, "/home/jaguir26/local/src")),
     !any(vapply(unique(plan$job_root), function(root) {
       dir.exists(root) && length(list.files(root, pattern = "[.](rds|rda|RData)$",

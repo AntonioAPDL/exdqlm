@@ -72,6 +72,14 @@ if (!dir.exists(source_input_root) ||
 replacements <- setNames(c(repo_root, run_id), c(source_repo, source_run_id))
 plan_rows <- vector("list", nrow(selected))
 reused_job_ids <- if (is.null(pilot_reuse)) character(0) else pilot_reuse$plan$job_id
+new_job_count <- nrow(selected) - length(reused_job_ids)
+if (length(cpu_ids) < new_job_count) {
+  stop(sprintf(
+    "One unique CPU is required per newly materialized job: need %d, received %d.",
+    new_job_count, length(cpu_ids)
+  ), call. = FALSE)
+}
+new_job_index <- 0L
 if (length(reused_job_ids)) ffv2_ensure_dir(file.path(state_root, "status"))
 for (i in seq_len(nrow(selected))) {
   authority <- selected[i, , drop = FALSE]
@@ -94,11 +102,13 @@ for (i in seq_len(nrow(selected))) {
       config_path = reuse_row$config_path[[1L]],
       config_sha256 = reuse_row$config_sha256[[1L]], job_root = reuse_row$job_root[[1L]],
       expected_draws = imoh_v1_draws,
-      cpu_id = cpu_ids[((i - 1L) %% length(cpu_ids)) + 1L], status = "REUSED_SUCCESS",
+      cpu_id = as.integer(reuse_row$cpu_id[[1L]]), status = "REUSED_SUCCESS",
       stringsAsFactors = FALSE
     )
     next
   }
+  new_job_index <- new_job_index + 1L
+  active_cpu_id <- cpu_ids[[new_job_index]]
   source_config_path <- normalizePath(authority$config_path[[1L]], winslash = "/",
                                       mustWork = TRUE)
   config <- imid_v1_recursive_replace(ffv2_read_json(source_config_path), replacements)
@@ -158,7 +168,7 @@ for (i in seq_len(nrow(selected))) {
     config_path = normalizePath(config_path, winslash = "/", mustWork = TRUE),
     config_sha256 = ffv2_file_sha256(config_path), job_root = config$job_root,
     expected_draws = imoh_v1_draws,
-    cpu_id = cpu_ids[((i - 1L) %% length(cpu_ids)) + 1L], status = "PENDING",
+    cpu_id = active_cpu_id, status = "PENDING",
     stringsAsFactors = FALSE
   )
 }
@@ -198,7 +208,13 @@ manifest <- list(
   pilot_reuse_ledger_path = if (is.null(pilot_reuse)) NULL else reuse_ledger_path,
   pilot_reuse_ledger_sha256 = if (is.null(pilot_reuse)) NULL else
     ffv2_file_sha256(reuse_ledger_path),
-  cpu_ids = sort(unique(plan$cpu_id)), plan_path = plan_path,
+  cpu_assignment_policy = "unique_one_core_per_new_job",
+  active_cpu_ids = sort(unique(plan$cpu_id[plan$campaign_phase != "full_reused_pilot"])),
+  reused_pilot_cpu_ids = sort(unique(plan$cpu_id[
+    plan$campaign_phase == "full_reused_pilot"
+  ])),
+  cpu_ids = sort(unique(plan$cpu_id[plan$campaign_phase != "full_reused_pilot"])),
+  plan_path = plan_path,
   plan_sha256 = ffv2_file_sha256(plan_path),
   selection_sha256 = ffv2_file_sha256(selection_path),
   protocol_sha256 = ffv2_file_sha256(protocol_path),
@@ -208,4 +224,6 @@ manifest <- list(
 ffv2_write_json(manifest, file.path(state_root, "manifests", "materialization_manifest.json"))
 cat(sprintf("state_root=%s phase=%s jobs=%d sources=%d cpus=%s\n", state_root, phase,
             nrow(plan), length(unique(plan$replay_id)),
-            paste(sort(unique(plan$cpu_id)), collapse = ",")))
+            paste(sort(unique(plan$cpu_id[
+              plan$campaign_phase != "full_reused_pilot"
+            ])), collapse = ",")))
