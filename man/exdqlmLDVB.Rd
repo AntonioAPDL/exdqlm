@@ -104,8 +104,8 @@ Or if \code{dqlm.ind=TRUE}, the list also contains:
 The function applies a Laplace-Delta Variational Bayes (LDVB) algorithm to
 estimate the posterior of an exDQLM. For unrestricted exAL fits, the
 default scale-skewness block uses a structured
-\eqn{q(\gamma)q(\sigma \mid \gamma)} approximation; the previous
-two-dimensional Laplace-delta block remains available through
+\eqn{q(\gamma)q(\sigma \mid \gamma)} approximation. A
+two-dimensional Laplace-delta block is available through
 \code{vb_control$sigmagam}.
 }
 \details{
