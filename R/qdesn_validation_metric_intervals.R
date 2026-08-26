@@ -440,6 +440,18 @@
            call. = FALSE)
     }
   }
+  common_shift_cfg <- .qdesn_validation_common_shift_cfg(defaults)
+  common_shift_manifest <- NULL
+  if (isTRUE(common_shift_cfg$enabled)) {
+    common_shift_manifest <- .qdesn_validation_write_common_shift_intervention(
+      draws = draws, method_dir = method_dir, defaults = defaults
+    )
+    if (isTRUE(common_shift_cfg$required) &&
+        !identical(as.character(common_shift_manifest$status), "PASS")) {
+      stop("Required common-shift intervention artifacts were not written.",
+           call. = FALSE)
+    }
+  }
   manifest <- list(
     schema_version = "independent_metric_intervals_v1",
     generated_at = as.character(Sys.time()),
@@ -457,7 +469,8 @@
     heavy_binary_retained = FALSE,
     coupling_sensitivity = coupling_manifest,
     dispersion_diagnostic = dispersion_manifest,
-    origin_horizon_attribution = attribution_manifest
+    origin_horizon_attribution = attribution_manifest,
+    common_shift_intervention = common_shift_manifest
   )
   .qdesn_validation_write_json(manifest_path, manifest)
   list(
