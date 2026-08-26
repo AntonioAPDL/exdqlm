@@ -1,0 +1,9 @@
+{
+  "schema_version": "independent_qdesn_origin_horizon_attribution_v1",
+  "generated_at": "2026-08-26 04:43:41 EDT",
+  "status": "PASS",
+  "checks": 16,
+  "failed_checks": [],
+  "decision_sha256": "eba0858a57215d81923475d9bb2f616ea959c6f7e66202c17478677066acb3d8",
+  "verification_sha256": "e73552fd1ffe7b4297fb9fb6c0997d667e5ba585882284dfaa2aea60aceb43bf"
+}

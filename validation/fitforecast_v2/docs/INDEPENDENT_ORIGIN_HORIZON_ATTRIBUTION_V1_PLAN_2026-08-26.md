@@ -179,3 +179,10 @@ retained-draw trace is not yet available. The pooled closeout implementation was
 also changed from repeated full-table scans to replay-block grouping. Its output
 was compared against the original pooled table and matched exactly, with maximum
 absolute numerical difference zero.
+
+The durable compact audit packet is stored at
+`validation/fitforecast_v2/audits/independent_origin_horizon_attribution_v1_20260826`.
+It freezes 19 closeout assets (769,859 bytes), including the decision,
+verification records, diagnosis tables, covariance evidence, and five figures.
+It excludes grouped draw archives and fitted-model binaries and verifies with a
+standalone 9-check audit command.

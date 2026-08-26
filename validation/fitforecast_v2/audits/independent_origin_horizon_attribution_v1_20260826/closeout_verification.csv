@@ -1,0 +1,17 @@
+"check","pass"
+"decision_complete_no_tau0",TRUE
+"jobs_21_of_21",TRUE
+"asset_key_contract",TRUE
+"all_assets_present",TRUE
+"all_asset_hashes_match",TRUE
+"all_closeout_checks_pass",TRUE
+"plan_verification_pass",TRUE
+"health_complete",TRUE
+"seven_unique_diagnoses",TRUE
+"diagnosis_decision_consistent",TRUE
+"group_summary_shape",TRUE
+"covariance_lag_shape",TRUE
+"unique_effective_cores",TRUE
+"storage_light",TRUE
+"no_heavy_binaries",TRUE
+"pdf_headers_valid",TRUE

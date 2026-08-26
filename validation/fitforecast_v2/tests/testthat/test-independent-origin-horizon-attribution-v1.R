@@ -107,6 +107,8 @@ testthat::test_that("origin-horizon campaign remains lane scoped and staged", {
     "materialize_independent_origin_horizon_attribution_v1.R",
     "verify_independent_origin_horizon_attribution_v1_plan.R",
     "verify_independent_origin_horizon_attribution_v1_closeout.R",
+    "freeze_independent_origin_horizon_attribution_v1_audit.R",
+    "verify_independent_origin_horizon_attribution_v1_audit.R",
     "closeout_independent_origin_horizon_attribution_v1.R",
     "run_independent_origin_horizon_attribution_v1_pipeline.sh"
   ))
