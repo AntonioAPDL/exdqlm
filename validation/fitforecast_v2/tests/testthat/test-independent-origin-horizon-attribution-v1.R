@@ -208,6 +208,10 @@ testthat::test_that("closeout emits dependence and action evidence", {
   testthat::expect_match(closeout, "origin_lead_correlation_decay.pdf", fixed = TRUE)
   testthat::expect_match(closeout, "recommended_next_action", fixed = TRUE)
   testthat::expect_match(closeout, "unique_active_cpu_assignment", fixed = TRUE)
+  verifier <- paste(readLines(file.path(
+    harness_root, "scripts", "verify_independent_origin_horizon_attribution_v1_closeout.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(verifier, "stable_generated_at", fixed = TRUE)
 })
 
 testthat::test_that("parameter signal drops parameters without finite evidence", {

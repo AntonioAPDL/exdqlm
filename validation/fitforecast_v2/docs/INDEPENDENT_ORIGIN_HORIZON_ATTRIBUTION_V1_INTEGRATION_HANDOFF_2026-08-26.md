@@ -137,6 +137,9 @@ packet reports 21/21 chains at 25,000/25,000.
 The pooled summarizer was changed from repeated full-table scans to replay-block
 grouping. The optimized 3,948-row summary was compared with the original output;
 the maximum absolute difference across every numeric field was exactly zero.
+The closeout verifier preserves its first verified timestamp, so repeated
+verification leaves its JSON hash unchanged; this was confirmed by two
+consecutive PASS runs with hash `2f4b3438...bc3b4`.
 
 ## Verification performed
 

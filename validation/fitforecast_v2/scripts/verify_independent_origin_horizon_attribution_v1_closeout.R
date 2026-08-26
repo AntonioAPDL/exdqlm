@@ -14,6 +14,14 @@ state_root <- normalizePath(args$`state-root` %||% "", winslash = "/", mustWork 
 closeout_root <- file.path(state_root, "closeout")
 decision_path <- file.path(closeout_root, "decision_manifest.json")
 decision <- ffv2_read_json(decision_path)
+verification_json_path <- file.path(closeout_root, "closeout_verification.json")
+previous_verification <- if (file.exists(verification_json_path)) {
+  tryCatch(ffv2_read_json(verification_json_path), error = function(...) NULL)
+} else NULL
+stable_generated_at <- as.character(
+  (previous_verification %||% list())$generated_at %||%
+    decision$generated_at %||% format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+)[1L]
 plan <- ffv2_read_csv(file.path(state_root, "manifests", "job_plan.csv"))
 plan_verification <- ffv2_read_json(
   file.path(state_root, "manifests", "plan_verification.json")
@@ -115,13 +123,13 @@ verification_path <- ffv2_write_csv(
 )
 result <- list(
   schema_version = imoh_v1_schema,
-  generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+  generated_at = stable_generated_at,
   status = if (all(verification$pass)) "PASS" else "FAIL",
   checks = nrow(verification), failed_checks = verification$check[!verification$pass],
   decision_sha256 = ffv2_file_sha256(decision_path),
   verification_sha256 = ffv2_file_sha256(verification_path)
 )
-ffv2_write_json(result, file.path(closeout_root, "closeout_verification.json"))
+ffv2_write_json(result, verification_json_path)
 cat(sprintf("status=%s checks=%d failed=%d decision=%s\n", result$status,
             nrow(verification), sum(!verification$pass), decision$decision))
 if (!all(verification$pass)) quit(save = "no", status = 1L)
