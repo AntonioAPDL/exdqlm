@@ -145,6 +145,7 @@ results_path <- ffv2_write_csv(results,
                                file.path(state_root, "manifests", "orchestration_results.csv"))
 health_script <- file.path(harness_root, "scripts", "healthcheck_independent_metric_intervals_v1.R")
 health_log <- file.path(state_root, "health", "post_orchestration_health.log")
+ffv2_ensure_dir(dirname(health_log))
 health_status <- system2(Sys.which("Rscript"),
                          c(shQuote(health_script), "--state-root", shQuote(state_root)),
                          stdout = health_log, stderr = health_log)

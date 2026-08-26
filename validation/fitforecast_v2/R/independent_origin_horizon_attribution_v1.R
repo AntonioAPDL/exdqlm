@@ -28,6 +28,124 @@ imoh_v1_read_selection <- function(repo_root = ffv2_repo_root()) {
   x
 }
 
+imoh_v1_verify_pilot_reuse <- function(state_root) {
+  state_root <- normalizePath(state_root, winslash = "/", mustWork = TRUE)
+  required <- c(
+    file.path(state_root, "manifests", "materialization_manifest.json"),
+    file.path(state_root, "manifests", "job_plan.csv"),
+    file.path(state_root, "manifests", "sentinel_sources.csv"),
+    file.path(state_root, "closeout", "closeout_checks.csv"),
+    file.path(state_root, "closeout", "decision_manifest.json")
+  )
+  if (any(!file.exists(required))) {
+    stop("Pilot reuse requires a complete materialization and closeout.", call. = FALSE)
+  }
+  materialization <- ffv2_read_json(required[[1L]])
+  plan <- ffv2_read_csv(required[[2L]])
+  selection <- ffv2_read_csv(required[[3L]])
+  checks <- ffv2_read_csv(required[[4L]])
+  decision <- ffv2_read_json(required[[5L]])
+  checks$pass <- vapply(checks$pass, ffv2_truthy, logical(1L))
+  failures <- character(0)
+  add_failure <- function(condition, label) {
+    if (!isTRUE(condition)) failures <<- c(failures, label)
+  }
+  add_failure(identical(as.character(materialization$phase), "pilot"),
+              "materialization_not_pilot")
+  add_failure(identical(as.character(decision$decision),
+                        "PILOT_PASS_AUTHORIZE_FULL_SEVEN_CELL_ATTRIBUTION"),
+              "pilot_decision_not_authorized")
+  add_failure(nrow(plan) == 6L && length(unique(plan$replay_id)) == 2L &&
+                all(table(plan$replay_id) == 3L), "pilot_plan_shape")
+  add_failure(nrow(selection) == 2L && all(vapply(
+    selection$pilot_selected, ffv2_truthy, logical(1L)
+  )), "pilot_selection_shape")
+  add_failure(nrow(checks) > 0L && all(checks$pass), "pilot_closeout_checks")
+  add_failure(as.integer(decision$jobs_completed) == 6L &&
+                as.integer(decision$heavy_binary_count) == 0L,
+              "pilot_decision_counts")
+
+  status_paths <- file.path(state_root, "status", paste0(plan$job_id, ".json"))
+  add_failure(all(file.exists(status_paths)), "pilot_status_files")
+  statuses <- if (all(file.exists(status_paths))) {
+    lapply(status_paths, ffv2_read_json)
+  } else vector("list", nrow(plan))
+  artifact_fields <- list(
+    attribution_manifest = c("origin_horizon_attribution_manifest_path",
+                             "origin_horizon_attribution_manifest_sha256"),
+    group_draws = c("attribution_group_draws_path",
+                    "attribution_group_draws_sha256"),
+    reconstruction = c("attribution_reconstruction_path",
+                       "attribution_reconstruction_sha256")
+  )
+  ledger_rows <- vector("list", nrow(plan))
+  if (length(statuses) == nrow(plan)) {
+    for (i in seq_len(nrow(plan))) {
+      status <- statuses[[i]]
+      add_failure(identical(as.character(status$status), "SUCCESS"),
+                  paste0(plan$job_id[[i]], ":status"))
+      add_failure(identical(as.character(status$config_sha256),
+                            as.character(plan$config_sha256[[i]])),
+                  paste0(plan$job_id[[i]], ":config_status_hash"))
+      add_failure(file.exists(plan$config_path[[i]]) && identical(
+        ffv2_file_sha256(plan$config_path[[i]]), as.character(plan$config_sha256[[i]])
+      ), paste0(plan$job_id[[i]], ":config_file_hash"))
+      artifact_values <- list()
+      for (name in names(artifact_fields)) {
+        pair <- artifact_fields[[name]]
+        path <- as.character(status[[pair[[1L]]]] %||% "")
+        sha <- as.character(status[[pair[[2L]]]] %||% "")
+        add_failure(nzchar(path) && file.exists(path) && identical(
+          ffv2_file_sha256(path), sha
+        ), paste0(plan$job_id[[i]], ":", name, "_hash"))
+        artifact_values[[paste0(name, "_path")]] <- path
+        artifact_values[[paste0(name, "_sha256")]] <- sha
+      }
+      manifest_path <- artifact_values$attribution_manifest_path
+      if (nzchar(manifest_path) && file.exists(manifest_path)) {
+        attribution <- ffv2_read_json(manifest_path)
+        add_failure(identical(as.character(attribution$status), "PASS"),
+                    paste0(plan$job_id[[i]], ":attribution_manifest_status"))
+      }
+      add_failure(as.integer(status$heavy_binary_count %||% NA_integer_) == 0L,
+                  paste0(plan$job_id[[i]], ":heavy_binary_count"))
+      ledger_rows[[i]] <- data.frame(
+        job_id = plan$job_id[[i]], replay_id = plan$replay_id[[i]],
+        chain_id = plan$chain_id[[i]], config_path = plan$config_path[[i]],
+        config_sha256 = plan$config_sha256[[i]], job_root = plan$job_root[[i]],
+        status_path = status_paths[[i]],
+        status_sha256 = if (file.exists(status_paths[[i]]))
+          ffv2_file_sha256(status_paths[[i]]) else "",
+        attribution_manifest_path = artifact_values$attribution_manifest_path %||% "",
+        attribution_manifest_sha256 = artifact_values$attribution_manifest_sha256 %||% "",
+        group_draws_path = artifact_values$group_draws_path %||% "",
+        group_draws_sha256 = artifact_values$group_draws_sha256 %||% "",
+        reconstruction_path = artifact_values$reconstruction_path %||% "",
+        reconstruction_sha256 = artifact_values$reconstruction_sha256 %||% "",
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  heavy <- unique(unlist(lapply(unique(plan$job_root), function(root) {
+    if (!dir.exists(root)) return(character(0))
+    list.files(root, pattern = "[.](rds|rda|RData)$", recursive = TRUE,
+               full.names = TRUE, ignore.case = TRUE)
+  }), use.names = FALSE))
+  add_failure(length(heavy) == 0L, "pilot_heavy_binaries")
+  if (length(failures)) {
+    stop(sprintf("Pilot reuse verification failed: %s",
+                 paste(unique(failures), collapse = ", ")), call. = FALSE)
+  }
+  list(
+    state_root = state_root,
+    plan = plan,
+    status_paths = status_paths,
+    ledger = do.call(rbind, ledger_rows),
+    decision_path = required[[5L]],
+    decision_sha256 = ffv2_file_sha256(required[[5L]])
+  )
+}
+
 imoh_v1_pool_group_draws <- function(status_index) {
   pieces <- lapply(seq_len(nrow(status_index)), function(i) {
     x <- ffv2_read_csv(status_index$attribution_group_draws_path[[i]])

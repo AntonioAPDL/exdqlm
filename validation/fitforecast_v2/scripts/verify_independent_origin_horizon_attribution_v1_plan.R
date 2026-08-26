@@ -18,10 +18,40 @@ expected_sources <- if (phase == "pilot") 2L else 7L
 expected_jobs <- expected_sources * 3L
 configs <- lapply(plan$config_path, ffv2_read_json)
 all_text <- as.character(unlist(configs, use.names = FALSE))
+reused <- plan$campaign_phase == "full_reused_pilot"
+declared_reused <- as.integer(manifest$reused_pilot_jobs %||% 0L)
+reuse_contract_pass <- sum(reused) == declared_reused
+if (declared_reused > 0L) {
+  ledger_path <- as.character(manifest$pilot_reuse_ledger_path %||% "")
+  pilot_state <- as.character(manifest$pilot_reuse_state %||% "")
+  decision_path <- file.path(pilot_state, "closeout", "decision_manifest.json")
+  ledger <- if (nzchar(ledger_path) && file.exists(ledger_path)) {
+    ffv2_read_csv(ledger_path)
+  } else data.frame()
+  copied_status <- file.path(state_root, "status", paste0(plan$job_id[reused], ".json"))
+  copied_payload <- if (all(file.exists(copied_status))) {
+    lapply(copied_status, ffv2_read_json)
+  } else list()
+  reuse_contract_pass <- reuse_contract_pass && phase == "full" &&
+    declared_reused == 6L && nrow(ledger) == 6L &&
+    setequal(ledger$job_id, plan$job_id[reused]) &&
+    identical(ffv2_file_sha256(ledger_path),
+              as.character(manifest$pilot_reuse_ledger_sha256)) &&
+    file.exists(decision_path) && identical(
+      ffv2_file_sha256(decision_path), as.character(manifest$pilot_decision_sha256)
+    ) && length(copied_payload) == 6L && all(vapply(
+      seq_along(copied_payload), function(i) {
+        identical(as.character(copied_payload[[i]]$status), "SUCCESS") &&
+          identical(as.character(copied_payload[[i]]$config_sha256),
+                    as.character(plan$config_sha256[reused][[i]]))
+      }, logical(1L)
+    ))
+}
 checks <- data.frame(
   check = c("expected_jobs", "expected_sources", "three_chains", "qdesn_mcmc_only",
             "config_hashes", "attribution_required", "dispersion_required",
             "case_specific_frozen", "storage_light", "all1000_and_balanced990",
+            "verified_pilot_reuse", "new_job_count_contract",
             "no_stale_home_paths", "no_existing_heavy_binaries"),
   pass = c(
     nrow(plan) == expected_jobs,
@@ -51,6 +81,9 @@ checks <- data.frame(
         identical(as.integer(x$study_contract$origin_horizon_attribution$balanced_sensitivity_scope),
                   990L)
     }, logical(1L))),
+    reuse_contract_pass,
+    as.integer(manifest$newly_materialized_jobs %||% nrow(plan)) ==
+      nrow(plan) - declared_reused,
     !any(startsWith(all_text, "/home/jaguir26/local/src")),
     !any(vapply(unique(plan$job_root), function(root) {
       dir.exists(root) && length(list.files(root, pattern = "[.](rds|rda|RData)$",

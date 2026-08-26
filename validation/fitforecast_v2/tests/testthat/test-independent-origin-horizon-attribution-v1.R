@@ -115,5 +115,30 @@ testthat::test_that("origin-horizon campaign remains lane scoped and staged", {
   testthat::expect_false(grepl("Article-Q-DESN---Version-2/main.tex", text,
                                fixed = TRUE))
   testthat::expect_match(text, "no_automatic_tau0_launch", fixed = TRUE)
+  testthat::expect_match(text, "reuse-pilot-state", fixed = TRUE)
   testthat::expect_match(text, "OMP_NUM_THREADS=1", fixed = TRUE)
+})
+
+testthat::test_that("pilot reuse rejects an incomplete state root", {
+  root <- tempfile("incomplete-origin-horizon-pilot-")
+  dir.create(root)
+  testthat::expect_error(
+    imoh_v1_verify_pilot_reuse(root),
+    "complete materialization and closeout",
+    fixed = TRUE
+  )
+})
+
+testthat::test_that("interval orchestration creates the health log directory first", {
+  orchestrator <- readLines(file.path(
+    harness_root, "scripts", "orchestrate_independent_metric_intervals_v1.R"
+  ), warn = FALSE)
+  log_line <- grep("health_log <-", orchestrator, fixed = TRUE)
+  ensure_line <- grep("ffv2_ensure_dir(dirname(health_log))", orchestrator,
+                      fixed = TRUE)
+  run_line <- grep("health_status <- system2", orchestrator, fixed = TRUE)
+  testthat::expect_length(log_line, 1L)
+  testthat::expect_length(ensure_line, 1L)
+  testthat::expect_length(run_line, 1L)
+  testthat::expect_true(log_line < ensure_line && ensure_line < run_line)
 })

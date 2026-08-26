@@ -49,11 +49,16 @@ performance estimate. Every grouped metric must reconstruct the original
    reconstruction error is at most `1e-6`, all expected origin/lead groups are
    present, covariance outputs are finite and nonconstant, each job remains below
    100 MiB, and no fitted-model binary remains.
-6. Pool 12,000 draws per source for all seven sentinels and classify the dominant
+6. Reuse the six hash-verified pilot jobs as constituent full-campaign evidence
+   and execute only the remaining 15 jobs. The full plan retains 21 rows, copies
+   the six immutable terminal statuses into its state root, and records a
+   pilot-reuse ledger and decision hash. This prevents duplicate fitting while
+   preserving a single seven-cell closeout contract.
+7. Pool 12,000 draws per source for all seven sentinels and classify the dominant
    mechanism using origin covariance, lead covariance, late/early loss, temporal
    concentration, common-shift energy, oracle-path coverage, and stable RHS-scale
    associations.
-7. A case-specific `tau0` intervention is eligible only when an RHS posterior
+8. A case-specific `tau0` intervention is eligible only when an RHS posterior
    scale has median absolute Spearman association of at least 0.35, all three
    chains agree in sign, every chain has absolute association at least 0.20, and
    oracle-path coverage is at least 0.95. Eligibility authorizes a later causal
@@ -66,6 +71,10 @@ artifacts are compressed grouped draws, compact target summaries, covariance
 tables, parameter associations, manifests, logs, and figures. Forecast objects,
 fit handoffs, `.rds`, `.rda`, and `.RData` payloads are prohibited after a
 successful job.
+
+The six pilot job roots remain protected constituents of the full closeout and
+must not be treated as obsolete after reuse. Their configuration, status, and
+artifact hashes are frozen in the full campaign's pilot-reuse ledger.
 
 ## Interpretation map
 

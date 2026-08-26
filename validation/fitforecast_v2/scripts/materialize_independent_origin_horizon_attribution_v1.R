@@ -17,6 +17,7 @@ source_repo <- normalizePath(args$`source-repo` %||% "", winslash = "/",
 source_run_id <- as.character(args$`source-run-id` %||% imoh_v1_source_run_id)[1L]
 run_id <- as.character(args$`run-id` %||% "")[[1L]]
 phase <- match.arg(as.character(args$phase %||% "pilot")[[1L]], c("pilot", "full"))
+reuse_pilot_state <- as.character(args$`reuse-pilot-state` %||% "")[[1L]]
 cpu_ids <- as.integer(strsplit(as.character(args$`cpu-list` %||% ""), ",",
                                fixed = TRUE)[[1L]])
 if (!nzchar(run_id) || any(!is.finite(cpu_ids)) || !length(cpu_ids) ||
@@ -36,6 +37,18 @@ if (!dir.exists(source_state) || dir.exists(state_root) || dir.exists(result_roo
 
 selection <- imoh_v1_read_selection(repo_root)
 if (phase == "pilot") selection <- selection[selection$pilot_selected, , drop = FALSE]
+pilot_reuse <- NULL
+if (nzchar(reuse_pilot_state)) {
+  if (phase != "full") {
+    stop("--reuse-pilot-state is valid only for phase=full.", call. = FALSE)
+  }
+  pilot_reuse <- imoh_v1_verify_pilot_reuse(reuse_pilot_state)
+  expected_pilot_ids <- selection$replay_id[selection$pilot_selected]
+  if (!setequal(unique(pilot_reuse$plan$replay_id), expected_pilot_ids)) {
+    stop("Verified pilot reuse does not match the predeclared pilot cells.",
+         call. = FALSE)
+  }
+}
 source_plan <- ffv2_read_csv(file.path(source_state, "manifests", "job_plan.csv"))
 selected <- source_plan[source_plan$replay_id %in% selection$replay_id, , drop = FALSE]
 selected <- merge(selected, selection, by = c("replay_id", "model_variant", "family",
@@ -58,8 +71,34 @@ if (!dir.exists(source_input_root) ||
 
 replacements <- setNames(c(repo_root, run_id), c(source_repo, source_run_id))
 plan_rows <- vector("list", nrow(selected))
+reused_job_ids <- if (is.null(pilot_reuse)) character(0) else pilot_reuse$plan$job_id
+if (length(reused_job_ids)) ffv2_ensure_dir(file.path(state_root, "status"))
 for (i in seq_len(nrow(selected))) {
   authority <- selected[i, , drop = FALSE]
+  reuse_index <- match(authority$job_id[[1L]], reused_job_ids)
+  if (!is.na(reuse_index)) {
+    reuse_row <- pilot_reuse$plan[reuse_index, , drop = FALSE]
+    status_target <- file.path(state_root, "status", paste0(authority$job_id[[1L]], ".json"))
+    if (!isTRUE(file.copy(pilot_reuse$status_paths[[reuse_index]], status_target,
+                          overwrite = FALSE, copy.mode = TRUE))) {
+      stop(sprintf("Could not stage verified pilot status: %s",
+                   authority$job_id[[1L]]), call. = FALSE)
+    }
+    plan_rows[[i]] <- data.frame(
+      job_id = authority$job_id[[1L]], engine = "qdesn",
+      replay_id = authority$replay_id[[1L]], source_identity = authority$source_identity[[1L]],
+      model_variant = authority$model_variant[[1L]], family = authority$family[[1L]],
+      tau = authority$tau[[1L]], inference = "mcmc",
+      chain_id = as.integer(authority$chain_id[[1L]]),
+      sentinel_role = authority$sentinel_role[[1L]], campaign_phase = "full_reused_pilot",
+      config_path = reuse_row$config_path[[1L]],
+      config_sha256 = reuse_row$config_sha256[[1L]], job_root = reuse_row$job_root[[1L]],
+      expected_draws = imoh_v1_draws,
+      cpu_id = cpu_ids[((i - 1L) %% length(cpu_ids)) + 1L], status = "REUSED_SUCCESS",
+      stringsAsFactors = FALSE
+    )
+    next
+  }
   source_config_path <- normalizePath(authority$config_path[[1L]], winslash = "/",
                                       mustWork = TRUE)
   config <- imid_v1_recursive_replace(ffv2_read_json(source_config_path), replacements)
@@ -129,6 +168,9 @@ plan <- plan[order(plan$replay_id, plan$chain_id), , drop = FALSE]
 plan_path <- ffv2_write_csv(plan, file.path(state_root, "manifests", "job_plan.csv"))
 selection_path <- ffv2_write_csv(selection,
                                  file.path(state_root, "manifests", "sentinel_sources.csv"))
+reuse_ledger_path <- if (is.null(pilot_reuse)) "" else ffv2_write_csv(
+  pilot_reuse$ledger, file.path(state_root, "manifests", "pilot_reuse_ledger.csv")
+)
 protocol <- data.frame(
   scope = c("authoritative_all_targets", "balanced_complete_origins"),
   target_start = 9001L, target_end = c(10000L, 9990L),
@@ -149,6 +191,13 @@ manifest <- list(
   source_repo_head = system2("git", c("-C", source_repo, "rev-parse", "HEAD"),
                              stdout = TRUE)[[1L]],
   selected_sources = length(unique(plan$replay_id)), planned_jobs = nrow(plan),
+  reused_pilot_jobs = length(reused_job_ids),
+  newly_materialized_jobs = nrow(plan) - length(reused_job_ids),
+  pilot_reuse_state = if (is.null(pilot_reuse)) NULL else pilot_reuse$state_root,
+  pilot_decision_sha256 = if (is.null(pilot_reuse)) NULL else pilot_reuse$decision_sha256,
+  pilot_reuse_ledger_path = if (is.null(pilot_reuse)) NULL else reuse_ledger_path,
+  pilot_reuse_ledger_sha256 = if (is.null(pilot_reuse)) NULL else
+    ffv2_file_sha256(reuse_ledger_path),
   cpu_ids = sort(unique(plan$cpu_id)), plan_path = plan_path,
   plan_sha256 = ffv2_file_sha256(plan_path),
   selection_sha256 = ffv2_file_sha256(selection_path),

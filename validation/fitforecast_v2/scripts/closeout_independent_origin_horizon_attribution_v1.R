@@ -20,6 +20,10 @@ materialization <- ffv2_read_json(
 phase <- as.character(materialization$phase)
 expected_sources <- if (phase == "pilot") 2L else 7L
 expected_jobs <- expected_sources * 3L
+reused_pilot_jobs <- as.integer(materialization$reused_pilot_jobs %||% 0L)
+newly_materialized_jobs <- as.integer(
+  materialization$newly_materialized_jobs %||% expected_jobs
+)
 closeout_root <- ffv2_ensure_dir(file.path(state_root, "closeout"))
 figure_root <- ffv2_ensure_dir(file.path(closeout_root, "figures"))
 
@@ -216,7 +220,7 @@ origin_plot$origin <- as.integer(origin_plot$group_value)
 p <- ggplot2::ggplot(origin_plot, ggplot2::aes(
   x = origin, y = posterior_mean, ymin = cri_lower, ymax = cri_upper,
   colour = model_variant
-)) + ggplot2::geom_pointrange(linewidth = 0.3, fatten = 0.8) +
+)) + ggplot2::geom_linerange(linewidth = 0.3) + ggplot2::geom_point(size = 0.8) +
   ggplot2::facet_wrap(~ replay_id, scales = "free_y", ncol = 2) +
   ggplot2::labs(x = "Forecast origin", y = "Posterior draw-specific forecast MAE",
                 title = "Forecast-risk heterogeneity across temporal blocks") +
@@ -266,6 +270,8 @@ lines <- c(
   sprintf("Decision: `%s`", decision), "",
   sprintf("Phase: `%s`; jobs: %d/%d; sources: %d.", phase,
           sum(status_index$status == "SUCCESS"), expected_jobs, expected_sources),
+  sprintf("Verified pilot jobs reused: %d; newly executed full-phase jobs: %d.",
+          reused_pilot_jobs, newly_materialized_jobs),
   "The authoritative 1,000-target metric and posterior-predictive recursion are unchanged.",
   "The balanced 990-target rectangle is diagnostic sensitivity evidence only.",
   "No article promotion or automatic tau0 launch is authorized by this script.", "",
@@ -285,6 +291,8 @@ manifest_out <- list(
   phase = phase, decision = decision,
   jobs_completed = sum(status_index$status == "SUCCESS"), jobs_planned = expected_jobs,
   sources = expected_sources, article_update_authorized = FALSE,
+  reused_pilot_jobs = reused_pilot_jobs,
+  newly_materialized_jobs = newly_materialized_jobs,
   automatic_tau0_launch_authorized = FALSE,
   full_forecast_draw_matrix_retained = FALSE,
   heavy_binary_count = length(heavy),
