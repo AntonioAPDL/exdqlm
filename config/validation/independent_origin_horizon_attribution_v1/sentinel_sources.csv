@@ -1,0 +1,8 @@
+replay_id,model_variant,family,tau,sentinel_role,source_candidate_id,pilot_selected,rationale
+imi_v1_source_073,qdesn_al_rhs_ns,normal,0.05,extreme_width,cgcv2_al_normal_t0p05_01_64121b0e9b,FALSE,Largest AL forecast-MAE interval and tiny tau0 stress case
+imi_v1_source_075,qdesn_exal_rhs_ns,normal,0.05,extreme_width,ssv2_normal_t0p05_broad_06_368dcfeb88,FALSE,Large exAL interval under exact M0 and a deep high-memory design
+imi_v1_source_082,qdesn_exal_rhs_ns,gausmix,0.05,hard_tail,qdesn__gausmix__0p05__tt500__rhs_ns__mcmc__exal__45c25fd0ade821,FALSE,Hard lower-tail mixture case with a compact historical design
+imi_v1_source_083,qdesn_exal_rhs_ns,gausmix,0.25,extreme_width,plrv1_exal_gausmix_t0p25_08_576957a0bd,FALSE,Large central-tail exAL interval with low tau0
+imi_v1_source_055,qdesn_al_rhs_ns,laplace,0.05,hard_tail,qdesn__laplace__0p05__tt500__rhs_ns__mcmc__al__f3d109dc7144a9,TRUE,Matched-family lower-tail pilot with a wide interval
+imi_v1_source_078,qdesn_al_rhs_ns,laplace,0.50,lower_width_control,qdesn__laplace__0p50__tt500__rhs_ns__mcmc__al__412d95be19e89c,TRUE,Matched-family AL lower-width pilot control
+imi_v1_source_080,qdesn_exal_rhs_ns,laplace,0.50,lower_width_control,qdesn__laplace__0p50__tt500__rhs_ns__mcmc__exal__fcd6fee84b5301,FALSE,Lower-width exact-M0 exAL control

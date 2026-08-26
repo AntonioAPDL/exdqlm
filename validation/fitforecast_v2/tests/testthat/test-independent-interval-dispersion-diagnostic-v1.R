@@ -108,3 +108,19 @@ testthat::test_that("tau0-only follow-up is mechanism gated", {
   testthat::expect_false(any(gate$automatic_followup_launch_authorized))
   testthat::expect_false(any(gate$article_update_authorized))
 })
+
+testthat::test_that("all cross-origin diagnoses receive a coherent closeout", {
+  pooled <- data.frame(
+    mechanism = rep("cross_origin_dependence_dominant", 7L),
+    tau0_only_screen_authorized = FALSE,
+    stringsAsFactors = FALSE
+  )
+  testthat::expect_identical(
+    imid_v1_closeout_decision(pooled),
+    "CROSS_ORIGIN_DEPENDENCE_DOMINANT_RETAIN_NATIVE"
+  )
+  testthat::expect_identical(
+    imid_v1_closeout_decision(pooled, checks_pass = FALSE),
+    "DIAGNOSTIC_CLOSEOUT_FAILED"
+  )
+})

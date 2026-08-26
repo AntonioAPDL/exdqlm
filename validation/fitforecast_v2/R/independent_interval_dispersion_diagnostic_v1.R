@@ -156,3 +156,27 @@ imid_v1_followup_gate <- function(pooled) {
     stringsAsFactors = FALSE
   )
 }
+
+imid_v1_closeout_decision <- function(pooled, checks_pass = TRUE) {
+  mechanisms <- as.character(pooled$mechanism)
+  if (!isTRUE(checks_pass)) {
+    return("DIAGNOSTIC_CLOSEOUT_FAILED")
+  }
+  if (!length(mechanisms) || any(!nzchar(mechanisms))) {
+    stop("Closeout mechanisms must be non-empty.", call. = FALSE)
+  }
+  if (all(mechanisms == "cross_origin_dependence_dominant")) {
+    return("CROSS_ORIGIN_DEPENDENCE_DOMINANT_RETAIN_NATIVE")
+  }
+  if (all(mechanisms %in% c(
+    "recursive_innovation_and_cross_origin_dependence",
+    "recursive_innovation_dominant"
+  ))) {
+    return("RECURSIVE_INNOVATION_DOMINANT_DO_NOT_START_TAU0_SCREEN")
+  }
+  tau0_authorized <- as.logical(pooled$tau0_only_screen_authorized %||% FALSE)
+  if (any(tau0_authorized, na.rm = TRUE)) {
+    return("CASE_SPECIFIC_PRIOR_INTERVENTION_ELIGIBLE_FOR_SELECTED_CELLS")
+  }
+  "MIXED_MECHANISMS_REQUIRE_CASE_SPECIFIC_FOLLOWUP"
+}

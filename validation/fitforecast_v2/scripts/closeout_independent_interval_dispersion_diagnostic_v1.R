@@ -104,16 +104,7 @@ paths <- list(
   storage = ffv2_write_csv(storage, file.path(closeout_root, "storage_audit.csv")),
   checks = ffv2_write_csv(checks, file.path(closeout_root, "closeout_checks.csv"))
 )
-decision <- if (!all(checks$pass)) {
-  "DIAGNOSTIC_CLOSEOUT_FAILED"
-} else if (all(pooled$mechanism %in% c("recursive_innovation_and_cross_origin_dependence",
-                                       "recursive_innovation_dominant"))) {
-  "RECURSIVE_INNOVATION_DOMINANT_DO_NOT_START_TAU0_SCREEN"
-} else if (any(pooled$tau0_only_screen_authorized)) {
-  "CASE_SPECIFIC_PRIOR_INTERVENTION_ELIGIBLE_FOR_SELECTED_CELLS"
-} else {
-  "MIXED_MECHANISMS_REQUIRE_CASE_SPECIFIC_FOLLOWUP"
-}
+decision <- imid_v1_closeout_decision(pooled, checks_pass = all(checks$pass))
 report_path <- file.path(closeout_root, "scientific_closeout.md")
 lines <- c(
   "# Independent Q-DESN metric-interval dispersion diagnosis",

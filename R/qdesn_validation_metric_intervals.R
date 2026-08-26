@@ -44,6 +44,20 @@
   )
 }
 
+.qdesn_validation_origin_horizon_cfg <- function(defaults = NULL) {
+  metrics <- (defaults %||% list())$metrics %||% list()
+  x <- (((metrics$posterior_metric_intervals %||% list())$
+    origin_horizon_attribution) %||% list())
+  enabled <- isTRUE(x$enabled)
+  list(
+    enabled = enabled,
+    required = isTRUE(x$required %||% enabled),
+    balanced_complete_origins = isTRUE(x$balanced_complete_origins %||% TRUE),
+    schema_version = as.character(x$schema_version %||%
+      "independent_qdesn_origin_horizon_attribution_v1")[[1L]]
+  )
+}
+
 .qdesn_validation_with_seed <- function(seed, code) {
   old <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
     get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
@@ -412,6 +426,20 @@
       stop("Required metric-dispersion diagnostics were not written.", call. = FALSE)
     }
   }
+  attribution_cfg <- .qdesn_validation_origin_horizon_cfg(defaults)
+  attribution_manifest <- NULL
+  if (isTRUE(attribution_cfg$enabled)) {
+    attribution_manifest <- .qdesn_validation_write_origin_horizon_attribution(
+      draws = draws,
+      method_dir = method_dir,
+      defaults = defaults
+    )
+    if (isTRUE(attribution_cfg$required) &&
+        !identical(as.character(attribution_manifest$status), "PASS")) {
+      stop("Required origin-horizon attribution artifacts were not written.",
+           call. = FALSE)
+    }
+  }
   manifest <- list(
     schema_version = "independent_metric_intervals_v1",
     generated_at = as.character(Sys.time()),
@@ -428,7 +456,8 @@
     metric_interval_summary_sha256 = sha(summary_path),
     heavy_binary_retained = FALSE,
     coupling_sensitivity = coupling_manifest,
-    dispersion_diagnostic = dispersion_manifest
+    dispersion_diagnostic = dispersion_manifest,
+    origin_horizon_attribution = attribution_manifest
   )
   .qdesn_validation_write_json(manifest_path, manifest)
   list(

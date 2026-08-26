@@ -20,7 +20,7 @@ if (!engine %in% c("qdesn", "dqlm") || !nzchar(job_id)) {
 }
 config_header <- tryCatch(ffv2_read_json(config_path), error = function(...) list())
 job_schema <- as.character(config_header$schema_version %||% imi_v1_schema)[1L]
-supported_schemas <- c(imi_v1_schema, imid_v1_schema)
+supported_schemas <- c(imi_v1_schema, imid_v1_schema, imoh_v1_schema)
 if (!job_schema %in% supported_schemas) {
   stop(sprintf("Unsupported independent interval job schema: %s", job_schema),
        call. = FALSE)
@@ -76,6 +76,12 @@ tryCatch({
                                  as.integer(job$root_spec$desn_seed)),
       interval_enabled = isTRUE(job$config$metrics$posterior_metric_intervals$enabled) &&
         isTRUE(job$config$metrics$posterior_metric_intervals$required),
+      attribution_enabled = job_schema != imoh_v1_schema || (
+        isTRUE(job$config$metrics$posterior_metric_intervals$
+          origin_horizon_attribution$enabled) &&
+        isTRUE(job$config$metrics$posterior_metric_intervals$
+          origin_horizon_attribution$required)
+      ),
       exal_m0 = job$likelihood_family != "exal" ||
         identical(as.character(job$config$inference$mcmc$slice$core_update_mode),
                   "m0_v_collapsed_support_logit") || job$inference == "vb"
@@ -129,6 +135,18 @@ tryCatch({
     dispersion_draws_path <- file.path(
       job$job_root, "tables", "metric_dispersion_draw_diagnostics.csv.gz"
     )
+    attribution_enabled <- isTRUE(
+      job$config$metrics$posterior_metric_intervals$origin_horizon_attribution$enabled
+    )
+    attribution_manifest_path <- file.path(
+      job$job_root, "manifest", "origin_horizon_attribution_manifest.json"
+    )
+    attribution_group_draws_path <- file.path(
+      job$job_root, "tables", "origin_horizon_group_draws.csv.gz"
+    )
+    attribution_reconstruction_path <- file.path(
+      job$job_root, "tables", "origin_horizon_reconstruction_audit.csv"
+    )
     binary_paths <- list.files(job$job_root, pattern = "[.](rds|rda|RData)$",
                                recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
     if (length(binary_paths)) {
@@ -151,6 +169,11 @@ tryCatch({
     if (dispersion_enabled) {
       required <- c(required, dispersion_manifest_path, dispersion_mechanism_path,
                     dispersion_draws_path)
+    }
+    if (attribution_enabled) {
+      required <- c(required, attribution_manifest_path,
+                    attribution_group_draws_path,
+                    attribution_reconstruction_path)
     }
     if (any(!file.exists(required)) || length(remaining)) {
       stop("Q-DESN interval artifacts are incomplete or heavy binaries remain.", call. = FALSE)
@@ -189,6 +212,24 @@ tryCatch({
       } else NULL,
       metric_dispersion_draws_sha256 = if (dispersion_enabled) {
         ffv2_file_sha256(dispersion_draws_path)
+      } else NULL,
+      origin_horizon_attribution_manifest_path = if (attribution_enabled) {
+        attribution_manifest_path
+      } else NULL,
+      origin_horizon_attribution_manifest_sha256 = if (attribution_enabled) {
+        ffv2_file_sha256(attribution_manifest_path)
+      } else NULL,
+      attribution_group_draws_path = if (attribution_enabled) {
+        attribution_group_draws_path
+      } else NULL,
+      attribution_group_draws_sha256 = if (attribution_enabled) {
+        ffv2_file_sha256(attribution_group_draws_path)
+      } else NULL,
+      attribution_reconstruction_path = if (attribution_enabled) {
+        attribution_reconstruction_path
+      } else NULL,
+      attribution_reconstruction_sha256 = if (attribution_enabled) {
+        ffv2_file_sha256(attribution_reconstruction_path)
       } else NULL,
       heavy_binary_count = 0L
     )
