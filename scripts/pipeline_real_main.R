@@ -2096,10 +2096,15 @@ fit_and_forecast_p <- function(p0) {
   )
   class(fit_q) <- "qdesn_fit"
 
+  interval_cfg_runtime <- ((cfg$metrics %||% list())$posterior_metric_intervals %||% list())
+  metric_intervals_enabled <- isTRUE(interval_cfg_runtime$enabled)
+  dispersion_cfg_runtime <- interval_cfg_runtime$dispersion_diagnostic %||% list()
+  dispersion_enabled <- isTRUE(dispersion_cfg_runtime$enabled)
   need_origin_draws_full <- isTRUE(keep_draws) || isTRUE(lead_eval_enabled) ||
-    isTRUE(do_fan_charts) || isTRUE(primary_lead_export_enabled)
+    isTRUE(do_fan_charts) || isTRUE(primary_lead_export_enabled) ||
+    isTRUE(metric_intervals_enabled)
   need_var_horizon <- isTRUE(lead_eval_enabled) || isTRUE(do_fan_charts) ||
-    isTRUE(primary_lead_export_enabled)
+    isTRUE(primary_lead_export_enabled) || isTRUE(metric_intervals_enabled)
   truncate_origin_draws <- function(draws_list, origins_vec, max_t, H) {
     if (is.null(draws_list)) return(NULL)
     stopifnot(length(draws_list) == length(origins_vec))
@@ -2134,6 +2139,7 @@ fit_and_forecast_p <- function(p0) {
   fore_tail <- NULL
   yrep_by_origin_var <- NULL
   mu_by_origin_var <- NULL
+  mu_by_origin_plugin_var <- NULL
   origins_var <- NULL
 
   if (isTRUE(need_var_horizon)) {
@@ -2171,10 +2177,79 @@ fit_and_forecast_p <- function(p0) {
       yrep_by_origin_var <- truncate_origin_draws(yrep_by_origin_var, origins_var, T_use, forecast_horizon)
       mu_by_origin_var <- truncate_origin_draws(mu_by_origin_var, origins_var, T_use, forecast_horizon)
     }
-  } else if (isTRUE(keep_draws) || isTRUE(primary_lead_export_enabled)) {
+  } else if (isTRUE(keep_draws) || isTRUE(primary_lead_export_enabled) ||
+             isTRUE(metric_intervals_enabled)) {
     yrep_by_origin_var <- fore_full$yrep_by_origin
     mu_by_origin_var <- fore_full$mu_by_origin
     origins_var <- fore_full$origins
+  }
+
+  fore_plugin_full <- NULL
+  fore_plugin_tail <- NULL
+  if (isTRUE(dispersion_enabled) &&
+      isTRUE(dispersion_cfg_runtime$recursion_counterfactual %||% TRUE)) {
+    rng_state_before_plugin <- if (exists(".Random.seed", envir = .GlobalEnv,
+                                          inherits = FALSE)) {
+      get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    } else NULL
+    fore_plugin_full <- timed(
+      sprintf("forecast_lattice conditional-mean plug-in (p=%s)", fmt_p(p0)),
+      forecast_lattice.qdesn_fit(
+        fit_q,
+        y_all = y_full,
+        origins = origins,
+        H = forecast_horizon,
+        nd = nrow(pred_draws$beta),
+        xreg_all = xreg_all_full,
+        y_obs_last = T_use,
+        lead_weights = lead_weights,
+        mix_nd = mix_nd,
+        chunk = chunk_sz,
+        seed = synth_seed + round(1000 * p0),
+        keep_origin_draws = TRUE,
+        draws = pred_draws,
+        recursion_mode = "conditional_mean_plugin"
+      )
+    )
+    mu_by_origin_plugin_var <- fore_plugin_full$mu_by_origin
+    if (length(origins_tail)) {
+      fore_plugin_tail <- timed(
+        sprintf("forecast_lattice_tail conditional-mean plug-in (p=%s)", fmt_p(p0)),
+        forecast_lattice.qdesn_fit(
+          fit_q,
+          y_all = y_full,
+          origins = origins_tail,
+          H = forecast_horizon,
+          nd = nrow(pred_draws$beta),
+          xreg_all = xreg_all_tail,
+          y_obs_last = T_use,
+          lead_weights = lead_weights,
+          mix_nd = mix_nd,
+          chunk = chunk_sz,
+          seed = synth_seed + round(1000 * p0) + 31L,
+          keep_origin_draws = TRUE,
+          draws = pred_draws,
+          recursion_mode = "conditional_mean_plugin"
+        )
+      )
+      mu_by_origin_plugin_var <- c(
+        mu_by_origin_plugin_var,
+        fore_plugin_tail$mu_by_origin
+      )
+    }
+    mu_by_origin_plugin_var <- truncate_origin_draws(
+      mu_by_origin_plugin_var,
+      c(origins_full, origins_tail),
+      T_use,
+      forecast_horizon
+    )
+    if (is.null(rng_state_before_plugin)) {
+      if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    } else {
+      assign(".Random.seed", rng_state_before_plugin, envir = .GlobalEnv)
+    }
   }
 
   if (isTRUE(lead_eval_enabled)) {
@@ -2279,11 +2354,26 @@ fit_and_forecast_p <- function(p0) {
     )
   )
   forecast_full$origins <- if (!is.null(origins_var)) origins_var else fore_full$origins
+  forecast_full$source_draw_index <- fore_full$source_draw_index
+  forecast_full$draw_parameters <- fore_full$draw_parameters
+  forecast_full$recursion_mode <- fore_full$recursion_mode
   if (!is.null(yrep_by_origin_var)) {
     forecast_full$yrep_by_origin <- yrep_by_origin_var
   }
-  if ((isTRUE(keep_draws) || isTRUE(primary_lead_export_enabled)) && !is.null(mu_by_origin_var)) {
+  if ((isTRUE(keep_draws) || isTRUE(primary_lead_export_enabled) ||
+       isTRUE(metric_intervals_enabled)) && !is.null(mu_by_origin_var)) {
     forecast_full$mu_by_origin <- mu_by_origin_var
+  }
+  if (!is.null(mu_by_origin_plugin_var)) {
+    forecast_full$mu_by_origin_conditional_mean_plugin <- mu_by_origin_plugin_var
+    forecast_full$dispersion_diagnostic_contract <- list(
+      primary_recursion = "posterior_predictive",
+      counterfactual_recursion = "conditional_mean_plugin",
+      same_posterior_draws = identical(
+        as.integer(fore_full$source_draw_index),
+        as.integer(fore_plugin_full$source_draw_index)
+      )
+    )
   }
 
   list(

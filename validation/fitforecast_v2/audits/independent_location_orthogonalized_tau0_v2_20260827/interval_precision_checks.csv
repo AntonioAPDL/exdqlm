@@ -1,0 +1,3 @@
+"metric_role","loo_max_mean_shift_in_pooled_sd","loo_mean_sd_limit","loo_max_endpoint_shift_over_width","loo_endpoint_width_limit","bootstrap_max_endpoint_mcse_over_width","bootstrap_endpoint_mcse_width_limit","favorable_posterior_mean_direction","pass"
+"forecast_mae",0.0240689351830647,0.2,0.0181402029670955,0.15,0.00983626951099095,0.05,TRUE,TRUE
+"forecast_check",0.0192770353472468,0.2,0.0114587933214885,0.15,0.0133894159724395,0.05,TRUE,TRUE

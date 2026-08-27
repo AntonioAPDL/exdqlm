@@ -18,6 +18,13 @@ state_root <- normalizePath(args$`state-root` %||% "", winslash = "/", mustWork 
 if (!engine %in% c("qdesn", "dqlm") || !nzchar(job_id)) {
   stop("--engine, --job-id, --config, and --state-root are required.", call. = FALSE)
 }
+config_header <- tryCatch(ffv2_read_json(config_path), error = function(...) list())
+job_schema <- as.character(config_header$schema_version %||% imi_v1_schema)[1L]
+supported_schemas <- c(imi_v1_schema, imid_v1_schema, imoh_v1_schema, icsi_v1_schema)
+if (!job_schema %in% supported_schemas) {
+  stop(sprintf("Unsupported independent interval job schema: %s", job_schema),
+       call. = FALSE)
+}
 status_path <- file.path(state_root, "status", paste0(job_id, ".json"))
 ffv2_ensure_dir(dirname(status_path))
 config_sha256 <- ffv2_file_sha256(config_path)
@@ -37,7 +44,7 @@ Sys.setenv(
 )
 started <- Sys.time()
 ffv2_write_json(list(
-  schema_version = imi_v1_schema, job_id = job_id, engine = engine, status = "RUNNING",
+  schema_version = job_schema, job_id = job_id, engine = engine, status = "RUNNING",
   config_path = config_path, config_sha256 = config_sha256,
   pid = Sys.getpid(), host = Sys.info()[["nodename"]],
   started_at = format(started, "%Y-%m-%d %H:%M:%S %Z"),
@@ -53,7 +60,7 @@ tryCatch({
     pkgload::load_all(repo_root, quiet = TRUE)
     job <- ffv2_read_json(config_path)
     contracts <- c(
-      schema = identical(as.character(job$schema_version), imi_v1_schema),
+      schema = identical(as.character(job$schema_version), job_schema),
       job_id = identical(as.character(job$job_id), job_id),
       observed_hash = identical(ffv2_file_sha256(job$observed_path),
                                 as.character(job$observed_sha256)),
@@ -69,6 +76,12 @@ tryCatch({
                                  as.integer(job$root_spec$desn_seed)),
       interval_enabled = isTRUE(job$config$metrics$posterior_metric_intervals$enabled) &&
         isTRUE(job$config$metrics$posterior_metric_intervals$required),
+      attribution_enabled = job_schema != imoh_v1_schema || (
+        isTRUE(job$config$metrics$posterior_metric_intervals$
+          origin_horizon_attribution$enabled) &&
+        isTRUE(job$config$metrics$posterior_metric_intervals$
+          origin_horizon_attribution$required)
+      ),
       exal_m0 = job$likelihood_family != "exal" ||
         identical(as.character(job$config$inference$mcmc$slice$core_update_mode),
                   "m0_v_collapsed_support_logit") || job$inference == "vb"
@@ -83,7 +96,7 @@ tryCatch({
       source = job$root_spec$source_contract %||% list()
     )
     fit_request_extra <- list(
-      schema_version = imi_v1_schema, run_id = job$run_id, job_id = job_id,
+      schema_version = job_schema, run_id = job$run_id, job_id = job_id,
       replay_id = job$replay_id, source_identity = job$source_identity,
       source_candidate_id = job$source_candidate_id,
       source_run_tag = job$source_run_tag, chain_id = job$chain_id,
@@ -110,6 +123,36 @@ tryCatch({
     )
     coupling_draws_path <- file.path(job$job_root, "tables", "metric_coupling_draws.csv.gz")
     coupling_summary_path <- file.path(job$job_root, "tables", "metric_coupling_summary.csv")
+    dispersion_enabled <- isTRUE(
+      job$config$metrics$posterior_metric_intervals$dispersion_diagnostic$enabled
+    )
+    dispersion_manifest_path <- file.path(
+      job$job_root, "manifest", "metric_dispersion_manifest.json"
+    )
+    dispersion_mechanism_path <- file.path(
+      job$job_root, "tables", "metric_dispersion_mechanism_summary.csv"
+    )
+    dispersion_draws_path <- file.path(
+      job$job_root, "tables", "metric_dispersion_draw_diagnostics.csv.gz"
+    )
+    attribution_enabled <- isTRUE(
+      job$config$metrics$posterior_metric_intervals$origin_horizon_attribution$enabled
+    )
+    attribution_manifest_path <- file.path(
+      job$job_root, "manifest", "origin_horizon_attribution_manifest.json"
+    )
+    attribution_group_draws_path <- file.path(
+      job$job_root, "tables", "origin_horizon_group_draws.csv.gz"
+    )
+    attribution_reconstruction_path <- file.path(
+      job$job_root, "tables", "origin_horizon_reconstruction_audit.csv"
+    )
+    common_shift_enabled <- isTRUE(
+      job$config$metrics$posterior_metric_intervals$common_shift_intervention$enabled
+    )
+    common_shift_manifest_path <- file.path(
+      job$job_root, "manifest", "common_shift_intervention_manifest.json"
+    )
     binary_paths <- list.files(job$job_root, pattern = "[.](rds|rda|RData)$",
                                recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
     if (length(binary_paths)) {
@@ -129,6 +172,16 @@ tryCatch({
     if (coupling_enabled) {
       required <- c(required, coupling_draws_path, coupling_summary_path)
     }
+    if (dispersion_enabled) {
+      required <- c(required, dispersion_manifest_path, dispersion_mechanism_path,
+                    dispersion_draws_path)
+    }
+    if (attribution_enabled) {
+      required <- c(required, attribution_manifest_path,
+                    attribution_group_draws_path,
+                    attribution_reconstruction_path)
+    }
+    if (common_shift_enabled) required <- c(required, common_shift_manifest_path)
     if (any(!file.exists(required)) || length(remaining)) {
       stop("Q-DESN interval artifacts are incomplete or heavy binaries remain.", call. = FALSE)
     }
@@ -148,6 +201,48 @@ tryCatch({
       metric_coupling_summary_path = if (coupling_enabled) coupling_summary_path else NULL,
       metric_coupling_summary_sha256 = if (coupling_enabled) {
         ffv2_file_sha256(coupling_summary_path)
+      } else NULL,
+      metric_dispersion_manifest_path = if (dispersion_enabled) {
+        dispersion_manifest_path
+      } else NULL,
+      metric_dispersion_manifest_sha256 = if (dispersion_enabled) {
+        ffv2_file_sha256(dispersion_manifest_path)
+      } else NULL,
+      metric_dispersion_mechanism_path = if (dispersion_enabled) {
+        dispersion_mechanism_path
+      } else NULL,
+      metric_dispersion_mechanism_sha256 = if (dispersion_enabled) {
+        ffv2_file_sha256(dispersion_mechanism_path)
+      } else NULL,
+      metric_dispersion_draws_path = if (dispersion_enabled) {
+        dispersion_draws_path
+      } else NULL,
+      metric_dispersion_draws_sha256 = if (dispersion_enabled) {
+        ffv2_file_sha256(dispersion_draws_path)
+      } else NULL,
+      origin_horizon_attribution_manifest_path = if (attribution_enabled) {
+        attribution_manifest_path
+      } else NULL,
+      origin_horizon_attribution_manifest_sha256 = if (attribution_enabled) {
+        ffv2_file_sha256(attribution_manifest_path)
+      } else NULL,
+      attribution_group_draws_path = if (attribution_enabled) {
+        attribution_group_draws_path
+      } else NULL,
+      attribution_group_draws_sha256 = if (attribution_enabled) {
+        ffv2_file_sha256(attribution_group_draws_path)
+      } else NULL,
+      attribution_reconstruction_path = if (attribution_enabled) {
+        attribution_reconstruction_path
+      } else NULL,
+      attribution_reconstruction_sha256 = if (attribution_enabled) {
+        ffv2_file_sha256(attribution_reconstruction_path)
+      } else NULL,
+      common_shift_intervention_manifest_path = if (common_shift_enabled) {
+        common_shift_manifest_path
+      } else NULL,
+      common_shift_intervention_manifest_sha256 = if (common_shift_enabled) {
+        ffv2_file_sha256(common_shift_manifest_path)
       } else NULL,
       heavy_binary_count = 0L
     )
@@ -208,7 +303,7 @@ tryCatch({
 
 ended <- Sys.time()
 payload <- c(list(
-  schema_version = imi_v1_schema, job_id = job_id, engine = engine,
+  schema_version = job_schema, job_id = job_id, engine = engine,
   status = status, error_message = if (is.na(error_message)) NULL else error_message,
   config_path = config_path, config_sha256 = config_sha256,
   pid = Sys.getpid(), host = Sys.info()[["nodename"]],

@@ -1,0 +1,16 @@
+{
+  "schema_version": "independent_qdesn_origin_horizon_attribution_v1",
+  "audit_id": "independent_origin_horizon_attribution_v1_20260826",
+  "generated_at": "2026-08-26 04:50:19 EDT",
+  "source_run_id": "independent_origin_horizon_attribution_v1_full_20260826_021943",
+  "source_decision_sha256": "eba0858a57215d81923475d9bb2f616ea959c6f7e66202c17478677066acb3d8",
+  "source_verification_sha256": "2f4b3438cd99b455220f27030f740083b3e568163d97a06d6b7969b2c02bc3b4",
+  "implementation_commit": "dd202b5de684bb0b15302401db239839e2aafbf2",
+  "decision": "ATTRIBUTION_COMPLETE_NO_TAU0_CAUSAL_PILOT_AUTHORIZED",
+  "article_update_authorized": false,
+  "automatic_tau0_launch_authorized": false,
+  "artifact_count": 19,
+  "artifact_bytes": 769859,
+  "artifact_manifest_sha256": "41c61692201bab3c9150f82f0610f2b0470c0879e1f8f5c2c10de599fd06b652",
+  "readme_sha256": "65cea318d0413d4a8d867e082e0c67e0e1e592767e2cee4cc306d4d09481da49"
+}

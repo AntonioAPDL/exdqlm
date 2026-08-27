@@ -30,6 +30,34 @@
   )
 }
 
+.qdesn_validation_metric_dispersion_cfg <- function(defaults = NULL) {
+  metrics <- (defaults %||% list())$metrics %||% list()
+  x <- (((metrics$posterior_metric_intervals %||% list())$dispersion_diagnostic) %||%
+          list())
+  enabled <- isTRUE(x$enabled)
+  list(
+    enabled = enabled,
+    required = isTRUE(x$required %||% enabled),
+    recursion_counterfactual = isTRUE(x$recursion_counterfactual %||% TRUE),
+    schema_version = as.character(x$schema_version %||%
+      "independent_qdesn_metric_interval_dispersion_v1")[1L]
+  )
+}
+
+.qdesn_validation_origin_horizon_cfg <- function(defaults = NULL) {
+  metrics <- (defaults %||% list())$metrics %||% list()
+  x <- (((metrics$posterior_metric_intervals %||% list())$
+    origin_horizon_attribution) %||% list())
+  enabled <- isTRUE(x$enabled)
+  list(
+    enabled = enabled,
+    required = isTRUE(x$required %||% enabled),
+    balanced_complete_origins = isTRUE(x$balanced_complete_origins %||% TRUE),
+    schema_version = as.character(x$schema_version %||%
+      "independent_qdesn_origin_horizon_attribution_v1")[[1L]]
+  )
+}
+
 .qdesn_validation_with_seed <- function(seed, code) {
   old <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
     get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
@@ -75,6 +103,7 @@
                                                          defaults = NULL) {
   cfg <- .qdesn_validation_metric_interval_cfg(defaults)
   coupling_cfg <- .qdesn_validation_metric_coupling_cfg(defaults)
+  dispersion_cfg <- .qdesn_validation_metric_dispersion_cfg(defaults)
   if (!isTRUE(cfg$enabled)) return(data.frame(stringsAsFactors = FALSE))
   fits_fc <- (summary_obj$forecast_objects %||% list())$fits_fc %||% list()
   if (!length(fits_fc)) stop("Metric intervals require forecast_objects$fits_fc.", call. = FALSE)
@@ -96,6 +125,12 @@
   mu_by_origin <- forecast_full$mu_by_origin %||% list()
   if (!length(origins_local) || length(mu_by_origin) != length(origins_local)) {
     stop("Q-DESN metric intervals require aligned origins and mu_by_origin.", call. = FALSE)
+  }
+  mu_by_origin_plugin <- forecast_full$mu_by_origin_conditional_mean_plugin %||% list()
+  if (isTRUE(dispersion_cfg$enabled) && isTRUE(dispersion_cfg$recursion_counterfactual) &&
+      length(mu_by_origin_plugin) != length(origins_local)) {
+    stop("Enabled dispersion diagnostics require conditional-mean plug-in paths.",
+         call. = FALSE)
   }
   n_available <- min(c(ncol(fit_draws), vapply(mu_by_origin, function(x) ncol(as.matrix(x)), integer(1L))))
   draw_idx <- .qdesn_validation_even_draw_indices(n_available, cfg$draws)
@@ -161,6 +196,13 @@
     })
   } else NULL
   tau <- as.numeric(root_spec$tau)[1L]
+  native_q <- if (isTRUE(dispersion_cfg$enabled)) {
+    matrix(NA_real_, nrow = nrow(grid), ncol = length(draw_idx))
+  } else NULL
+  plugin_q <- if (isTRUE(dispersion_cfg$enabled) &&
+                  isTRUE(dispersion_cfg$recursion_counterfactual)) {
+    matrix(NA_real_, nrow = nrow(grid), ncol = length(draw_idx))
+  } else NULL
   for (i in seq_len(nrow(grid))) {
     origin_pos <- match(local_origin[[i]], origins_local)
     if (is.na(origin_pos)) stop("A rolling origin is absent from mu_by_origin.", call. = FALSE)
@@ -172,6 +214,7 @@
     q <- as.numeric(.qdesn_validation_apply_lead_export_scale(
       matrix(mu[lead, draw_idx], nrow = 1L), scale_spec
     ))
+    if (isTRUE(dispersion_cfg$enabled)) native_q[i, ] <- q
     target <- local_target[[i]]
     abs_sum <- abs_sum + abs(q - q_true[[target]])
     check_sum <- check_sum + .qdesn_validation_metric_check_loss(y[[target]], q, tau)
@@ -183,6 +226,15 @@
       product_abs_sum <- product_abs_sum + abs(q_product - q_true[[target]])
       product_check_sum <- product_check_sum +
         .qdesn_validation_metric_check_loss(y[[target]], q_product, tau)
+    }
+    if (!is.null(plugin_q)) {
+      mu_plugin <- as.matrix(mu_by_origin_plugin[[origin_pos]])
+      if (nrow(mu_plugin) < lead || ncol(mu_plugin) < max(draw_idx)) {
+        stop("A conditional-mean plug-in path matrix is incomplete.", call. = FALSE)
+      }
+      plugin_q[i, ] <- as.numeric(.qdesn_validation_apply_lead_export_scale(
+        matrix(mu_plugin[lead, draw_idx], nrow = 1L), scale_spec
+      ))
     }
   }
   out <- data.frame(
@@ -217,6 +269,31 @@
         draw_source = "mu_by_origin_origin_independent_permutation",
         stringsAsFactors = FALSE
       )
+    )
+  }
+  if (isTRUE(dispersion_cfg$enabled)) {
+    posterior_source_draw_index <- as.integer(
+      forecast_full$source_draw_index %||% seq_len(n_available)
+    )
+    draw_parameters <- as.data.frame(
+      forecast_full$draw_parameters %||% data.frame(stringsAsFactors = FALSE),
+      stringsAsFactors = FALSE
+    )
+    attr(out, "metric_dispersion_context") <- list(
+      schema_version = dispersion_cfg$schema_version,
+      native_q = native_q,
+      plugin_q = plugin_q,
+      q_true = as.numeric(q_true[local_target]),
+      y = as.numeric(y[local_target]),
+      grid = grid,
+      origins_local = origins_local,
+      tau = tau,
+      draw_parameters = if (nrow(draw_parameters) >= max(draw_idx)) {
+        draw_parameters[draw_idx, , drop = FALSE]
+      } else data.frame(stringsAsFactors = FALSE),
+      posterior_source_draw_index = posterior_source_draw_index[draw_idx],
+      fit = fit_entry$fit_train$fit %||% NULL,
+      recursion_contract = forecast_full$dispersion_diagnostic_contract %||% list()
     )
   }
   out
@@ -333,6 +410,48 @@
       metric_coupling_summary_sha256 = sha(coupling_summary_path)
     )
   }
+  dispersion_cfg <- .qdesn_validation_metric_dispersion_cfg(defaults)
+  dispersion_manifest <- NULL
+  if (isTRUE(dispersion_cfg$enabled)) {
+    dispersion_manifest <- .qdesn_validation_write_metric_dispersion_artifacts(
+      draws = draws,
+      coupling_draws = coupling_draws,
+      summary_obj = summary_obj,
+      root_spec = root_spec,
+      method_dir = method_dir,
+      defaults = defaults
+    )
+    if (isTRUE(dispersion_cfg$required) &&
+        !identical(as.character(dispersion_manifest$status), "PASS")) {
+      stop("Required metric-dispersion diagnostics were not written.", call. = FALSE)
+    }
+  }
+  attribution_cfg <- .qdesn_validation_origin_horizon_cfg(defaults)
+  attribution_manifest <- NULL
+  if (isTRUE(attribution_cfg$enabled)) {
+    attribution_manifest <- .qdesn_validation_write_origin_horizon_attribution(
+      draws = draws,
+      method_dir = method_dir,
+      defaults = defaults
+    )
+    if (isTRUE(attribution_cfg$required) &&
+        !identical(as.character(attribution_manifest$status), "PASS")) {
+      stop("Required origin-horizon attribution artifacts were not written.",
+           call. = FALSE)
+    }
+  }
+  common_shift_cfg <- .qdesn_validation_common_shift_cfg(defaults)
+  common_shift_manifest <- NULL
+  if (isTRUE(common_shift_cfg$enabled)) {
+    common_shift_manifest <- .qdesn_validation_write_common_shift_intervention(
+      draws = draws, method_dir = method_dir, defaults = defaults
+    )
+    if (isTRUE(common_shift_cfg$required) &&
+        !identical(as.character(common_shift_manifest$status), "PASS")) {
+      stop("Required common-shift intervention artifacts were not written.",
+           call. = FALSE)
+    }
+  }
   manifest <- list(
     schema_version = "independent_metric_intervals_v1",
     generated_at = as.character(Sys.time()),
@@ -348,7 +467,10 @@
     metric_interval_summary_path = normalizePath(summary_path, winslash = "/", mustWork = TRUE),
     metric_interval_summary_sha256 = sha(summary_path),
     heavy_binary_retained = FALSE,
-    coupling_sensitivity = coupling_manifest
+    coupling_sensitivity = coupling_manifest,
+    dispersion_diagnostic = dispersion_manifest,
+    origin_horizon_attribution = attribution_manifest,
+    common_shift_intervention = common_shift_manifest
   )
   .qdesn_validation_write_json(manifest_path, manifest)
   list(
@@ -360,6 +482,8 @@
     coupling_draws = if (is.null(coupling_manifest)) NA_character_ else
       normalizePath(coupling_draws_path, winslash = "/", mustWork = TRUE),
     coupling_summary = if (is.null(coupling_manifest)) NA_character_ else
-      normalizePath(coupling_summary_path, winslash = "/", mustWork = TRUE)
+      normalizePath(coupling_summary_path, winslash = "/", mustWork = TRUE),
+    dispersion_manifest = if (is.null(dispersion_manifest)) NA_character_ else
+      as.character(dispersion_manifest$manifest_path)
   )
 }

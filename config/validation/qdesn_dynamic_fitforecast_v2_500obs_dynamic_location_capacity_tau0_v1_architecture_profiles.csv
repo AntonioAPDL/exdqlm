@@ -1,0 +1,13 @@
+target_cell_id,profile_role,D,n,m,alpha,rho,expected_degree,readout_y_lags,reservoir_lags,washout,layer_shape,alpha_pattern,rho_pattern,design_rationale
+al_normal_t0p05,P1_compact_persistent,1,70,30,0.25,0.65,12,2,0,300,constant,constant,constant,compact memory and moderate persistence
+al_normal_t0p05,P2_multiscale_moderate,2,55;65,60,0.45;0.58,0.82;0.90,12,2,1,300,expanding,weakly_increasing,weakly_increasing,two-scale dynamics with lagged reservoir readout
+al_normal_t0p05,P3_deep_selective,3,40;50;60,120,0.60;0.75;0.88,0.88;0.94;0.975,12,3,0,450,expanding,weakly_increasing,weakly_increasing,high-persistence boundary under controlled dimension
+exal_normal_t0p05,P1_compact_persistent,1,70,45,0.18,0.60,12,2,0,300,constant,constant,constant,compact exact-M0 memory extension
+exal_normal_t0p05,P2_multiscale_moderate,2,55;65,90,0.30;0.50,0.75;0.88,12,2,1,300,expanding,weakly_increasing,weakly_increasing,two-scale exact-M0 location recovery
+exal_normal_t0p05,P3_deep_selective,3,35;45;55,150,0.48;0.68;0.86,0.86;0.93;0.975,12,3,0,450,expanding,weakly_increasing,weakly_increasing,long-memory high-persistence exact-M0 boundary
+al_normal_t0p50,P1_compact_persistent,1,40,12,0.08,0.35,12,1,0,300,constant,constant,constant,proven compact architecture transferred as a matched control
+al_normal_t0p50,P2_multiscale_moderate,2,45;55,60,0.35;0.55,0.78;0.90,12,2,1,300,expanding,weakly_increasing,weakly_increasing,moderate multiscale median dynamics
+al_normal_t0p50,P3_deep_selective,3,35;45;55,120,0.55;0.72;0.88,0.86;0.94;0.98,12,3,0,450,expanding,weakly_increasing,weakly_increasing,selective high-persistence median boundary
+exal_normal_t0p50,P1_compact_persistent,1,60,30,0.18,0.60,12,2,0,300,constant,constant,constant,compact persistent exact-M0 alternative
+exal_normal_t0p50,P2_multiscale_moderate,2,50;60,75,0.40;0.60,0.82;0.92,12,2,1,300,expanding,weakly_increasing,weakly_increasing,moderate exact-M0 multiscale median dynamics
+exal_normal_t0p50,P3_deep_selective,3,35;45;55,120,0.58;0.75;0.90,0.88;0.95;0.98,12,3,0,450,expanding,weakly_increasing,weakly_increasing,selective exact-M0 high-persistence boundary

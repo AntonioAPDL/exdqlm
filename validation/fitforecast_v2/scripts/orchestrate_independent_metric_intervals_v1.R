@@ -25,6 +25,7 @@ plan_path <- file.path(state_root, "manifests", "job_plan.csv")
 materialization_path <- file.path(state_root, "manifests", "materialization_manifest.json")
 plan <- ffv2_read_csv(plan_path)
 materialization <- ffv2_read_json(materialization_path)
+campaign_schema <- as.character(materialization$schema_version %||% imi_v1_schema)[1L]
 if (!nrow(plan) || anyDuplicated(plan$job_id)) stop("Job plan is empty or duplicated.", call. = FALSE)
 observed_hashes <- vapply(plan$config_path, ffv2_file_sha256, character(1L))
 if (any(observed_hashes != plan$config_sha256)) {
@@ -144,6 +145,7 @@ results_path <- ffv2_write_csv(results,
                                file.path(state_root, "manifests", "orchestration_results.csv"))
 health_script <- file.path(harness_root, "scripts", "healthcheck_independent_metric_intervals_v1.R")
 health_log <- file.path(state_root, "health", "post_orchestration_health.log")
+ffv2_ensure_dir(dirname(health_log))
 health_status <- system2(Sys.which("Rscript"),
                          c(shQuote(health_script), "--state-root", shQuote(state_root)),
                          stdout = health_log, stderr = health_log)
@@ -152,7 +154,7 @@ if (health_status != 0L || !isTRUE(health$all_complete)) {
   stop("Orchestration ended without a complete 100% health state.", call. = FALSE)
 }
 ffv2_write_json(list(
-  schema_version = imi_v1_schema,
+  schema_version = campaign_schema,
   status = "SUCCESS", started_at = format(started, "%Y-%m-%d %H:%M:%S %Z"),
   ended_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), workers = workers,
   materialized_jobs = nrow(plan), executed_jobs = nrow(results),

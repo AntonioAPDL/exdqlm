@@ -1,0 +1,17 @@
+"check","pass"
+"expected_jobs_success",TRUE
+"three_chains_per_source",TRUE
+"config_hashes_match",TRUE
+"terminal_hashes_match",TRUE
+"reconstruction_within_1e6",TRUE
+"all1000_present",TRUE
+"balanced990_present",TRUE
+"thirty_leads_present",TRUE
+"origins34_present",TRUE
+"finite_covariance_decomposition",TRUE
+"covariance_lag_complete",TRUE
+"diagnosis_complete",TRUE
+"unique_active_cpu_assignment",TRUE
+"scientifically_informative_variation",TRUE
+"compact_job_under_100mib",TRUE
+"no_heavy_binaries",TRUE

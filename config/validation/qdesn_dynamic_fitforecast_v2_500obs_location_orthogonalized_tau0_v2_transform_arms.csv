@@ -1,0 +1,4 @@
+transform_arm,transform_mode,deterministic_prefix,projection_ridge,svd_energy_threshold,svd_min_rank,svd_max_rank,design_role
+C0_parent,none,period90_,1e-10,0.995,1,80,exact augmented-readout parent control
+O1_orthogonalized,orthogonalize_reservoir,period90_,1e-10,0.995,1,80,training-only residualization of reservoir columns against known location features
+O2_orthogonalized_svd,orthogonalize_reservoir_svd,period90_,1e-10,0.995,1,40,training-only residualization followed by rank-controlled reservoir compression

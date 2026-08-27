@@ -3385,7 +3385,8 @@ exal_mcmc_posterior_draws <- function(fit_exal, nd = NULL, seed = NULL) {
     beta = beta[idx, , drop = FALSE],
     sigma = sigma[idx],
     gamma = gamma[idx],
-    nd = length(idx)
+    nd = length(idx),
+    source_draw_index = as.integer(idx)
   )
 }
 

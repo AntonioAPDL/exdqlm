@@ -1,0 +1,16 @@
+target_cell_id,tau0,ladder_role,rationale
+al_normal_t0p05,1e-10,strongest_shrinkage,extends below the v1 boundary after the 1e-9 parent gain
+al_normal_t0p05,3e-10,strong_shrinkage,local log-scale bridge below the v1 boundary
+al_normal_t0p05,1e-9,v1_local_winner,reuses the discovery optimum only under a new readout transform
+al_normal_t0p05,3e-9,local_bridge,tests the neighborhood between the v1 winner and authority
+al_normal_t0p05,1e-8,authority_scale,anchors the current confirmed parent scale
+al_normal_t0p50,1e-7,strong_shrinkage,novel transformed-readout lower boundary
+al_normal_t0p50,1e-6,lower_bridge,retains a previously stable scale under the new transform
+al_normal_t0p50,1e-5,interior_novel,fills the largest unsampled log-scale gap
+al_normal_t0p50,1e-4,upper_bridge,tests moderate flexibility after orthogonalization
+al_normal_t0p50,3e-4,authority_scale,anchors the current confirmed parent scale
+exal_normal_t0p50,3e-8,strong_shrinkage,lower exact-M0 transformed-readout boundary
+exal_normal_t0p50,3e-7,interior_novel,fills an unsampled exact-M0 log-scale gap
+exal_normal_t0p50,3e-6,lower_bridge,retains a previously stable exact-M0 scale
+exal_normal_t0p50,3e-5,upper_bridge,retains a previously stable exact-M0 scale
+exal_normal_t0p50,3e-4,authority_scale,anchors the current confirmed exact-M0 parent scale

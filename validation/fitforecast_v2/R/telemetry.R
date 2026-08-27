@@ -446,6 +446,49 @@ ffv2_parse_iter_pair <- function(x) {
   c(current = ffv2_as_int1(x), total = NA_integer_)
 }
 
+ffv2_qdesn_mcmc_total_progress <- function(progress_path,
+                                           log_path,
+                                           n_burn,
+                                           n_mcmc) {
+  n_burn <- ffv2_as_int1(n_burn, 0L)
+  n_mcmc <- ffv2_as_int1(n_mcmc, 0L)
+  target <- n_burn + n_mcmc
+  candidates <- integer(0)
+  sources <- character(0)
+
+  if (nzchar(progress_path %||% "") && file.exists(progress_path)) {
+    progress <- tryCatch(ffv2_read_csv(progress_path), error = function(...) data.frame())
+    retained <- suppressWarnings(as.integer(
+      progress$mcmc_iter %||% progress$current_iter %||% progress$step %||% integer(0)
+    ))
+    retained <- retained[is.finite(retained)]
+    if (length(retained)) {
+      candidates <- c(candidates, n_burn + max(retained))
+      sources <- c(sources, "retained_trace")
+    }
+  }
+
+  if (nzchar(log_path %||% "") && file.exists(log_path)) {
+    lines <- tryCatch(readLines(log_path, warn = FALSE), error = function(...) character(0))
+    matches <- regexec("(?:burn-in|MCMC) iteration ([0-9]+)", lines, perl = TRUE)
+    values <- suppressWarnings(as.integer(vapply(regmatches(lines, matches), function(x) {
+      if (length(x) >= 2L) x[[2L]] else NA_character_
+    }, character(1L))))
+    values <- values[is.finite(values)]
+    if (length(values)) {
+      candidates <- c(candidates, max(values))
+      sources <- c(sources, "live_log")
+    }
+  }
+
+  current <- if (length(candidates)) min(target, max(candidates)) else NA_integer_
+  list(
+    current = as.integer(current),
+    target = as.integer(target),
+    source = paste(unique(sources), collapse = "+")
+  )
+}
+
 ffv2_progress_row_from_log_line <- function(config,
                                             line,
                                             started_at = Sys.time(),

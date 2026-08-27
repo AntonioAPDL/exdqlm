@@ -240,6 +240,7 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
   readout_include_input <- isTRUE(cfg$readout$include_input %||% FALSE)
   readout_reservoir_lags <- as.integer(cfg$readout$reservoir_lags %||% 0L)
   readout_scale <- isTRUE(cfg$vb$readout_scale %||% FALSE)
+  readout_linear_transform_cfg <- cfg$readout$linear_transform %||% list(mode = "none")
   readout_input_mode <- tolower(as.character(cfg$readout$input_mode %||% "raw_y_lags")[1L])
   readout_decomposition <- cfg$decomposition %||% cfg$readout$decomposition %||% list()
   readout_mode_info <- .qdesn_resolve_input_mode_scaffold(
@@ -280,6 +281,16 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     X_fc1 <- X_aug_all[row_sel_fc, , drop = FALSE]
     y_forecast <- y_full[idx_fc_abs]
 
+    transform_fit <- readout_linear_transform_fit(
+      X_train,
+      transform_spec = readout_linear_transform_cfg,
+      p_res = ncol(readout_design$X_res_all),
+      has_intercept = isTRUE(cfg$desn$add_bias)
+    )
+    X_train <- transform_fit$X
+    X_fc1 <- readout_linear_transform_apply(X_fc1, transform_fit$transform)
+    readout_linear_transform_info <- transform_fit$transform
+
     if (isTRUE(readout_scale)) {
       scale_fit <- readout_scale_fit(X_train, has_intercept = isTRUE(cfg$desn$add_bias))
       X_train <- scale_fit$X
@@ -303,6 +314,7 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
       x_names         = character(0),
       x_lags          = list(),
       p_res           = ncol(readout_design$X_res_all),
+      linear_transform = readout_linear_transform_info,
       scale_info      = readout_scale_info
     )
 
@@ -344,6 +356,16 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
     y_tr_keep <- y_full[keep_aug_abs[row_tr]]
     y_fc <- y_full[idx_fc_abs]
 
+    transform_fit <- readout_linear_transform_fit(
+      X_train,
+      transform_spec = readout_linear_transform_cfg,
+      p_res = ncol(readout_design$X_res_all),
+      has_intercept = isTRUE(cfg$desn$add_bias)
+    )
+    X_train <- transform_fit$X
+    X_fc1 <- readout_linear_transform_apply(X_fc1, transform_fit$transform)
+    readout_linear_transform_info <- transform_fit$transform
+
     if (isTRUE(readout_scale)) {
       scale_fit <- readout_scale_fit(X_train, has_intercept = isTRUE(cfg$desn$add_bias))
       X_train <- scale_fit$X
@@ -374,6 +396,7 @@ ms_evaluate_candidate_v2 <- function(cfg, data_bundle, stage_spec, candidate, ca
       x_names        = x_names,
       x_lags         = if (isTRUE(readout_include_input)) list() else x_lags_list,
       p_res          = ncol(readout_design$X_res_all),
+      linear_transform = readout_linear_transform_info,
       scale_info     = readout_scale_info
     )
 

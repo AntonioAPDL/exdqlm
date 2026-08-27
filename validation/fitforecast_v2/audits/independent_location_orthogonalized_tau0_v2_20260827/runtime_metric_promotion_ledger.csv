@@ -1,0 +1,3 @@
+"target_cell_id","metric","candidate_id","three_chain_mean","matched_control_mean","authority_value","delta","strict_improvement","promotion_eligible"
+"al_normal_t0p05","forecast_qtrue_mae_H1000","idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",6.73382698952425,6.92637403943713,6.91659375204356,-0.182766762519311,TRUE,TRUE
+"al_normal_t0p05","forecast_check_loss_H1000","idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",1.19120186398605,1.20062978221572,1.20016955658293,-0.00896769259688224,TRUE,TRUE

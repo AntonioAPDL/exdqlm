@@ -1,0 +1,19 @@
+{
+  "schema_version": "independent_location_orthogonalized_tau0_v2_promotion_v1",
+  "audit_id": "independent_location_orthogonalized_tau0_v2_20260827",
+  "status": "PORTABLE_EVIDENCE_PASS",
+  "generated_at": "2026-08-27 16:59:37 EDT",
+  "run_id": "independent_location_orthogonalized_tau0_v2_20260827_005026",
+  "run_tag": "independent-location-orthogonalized-tau0-v2-20260827_005026__git-985bb3e",
+  "scientific_commit": "985bb3e1ba9a9f96472964929738e9e39ee75951",
+  "winner_candidate_id": "idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",
+  "confirmation_chains": 3,
+  "metric_draws": 3000,
+  "interval_replay_run_tag": "independent-location-orthogonalized-tau0-v2-interval-replay-20260827_162303__git-d6bc4c5",
+  "interval_decision": "PASS_USE_RETAINED_3000_DRAWS",
+  "evidence_files": 32,
+  "evidence_bytes": 266256,
+  "artifact_manifest": "artifact_manifest.csv",
+  "artifact_manifest_sha256": "96ef4185f314059c354524bc1901067457a4792fc89a3fdd24285ef888c661af",
+  "binary_payload_count": 0
+}

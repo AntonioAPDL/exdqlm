@@ -2725,8 +2725,12 @@ fit_and_forecast_p <- function(p0) {
   )
   class(fit_q) <- "qdesn_fit"
 
+  interval_cfg_runtime <- ((cfg$metrics %||% list())$posterior_metric_intervals %||% list())
+  metric_intervals_enabled <- isTRUE(interval_cfg_runtime$enabled)
+  dispersion_cfg_runtime <- interval_cfg_runtime$dispersion_diagnostic %||% list()
+  dispersion_enabled <- isTRUE(dispersion_cfg_runtime$enabled)
   need_origin_draws <- isTRUE(keep_draws) || isTRUE(lead_eval_enabled) ||
-    isTRUE(do_fan_charts) || isTRUE(use_lead1)
+    isTRUE(do_fan_charts) || isTRUE(use_lead1) || isTRUE(metric_intervals_enabled)
   fore <- timed(
     sprintf("forecast_lattice(p=%s, H=%d, nd=%d, mix=%d)", fmt_p(p0), forecast_horizon, nrow(pred_draws$beta), mix_nd),
     forecast_lattice.qdesn_fit(
@@ -2745,6 +2749,41 @@ fit_and_forecast_p <- function(p0) {
       draws       = pred_draws
     )
   )
+
+  fore_plugin <- NULL
+  if (isTRUE(dispersion_enabled) &&
+      isTRUE(dispersion_cfg_runtime$recursion_counterfactual %||% TRUE)) {
+    rng_state_before_plugin <- if (exists(".Random.seed", envir = .GlobalEnv,
+                                          inherits = FALSE)) {
+      get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    } else NULL
+    fore_plugin <- timed(
+      sprintf("forecast_lattice conditional-mean plug-in (p=%s)", fmt_p(p0)),
+      forecast_lattice.qdesn_fit(
+        fit_q,
+        y_all = y_full$y,
+        origins = origins,
+        H = forecast_horizon,
+        nd = nrow(pred_draws$beta),
+        xreg_all = NULL,
+        y_obs_last = T_use,
+        lead_weights = lead_weights,
+        mix_nd = mix_nd,
+        chunk = chunk_sz,
+        seed = synth_seed + round(1000 * p0),
+        keep_origin_draws = TRUE,
+        draws = pred_draws,
+        recursion_mode = "conditional_mean_plugin"
+      )
+    )
+    if (is.null(rng_state_before_plugin)) {
+      if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    } else {
+      assign(".Random.seed", rng_state_before_plugin, envir = .GlobalEnv)
+    }
+  }
 
   if (isTRUE(lead_eval_enabled)) {
     if (is.null(fore$yrep_by_origin)) {
@@ -2837,11 +2876,25 @@ fit_and_forecast_p <- function(p0) {
     mix_source   = if (forecast_mode == "mixture") "mixture" else "lead1"
   )
   forecast_full$origins <- fore$origins
-  if (isTRUE(keep_draws)) {
+  forecast_full$source_draw_index <- fore$source_draw_index
+  forecast_full$draw_parameters <- fore$draw_parameters
+  forecast_full$recursion_mode <- fore$recursion_mode
+  if (isTRUE(keep_draws) || isTRUE(metric_intervals_enabled)) {
     forecast_full$yrep_by_origin <- fore$yrep_by_origin
     forecast_full$mu_by_origin   <- fore$mu_by_origin
   } else if (isTRUE(do_fan_charts)) {
     forecast_full$yrep_by_origin <- fore$yrep_by_origin
+  }
+  if (!is.null(fore_plugin)) {
+    forecast_full$mu_by_origin_conditional_mean_plugin <- fore_plugin$mu_by_origin
+    forecast_full$dispersion_diagnostic_contract <- list(
+      primary_recursion = "posterior_predictive",
+      counterfactual_recursion = "conditional_mean_plugin",
+      same_posterior_draws = identical(
+        as.integer(fore$source_draw_index),
+        as.integer(fore_plugin$source_draw_index)
+      )
+    )
   }
 
   # ---- Return in the same structure your downstream code expects ---------

@@ -1,0 +1,12 @@
+{
+  "schema_version": "independent_location_orthogonalized_tau0_v2_interval_replay_v1",
+  "status": "PASS",
+  "run_tag": "independent-location-orthogonalized-tau0-v2-interval-replay-20260827_162303__git-d6bc4c5",
+  "candidate_id": "idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",
+  "chains": 3,
+  "draws_per_chain": 1000,
+  "total_metric_draws": 3000,
+  "interval_precision_decision": "PASS_USE_RETAINED_3000_DRAWS",
+  "point_authority_policy": "retain_original_three_chain_point_confirmation",
+  "article_update_automatic": false
+}

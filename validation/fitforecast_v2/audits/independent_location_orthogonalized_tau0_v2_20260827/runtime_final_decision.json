@@ -1,0 +1,10 @@
+{
+  "schema_version": "independent_location_orthogonalized_tau0_v2_final_decision_v1",
+  "phase": "final",
+  "generated_at": "2026-08-27 01:35:31.351144",
+  "confirmation_jobs": 9,
+  "promotion_eligible_metrics": 2,
+  "retained_binary_payloads": 0,
+  "article_update_automatic": false,
+  "decision": "PROMOTION_CANDIDATES_READY_FOR_INTEGRATION"
+}
