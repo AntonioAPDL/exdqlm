@@ -1327,6 +1327,7 @@ forecast_paths.qdesn_fit <- function(
   x_names <- as.character(spec$x_names %||% character(0))
   x_lags  <- spec$x_lags %||% list()
   p_res <- as.integer(spec$p_res %||% meta$p_res %||% ncol(object$X))
+  linear_transform <- spec$linear_transform %||% list(mode = "none", active = FALSE)
   scale_info <- spec$scale_info %||% meta$readout_scale %||% object$fit$misc$readout_scale
 
   decomp_mode <- identical(input_mode_effective, "dlm_decomp_lags")
@@ -1686,6 +1687,10 @@ forecast_paths.qdesn_fit <- function(
       cpp_note("[forecast_paths] C++ disabled: decomposition input_builder != 'component_lags' currently uses R recursion.")
       use_cpp <- FALSE
     }
+    if (isTRUE(linear_transform$active)) {
+      cpp_note("[forecast_paths] C++ disabled: fitted readout linear transforms use R recursion.")
+      use_cpp <- FALSE
+    }
 
     if (isTRUE(use_cpp)) {
       lag_center_cpp <- as.numeric(lag_center)
@@ -1849,6 +1854,12 @@ forecast_paths.qdesn_fit <- function(
         readout_block <- c(if (isTRUE(include_input)) input_y_vec else y_lag_vec, x_blocks[[h]])
         res_lag_block <- if (reservoir_lags > 0L) as.numeric(t(res_lag_buf)) else numeric(0)
         x_row <- c(x_res, readout_block, res_lag_block)
+        if (isTRUE(linear_transform$active)) {
+          raw_names <- as.character(unlist(linear_transform$input_colnames, use.names = FALSE))
+          x_row_matrix <- matrix(x_row, nrow = 1L)
+          if (length(raw_names) == ncol(x_row_matrix)) colnames(x_row_matrix) <- raw_names
+          x_row <- readout_linear_transform_apply(x_row_matrix, linear_transform)[1L, ]
+        }
         if (isTRUE(apply_scale)) {
           x_row <- readout_scale_apply(matrix(x_row, nrow = 1), scale_info_use)[1, ]
         }
