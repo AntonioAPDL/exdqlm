@@ -1221,14 +1221,14 @@ idolp_v2_write_interval_authority <- function(evidence, sensitivity, point) {
     point_values[roles$metric_role[target]]
   )
   roles[target, "source_candidate_id"] <- idolp_v2_candidate_id
-  roles[target, "source_run_tag"] <- idolp_v2_run_tag
+  roles[target, "source_run_tag"] <- idolp_v2_replay_run_tag
   roles[target, "source_status"] <- "SUCCESS"
   roles[target, "source_signoff_grade"] <- "WARN"
   roles[target, "source_path"] <- source_relative
   roles[target, "source_sha256"] <- source_hash
   roles[target, "source_identity"] <- paste(
     "mcmc", "qdesn_al_rhs_ns", "normal", "0.05", idolp_v2_candidate_id,
-    idolp_v2_run_tag, sep = "|"
+    idolp_v2_replay_run_tag, sep = "|"
   )
   roles[target, "replay_id"] <- "idolp_v2_winner_three_chain_pool"
   fields <- c(
@@ -1327,6 +1327,21 @@ idolp_v2_write_interval_authority <- function(evidence, sensitivity, point) {
     "^article_assets/", "", article_manifest$relative_path
   )
   ffv2_write_csv(article_manifest, file.path(root, "article_asset_manifest.csv"))
+  readme <- c(
+    "# Independent Q-DESN posterior-metric interval authority v11.1",
+    "",
+    sprintf("Parent: `%s`.", idolp_v2_interval_parent_id),
+    sprintf("Point authority: `%s`.", idolp_v2_point_id),
+    sprintf("Interval replay: `%s`.", idolp_v2_replay_run_tag),
+    "",
+    "Exactly two MCMC Q-DESN AL-RHS forecast roles for Gaussian p=0.05",
+    "use 3,000 chain-balanced draw-wise metric values (1,000 per chain).",
+    "The remaining 214 roles are inherited exactly from v10.1. Fit RMSE",
+    "retains its v10.1 interval source. These are equal-tailed posterior",
+    "intervals for aggregate metrics, not repeated-simulation confidence",
+    "intervals. Article publication remains coordinator-owned."
+  )
+  writeLines(readme, file.path(root, "README.md"), useBytes = TRUE)
   decision <- list(
     schema_version = idolp_v2_schema,
     reporting_id = idolp_v2_interval_id,
@@ -1340,6 +1355,8 @@ idolp_v2_write_interval_authority <- function(evidence, sensitivity, point) {
     estimator_id = idolp_v2_estimator_id,
     quantile_type = idolp_v2_quantile_type,
     n_draws = idolp_v2_replay_total_draws, n_chains = 3L,
+    interval_replay_run_id = idolp_v2_replay_run_id,
+    interval_replay_run_tag = idolp_v2_replay_run_tag,
     updated_roles = 2L, inherited_roles = 214L,
     fit_interval_policy = "retain_v10_1_fit_role",
     refit_required = FALSE,
