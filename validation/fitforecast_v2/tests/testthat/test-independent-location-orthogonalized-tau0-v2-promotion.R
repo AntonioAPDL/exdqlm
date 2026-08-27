@@ -33,6 +33,15 @@ testthat::test_that("V2 promotion evidence selects exactly two forecast gains", 
     evidence$replay_decision$interval_precision_decision,
     "PASS_USE_RETAINED_3000_DRAWS"
   )
+  attribution <- idolp_v2_origin_lead_comparison(evidence)
+  testthat::expect_equal(nrow(attribution), 192L)
+  testthat::expect_setequal(attribution$dimension, c("lead", "origin"))
+  testthat::expect_equal(sort(unique(attribution$chain_id)), 1:3)
+  testthat::expect_true(all(vapply(
+    attribution[c("candidate_mae", "control_mae", "candidate_check",
+                  "control_check")],
+    function(x) all(is.finite(x)), logical(1L)
+  )))
 })
 
 testthat::test_that("retained V2 draws trigger only the declared precision replay", {

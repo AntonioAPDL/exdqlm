@@ -721,7 +721,13 @@ idolp_v2_origin_lead_comparison <- function(evidence) {
   }
   summarize <- function(path, group) {
     x <- ffv2_read_csv(path)
-    if ("split_role" %in% names(x)) x <- x[x$split_role == "forecast", ]
+    if ("split_role" %in% names(x)) {
+      keep <- x$split_role %in% c("forecast", "rolling_forecast")
+      if (!any(keep)) {
+        stop("Rolling-path evidence has no forecast rows.", call. = FALSE)
+      }
+      x <- x[keep, , drop = FALSE]
+    }
     stats::aggregate(
       x[c("abs_q_error", "pinball_tau")],
       list(index = x[[group]]), mean
