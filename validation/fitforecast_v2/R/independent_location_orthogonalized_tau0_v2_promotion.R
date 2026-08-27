@@ -50,6 +50,26 @@ idolp_v2_runtime_hashes <- c(
   final_metric_ledger =
     "376f5741591b44a7833b2fbe29dc48218e520a6f7a7ad9d3292954998072517c"
 )
+idolp_v2_replay_run_id <-
+  "independent_location_orthogonalized_tau0_v2_interval_replay_20260827_162303"
+idolp_v2_replay_run_tag <- paste0(
+  "independent-location-orthogonalized-tau0-v2-interval-replay-",
+  "20260827_162303__git-d6bc4c5"
+)
+idolp_v2_replay_draws_per_chain <- 1000L
+idolp_v2_replay_total_draws <- 3000L
+idolp_v2_replay_hashes <- c(
+  materialization_manifest =
+    "42cdb9954e1724d6e72bb7dd5ae5d2b3f88c346206993abc1bebb0f0488ce3dd",
+  replay_plan =
+    "1972d16ca3aef68216c0ecc96045e0b78751da9b982836feb3f5f748517047a5",
+  source_provenance =
+    "5400b52cbaafc1f4828f7cfb350c8667fe49ec83d1f8cb6c7127f39b1945bb15",
+  replay_decision =
+    "e8e5a25290234668393b1e54b7dcfefd2cdbda06aec5291325ab866d39030da9",
+  closeout_manifest =
+    "5ac0785ffec49d9c37ceb237df3a712317be4faf2f3d12fadf7f6701f20317b5"
+)
 
 idolp_v2_paths <- function(repo_root = ffv2_repo_root()) {
   point_parent <- file.path(
@@ -68,6 +88,15 @@ idolp_v2_paths <- function(repo_root = ffv2_repo_root()) {
     repo_root, "results", "qdesn_mcmc_validation",
     "qdesn_dynamic_fitforecast_v2_500obs_location_orthogonalized_tau0_v2",
     idolp_v2_run_tag
+  )
+  replay_state <- file.path(
+    repo_root, "reports", "shared_fitforecast_v2_orchestration",
+    idolp_v2_replay_run_id
+  )
+  replay_result <- file.path(
+    repo_root, "results", "qdesn_mcmc_validation",
+    "qdesn_dynamic_fitforecast_v2_500obs_location_orthogonalized_tau0_v2",
+    idolp_v2_replay_run_tag
   )
   list(
     point_parent = point_parent,
@@ -118,6 +147,28 @@ idolp_v2_paths <- function(repo_root = ffv2_repo_root()) {
       state, "materialization", "source_window_registry.csv"
     ),
     result = result,
+    replay_state = replay_state,
+    replay_materialization = file.path(replay_state, "materialization"),
+    replay_closeout = file.path(replay_state, "closeout"),
+    replay_materialization_manifest = file.path(
+      replay_state, "materialization", "materialization_manifest.json"
+    ),
+    replay_plan = file.path(
+      replay_state, "materialization", "replay_plan.csv"
+    ),
+    replay_source_provenance = file.path(
+      replay_state, "materialization", "source_provenance.csv"
+    ),
+    replay_decision = file.path(
+      replay_state, "closeout", "replay_decision.json"
+    ),
+    replay_closeout_manifest = file.path(
+      replay_state, "closeout", "closeout_file_manifest.csv"
+    ),
+    replay_runtime = file.path(
+      replay_state, "closeout", "runtime_verification.csv"
+    ),
+    replay_result = replay_result,
     audit = file.path(
       repo_root, "validation", "fitforecast_v2", "audits", idolp_v2_audit_id
     ),
@@ -203,7 +254,20 @@ idolp_v2_portabilize <- function(x, repo_root) {
   if (is.character(x)) {
     return(vapply(x, function(one) {
       if (is.na(one)) return(NA_character_)
-      if (startsWith(one, prefix)) substring(one, nchar(prefix) + 1L) else one
+      if (startsWith(one, prefix)) {
+        return(substring(one, nchar(prefix) + 1L))
+      }
+      workspace_prefix <- "/data/jaguir26/local/src/"
+      if (startsWith(one, workspace_prefix)) {
+        return(paste0(
+          "external-workspace://",
+          substring(one, nchar(workspace_prefix) + 1L)
+        ))
+      }
+      if (startsWith(one, "/")) {
+        return(paste0("external-location://", basename(one)))
+      }
+      one
     }, character(1L), USE.NAMES = FALSE))
   }
   if (is.list(x)) {
@@ -360,8 +424,94 @@ idolp_v2_assert_evidence <- function(repo_root = ffv2_repo_root(),
       nrow(signoffs) != 3L || !all(signoffs$comparison_eligible)) {
     stop("Winner chain pooling or signoff identity is invalid.", call. = FALSE)
   }
+  for (name in names(idolp_v2_replay_hashes)) {
+    path <- switch(
+      name,
+      materialization_manifest = p$replay_materialization_manifest,
+      replay_plan = p$replay_plan,
+      source_provenance = p$replay_source_provenance,
+      replay_decision = p$replay_decision,
+      closeout_manifest = p$replay_closeout_manifest
+    )
+    idolp_v2_assert_hash(
+      path, idolp_v2_replay_hashes[[name]], paste("interval replay", name)
+    )
+  }
+  idolp_v2_verify_ledger(p$replay_closeout, p$replay_closeout_manifest)
+  replay_decision <- idolp_v2_read_json(p$replay_decision)
+  replay_runtime <- ffv2_read_csv(p$replay_runtime)
+  replay_plan <- ffv2_read_csv(p$replay_plan)
+  replay_plan <- replay_plan[order(replay_plan$chain_id), , drop = FALSE]
+  if (!identical(replay_decision$status, "PASS") ||
+      !identical(
+        replay_decision$interval_precision_decision,
+        "PASS_USE_RETAINED_3000_DRAWS"
+      ) || as.integer(replay_decision$total_metric_draws) !=
+        idolp_v2_replay_total_draws || nrow(replay_runtime) != 3L ||
+      any(replay_runtime$status != "SUCCESS") ||
+      any(!replay_runtime$all_checks_pass) || nrow(replay_plan) != 3L ||
+      !identical(as.integer(replay_plan$chain_id), 1:3) ||
+      any(replay_plan$expected_metric_draws !=
+            idolp_v2_replay_draws_per_chain)) {
+    stop("The targeted interval replay did not pass its frozen contract.",
+         call. = FALSE)
+  }
+  replay_job_roots <- file.path(
+    p$replay_result, "jobs", replay_plan$job_id
+  )
+  replay_config_paths <- replay_plan$config_path
+  replay_draw_paths <- file.path(
+    replay_job_roots, "tables", "metric_draws.csv.gz"
+  )
+  replay_status_paths <- file.path(replay_job_roots, "job_status.json")
+  replay_signoff_paths <- file.path(replay_job_roots, "signoff_summary.csv")
+  replay_required <- c(
+    replay_config_paths, replay_draw_paths, replay_status_paths,
+    replay_signoff_paths
+  )
+  if (!all(file.exists(replay_required))) {
+    stop("The interval replay source evidence is incomplete.", call. = FALSE)
+  }
+  replay_statuses <- lapply(replay_status_paths, idolp_v2_read_json)
+  replay_signoffs <- do.call(rbind, lapply(replay_signoff_paths, ffv2_read_csv))
+  replay_draws_by_chain <- lapply(replay_draw_paths, function(path) {
+    ffv2_read_csv(gzfile(path))
+  })
+  for (i in seq_along(replay_draws_by_chain)) {
+    replay_draws <- replay_draws_by_chain[[i]]
+    replay_status <- replay_statuses[[i]]
+    expected_draw_hash <- unname(
+      replay_status$diagnostic_artifact_hashes[["metric_draws.csv.gz"]]
+    )
+    if (nrow(replay_draws) != idolp_v2_replay_draws_per_chain ||
+        any(replay_draws$chain_id != i) ||
+        anyDuplicated(replay_draws[c("chain_id", "draw_id")]) ||
+        !all(vapply(
+          replay_draws[c("fit_rmse", "forecast_mae", "forecast_check_loss")],
+          function(x) all(is.finite(x)), logical(1L)
+        )) ||
+        !identical(
+          ffv2_file_sha256(replay_config_paths[[i]]),
+          replay_status$config_sha256
+        ) ||
+        !identical(
+          ffv2_file_sha256(replay_draw_paths[[i]]), expected_draw_hash
+        ) || !identical(replay_status$status, "SUCCESS") ||
+        as.integer(replay_status$binary_payloads_remaining) != 0L) {
+      stop(sprintf("Interval replay chain %d violates its contract.", i),
+           call. = FALSE)
+    }
+  }
+  replay_draws <- do.call(rbind, replay_draws_by_chain)
+  if (nrow(replay_draws) != idolp_v2_replay_total_draws ||
+      anyDuplicated(replay_draws[c("chain_id", "draw_id")]) ||
+      !identical(sort(unique(replay_draws$chain_id)), 1:3) ||
+      nrow(replay_signoffs) != 3L) {
+    stop("The interval replay pooling identity is invalid.", call. = FALSE)
+  }
   binary <- list.files(
-    p$result, pattern = "[.](rds|rda|RData)$", recursive = TRUE,
+    c(p$result, p$replay_result), pattern = "[.](rds|rda|RData)$",
+    recursive = TRUE,
     full.names = TRUE, ignore.case = TRUE
   )
   if (length(binary)) stop("Unexpected retained fitted-model payloads found.", call. = FALSE)
@@ -375,7 +525,16 @@ idolp_v2_assert_evidence <- function(repo_root = ffv2_repo_root(),
     config_paths = config_paths, draw_paths = draw_paths,
     status_paths = status_paths, signoff_paths = signoff_paths,
     statuses = statuses, signoffs = signoffs,
-    draws_by_chain = draws_by_chain, draws = all_draws
+    draws_by_chain = draws_by_chain, draws = all_draws,
+    replay_decision = replay_decision, replay_runtime = replay_runtime,
+    replay_plan = replay_plan, replay_job_roots = replay_job_roots,
+    replay_config_paths = replay_config_paths,
+    replay_draw_paths = replay_draw_paths,
+    replay_status_paths = replay_status_paths,
+    replay_signoff_paths = replay_signoff_paths,
+    replay_statuses = replay_statuses, replay_signoffs = replay_signoffs,
+    interval_draws_by_chain = replay_draws_by_chain,
+    interval_draws = replay_draws
   )
 }
 
@@ -544,8 +703,9 @@ idolp_v2_interval_sensitivity <- function(draws_by_chain, old_roles) {
     pooled = pooled, leave_one_chain_out = loo,
     bootstrap_draws = bootstrap, bootstrap_summary = bootstrap_summary,
     direction = old_direction, checks = checks,
-    decision = if (all(checks$pass)) "PASS_USE_RETAINED_600_DRAWS" else
-      "STOP_INTERVAL_REPLAY_REQUIRED"
+    decision = if (all(checks$pass)) {
+      sprintf("PASS_USE_RETAINED_%d_DRAWS", nrow(draws))
+    } else "STOP_INTERVAL_REPLAY_REQUIRED"
   )
 }
 
@@ -634,32 +794,50 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
   ffv2_ensure_dir(file.path(root, "metric_draws"))
   source_rows <- list()
   for (i in 1:3) {
-    request <- idolp_v2_portabilize(
+    point_request <- idolp_v2_portabilize(
       idolp_v2_read_json(evidence$config_paths[[i]]), repo
     )
-    request_path <- file.path(root, "requests", sprintf("chain_%02d.json", i))
-    ffv2_write_json(request, request_path)
-    draw_path <- file.path(
-      root, "metric_draws", sprintf("chain_%02d_metric_draws.csv.gz", i)
+    point_request_path <- file.path(
+      root, "requests", sprintf("point_confirmation_chain_%02d.json", i)
     )
-    idolp_v2_copy_verified(evidence$draw_paths[[i]], draw_path)
+    ffv2_write_json(point_request, point_request_path)
+    interval_request <- idolp_v2_portabilize(
+      idolp_v2_read_json(evidence$replay_config_paths[[i]]), repo
+    )
+    interval_request_path <- file.path(
+      root, "requests", sprintf("interval_replay_chain_%02d.json", i)
+    )
+    ffv2_write_json(interval_request, interval_request_path)
+    draw_path <- file.path(
+      root, "metric_draws",
+      sprintf("interval_replay_chain_%02d_metric_draws.csv.gz", i)
+    )
+    idolp_v2_copy_verified(evidence$replay_draw_paths[[i]], draw_path)
     source_rows[[length(source_rows) + 1L]] <- data.frame(
-      source_role = c("confirmation_request", "metric_draws"),
+      source_role = c(
+        "point_confirmation_request", "interval_replay_request",
+        "interval_metric_draws"
+      ),
       chain_id = i,
       source_path = c(
         idolp_v2_repo_relative(evidence$config_paths[[i]], repo),
-        idolp_v2_repo_relative(evidence$draw_paths[[i]], repo)
+        idolp_v2_repo_relative(evidence$replay_config_paths[[i]], repo),
+        idolp_v2_repo_relative(evidence$replay_draw_paths[[i]], repo)
       ),
       source_sha256 = c(
         ffv2_file_sha256(evidence$config_paths[[i]]),
-        ffv2_file_sha256(evidence$draw_paths[[i]])
+        ffv2_file_sha256(evidence$replay_config_paths[[i]]),
+        ffv2_file_sha256(evidence$replay_draw_paths[[i]])
       ),
       frozen_path = c(
-        idolp_v2_repo_relative(request_path, repo),
+        idolp_v2_repo_relative(point_request_path, repo),
+        idolp_v2_repo_relative(interval_request_path, repo),
         idolp_v2_repo_relative(draw_path, repo)
       ),
       frozen_sha256 = c(
-        ffv2_file_sha256(request_path), ffv2_file_sha256(draw_path)
+        ffv2_file_sha256(point_request_path),
+        ffv2_file_sha256(interval_request_path),
+        ffv2_file_sha256(draw_path)
       ),
       stringsAsFactors = FALSE
     )
@@ -676,6 +854,13 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
     file.path(root, "confirmation_chain_metric_intervals.csv")
   )
   ffv2_write_csv(evidence$signoffs, file.path(root, "confirmation_signoffs.csv"))
+  ffv2_write_csv(
+    evidence$replay_signoffs, file.path(root, "interval_replay_signoffs.csv")
+  )
+  ffv2_write_csv(
+    evidence$replay_runtime,
+    file.path(root, "interval_replay_runtime_verification.csv")
+  )
   ffv2_write_csv(evidence$profile, file.path(root, "winner_specification.csv"))
   ffv2_write_csv(sensitivity$pooled, file.path(root, "pooled_metric_intervals.csv"))
   ffv2_write_csv(
@@ -707,7 +892,8 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
   }
   common_shift <- do.call(rbind, lapply(seq_len(3L), function(i) {
     path <- file.path(
-      evidence$job_roots[[i]], "tables", "common_shift_intervention_effects.csv"
+      evidence$replay_job_roots[[i]], "tables",
+      "common_shift_intervention_effects.csv"
     )
     x <- ffv2_read_csv(path)
     x$chain_id <- i
@@ -718,7 +904,8 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
   )
   reconstruction <- do.call(rbind, lapply(seq_len(3L), function(i) {
     path <- file.path(
-      evidence$job_roots[[i]], "tables", "origin_horizon_reconstruction_audit.csv"
+      evidence$replay_job_roots[[i]], "tables",
+      "origin_horizon_reconstruction_audit.csv"
     )
     x <- ffv2_read_csv(path)
     x$chain_id <- i
@@ -731,6 +918,12 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
   window_registry <- ffv2_read_csv(evidence$paths$window_registry)
   ffv2_stop_stale_paths(source_registry)
   ffv2_stop_stale_paths(window_registry)
+  source_registry[] <- lapply(source_registry, function(column) {
+    if (is.character(column)) idolp_v2_portabilize(column, repo) else column
+  })
+  window_registry[] <- lapply(window_registry, function(column) {
+    if (is.character(column)) idolp_v2_portabilize(column, repo) else column
+  })
   ffv2_write_csv(source_registry, file.path(root, "canonical_source_registry.csv"))
   ffv2_write_csv(window_registry, file.path(root, "source_window_registry.csv"))
   ffv2_write_csv(
@@ -739,6 +932,10 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
   ffv2_write_json(
     idolp_v2_portabilize(idolp_v2_read_json(evidence$paths$final_decision), repo),
     file.path(root, "runtime_final_decision.json")
+  )
+  ffv2_write_json(
+    idolp_v2_portabilize(evidence$replay_decision, repo),
+    file.path(root, "interval_replay_decision.json")
   )
   ffv2_write_csv(
     evidence$promoted, file.path(root, "runtime_metric_promotion_ledger.csv")
@@ -754,7 +951,8 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
     "- Promotion: forecast MAE and forecast check loss only",
     "- Fit RMSE: retained from v9",
     sprintf("- Interval decision: `%s`", sensitivity$decision),
-    "- Retained interval draws: 600, balanced as 200 per chain",
+    "- Retained interval draws: 3,000, balanced as 1,000 per chain",
+    sprintf("- Interval replay: `%s`", idolp_v2_replay_run_tag),
     "- Fitted-model binary payloads: 0",
     "- Article publication owner: ARTICLE QDESN INTEGRATION",
     "",
@@ -781,7 +979,8 @@ idolp_v2_write_audit <- function(evidence, sensitivity) {
     run_id = idolp_v2_run_id, run_tag = idolp_v2_run_tag,
     scientific_commit = idolp_v2_scientific_commit,
     winner_candidate_id = idolp_v2_candidate_id,
-    confirmation_chains = 3L, metric_draws = 600L,
+    confirmation_chains = 3L, metric_draws = idolp_v2_replay_total_draws,
+    interval_replay_run_tag = idolp_v2_replay_run_tag,
     interval_decision = sensitivity$decision,
     evidence_files = nrow(artifact_manifest),
     evidence_bytes = sum(artifact_manifest$bytes),
@@ -1134,7 +1333,7 @@ idolp_v2_write_interval_authority <- function(evidence, sensitivity, point) {
     interval_precision_decision = sensitivity$decision,
     estimator_id = idolp_v2_estimator_id,
     quantile_type = idolp_v2_quantile_type,
-    n_draws = 600L, n_chains = 3L,
+    n_draws = idolp_v2_replay_total_draws, n_chains = 3L,
     updated_roles = 2L, inherited_roles = 214L,
     fit_interval_policy = "retain_v10_1_fit_role",
     refit_required = FALSE,
@@ -1156,10 +1355,10 @@ idolp_v2_materialize <- function(repo_root = ffv2_repo_root()) {
     idolp_v2_assert_empty
   )
   sensitivity <- idolp_v2_interval_sensitivity(
-    evidence$draws_by_chain, evidence$roles
+    evidence$interval_draws_by_chain, evidence$roles
   )
-  if (!identical(sensitivity$decision, "PASS_USE_RETAINED_600_DRAWS")) {
-    stop("The predeclared interval precision gate requires a replay.",
+  if (!identical(sensitivity$decision, "PASS_USE_RETAINED_3000_DRAWS")) {
+    stop("The targeted replay failed the predeclared interval precision gate.",
          call. = FALSE)
   }
   idolp_v2_write_audit(evidence, sensitivity)
@@ -1238,7 +1437,7 @@ idolp_v2_verify_materialized <- function(repo_root = ffv2_repo_root(),
     recursive = TRUE, full.names = TRUE, ignore.case = TRUE
   )
   if (sum(interval_target) != 2L ||
-      any(roles$n_draws[interval_target] != 600L) ||
+      any(roles$n_draws[interval_target] != idolp_v2_replay_total_draws) ||
       any(roles$n_chains[interval_target] != 3L) ||
       any(roles$estimator_id[interval_target] != idolp_v2_estimator_id) ||
       any(!checks$pass) ||

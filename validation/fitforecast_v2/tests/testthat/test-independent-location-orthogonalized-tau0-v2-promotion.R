@@ -23,6 +23,16 @@ testthat::test_that("V2 promotion evidence selects exactly two forecast gains", 
   )
   testthat::expect_equal(nrow(evidence$chain_points), 3L)
   testthat::expect_equal(nrow(evidence$draws), 600L)
+  testthat::expect_equal(nrow(evidence$interval_draws), 3000L)
+  testthat::expect_equal(
+    vapply(evidence$interval_draws_by_chain, nrow, integer(1L)),
+    rep(1000L, 3L)
+  )
+  testthat::expect_identical(evidence$replay_decision$status, "PASS")
+  testthat::expect_identical(
+    evidence$replay_decision$interval_precision_decision,
+    "PASS_USE_RETAINED_3000_DRAWS"
+  )
 })
 
 testthat::test_that("retained V2 draws trigger only the declared precision replay", {

@@ -353,17 +353,14 @@ idolv2r_verify_runtime <- function(repo_root = ffv2_repo_root(), output_root,
   decision <- list(
     schema_version = idolv2r_schema,
     status = if (identical(
-      sensitivity$decision, "PASS_USE_RETAINED_600_DRAWS"
+      sensitivity$decision, "PASS_USE_RETAINED_3000_DRAWS"
     )) "PASS" else "FAIL",
     run_tag = run_tag,
     candidate_id = idolv2r_candidate_id,
     chains = idolv2r_chains,
     draws_per_chain = idolv2r_draws_per_chain,
     total_metric_draws = sum(vapply(draws_by_chain, nrow, integer(1L))),
-    interval_precision_decision = sub(
-      "600", as.character(idolv2r_chains * idolv2r_draws_per_chain),
-      sensitivity$decision, fixed = TRUE
-    ),
+    interval_precision_decision = sensitivity$decision,
     point_authority_policy = "retain_original_three_chain_point_confirmation",
     article_update_automatic = FALSE
   )
