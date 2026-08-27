@@ -1,0 +1,3 @@
+"inference","model_variant","family","tau","metric","parent_value","promoted_value","delta","relative_gain_pct","article_action"
+"mcmc","qdesn_al_rhs_ns","normal",0.05,"forecast_qtrue_mae_H1000",6.91659380458911,6.73382698952425,-0.182766815064863,2.6424396202593,"REPLACE_TARGET_METRIC_RETAIN_FIT_AND_ALL_OTHER_VALUES"
+"mcmc","qdesn_al_rhs_ns","normal",0.05,"forecast_check_loss_H1000",1.20016989478546,1.19120186398605,-0.00896803079941333,0.747230107868723,"REPLACE_TARGET_METRIC_RETAIN_FIT_AND_ALL_OTHER_VALUES"

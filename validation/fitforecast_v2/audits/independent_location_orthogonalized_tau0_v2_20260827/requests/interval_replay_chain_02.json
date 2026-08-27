@@ -1,0 +1,481 @@
+{
+  "schema_version": "independent_location_orthogonalized_tau0_v2_job_v1",
+  "job_id": "interval_replay__idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b__canonical_article__interval_replay_r01__c02",
+  "stage": "confirmation",
+  "target_cell_id": "al_normal_t0p05",
+  "candidate_id": "idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",
+  "chain_id": 2,
+  "reservoir_seed_id": "confirmation_r02",
+  "reservoir_seed": 23171880,
+  "seed_contract_mode": "paired_target_cell_panel_independent_of_source_and_candidate",
+  "source_id": "canonical_article",
+  "source_role": "canonical_confirmation",
+  "objective_metric": "forecast_qtrue_mae_H1000",
+  "current_value": 6.9166,
+  "comparator_value": 3.8294,
+  "spec_id": "independent_location_orthogonalized_tau0_v2_interval_replay__interval_replay__idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b__canonical_article__interval_replay_r01__c02",
+  "observed_path": "results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_location_orthogonalized_tau0_v2/staged_source_windows/normal/tau_0p05/m12_w300/observed.csv",
+  "observed_sha256": "1efef8aff21ec4ca8e1ee31367cdb1be104fd4059a37dbbbd6a7f337fcb94fce",
+  "source_registry_path": "reports/shared_fitforecast_v2_orchestration/independent_location_orthogonalized_tau0_v2_20260827_005026/materialization/canonical_source_registry.csv",
+  "source_registry_sha256": "91d1015232487c38d744dadbcf0d324e8b6a3c513b6dc66228e98b582cd15f4a",
+  "source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+  "inference_method_id": "sigma_then_gamma",
+  "profile": {
+    "D": 1,
+    "n": 40,
+    "n_tilde": null,
+    "m": 12,
+    "alpha": 0.08,
+    "rho": 0.35,
+    "pi_w": 0.3,
+    "pi_in": 0.15,
+    "rhs_tau0": 3e-09,
+    "readout_y_lags": 1,
+    "reservoir_lags": 0,
+    "washout": 300,
+    "layer_shape": "frozen_parent",
+    "alpha_pattern": "frozen_parent",
+    "rho_pattern": "frozen_parent",
+    "expected_degree": null,
+    "total_states": 40,
+    "effective_readout_dimension": 47,
+    "max_alpha": 0.08,
+    "min_alpha": 0.08,
+    "mean_alpha": 0.08,
+    "max_rho": 0.35,
+    "min_rho": 0.35,
+    "mean_rho": 0.35,
+    "design_role": "training-only residualization of reservoir columns against known location features",
+    "selection_arm": "O1_orthogonalized",
+    "profile_signature": "1|40||12|0.08|0.35|0.3|0.15|0.000000003|1|0|300",
+    "transform_mode": "orthogonalize_reservoir",
+    "deterministic_prefix": "period90_",
+    "projection_ridge": 1e-10,
+    "svd_energy_threshold": 0.995,
+    "svd_min_rank": 1,
+    "svd_max_rank": 80,
+    "target_cell_id": "al_normal_t0p05",
+    "family": "normal",
+    "tau": 0.05,
+    "priority": "A",
+    "objective_metric": "forecast_qtrue_mae_H1000",
+    "current_value": 6.9166,
+    "comparator_value": 3.8294,
+    "parent_anchor_id": "confirmation__cgcv2_al_normal_t0p05_01_64121b0e9b__canonical_article__confirmation_r01__c01.json",
+    "likelihood_target": "al",
+    "target_metrics": "forecast_qtrue_mae_H1000;forecast_check_loss_H1000",
+    "tau0_ladder_role": "local_bridge",
+    "declared_replay": true,
+    "exact_signature": "al_normal_t0p05||al||normal||0.05000000||1|40||12|0.08|0.35|0.3|0.15|0.000000003|1|0|300||orthogonalize_reservoir||period90_||1e-10||0.995||80||sigma_then_gamma",
+    "candidate_id": "idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",
+    "screening_profile_id": "idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b"
+  },
+  "config": {
+    "pipeline": {
+      "mode": "real",
+      "verbose": true
+    },
+    "split": {
+      "use_last": true,
+      "T_use": 1812,
+      "train_n": 812
+    },
+    "p_vec": 0.05,
+    "columns": {
+      "y": "y",
+      "x": ["period90_sin_h1", "period90_cos_h1", "period90_sin_h2", "period90_cos_h2", "period90_trend_z"]
+    },
+    "lags": {
+      "m_y": 1,
+      "m_x": 0,
+      "y": null,
+      "x": 0
+    },
+    "preproc": {
+      "scale_y": true,
+      "scale_x": true
+    },
+    "desn": {
+      "D": 1,
+      "n": 40,
+      "n_tilde": [],
+      "m": 12,
+      "alpha": 0.08,
+      "rho": 0.35,
+      "act_f": "tanh",
+      "act_k": "identity",
+      "pi_w": 0.3,
+      "pi_in": 0.15,
+      "washout": 300,
+      "add_bias": true,
+      "seed": 171421071
+    },
+    "readout": {
+      "include_input": true,
+      "reservoir_lags": 0,
+      "input_position": "after_reservoir",
+      "input_mode": "raw_y_lags",
+      "linear_transform": {
+        "mode": "orthogonalize_reservoir",
+        "deterministic_prefix": "period90_",
+        "projection_ridge": 1e-10,
+        "svd_energy_threshold": 0.995,
+        "svd_min_rank": 1,
+        "svd_max_rank": 80
+      }
+    },
+    "decomposition": {
+      "enabled": false
+    },
+    "sampling": {
+      "nd_draws": 1000,
+      "chunk": 120
+    },
+    "forecast": {
+      "mode": "origin",
+      "horizon": 30,
+      "train_last_window": 18,
+      "fore_last_window": 18,
+      "protocol": "rolling_origin_no_refit_state_update",
+      "origin_stride": 30,
+      "primary_lead_export": true
+    },
+    "ij": {
+      "use_ij_correction": false,
+      "nd_draws": 0
+    },
+    "synthesis": {
+      "isotonic": false,
+      "rearrange": false,
+      "grid_M": 151,
+      "n_samp": 1000,
+      "seed": 133901454
+    },
+    "diagnostics": {
+      "calibration": false,
+      "pit": false,
+      "scores": true,
+      "lead_eval": false,
+      "fan_charts": false,
+      "plots": false
+    },
+    "cpp": {
+      "use_postpred": false,
+      "postpred_omp": false,
+      "postpred_precompute": false,
+      "postpred_threads": 1
+    },
+    "outputs": {
+      "save": true,
+      "keep_draws": false,
+      "thesis_subset": false,
+      "keep_mcmc_vb_init": false,
+      "retention_profile": "storage_light_location_orthogonalized_tau0_v2_interval_replay",
+      "save_forecast_objects": false,
+      "save_compact_fit_paths": true,
+      "save_metric_summaries": true,
+      "retain_full_rds_on_failure": false
+    },
+    "inference": {
+      "method": "mcmc",
+      "likelihood_family": "al",
+      "readout_scale": true,
+      "mcmc": {
+        "n_burn": 5000,
+        "n_mcmc": 20000,
+        "thin": 1,
+        "verbose": true,
+        "progress_every": 50,
+        "init_from_vb": true,
+        "vb_warm_start_control": {
+          "method": "ldvb",
+          "max_iter": 300,
+          "min_iter_elbo": 80,
+          "n_samp_xi": 1000,
+          "progress_every": 50,
+          "verbose": false,
+          "sigmagam": {
+            "freeze_warmup_iters": 10,
+            "force_after_warmup": true,
+            "postwarmup_damping": 0.5,
+            "postwarmup_damping_iters": 3,
+            "min_postwarmup_updates": 1
+          },
+          "rhs_trace": true,
+          "rhs_deep": false,
+          "rhs": {
+            "freeze_tau_iters": 50,
+            "freeze_tau_warmup_iters": 50,
+            "tau_local_tol": 0.0005,
+            "min_tau_updates": 2,
+            "force_tau_after_warmup": true
+          }
+        },
+        "store_latent_draws": false,
+        "store_rhs_draws": false,
+        "transforms": {
+          "use_log_sigma": true,
+          "sigma_eta_bounds": [-20, 20]
+        },
+        "rhs": {
+          "freeze_tau_burnin_iters": 500,
+          "freeze_tau_only_during_burn": true,
+          "width_adapt": {
+            "enabled": false,
+            "warmup_iters": 0,
+            "only_during_burn": true,
+            "target_score_low": -0.75,
+            "target_score_high": 0.75,
+            "step_size": 0.015,
+            "width_min": 0.02,
+            "width_max": 1.8
+          }
+        },
+        "sigmagam": {
+          "freeze_burnin_iters": 50,
+          "freeze_only_during_burn": true,
+          "force_after_warmup": true,
+          "delay_adapt_until_after_warmup": true,
+          "delay_laplace_refresh_until_after_warmup": true
+        },
+        "slice": {
+          "core_update_mode": "sigma_then_gamma",
+          "width_gamma": 0.42,
+          "width_sigma": 0.3,
+          "width_rhs_lambda": 0.18,
+          "width_rhs_tau": 0.1,
+          "width_rhs_c2": 0.07,
+          "width_rhs_tau_c2_block": 0.22,
+          "rhs_global_block_update": "transformed_tau_c2_block",
+          "rhs_transformed_block_passes": 3,
+          "core_extra_passes": 2,
+          "max_steps_out": 100,
+          "max_shrink": 360,
+          "max_steps_out_sigma": 160,
+          "max_shrink_sigma": 420
+        },
+        "priors": {
+          "gamma": {
+            "mu0": 0,
+            "s20": 10
+          },
+          "sigma": {
+            "a": 1,
+            "b": 1
+          },
+          "beta": {
+            "type": "rhs_ns",
+            "ridge": {
+              "tau2": 20
+            },
+            "rhs_ns": {
+              "tau0": 3e-09,
+              "a_zeta": 2,
+              "b_zeta": 1,
+              "s2": 1,
+              "shrink_intercept": false,
+              "intercept_prec": 1e-10,
+              "n_inner": 2,
+              "var_floor": 1e-08
+            }
+          }
+        },
+        "control": {
+          "rng_seed": 51080477,
+          "seed": 203043356
+        },
+        "vb_warm_start_seed": 156135152
+      }
+    },
+    "metrics": {
+      "primary_windows": ["train_effective", "rolling_forecast_leads"],
+      "fit_window_role": "effective_train_post_lag_washout",
+      "forecast_window_role": "contiguous_forecast_block_after_train_origin",
+      "train_effective_source_indices": {
+        "TT500": [8501, 9000],
+        "TT5000": [4001, 9000]
+      },
+      "forecast_source_indices": [9001, 10000],
+      "forecast_horizons": [100, 1000],
+      "rolling_origin": {
+        "enabled": true,
+        "require_lead_export": true,
+        "forecast_protocol": "rolling_origin_no_refit_state_update",
+        "state_update_method": "forecast_lattice_observed_lag_state_update_no_refit",
+        "refit_per_origin": false,
+        "max_lead_configured": 30,
+        "origin_stride": 30
+      },
+      "backward_compatible_holdout_alias": "forecast_H1000",
+      "posterior_metric_draws": 1000,
+      "qtrue_metrics": ["mae", "rmse", "bias", "corr", "median_ae", "p90_ae"],
+      "quantile_calibration_metrics": ["pinball_tau", "coverage", "coverage_minus_tau", "coverage_error"],
+      "runtime_metrics": ["runtime_sec", "runtime_sec_per_1k_eval", "runtime_sec_per_1k_train_eval"],
+      "posterior_metric_intervals": {
+        "enabled": true,
+        "required": true,
+        "draws": 1000,
+        "chain_id": 2,
+        "estimator_id": "posterior_mean_draw_metric_equal_tailed_95cri_v1",
+        "draw_source_contract": "conditional_quantile_not_response_predictive",
+        "coupling_sensitivity": {
+          "enabled": false
+        },
+        "dispersion_diagnostic": {
+          "enabled": true,
+          "required": true,
+          "recursion_counterfactual": true,
+          "schema_version": "independent_qdesn_metric_interval_dispersion_v1"
+        },
+        "origin_horizon_attribution": {
+          "enabled": true,
+          "required": true,
+          "balanced_complete_origins": true,
+          "schema_version": "independent_qdesn_origin_horizon_attribution_v1"
+        },
+        "common_shift_intervention": {
+          "enabled": true,
+          "required": true,
+          "schema_version": "independent_qdesn_common_shift_intervention_v1"
+        }
+      }
+    },
+    "validation_spec_id": "independent_location_orthogonalized_tau0_v2_interval_replay__interval_replay__idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b__canonical_article__interval_replay_r01__c02",
+    "validation_stage": "all",
+    "validation": {
+      "stream_child_stdout": true,
+      "timeout_seconds": 604800,
+      "timeout_kill_after_seconds": 60
+    },
+    "telemetry": {
+      "progress_every": 50,
+      "heartbeat_seconds": 1800,
+      "stale_seconds": 1800
+    }
+  },
+  "root_spec": {
+    "source_root_kind": "dynamic",
+    "source_scenario": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+    "source_family": "normal",
+    "tau": 0.05,
+    "fit_size": 500,
+    "effective_fit_size": 500,
+    "source_total_size": 1812,
+    "source_window_label": "effTT500_m12_w300_trainEnd9000_H1000",
+    "raw_start_source_index": 8189,
+    "raw_end_source_index": 10000,
+    "train_start_source_index": 8501,
+    "train_end_source_index": 9000,
+    "forecast_start_source_index": 9001,
+    "forecast_end_source_index": 10000,
+    "beta_prior_type": "rhs_ns",
+    "source_fit_input_dir": "external-workspace://exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p05/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90",
+    "source_report_root": "external-workspace://exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p05/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90",
+    "source_series_wide_path": "results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_location_orthogonalized_tau0_v2/staged_source_windows/normal/tau_0p05/m12_w300/series_wide.csv",
+    "source_series_wide_sha256": "fdc14c967268e8cd48cc2118c134e1a70cf446b3684a801a472a757601680122",
+    "source_selection_indices_path": "results/qdesn_mcmc_validation/qdesn_dynamic_fitforecast_v2_500obs_location_orthogonalized_tau0_v2/staged_source_windows/normal/tau_0p05/m12_w300/selection_indices.csv",
+    "source_selection_indices_sha256": "f1cc94cfb3f36e9fb97dbde5620db40bf6c574f22e65566a467eab436d9198e0",
+    "source_sim_path": "external-workspace://exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast/normal/tau_0p05/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90/sim_output.rds",
+    "source_sim_sha256": "32e6509cb5463a4a6fa23b7dbee5ac980b3be9eafb01296029d10a0e3ed13d82",
+    "source_reference_root_count": 1,
+    "source_reference_priors": "default",
+    "source_current_rhsns_member": false,
+    "source_legacy_rhs_member": false,
+    "reservoir_profile": "idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",
+    "screening_profile_id": "idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",
+    "screening_stage": "qdesn_dynamic_fitforecast_v2_500obs_location_orthogonalized_tau0_v2",
+    "screening_wave": "interval_replay",
+    "profile_role": "training-only residualization of reservoir columns against known location features",
+    "rhs_tau0": 3e-09,
+    "readout_y_lags": 1,
+    "reservoir_lags": 0,
+    "dimension_p_estimate": 47,
+    "p_over_n_tt500": 0.094,
+    "enabled": true,
+    "dataset_cell_id": "dynamic__dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast__normal__tau_0p05__efftt_500",
+    "scenario": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+    "seed": 123,
+    "desn_seed": 171421071,
+    "mcmc_seed": 203043356,
+    "mcmc_rng_seed": 51080477,
+    "vb_warm_start_seed": 156135152,
+    "synthesis_seed": 133901454,
+    "root_id": "interval_replay__idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b__canonical_article__interval_replay_r01__c02",
+    "likelihood_family": "al",
+    "reservoir_seed_id": "confirmation_r02",
+    "reservoir_seed_contract": "paired_target_cell_panel_independent_of_source_and_candidate",
+    "source_latent_seed": "NA",
+    "source_noise_seed": "NA",
+    "effective_readout_dimension": 47,
+    "maximum_effective_readout_dimension": 900,
+    "readout_transform_mode": "orthogonalize_reservoir",
+    "readout_transform_signature": "al_normal_t0p05||al||normal||0.05000000||1|40||12|0.08|0.35|0.3|0.15|0.000000003|1|0|300||orthogonalize_reservoir||period90_||1e-10||0.995||80||sigma_then_gamma"
+  },
+  "study_contract": {
+    "package_version": "1.0.0",
+    "canonical_source_registry_hash_value": "edddb56fc2b30e49ac99fdd08b53dad468ed53e05d0fe1fe16426ee9d9ffe275",
+    "development_source_registry_sha256": "91d1015232487c38d744dadbcf0d324e8b6a3c513b6dc66228e98b582cd15f4a",
+    "preprocessing_scope": "train_only",
+    "train_window": [8501, 9000],
+    "forecast_window": [9001, 10000],
+    "max_lead": 30,
+    "origin_stride": 30,
+    "effective_readout_dimension": 47,
+    "maximum_effective_readout_dimension": 900,
+    "seed_contract": {
+      "source_seed_fields": ["source_latent_seed", "source_noise_seed"],
+      "reservoir_seed_id": "confirmation_r02",
+      "reservoir_seed": 23171880,
+      "reservoir_seed_independent_of_source": true,
+      "reservoir_seed_independent_of_candidate": true,
+      "chain_seed_independent": true
+    },
+    "article_promotion_automatic": false,
+    "full_confirmation_requires_explicit_approval": true,
+    "validation_stage": "qdesn_dynamic_fitforecast_v2_500obs_location_orthogonalized_tau0_v2",
+    "tier": "A",
+    "metric_specific_authority": true,
+    "posterior_recycled_as_prior": false,
+    "authority_interface": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821/qdesn_dqlm_500obs_trainonly_article_v9_canonical_gap_20260821_interface.csv",
+    "metric_interval_authority": "validation/fitforecast_v2/promotions/qdesn_dqlm_500obs_metric_intervals_v10_20260824/article_metric_role_intervals.csv",
+    "capacity_by_tau0_factorial": true,
+    "case_specific_selection": true,
+    "diagnostics_are_promotion_veto": false,
+    "promotion_requires_strict_metric_gain": true,
+    "global_specification_required": false,
+    "oracle_diagnostics_are_non_deployable": true,
+    "readout_transform_training_only": true,
+    "readout_transform_forecast_consistent": true,
+    "case_specific_tau0": true,
+    "promotion_tolerance": 1e-06,
+    "interval_replay": {
+      "schema_version": "independent_location_orthogonalized_tau0_v2_interval_replay_v1",
+      "purpose": "increase_metric_interval_endpoint_precision_only",
+      "parent_job_id": "confirmation__idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b__canonical_article__confirmation_r02__c02",
+      "parent_config_sha256": "5fcb7097f6a570d1c7ed8f45ed2103eb41603ac3effb98345130388d56d6d436",
+      "draws_per_chain": 1000,
+      "model_refit_contract": "same_model_same_mcmc_seeds_same_mcmc_budget",
+      "point_authority_contract": "retain_original_three_chain_point_confirmation"
+    }
+  },
+  "likelihood_target": "al",
+  "target_metrics": ["forecast_qtrue_mae_H1000", "forecast_check_loss_H1000"],
+  "current_metric_values": {
+    "fit_qtrue_rmse": 2.7793,
+    "forecast_qtrue_mae_H1000": 6.9166,
+    "forecast_check_loss_H1000": 1.2002
+  },
+  "comparator_metric_values": {
+    "fit_qtrue_rmse": 1.9351,
+    "forecast_qtrue_mae_H1000": 3.8294,
+    "forecast_check_loss_H1000": 1.1033
+  },
+  "replay_contract": {
+    "schema_version": "independent_location_orthogonalized_tau0_v2_interval_replay_v1",
+    "parent_run_id": "independent_location_orthogonalized_tau0_v2_20260827_005026",
+    "parent_job_id": "confirmation__idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b__canonical_article__confirmation_r02__c02",
+    "parent_config_sha256": "5fcb7097f6a570d1c7ed8f45ed2103eb41603ac3effb98345130388d56d6d436",
+    "allowed_change": "posterior_metric_draw_budget_only",
+    "draws_per_chain": 1000
+  }
+}

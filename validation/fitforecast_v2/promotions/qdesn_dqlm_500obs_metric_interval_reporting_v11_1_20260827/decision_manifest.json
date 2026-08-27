@@ -1,0 +1,23 @@
+{
+  "schema_version": "independent_location_orthogonalized_tau0_v2_promotion_v1",
+  "reporting_id": "qdesn_dqlm_500obs_metric_interval_reporting_v11_1_20260827",
+  "status": "READY_FOR_INTEGRATION",
+  "generated_at": "2026-08-27 16:59:50 EDT",
+  "parent_reporting_id": "qdesn_dqlm_500obs_metric_interval_reporting_v10_1_20260825",
+  "parent_roles_sha256": "4ebdda337937a9cabcb97d5acb026793cc23c401eb1f3c114c7c94892bb7c56d",
+  "point_authority_id": "qdesn_dqlm_500obs_trainonly_article_v11_location_orthogonalized_20260827",
+  "decision": "REPLACE_TWO_FORECAST_INTERVAL_ROLES",
+  "interval_precision_decision": "PASS_USE_RETAINED_3000_DRAWS",
+  "estimator_id": "chain_balanced_draw_metric_equal_tailed_95cri_v1",
+  "quantile_type": 7,
+  "n_draws": 3000,
+  "n_chains": 3,
+  "interval_replay_run_id": "independent_location_orthogonalized_tau0_v2_interval_replay_20260827_162303",
+  "interval_replay_run_tag": "independent-location-orthogonalized-tau0-v2-interval-replay-20260827_162303__git-d6bc4c5",
+  "updated_roles": 2,
+  "inherited_roles": 214,
+  "fit_interval_policy": "retain_v10_1_fit_role",
+  "refit_required": false,
+  "article_figures": 2,
+  "article_publication_owner": "ARTICLE_QDESN_INTEGRATION"
+}

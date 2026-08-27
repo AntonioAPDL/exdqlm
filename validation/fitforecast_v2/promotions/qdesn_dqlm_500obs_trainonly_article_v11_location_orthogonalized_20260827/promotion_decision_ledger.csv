@@ -1,0 +1,3 @@
+"inference","model_variant","family","tau","metric","candidate_id","parent_value","promoted_value","delta","relative_gain_pct","strict_improvement","diagnostics_used_as_promotion_gate","source_signoff_grade","promotion_decision"
+"mcmc","qdesn_al_rhs_ns","normal",0.05,"forecast_qtrue_mae_H1000","idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",6.91659380458911,6.73382698952425,-0.182766815064863,2.6424396202593,TRUE,FALSE,"WARN","PROMOTE"
+"mcmc","qdesn_al_rhs_ns","normal",0.05,"forecast_check_loss_H1000","idol2_al_normal_t0p05_o1_orthogonalized_3e09_132580d19b",1.20016989478546,1.19120186398605,-0.00896803079941333,0.747230107868723,TRUE,FALSE,"WARN","PROMOTE"

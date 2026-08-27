@@ -1,0 +1,7 @@
+"metric_role","metric_name","pooled_metric","posterior_mean","posterior_sd","cri_lower","posterior_median","cri_upper","posterior_mean_inside_cri","n_draws","n_chains","quantile_type","estimator_id","excluded_chain"
+"forecast_mae","forecast_qtrue_mae_H1000","forecast_mae",7.11884110899302,2.56332146241379,2.67401911031725,7.01496944927439,12.053577100118,TRUE,2000,2,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1",1
+"forecast_check","forecast_check_loss_H1000","forecast_check_loss",1.23303159373453,0.100560174636706,1.08096683115975,1.21950715315897,1.44942847226458,TRUE,2000,2,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1",1
+"forecast_mae","forecast_qtrue_mae_H1000","forecast_mae",7.16635467599146,2.58481829864818,2.612762952336,7.01248873315825,12.2973568892271,TRUE,2000,2,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1",2
+"forecast_check","forecast_check_loss_H1000","forecast_check_loss",1.23497533867416,0.101793811792123,1.07914234021392,1.22228748870042,1.45654397928783,TRUE,2000,2,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1",2
+"forecast_mae","forecast_qtrue_mae_H1000","forecast_mae",7.23499045738246,2.52817650511894,2.89056210338777,7.05932043706097,12.1902794157973,TRUE,2000,2,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1",3
+"forecast_check","forecast_check_loss_H1000","forecast_check_loss",1.23692327355832,0.100559891187839,1.0850062660186,1.22238050263537,1.44942847226458,TRUE,2000,2,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1",3

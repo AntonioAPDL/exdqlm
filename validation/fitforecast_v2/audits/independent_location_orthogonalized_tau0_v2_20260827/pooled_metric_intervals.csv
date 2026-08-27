@@ -1,0 +1,4 @@
+"metric_role","metric_name","pooled_metric","posterior_mean","posterior_sd","cri_lower","posterior_median","cri_upper","posterior_mean_inside_cri","n_draws","n_chains","quantile_type","estimator_id"
+"fit","fit_qtrue_rmse","fit_rmse",2.96246945260904,0.462960549874603,2.03603898202351,2.96086727717704,3.86364230146948,TRUE,3000,3,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1"
+"forecast_mae","forecast_qtrue_mae_H1000","forecast_mae",7.17339541412231,2.55910960712063,2.71808648316537,7.035607966906,12.2260076754064,TRUE,3000,3,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1"
+"forecast_check","forecast_check_loss_H1000","forecast_check_loss",1.23497673532233,0.100977053832077,1.08164666823371,1.22143380967379,1.45369165891914,TRUE,3000,3,7,"chain_balanced_draw_metric_equal_tailed_95cri_v1"
