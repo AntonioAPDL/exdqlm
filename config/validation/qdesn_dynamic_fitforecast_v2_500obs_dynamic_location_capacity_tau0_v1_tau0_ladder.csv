@@ -1,0 +1,17 @@
+target_cell_id,tau0,ladder_role
+al_normal_t0p05,1e-9,stronger_boundary
+al_normal_t0p05,1e-8,exact_parent
+al_normal_t0p05,1e-7,weaker_local
+al_normal_t0p05,1e-6,weaker_boundary
+exal_normal_t0p05,1e-9,stronger_boundary
+exal_normal_t0p05,1e-8,stronger_local
+exal_normal_t0p05,7.58764825688109e-8,exact_parent
+exal_normal_t0p05,1e-6,weaker_boundary
+al_normal_t0p50,1e-8,stronger_boundary
+al_normal_t0p50,1e-6,stronger_local
+al_normal_t0p50,1e-4,local_control
+al_normal_t0p50,3e-4,exact_parent
+exal_normal_t0p50,3e-8,stronger_boundary
+exal_normal_t0p50,3e-6,stronger_local
+exal_normal_t0p50,3e-5,local_control
+exal_normal_t0p50,3e-4,exact_parent
