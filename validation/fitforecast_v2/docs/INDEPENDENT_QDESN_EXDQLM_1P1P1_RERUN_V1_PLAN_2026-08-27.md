@@ -1,5 +1,24 @@
 # Independent Q-DESN/DQLM exdqlm 1.1.1 rerun
 
+## CRAN release status
+
+As of 2026-08-28, `exdqlm` 1.1.1 is available from CRAN and is the public
+software authority for citation, installation, and future validation work:
+
+- package page: <https://CRAN.R-project.org/package=exdqlm>;
+- package DOI: <https://doi.org/10.32614/CRAN.package.exdqlm>;
+- CRAN source-tarball SHA-256:
+  `3f3ed643ded7602fd62357d7f62024ca9071e0096214456650ed2de79722443e`.
+
+This plan predates that publication. The completed campaign continues to name
+its exact locally built 1.1.1 tarball and source commit because those identify
+what was actually executed. The additive CRAN-release compatibility audit
+shows that the relevant exDQLM MCMC, structured exAL scale-shape, and compiled
+RNG source paths are byte-identical and that fixed-seed tiny VB and MCMC fits
+are identical. The historical tarball is therefore retained as provenance,
+not presented as the public installation source. No scientific rerun is
+required solely to transition the public reference to CRAN 1.1.1.
+
 ## Decision objective
 
 Re-evaluate the complete independent single-quantile validation table under one
@@ -14,9 +33,11 @@ identities, and 198 replay jobs after three-chain MCMC replication.
 
 ## Package provenance
 
-- Source branch: `feature/jss-resubmission-from-cran-1.0.0`
-- Required source commit: `6dba6f2863705e0e90f0ce19e0c75d106d022a52`
-- Required version: `1.1.1`
+- Public package authority: CRAN `exdqlm` 1.1.1
+- Historical execution source commit:
+  `6dba6f2863705e0e90f0ce19e0c75d106d022a52`
+- Historical execution-tarball SHA-256:
+  `6d51bf8e745e1a45bcc111fd578561cbf56b23b07e70eab5d95bd6e561243db1`
 - Validation branch: `validation/independent-qdesn-exdqlm-1.1.1-rerun-20260827`
 
 The validation branch merges the exact package source commit into the current

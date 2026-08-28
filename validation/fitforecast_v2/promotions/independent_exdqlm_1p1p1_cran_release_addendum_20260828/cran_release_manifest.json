@@ -1,0 +1,29 @@
+{
+  "schema_version": "independent_exdqlm_cran_release_addendum_v1",
+  "created_utc": "2026-08-28 22:00:57 UTC",
+  "decision": "CRAN_1P1P1_PUBLIC_AUTHORITY_HISTORICAL_EXECUTION_PROVENANCE_RETAINED",
+  "public_software_authority": {
+    "package": "exdqlm",
+    "version": "1.1.1",
+    "repository": "CRAN",
+    "canonical_url": "https://CRAN.R-project.org/package=exdqlm",
+    "doi": "10.32614/CRAN.package.exdqlm",
+    "publication_utc": "2026-08-28 19:00:02 UTC",
+    "source_tarball_sha256": "3f3ed643ded7602fd62357d7f62024ca9071e0096214456650ed2de79722443e"
+  },
+  "frozen_validation_execution": {
+    "package": "exdqlm",
+    "version": "1.1.1",
+    "source_tarball_sha256": "6d51bf8e745e1a45bcc111fd578561cbf56b23b07e70eab5d95bd6e561243db1",
+    "source_commit": "6dba6f2863705e0e90f0ce19e0c75d106d022a52",
+    "promotion_packet": "validation/fitforecast_v2/promotions/independent_exdqlm_1p1p1_scoped_compatibility_v2_20260828",
+    "provenance_policy": "retain_exact_historical_artifact; do_not_relabel_tarball"
+  },
+  "compatibility": {
+    "all_checks_pass": true,
+    "required_core_files_identical": true,
+    "fixed_seed_vb_identical": true,
+    "fixed_seed_mcmc_identical": true,
+    "scientific_rerun_required": false
+  }
+}

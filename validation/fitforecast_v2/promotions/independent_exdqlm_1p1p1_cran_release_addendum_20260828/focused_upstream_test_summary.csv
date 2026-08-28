@@ -1,0 +1,2 @@
+"test_scope","files","test_blocks","passed_expectations","failed_expectations","errors","warnings","skips","pass"
+"official_cran_1p1p1_focused_inference_rng","test-exal-inference-config.R;test-exal-sigmagam-structured.R;test-rng-repeatability.R",13,111,0,0,0,0,TRUE

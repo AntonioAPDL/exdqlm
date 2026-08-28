@@ -1,5 +1,15 @@
 # Independent exDQLM 1.1.1 scoped continuation
 
+## Public release authority
+
+`exdqlm` 1.1.1 is now published on CRAN. CRAN is the canonical source for
+public installation and citation. This scoped campaign still records its exact
+locally built tarball because provenance must describe the artifact that ran.
+The tracked CRAN-release addendum verifies byte identity of the relevant MCMC,
+structured scale-shape, and RNG source paths and exact fixed-seed parity of
+tiny exDQLM VB and MCMC fits. This distinction avoids both an unnecessary
+scientific rerun and an inaccurate rewrite of the frozen execution record.
+
 ## Decision and correction
 
 The full four-model compatibility campaign is superseded for execution. It was
@@ -95,7 +105,9 @@ Before CPU launch, verification must establish:
 9. no orphaned worker from an interrupted IND campaign remains active.
 
 The package runtime remains the exact task-local tarball used by the parent
-campaign. Its SHA-256 is part of every frozen config. New commits may change
+campaign. Its SHA-256 is part of every frozen config. It is a historical
+execution artifact, not the forward-facing installation source; future work
+uses CRAN 1.1.1. New commits may change
 only validation orchestration files after that package build; the launcher
 rejects changes to package source, compiled code, or metadata.
 
