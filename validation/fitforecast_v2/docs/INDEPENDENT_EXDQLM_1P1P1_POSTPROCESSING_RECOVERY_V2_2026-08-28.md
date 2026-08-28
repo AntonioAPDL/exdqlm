@@ -1,5 +1,15 @@
 # Independent exDQLM 1.1.1 postprocessing recovery v2
 
+## CRAN publication note
+
+The public software authority is now CRAN `exdqlm` 1.1.1. The frozen campaign
+record intentionally retains the SHA-256 of the locally built 1.1.1 tarball
+that actually executed. A separate tracked compatibility addendum verifies
+the CRAN source, public defaults, focused upstream tests, and fixed-seed VB and
+MCMC parity. Reader-facing article references should cite CRAN 1.1.1 and should
+not name a development branch. Reproducibility metadata should continue to
+preserve the exact historical artifact and source commit.
+
 ## Scope and decision
 
 The scoped compatibility campaign

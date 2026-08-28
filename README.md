@@ -50,11 +50,15 @@ quantiles in one interface.
 
 ## Installation
 
-CRAN:
+CRAN (current release 1.1.1):
 
 ``` r
 install.packages("exdqlm")
 ```
+
+The canonical public package record is
+<https://CRAN.R-project.org/package=exdqlm> (DOI:
+<https://doi.org/10.32614/CRAN.package.exdqlm>).
 
 Development (GitHub):
 

@@ -13,3 +13,12 @@ by diagnostic postprocessing after all 36 scientific jobs had completed.
 - Diagnostic packet: local and ignored; hash recorded in the handoff
 - Article/shared-validation/Overleaf writes: none
 - Integration policy: use the complete exDQLM block; never cherry-pick gains.
+
+## CRAN release mapping
+
+The public software authority is CRAN `exdqlm` 1.1.1. This packet preserves
+the exact locally built 1.1.1 tarball used by the campaign; it must not be
+silently relabeled as the CRAN tarball. The additive compatibility packet at
+`validation/fitforecast_v2/promotions/independent_exdqlm_1p1p1_cran_release_addendum_20260828/`
+verifies the mapping and concludes that no scientific rerun is required solely
+because the release is now available from CRAN.
