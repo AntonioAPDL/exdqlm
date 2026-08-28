@@ -1,0 +1,15 @@
+"indicator","value"
+"jobs_completed",36
+"point_roles",54
+"interval_roles",216
+"strict_point_improvements",19
+"strict_posterior_improvements",9
+"mcmc_fit_point_improvements",4
+"mcmc_forecast_mae_point_improvements",2
+"mcmc_forecast_check_point_improvements",3
+"posterior_means_changed_at_least_1pct",2
+"max_abs_forecast_posterior_mean_change_pct",0.846408029966605
+"max_abs_interval_width_change_pct",5.32533181291104
+"point_winner_changes",3
+"interval_winner_changes",6
+"mcmc_metric_warning_rows",2

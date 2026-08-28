@@ -1,0 +1,43 @@
+{
+  "schema_version": "independent_qdesn_exdqlm_1p1p1_rerun_v1",
+  "generated_at": "2026-08-28 03:27:07 EDT",
+  "repo_root": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_exdqlm_1p1p1_rerun_20260827",
+  "branch": "validation/independent-qdesn-exdqlm-1.1.1-rerun-20260827",
+  "head": "4d0d103e63729bcd73f5f1db677e5bca2f45e0ac",
+  "package": {
+    "version": "1.1.1",
+    "remote_ref": null,
+    "remote_sha": null,
+    "required_source_commit": "6dba6f2863705e0e90f0ce19e0c75d106d022a52",
+    "tarball_path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_exdqlm_1p1p1_rerun_20260827/validation/fitforecast_v2/local_trackers/independent_qdesn_exdqlm_1p1p1_rerun_20260827/package/exdqlm_1.1.1.tar.gz",
+    "tarball_sha256": "6d51bf8e745e1a45bcc111fd578561cbf56b23b07e70eab5d95bd6e561243db1",
+    "build_manifest_path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_exdqlm_1p1p1_rerun_20260827/validation/fitforecast_v2/local_trackers/independent_qdesn_exdqlm_1p1p1_rerun_20260827/package/package_build_manifest.json",
+    "build_manifest_sha256": "40281d33931791d791f68b25e107e616619263e9fdd64117d70d78219e89ab15"
+  },
+  "r": {
+    "version": "R version 4.6.0 (2026-04-24)",
+    "platform": "x86_64-pc-linux-gnu",
+    "blas": "/data/jaguir26/local/opt/R/4.6.0/lib64/R/lib/libRblas.so",
+    "lapack": null
+  },
+  "compiler": {
+    "CC": "gcc",
+    "CXX": "g++ -std=gnu++17",
+    "CXX17": "g++",
+    "SHLIB_OPENMP_CFLAGS": "ERROR: no information for variable 'SHLIB_OPENMP_CFLAGS'"
+  },
+  "threads": {
+    "OMP_NUM_THREADS": "1",
+    "OMP_THREAD_LIMIT": "1",
+    "OMP_DYNAMIC": "FALSE",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "RCPP_PARALLEL_NUM_THREADS": "1"
+  },
+  "checks_pass": 15,
+  "checks_total": 15,
+  "status": "PASS"
+}

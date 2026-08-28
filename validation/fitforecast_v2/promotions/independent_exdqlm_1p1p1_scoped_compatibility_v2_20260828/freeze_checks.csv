@@ -1,0 +1,10 @@
+"check","pass"
+"point_candidate_rows_72",TRUE
+"point_candidate_exdqlm_rows_18",TRUE
+"point_candidate_source_hashes",TRUE
+"interval_candidate_rows_216",TRUE
+"interval_candidate_exdqlm_rows_54",TRUE
+"interval_candidate_source_hashes",TRUE
+"non_exdqlm_rows_162_invariant",TRUE
+"closeout_checks_pass",TRUE
+"no_heavy_binaries",TRUE

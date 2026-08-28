@@ -1,0 +1,33 @@
+R version 4.6.0 (2026-04-24)
+Platform: x86_64-pc-linux-gnu
+Running under: AlmaLinux 8.10 (Cerulean Leopard)
+
+Matrix products: default
+BLAS:   /data/jaguir26/local/opt/R/4.6.0/lib64/R/lib/libRblas.so
+LAPACK: /data/jaguir26/local/opt/R/4.6.0/lib64/R/lib/libRlapack.so;  LAPACK version 3.12.1
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C
+
+time zone: America/New_York
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] exdqlm_1.1.1
+
+loaded via a namespace (and not attached):
+ [1] igraph_2.3.1        Formula_1.2-5       R6_2.6.1
+ [4] numDeriv_2016.8-1.1 xfun_0.57           lattice_0.22-9
+ [7] coda_0.19-4.1       magrittr_2.0.5      zoo_1.8-15
+[10] tictoc_1.2.1        knitr_1.51          parallel_4.6.0
+[13] pkgconfig_2.0.3     scoringRules_1.1.3  lifecycle_1.0.5
+[16] cli_3.6.6           sandwich_3.1-1      grid_4.6.0
+[19] compiler_4.6.0      nimble_1.4.2        tools_4.6.0
+[22] pracma_2.4.6        evaluate_1.0.5      Rcpp_1.1.1-1.1
+[25] crch_1.2-2          rlang_1.2.0         MASS_7.3-65
