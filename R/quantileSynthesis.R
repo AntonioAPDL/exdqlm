@@ -12,9 +12,9 @@
 #'
 #' @param draws_list List of length \code{L}; each element is either:
 #'   (i) a numeric matrix of posterior predictive draws (\code{T x ns} or
-#'   \code{ns x T}), (ii) a dynamic fit object (\code{exdqlmMCMC},
-#'   \code{exdqlmLDVB}, or legacy \code{exdqlmISVB}) with
-#'   \code{samp.post.pred}, or (iii) an \code{exdqlmForecast} object with
+#'   \code{ns x T}), (ii) a fitted dynamic \code{exdqlmFit} object such as
+#'   an \code{exdqlmMCMC}, \code{exdqlmLDVB}, or legacy \code{exdqlmISVB}
+#'   fit with \code{samp.post.pred}, or (iii) an \code{exdqlmForecast} object with
 #'   \code{samp.fore}. Rows are coerced to time.
 #' @param p Numeric vector of target quantile levels in \code{(0,1)} of length \code{L}
 #'   (same order as \code{draws_list}, not necessarily sorted). Duplicate levels are not allowed.

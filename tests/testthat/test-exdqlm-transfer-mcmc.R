@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_transfer_base_model <- function(TT) {
   exdqlm::as.exdqlm(list(
     m0 = 0,
@@ -124,6 +126,8 @@ test_that("transfer-function MCMC wrapper matches direct augmented model contrac
   )
 
   expect_s3_class(fit_wrap, "exdqlmMCMC")
+  expect_s3_class(fit_wrap, "exdqlmFit")
+  expect_true(is.exdqlmFit(fit_wrap))
   expect_equal(fit_wrap$df, c(1, 0.98, 0.98))
   expect_equal(fit_wrap$dim.df, c(1, 1, 1))
   expect_equal(fit_wrap$model$GG, fit_direct$model$GG)
@@ -230,7 +234,7 @@ test_that("transfer-function wrappers support componentwise tf.df and full exDQL
   expect_equal(fit_mcmc$dim.df, c(1, 1, 1, 1))
   expect_true(all(is.finite(as.numeric(fit_mcmc$samp.gamma))))
   expect_true(all(is.finite(as.numeric(fit_mcmc$samp.sigma))))
-  expect_identical(fit_mcmc$mh.diagnostics$proposal, "slice")
+  expect_identical(fit_mcmc$mh.diagnostics$proposal, "collapsed_slice")
   expect_true(is.finite(fit_mcmc$median.kt))
 
   set.seed(20260423)
@@ -241,10 +245,13 @@ test_that("transfer-function wrappers support componentwise tf.df and full exDQL
     fix.sigma = TRUE, sig.init = 1,
     dqlm.ind = TRUE,
     tol = 0.2, n.samp = 10,
+    vb_control = list(max_iter = 7L),
     verbose = FALSE
   )
   expect_equal(fit_ldvb$df, c(1, 0.97, 0.96, 0.95))
   expect_equal(fit_ldvb$dim.df, c(1, 1, 1, 1))
+  expect_lte(fit_ldvb$iter, 7L)
+  expect_lte(fit_ldvb$diagnostics$convergence$iter, 7L)
   expect_true(is.finite(fit_ldvb$median.kt))
   expect_equal(fit_ldvb$transfer_input_names, c("rain", "soil"))
 
@@ -313,4 +320,26 @@ test_that("transfer-function MCMC output with multivariate X works with downstre
   cplot <- exdqlm::compPlot(fit, index = 1, add = FALSE, col = "red", just.theta = TRUE)
   expect_length(qplot$map.quant, TT)
   expect_length(cplot$map.comp, TT)
+  expect_length(qplot$x, TT)
+  expect_length(cplot$x, TT)
+
+  qsummary <- exdqlm::exdqlmPlot(fit, plot = FALSE)
+  csummary <- exdqlm::compPlot(fit, index = 1, just.theta = TRUE, plot = FALSE)
+  expect_named(qsummary, c("map.quant", "lb.quant", "ub.quant", "x"))
+  expect_named(csummary, c("map.comp", "lb.comp", "ub.comp", "x"))
+  expect_equal(qsummary$map.quant, qplot$map.quant)
+  expect_equal(csummary$map.comp, cplot$map.comp)
+
+  graphics::plot(qsummary$x, qsummary$map.quant, type = "n",
+                 xlim = range(qsummary$x), ylim = range(qsummary$lb.quant, qsummary$ub.quant))
+  expect_silent(exdqlm::exdqlmPlot(fit, add = TRUE, col = "black",
+                                   xlim = range(qsummary$x),
+                                   ylim = range(qsummary$lb.quant, qsummary$ub.quant),
+                                   xlab = "custom x", ylab = "custom y",
+                                   lwd = 1, lwd.interval = 0.5))
+  expect_silent(exdqlm::compPlot(fit, index = 1, add = TRUE, col = "orange",
+                                 just.theta = TRUE, xlim = range(csummary$x),
+                                 ylim = range(csummary$lb.comp, csummary$ub.comp),
+                                 xlab = "custom x", ylab = "custom y",
+                                 lwd = 1, lwd.interval = 0.5))
 })

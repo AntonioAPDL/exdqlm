@@ -855,16 +855,27 @@ check_ts = function(dat){
     return(out)
   }
 
-  ld_mu <- c(
-    eta = as.numeric(fit$qsiggam$eta_hat),
-    ell = as.numeric(fit$qsiggam$ell_hat)
-  )
-  ld_draws <- .exdqlm_ldvb_sample_gaussian(ld_mu, fit$qsiggam$Sigma, ns)
   bounds <- fit$misc$bounds
   L <- as.numeric(bounds["L"])
   U <- as.numeric(bounds["U"])
   if (!is.finite(L)) L <- as.numeric(bounds[1])
   if (!is.finite(U)) U <- as.numeric(bounds[2])
+  if (identical(fit$qsiggam$factorization, "structured_qgamma_qsigma_given_gamma")) {
+    siggam_draws <- .exal_sigmagam_structured_sample(
+      fit$qsiggam,
+      ns,
+      context = "exalStaticLDVB_structured_sigmagam"
+    )
+    out$samp.sigma <- siggam_draws$sigma
+    out$samp.gamma <- siggam_draws$gamma
+    return(out)
+  }
+
+  ld_mu <- c(
+    eta = as.numeric(fit$qsiggam$eta_hat),
+    ell = as.numeric(fit$qsiggam$ell_hat)
+  )
+  ld_draws <- .exdqlm_ldvb_sample_gaussian(ld_mu, fit$qsiggam$Sigma, ns)
   out$samp.sigma <- exp(ld_draws[, 2L])
   out$samp.gamma <- L + (U - L) * stats::plogis(ld_draws[, 1L])
   out

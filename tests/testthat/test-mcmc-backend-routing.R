@@ -1,3 +1,5 @@
+skip_on_cran()
+
 # Backend routing and strict/fast checks for exdqlmMCMC.
 
 tiny_mcmc_model <- function() {

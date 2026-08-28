@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_rhs_xy <- function(n = 20L) {
   x <- seq(-1, 1, length.out = n)
   X <- cbind(`(Intercept)` = 1, x = x, x2 = x^2)

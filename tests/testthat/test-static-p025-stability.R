@@ -1,3 +1,5 @@
+skip_on_cran()
+
 # Regression coverage for the static p0 = 0.25 benchmark that previously
 # produced non-finite LDVB warm starts and downstream MCMC warnings.
 

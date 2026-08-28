@@ -22,7 +22,8 @@
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
 #'
-#' @return An object of class "\code{exdqlmISVB}" containing the following:
+#' @return An object with classes "\code{exdqlmISVB}" and "\code{exdqlmFit}"
+#' containing the following:
 #' \itemize{
 #'   \item `run.time` - Algorithm run time in seconds.
 #'   \item `iter` - Number of iterations until convergence was reached.

@@ -5,14 +5,17 @@
 #' a finite integrated quantile score over posterior predictive empirical
 #' quantiles, the one-step-ahead distribution sequence, and deterministic
 #' semiclosed KL normality diagnostics for the MAP standardized forecast errors.
-#' The function also plots the following: the qq-plot and ACF plot corresponding
-#' to the one-step-ahead distribution sequence, and a time series plot of the MAP
-#' standard forecast errors.
+#' The returned diagnostic object can be printed, summarized, or plotted with
+#' standard methods. Calling \code{plot()} on the object produces the QQ plot and
+#' ACF plot corresponding to the one-step-ahead distribution sequence, together
+#' with a time series plot of the MAP standard forecast errors.
 #'
 #' @inheritParams exdqlmPlot
-#' @param m2 An optional additional object of class "\code{exdqlmLDVB}",
-#'   "\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with `m1`.
-#' @param plot Logical value indicating whether the following will be plotted for `m1` and `m2` (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors. Default is `TRUE`.
+#' @param m2 An optional second fitted dynamic \code{exdqlmFit} object to
+#'   compare with \code{m1}.
+#' @param plot Logical value indicating whether to immediately plot the returned
+#'   diagnostic object as a convenience shortcut. Default is \code{FALSE}; the
+#'   preferred workflow is to save the object and then call \code{plot()} on it.
 #' @param cols Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.
 #' @param ref Optional finite reference sample of size `length(m1$y)` from a
 #'   standard normal distribution. Used for the reversed KL diagnostic. When
@@ -29,8 +32,9 @@
 #'   standardized-error sample size, falling back to `1` for very small samples.
 #'
 #' @details
-#' The KL summaries are computed from the MAP standardized one-step-ahead
-#' forecast errors `map.standard.forecast.errors`. The reported `KL` estimates
+#' The primary KL summary is computed from the MAP standardized one-step-ahead
+#' forecast errors `map.standard.forecast.errors`. The reported `KL` value is
+#' the user-facing calibration diagnostic and estimates
 #' \eqn{KL(P_e || N(0,1))}, where \eqn{P_e} is the continuous diagnostic-error
 #' law represented by the standardized errors. It uses the semiclosed identity
 #' \eqn{KL(P_e || N(0,1)) = CE(P_e, N(0,1)) - H(P_e)}, with the normal
@@ -38,8 +42,11 @@
 #' one-dimensional k-nearest-neighbor estimator. The reported `KL.flip`
 #' estimates the reversed diagnostic \eqn{KL(N(0,1) || P_e)} using kNN
 #' cross-entropy. The reversed direction is more sensitive and should be read as
-#' a secondary smoothed diagnostic. Negative finite-sample estimates are not
-#' clamped; they indicate estimator bias or instability for the current sample.
+#' a secondary sensitivity diagnostic, not as a replacement for `KL`. Advanced
+#' by-`k` sensitivity tables and Gaussian plug-in checks are stored under
+#' `kl.details` so the top-level diagnostic object exposes a single primary KL
+#' value. Negative finite-sample estimates are not clamped; they indicate
+#' estimator bias or instability for the current sample.
 #'
 #' @return An object of class "\code{exdqlmDiagnostic}" containing the following:
 #'  \itemize{
@@ -47,11 +54,8 @@
 #'  \item `m1.KL` - The forward KL normality diagnostic
 #'  `KL(P_error || N(0,1))` for the MAP standardized forecast errors.
 #'  \item `m1.KL.flip` - The reversed ("flipped") KL diagnostic
-#'  `KL(N(0,1) || P_error)` for the MAP standardized forecast errors.
-#'  \item `m1.KL.by_k` - Forward KL sensitivity by nearest-neighbor value.
-#'  \item `m1.KL.flip.by_k` - Reversed KL sensitivity by nearest-neighbor value.
-#'  \item `m1.KL.gaussian` - Gaussian plug-in forward KL check.
-#'  \item `m1.KL.flip.gaussian` - Gaussian plug-in reversed KL check.
+#'  `KL(N(0,1) || P_error)` for the MAP standardized forecast errors; this is a
+#'  secondary sensitivity diagnostic.
 #'  \item `m1.CRPS` - The mean CRPS approximated by a finite integrated
 #'  quantile score over posterior predictive empirical quantiles.
 #'  \item `m1.pplc` - The posterior predictive loss criterion of `m1` based off the check loss function.
@@ -67,6 +71,9 @@
 #'  metadata.
 #'  \item `kl.n_finite`, `kl.n_ref`, and `kl.zero_distance_count` - KL diagnostic
 #'  sample-size and distance-floor metadata.
+#'  \item `kl.details` - Advanced KL estimator details by model. For each model
+#'  this includes primary/flipped definitions, by-`k` sensitivity tables, a
+#'  Gaussian plug-in check, and estimator metadata.
 #'  }
 #'  If `m2` is provided, analogous results for `m2` are also included in the list.
 #' @export
@@ -80,11 +87,13 @@
 #' M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
 #'                   gam.init = -3.5, sig.init = 15,
 #'                   n.samp = 20, tol = 0.2, verbose = FALSE)
-#' M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
+#' M0.diags = exdqlmDiagnostics(M0)
+#' M0.diags
+#' plot(M0.diags)
 #' options(old)
 #' }
 #'
-exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL,
+exdqlmDiagnostics <- function(m1,m2=NULL,plot=FALSE,cols=c("red","blue"),ref=NULL,
                               crps_probs = seq(0.01, 0.99, by = 0.01),
                               crps_weights = NULL,
                               kl_k = NULL){
@@ -93,14 +102,15 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
     x <- x[is.finite(x)]
     if (!length(x)) NA_real_ else mean(x)
   }
+  plot <- .exdqlm_validate_plot_flag(plot)
   crps_probs <- .exdqlm_validate_crps_probs(crps_probs)
   crps_weights <- .exdqlm_validate_crps_weights(crps_weights, length(crps_probs))
 
   # check inputs
   y = m1$y
   TT = length(y)
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
-    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
+  if(!is.exdqlmFit(m1)){
+    stop("m1 must be a fitted dynamic exdqlmFit object from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
   }
   cols = c(matrix(cols,2,1))
 
@@ -122,12 +132,13 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   # m1 acf
   m1.acf = stats::acf(m1.uts,plot=FALSE)
   #
-  retlist = list(m1.uts=m1.uts,m1.KL=m1.KL,m1.KL.flip=m1.KL.flip,m1.CRPS=m1.CRPS,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf,
+  retlist = list(p0 = as.numeric(m1$p0)[1],
+                 n = length(y),
+                 m1.class = class(m1)[1],
+                 m1.engine = if (is.exdqlmMCMC(m1)) "MCMC" else if (is.exdqlmLDVB(m1)) "LDVB" else "legacy ISVB",
+                 m1.uts=m1.uts,m1.KL=m1.KL,m1.KL.flip=m1.KL.flip,m1.CRPS=m1.CRPS,m1.pplc=m1.pplc,m1.qq=m1.qq,m1.acf=m1.acf,
                  m1.rt=m1$run.time,m1.msfe=m1$map.standard.forecast.errors,y=y,
-                 m1.KL.by_k = m1.kl$KL.by_k,
-                 m1.KL.flip.by_k = m1.kl$KL.flip.by_k,
-                 m1.KL.gaussian = m1.kl$KL.gaussian,
-                 m1.KL.flip.gaussian = m1.kl$KL.flip.gaussian,
+                 kl.details = list(m1 = .exdqlm_kl_details(m1.kl)),
                  crps.method = "integrated_quantile_score",
                  crps.probs = crps_probs,
                  crps.weights = crps_weights,
@@ -142,8 +153,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   ### m2
   if(!is.null(m2)){
     # check inputs
-    if(!is.exdqlmMCMC(m2) && !is.exdqlmISVB(m2) && !is.exdqlmLDVB(m2)){
-      stop("m2 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
+    if(!is.exdqlmFit(m2)){
+      stop("m2 must be a fitted dynamic exdqlmFit object from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
     }
     if(dim(m1$samp.theta)[2] != TT){
       stop("length of dynamic quantile in m2 does not match data")
@@ -154,6 +165,8 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
     if(m1$p0 != m2$p0){
       stop("quantiles estimated in m1 and m2 do not match")
     }
+    retlist[["m2.class"]] = class(m2)[1]
+    retlist[["m2.engine"]] = if (is.exdqlmMCMC(m2)) "MCMC" else if (is.exdqlmLDVB(m2)) "LDVB" else "legacy ISVB"
     # m2 seq.uts
     m2.uts = stats::pnorm(m2$map.standard.forecast.errors)
     retlist[["m2.msfe"]] = m2$map.standard.forecast.errors
@@ -163,10 +176,7 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
     m2.kl = .exdqlm_kl_normality_1d(m2$map.standard.forecast.errors, ref = ref, kl_k = kl_k_m2)
     retlist[["m2.KL"]] = m2.kl$KL
     retlist[["m2.KL.flip"]] = m2.kl$KL.flip
-    retlist[["m2.KL.by_k"]] = m2.kl$KL.by_k
-    retlist[["m2.KL.flip.by_k"]] = m2.kl$KL.flip.by_k
-    retlist[["m2.KL.gaussian"]] = m2.kl$KL.gaussian
-    retlist[["m2.KL.flip.gaussian"]] = m2.kl$KL.flip.gaussian
+    retlist[["kl.details"]][["m2"]] = .exdqlm_kl_details(m2.kl)
     retlist[["kl.n_finite"]] = c(retlist[["kl.n_finite"]], m2 = m2.kl$n_finite)
     retlist[["kl.n_ref"]] = c(retlist[["kl.n_ref"]], m2 = m2.kl$n_ref)
     retlist[["kl.zero_distance_count"]] = c(retlist[["kl.zero_distance_count"]], m2 = m2.kl$zero_distance_count)
@@ -189,5 +199,5 @@ exdqlmDiagnostics <- function(m1,m2=NULL,plot=TRUE,cols=c("red","blue"),ref=NULL
   }
 
   # return model checks
-  return(invisible(retlist))
+  return(retlist)
 }

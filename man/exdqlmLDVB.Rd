@@ -2,7 +2,14 @@
 % Please edit documentation in R/exdqlmLDVB.R
 \name{exdqlmLDVB}
 \alias{exdqlmLDVB}
-\title{exDQLM - LDVB algorithm (Laplace-Delta)}
+\title{exDQLM - LDVB algorithm}
+\usage{
+exdqlmLDVB(y, p0, model, df, dim.df, fix.gamma = FALSE, gam.init = NA,
+  fix.sigma = FALSE, sig.init = NA, dqlm.ind = FALSE, exps0,
+  tol = 0.1, n.samp = 200, PriorSigma = NULL, PriorGamma = NULL,
+  vb_control = NULL, verbose = TRUE, debug_shapes = FALSE,
+  debug_every = 5)
+}
 \arguments{
 \item{y}{A univariate time-series.}
 
@@ -48,7 +55,8 @@ explicit controls remain the advanced override path.}
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
-An object of class "\code{exdqlmLDVB}" containing the following:
+An object with classes "\code{exdqlmLDVB}" and "\code{exdqlmFit}"
+containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
@@ -79,8 +87,11 @@ If \code{dqlm.ind=FALSE}, the list also contains:
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the LD (Laplace-Delta) approximation for the
-variational distribution of \code{sigma} and \code{gamma} (means, transformed Hessian, and ELBO components).
+\item \code{gammasig.out} - List containing the variational approximation for
+\code{sigma} and \code{gamma}. In the default structured factor this includes the
+bounded-logit gamma quadrature grid and conditional GIG scale summaries;
+in the legacy Laplace-delta factor it includes the transformed mean and
+covariance.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 \item \code{fix.gamma} Logical value indicating whether gamma was fixed at \code{gam.init}.
 }
@@ -91,7 +102,11 @@ Or if \code{dqlm.ind=TRUE}, the list also contains:
 }
 \description{
 The function applies a Laplace-Delta Variational Bayes (LDVB) algorithm to
-estimate the posterior of an exDQLM.
+estimate the posterior of an exDQLM. For unrestricted exAL fits, the
+default scale-skewness block uses a structured
+\eqn{q(\gamma)q(\sigma \mid \gamma)} approximation. A
+two-dimensional Laplace-delta block is available through
+\code{vb_control$sigmagam}.
 }
 \details{
 Advanced options (set via \code{options()}):
@@ -111,6 +126,12 @@ when FALSE, the remaining samplers fall back to R implementations.
 exDQLM latent \eqn{s_t} VB block. Supported fields are
 \code{freeze_warmup_iters}, \code{force_after_warmup}, and
 \code{min_postwarmup_updates}.
+\item \code{exdqlm.dynamic.ldvb.sigmagam}: optional controls for the exAL
+\eqn{(\sigma,\gamma)} VB block. The default
+\code{factorization = "structured"} uses
+\eqn{q(\gamma)q(\sigma \mid \gamma)}. Use
+\code{factorization = "laplace_delta"} for the legacy
+two-dimensional transformed Gaussian factor.
 }
 }
 \examples{

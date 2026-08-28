@@ -7,7 +7,7 @@
 exdqlmDiagnostics(
   m1,
   m2 = NULL,
-  plot = TRUE,
+  plot = FALSE,
   cols = c("red", "blue"),
   ref = NULL,
   crps_probs = seq(0.01, 0.99, by = 0.01),
@@ -16,13 +16,16 @@ exdqlmDiagnostics(
 )
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
-legacy "\code{exdqlmISVB}".}
+\item{m1}{A fitted dynamic \code{exdqlmFit} object, such as an object
+returned by \code{\link{exdqlmLDVB}}, \code{\link{exdqlmMCMC}}, or
+legacy \code{\link{exdqlmISVB}}.}
 
-\item{m2}{An optional additional object of class "\code{exdqlmLDVB}",
-"\code{exdqlmMCMC}", or legacy "\code{exdqlmISVB}" to compare with \code{m1}.}
+\item{m2}{An optional second fitted dynamic \code{exdqlmFit} object to
+compare with \code{m1}.}
 
-\item{plot}{Logical value indicating whether the following will be plotted for \code{m1} and \code{m2} (if provided): a qq-plot and ACF plot of the MAP one-step-ahead distribution sequence, and a time series plot of the standardized forecast errors. Default is \code{TRUE}.}
+\item{plot}{Logical value indicating whether to immediately plot the returned
+diagnostic object as a convenience shortcut. Default is \code{FALSE}; the
+preferred workflow is to save the object and then call \code{plot()} on it.}
 
 \item{cols}{Character vector of length 1 or 2 giving color(s) used to plot diagnostics. Default \code{c("red","blue")}.}
 
@@ -50,11 +53,8 @@ An object of class "\code{exdqlmDiagnostic}" containing the following:
 \item \code{m1.KL} - The forward KL normality diagnostic
 \code{KL(P_error || N(0,1))} for the MAP standardized forecast errors.
 \item \code{m1.KL.flip} - The reversed ("flipped") KL diagnostic
-\code{KL(N(0,1) || P_error)} for the MAP standardized forecast errors.
-\item \code{m1.KL.by_k} - Forward KL sensitivity by nearest-neighbor value.
-\item \code{m1.KL.flip.by_k} - Reversed KL sensitivity by nearest-neighbor value.
-\item \code{m1.KL.gaussian} - Gaussian plug-in forward KL check.
-\item \code{m1.KL.flip.gaussian} - Gaussian plug-in reversed KL check.
+\code{KL(N(0,1) || P_error)} for the MAP standardized forecast errors; this is a
+secondary sensitivity diagnostic.
 \item \code{m1.CRPS} - The mean CRPS approximated by a finite integrated
 quantile score over posterior predictive empirical quantiles.
 \item \code{m1.pplc} - The posterior predictive loss criterion of \code{m1} based off the check loss function.
@@ -70,6 +70,9 @@ quantile score over posterior predictive empirical quantiles.
 metadata.
 \item \code{kl.n_finite}, \code{kl.n_ref}, and \code{kl.zero_distance_count} - KL diagnostic
 sample-size and distance-floor metadata.
+\item \code{kl.details} - Advanced KL estimator details by model. For each model
+this includes primary/flipped definitions, by-\code{k} sensitivity tables, a
+Gaussian plug-in check, and estimator metadata.
 }
 If \code{m2} is provided, analogous results for \code{m2} are also included in the list.
 }
@@ -79,13 +82,15 @@ predictive loss criterion based off the check loss, the CRPS approximated as
 a finite integrated quantile score over posterior predictive empirical
 quantiles, the one-step-ahead distribution sequence, and deterministic
 semiclosed KL normality diagnostics for the MAP standardized forecast errors.
-The function also plots the following: the qq-plot and ACF plot corresponding
-to the one-step-ahead distribution sequence, and a time series plot of the MAP
-standard forecast errors.
+The returned diagnostic object can be printed, summarized, or plotted with
+standard methods. Calling \code{plot()} on the object produces the QQ plot and
+ACF plot corresponding to the one-step-ahead distribution sequence, together
+with a time series plot of the MAP standard forecast errors.
 }
 \details{
-The KL summaries are computed from the MAP standardized one-step-ahead
-forecast errors \code{map.standard.forecast.errors}. The reported \code{KL} estimates
+The primary KL summary is computed from the MAP standardized one-step-ahead
+forecast errors \code{map.standard.forecast.errors}. The reported \code{KL} value is
+the user-facing calibration diagnostic and estimates
 \eqn{KL(P_e || N(0,1))}, where \eqn{P_e} is the continuous diagnostic-error
 law represented by the standardized errors. It uses the semiclosed identity
 \eqn{KL(P_e || N(0,1)) = CE(P_e, N(0,1)) - H(P_e)}, with the normal
@@ -93,8 +98,11 @@ cross-entropy term evaluated analytically and the entropy estimated by a
 one-dimensional k-nearest-neighbor estimator. The reported \code{KL.flip}
 estimates the reversed diagnostic \eqn{KL(N(0,1) || P_e)} using kNN
 cross-entropy. The reversed direction is more sensitive and should be read as
-a secondary smoothed diagnostic. Negative finite-sample estimates are not
-clamped; they indicate estimator bias or instability for the current sample.
+a secondary sensitivity diagnostic, not as a replacement for \code{KL}. Advanced
+by-\code{k} sensitivity tables and Gaussian plug-in checks are stored under
+\code{kl.details} so the top-level diagnostic object exposes a single primary KL
+value. Negative finite-sample estimates are not clamped; they indicate
+estimator bias or instability for the current sample.
 }
 \examples{
 \donttest{
@@ -105,7 +113,9 @@ model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.95), dim.df = c(1),
                   gam.init = -3.5, sig.init = 15,
                   n.samp = 20, tol = 0.2, verbose = FALSE)
-M0.diags = exdqlmDiagnostics(M0, plot = FALSE)
+M0.diags = exdqlmDiagnostics(M0)
+M0.diags
+plot(M0.diags)
 options(old)
 }
 

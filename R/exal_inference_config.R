@@ -44,6 +44,9 @@
 
 .exal_default_vb_sigmagam_profile <- function() {
   list(
+    factorization = "structured",
+    structured_grid_size = 151L,
+    structured_span_sd = 6,
     freeze_warmup_iters = 10L,
     force_after_warmup = TRUE,
     postwarmup_damping = 0.6,
@@ -399,50 +402,7 @@
 }
 
 .exal_normalize_vb_sigmagam_cfg <- function(sigmagam_cfg = NULL) {
-  `%||%` <- function(a, b) if (is.null(a)) b else a
-  sigmagam_cfg <- .exal_list_with_defaults(.exal_default_vb_sigmagam_profile(), sigmagam_cfg)
-
-  freeze_warmup_iters <- suppressWarnings(as.integer(
-    sigmagam_cfg$freeze_warmup_iters %||%
-      sigmagam_cfg$freeze_sigmagam_warmup_iters %||%
-      .exal_default_vb_sigmagam_profile()$freeze_warmup_iters
-  )[1L])
-  if (!is.finite(freeze_warmup_iters) || freeze_warmup_iters < 0L) freeze_warmup_iters <- 0L
-
-  postwarmup_damping <- as.numeric(
-    sigmagam_cfg$postwarmup_damping %||%
-      sigmagam_cfg$sigmagam_postwarmup_damping %||%
-      .exal_default_vb_sigmagam_profile()$postwarmup_damping
-  )[1L]
-  if (!is.finite(postwarmup_damping) || postwarmup_damping <= 0 || postwarmup_damping > 1) {
-    postwarmup_damping <- 1.0
-  }
-
-  postwarmup_damping_iters <- suppressWarnings(as.integer(
-    sigmagam_cfg$postwarmup_damping_iters %||%
-      sigmagam_cfg$sigmagam_postwarmup_damping_iters %||%
-      .exal_default_vb_sigmagam_profile()$postwarmup_damping_iters
-  )[1L])
-  if (!is.finite(postwarmup_damping_iters) || postwarmup_damping_iters < 0L) {
-    postwarmup_damping_iters <- 0L
-  }
-
-  min_postwarmup_updates <- suppressWarnings(as.integer(
-    sigmagam_cfg$min_postwarmup_updates %||%
-      sigmagam_cfg$sigmagam_min_postwarmup_updates %||%
-      .exal_default_vb_sigmagam_profile()$min_postwarmup_updates
-  )[1L])
-  if (!is.finite(min_postwarmup_updates) || min_postwarmup_updates < 0L) {
-    min_postwarmup_updates <- 0L
-  }
-
-  list(
-    freeze_warmup_iters = freeze_warmup_iters,
-    force_after_warmup = if (is.null(sigmagam_cfg$force_after_warmup)) TRUE else isTRUE(sigmagam_cfg$force_after_warmup),
-    postwarmup_damping = postwarmup_damping,
-    postwarmup_damping_iters = postwarmup_damping_iters,
-    min_postwarmup_updates = min_postwarmup_updates
-  )
+  .exal_sigmagam_vb_controls(sigmagam_cfg)
 }
 
 .exal_normalize_vb_online_cfg <- function(online_cfg = NULL) {
@@ -1320,6 +1280,14 @@ exal_make_beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), tau2 = NULL
 #'
 #' @param freeze_warmup_iters Non-negative integer; number of early VB iterations
 #'   during which the `(sigma, gamma)` block is held fixed.
+#' @param factorization Character; `"structured"` uses the
+#'   `q(gamma) q(sigma | gamma)` scale-skewness factorization. The legacy
+#'   two-dimensional Laplace-delta factor can be requested with
+#'   `"laplace_delta"`.
+#' @param structured_grid_size Odd integer; number of quadrature nodes for the
+#'   structured gamma factor. The package default is 151.
+#' @param structured_span_sd Numeric; local quadrature half-width in curvature
+#'   standard deviations for the structured gamma factor.
 #' @param force_after_warmup Logical; force one immediate post-warmup update.
 #' @param postwarmup_damping Numeric in `(0, 1]`; damping applied after warmup.
 #' @param postwarmup_damping_iters Non-negative integer; number of damped
@@ -1342,12 +1310,18 @@ exal_make_beta_prior <- function(type = c("ridge", "rhs", "rhs_ns"), tau2 = NULL
 #'   postwarmup_damping_iters = 6L
 #' )
 exal_make_vb_sigmagam_control <- function(
+    factorization = NULL,
+    structured_grid_size = NULL,
+    structured_span_sd = NULL,
     freeze_warmup_iters = NULL,
     force_after_warmup = NULL,
     postwarmup_damping = NULL,
     postwarmup_damping_iters = NULL,
     min_postwarmup_updates = NULL) {
   cfg <- list()
+  if (!is.null(factorization)) cfg$factorization <- factorization
+  if (!is.null(structured_grid_size)) cfg$structured_grid_size <- structured_grid_size
+  if (!is.null(structured_span_sd)) cfg$structured_span_sd <- structured_span_sd
   if (!is.null(freeze_warmup_iters)) cfg$freeze_warmup_iters <- freeze_warmup_iters
   if (!is.null(force_after_warmup)) cfg$force_after_warmup <- force_after_warmup
   if (!is.null(postwarmup_damping)) cfg$postwarmup_damping <- postwarmup_damping

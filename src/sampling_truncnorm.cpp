@@ -1,10 +1,8 @@
-#include <boost/random.hpp>
-#include <boost/random/normal_distribution.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
 #include <boost/math/special_functions/erf.hpp>
 #include <Rcpp.h>
-#include <chrono>
-#include "omp_compat.h"
+#include <algorithm>
+#include <cmath>
+#include <limits>
 
 // Standard normal CDF
 double normal_cdf(double x) {
@@ -17,13 +15,25 @@ double normal_cdf_inv(double p) {
 }
 
 // Function to sample from a lower truncated normal distribution (truncated at 0)
-double rtruncnorm(boost::random::mt19937& gen, double mean, double sd) {
+double rtruncnorm(double mean, double sd) {
     double a = 0.0; // Lower bound for truncation
+    if (!std::isfinite(mean) || !std::isfinite(sd) || sd <= 0.0) {
+        return NA_REAL;
+    }
     double alpha = (a - mean) / sd;
     double alpha_cdf = normal_cdf(alpha);
-    
-    boost::random::uniform_real_distribution<> uniform_dist(alpha_cdf, 1.0);
-    double U = uniform_dist(gen);
+    if (!std::isfinite(alpha_cdf)) {
+        return NA_REAL;
+    }
+
+    alpha_cdf = std::max(0.0, std::min(alpha_cdf, std::nextafter(1.0, 0.0)));
+    if (alpha_cdf >= std::nextafter(1.0, 0.0)) {
+        return a;
+    }
+
+    double U = R::runif(alpha_cdf, 1.0);
+    U = std::max(std::numeric_limits<double>::min(),
+                 std::min(U, std::nextafter(1.0, 0.0)));
     double sample = mean + sd * normal_cdf_inv(U);
 
     return sample;
@@ -44,34 +54,13 @@ Rcpp::NumericMatrix sample_truncnorm(int n_samp, int TT,
         std_devs[t] = std::sqrt(sts_sig2[t]);
     }
 
-#ifdef _OPENMP
-    #pragma omp parallel
-    {
-        unsigned seed = static_cast<unsigned>(
-            std::chrono::system_clock::now().time_since_epoch().count()
-        ) + static_cast<unsigned>(omp_get_thread_num());
-        boost::random::mt19937 gen(seed);
-
-        #pragma omp for collapse(2)
-        for (int t = 0; t < TT; ++t) {
-            for (int i = 0; i < n_samp; ++i) {
-                const double mean = sts_mu[t];
-                const double sd   = std_devs[t];
-                samples(i, t) = rtruncnorm(gen, mean, sd);
-            }
-        }
-    }
-#else
-    // No OpenMP: single-threaded
-    boost::random::mt19937 gen(0);
     for (int t = 0; t < TT; ++t) {
         const double mean = sts_mu[t];
         const double sd   = std_devs[t];
         for (int i = 0; i < n_samp; ++i) {
-            samples(i, t) = rtruncnorm(gen, mean, sd);
+            samples(i, t) = rtruncnorm(mean, sd);
         }
     }
-#endif
 
     return samples;
 }

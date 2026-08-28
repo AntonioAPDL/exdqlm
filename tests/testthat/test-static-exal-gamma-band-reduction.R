@@ -1,3 +1,5 @@
+skip_on_cran()
+
 test_that("tight gamma band behaves like the AL submodel numerically", {
   band <- 1e-6
   taus <- c(0.05, 0.50, 0.95)

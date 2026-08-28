@@ -1,20 +1,24 @@
 #' k-step-ahead quantile forecasts
 #'
 #' Computes filtered and \code{k}-step-ahead forecast quantiles from a fitted
-#' dynamic quantile model and optionally adds them to an existing plot.
+#' dynamic quantile model. The returned \code{exdqlmForecast} object can be
+#' printed, summarized, plotted with \code{plot()}, or passed to
+#' \code{\link{diagnostics}} with held-out observations.
 #'
 #' @param start.t Integer index at which forecasts start (must be within the span of the fitted model in \code{m1}).
 #' @param k Integer number of steps ahead to forecast.
-#' @param m1 A fitted exDQLM model object, returned by [exdqlmLDVB()],
-#'   [exdqlmMCMC()], or legacy [exdqlmISVB()].
+#' @param m1 A fitted dynamic \code{exdqlmFit} object, such as an object
+#'   returned by [exdqlmLDVB()], [exdqlmMCMC()], or legacy [exdqlmISVB()].
 #' @param fFF Optional state vector(s) for the forecast steps. A numeric matrix with
 #'   \eqn{q} rows and either 1 column (non–time-varying) or \code{k} columns (time-varying).
 #'   Its dimension must match the fitted model in \code{m1}.
 #' @param fGG Optional evolution matrix/matrices for the forecast steps. Either a numeric
 #'   \eqn{q \times q} matrix (non–time-varying) or a \eqn{q \times q \times k} array (time-varying).
 #'   Its dimensions must match the fitted model in \code{m1}.
-#' @param plot Logical value indicating whether to plot filtered and forecast quantiles with
-#'   equal–tailed credible intervals. Default is \code{TRUE}.
+#' @param plot Logical value indicating whether to immediately plot filtered
+#'   and forecast quantiles with equal–tailed credible intervals. Default is
+#'   \code{FALSE}; the preferred workflow is to save the returned object and
+#'   call \code{plot()} on it.
 #' @param add Logical value indicating whether to add the forecasted quantiles to the current plot.
 #'   Default is \code{FALSE}.
 #' @param cols Character vector of length 2 giving the colors for filtered and forecasted
@@ -54,26 +58,27 @@
 #'  y = scIVTmag[1:100]
 #'  model = polytrendMod(1, stats::quantile(y, 0.85), 10)
 #'  M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-#'                   gam.init = -3.5, sig.init = 15, n.samp = 30,
+#'                   dqlm.ind = TRUE, sig.init = 15, n.samp = 30,
 #'                   verbose = FALSE)
-#'  exdqlmForecast(start.t = 90, k = 10, m1 = M0)
-#'  M0.forecast = exdqlmForecast(start.t = 90, k = 10, m1 = M0,
+#'  M0.forecast = predict(M0, start.t = 90, k = 10,
 #'                               return.draws = TRUE, n.samp = 50, seed = 123)
+#'  M0.forecast
+#'  plot(M0.forecast)
 #'  dim(M0.forecast$samp.fore)
 #'  options(old)
 #' }
 #'
 #' @export
 
-exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,cols=c("purple","magenta"),cr.percent=0.95,
+exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=FALSE,add=FALSE,cols=c("purple","magenta"),cr.percent=0.95,
                           return.draws=FALSE,n.samp=NULL,seed=NULL){
 
   # check inputs
   y = m1$y
   p = dim(m1$model$GG)[1]
   TT = dim(m1$model$GG)[3]
-  if(!is.exdqlmMCMC(m1) && !is.exdqlmISVB(m1) && !is.exdqlmLDVB(m1)){
-    stop("m1 must be an output from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
+  if(!is.exdqlmFit(m1)){
+    stop("m1 must be a fitted dynamic exdqlmFit object from 'exdqlmLDVB()', 'exdqlmMCMC()', or legacy 'exdqlmISVB()'")
   }
   if(cr.percent<=0 | cr.percent>=1){
     stop("cr.percent must be between 0 and 1")
@@ -81,6 +86,7 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   if(!is.logical(return.draws) || length(return.draws)!=1 || is.na(return.draws)){
     stop("return.draws must be TRUE or FALSE")
   }
+  plot = .exdqlm_validate_plot_flag(plot)
   if(!is.null(n.samp)){
     n.samp = suppressWarnings(as.integer(n.samp)[1])
     if(!is.finite(n.samp) || n.samp<=0){
@@ -208,5 +214,5 @@ exdqlmForecast = function(start.t,k,m1,fFF=NULL,fGG=NULL,plot=TRUE,add=FALSE,col
   if(plot){ plot(retlist, cols = cols, add = add) }
 
   # return forecast distributions
-  return(invisible(retlist))
+  return(retlist)
 }

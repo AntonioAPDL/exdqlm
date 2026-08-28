@@ -21,6 +21,8 @@ test_that("dynamic ISVB reduced DQLM path returns conjugate outputs", {
   )
 
   expect_s3_class(fit, "exdqlmISVB")
+  expect_s3_class(fit, "exdqlmFit")
+  expect_true(is.exdqlmFit(fit))
   expect_true(isTRUE(fit$dqlm.ind))
   expect_null(fit$samp.gamma)
   expect_null(fit$samp.sts)
@@ -54,6 +56,8 @@ test_that("dynamic LDVB reduced DQLM path skips LD gamma-sigma block", {
   )
 
   expect_s3_class(fit, "exdqlmLDVB")
+  expect_s3_class(fit, "exdqlmFit")
+  expect_true(is.exdqlmFit(fit))
   expect_true(isTRUE(fit$dqlm.ind))
   expect_null(fit$samp.gamma)
   expect_null(fit$samp.sts)
@@ -105,6 +109,27 @@ test_that("dynamic LDVB reduced DQLM path skips LD gamma-sigma block", {
   )
 })
 
+test_that("dynamic MCMC fits inherit from the shared exdqlmFit family", {
+  set.seed(20260303)
+  model <- as.exdqlm(list(m0 = 0, C0 = matrix(1, 1, 1), FF = 1, GG = 1))
+  y <- c(0.1, -0.2, 0.05, 0.15)
+
+  fit <- exdqlmMCMC(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    dqlm.ind = TRUE,
+    fix.sigma = TRUE,
+    sig.init = 1,
+    n.burn = 2,
+    n.mcmc = 3,
+    init.from.vb = FALSE,
+    verbose = FALSE
+  )
+
+  expect_s3_class(fit, "exdqlmMCMC")
+  expect_s3_class(fit, "exdqlmFit")
+  expect_true(is.exdqlmFit(fit))
+})
+
 test_that("static MCMC reduced DQLM path excludes gamma/s latent block", {
   set.seed(20260303)
   n <- 12
@@ -119,6 +144,8 @@ test_that("static MCMC reduced DQLM path excludes gamma/s latent block", {
   )
 
   expect_s3_class(fit, "exalStaticMCMC")
+  expect_s3_class(fit, "exalStaticFit")
+  expect_true(is.exalStaticFit(fit))
   expect_true(isTRUE(fit$dqlm.ind))
   expect_false("samp.gamma" %in% names(fit))
   expect_false("samp.s" %in% names(fit))
@@ -141,6 +168,8 @@ test_that("static LDVB reduced DQLM path returns q(beta) q(v) q(sigma)", {
   )
 
   expect_s3_class(fit, "exalStaticLDVB")
+  expect_s3_class(fit, "exalStaticFit")
+  expect_true(is.exalStaticFit(fit))
   expect_true(isTRUE(fit$dqlm.ind))
   expect_true(is.list(fit$qbeta))
   expect_true(is.list(fit$qv))

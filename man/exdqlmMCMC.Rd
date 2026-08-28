@@ -3,6 +3,22 @@
 \name{exdqlmMCMC}
 \alias{exdqlmMCMC}
 \title{exDQLM - MCMC algorithm}
+\usage{
+exdqlmMCMC(y, p0, model, df, dim.df, fix.gamma = FALSE, gam.init = NA,
+  fix.sigma = FALSE, sig.init = NA, dqlm.ind = FALSE, Sig.mh,
+  joint.sample = FALSE, n.burn = 2000, n.mcmc = 1500,
+  init.from.isvb = FALSE, PriorSigma = NULL, PriorGamma = NULL,
+  verbose = TRUE, init.from.vb = TRUE, vb_init_controls = NULL,
+  vb_init_fit = NULL, mcmc_control = NULL, sigmagam_controls = NULL,
+  latent_state_controls = NULL, theta_state_controls = NULL,
+  dqlm_sigma_controls = NULL,
+  mh.proposal = c("collapsed_slice", "slice", "laplace_rw", "rw"),
+  mh.adapt = TRUE, mh.adapt.interval = 50L,
+  mh.target.accept = c(0.20, 0.45), mh.scale.bounds = c(0.1, 10),
+  mh.max_scale.step = 0.35, mh.min_burn_adapt = 50L,
+  slice.width = 0.1, slice.max.steps = Inf, trace.diagnostics = TRUE,
+  trace.every = 1L, verbose.every = 500L, progress_callback = NULL)
+}
 \arguments{
 \item{y}{A univariate time-series.}
 
@@ -79,12 +95,14 @@ warmup/freeze in dynamic MCMC. Supported keys include
 warmup/freeze in the DQLM branch. Supported keys mirror
 \code{sigmagam_controls}.}
 
-\item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew block.
-\code{"slice"} (default) uses
-an exact sigma GIG update plus a bounded univariate slice sampler directly
-on \code{gamma}; \code{"laplace_rw"} uses a Laplace-informed covariance then RW;
-and \code{"rw"} uses joint random-walk MH on \verb{(log sigma, logit gamma)}.
-This choice is separate from the VB warm-start method.}
+\item{mh.proposal}{Character; proposal kernel for the exDQLM scale/skew
+block. \code{"collapsed_slice"} (default) integrates out \code{sigma} for the
+bounded gamma slice step and then redraws \code{sigma} from its exact GIG
+conditional. \code{"slice"} keeps the previous exact conditional sigma draw
+followed by bounded slice sampling directly on \code{gamma}. \code{"laplace_rw"}
+uses a Laplace-informed covariance then RW, and \code{"rw"} uses joint
+random-walk MH on \verb{(log sigma, logit gamma)}. This choice is separate from
+the VB warm-start method.}
 
 \item{mh.adapt}{Logical; adapt MH proposal scale during burn-in.}
 
@@ -99,7 +117,8 @@ This choice is separate from the VB warm-start method.}
 \item{mh.min_burn_adapt}{Minimum burn-in iterations required to enable adaptation.}
 
 \item{slice.width}{Positive numeric width for the bounded slice sampler when
-\code{mh.proposal = "slice"}. Default \code{0.1} for parity with \code{bqrgal}.}
+\code{mh.proposal} is \code{"collapsed_slice"} or \code{"slice"}. Default \code{0.1} for
+parity with \code{bqrgal}.}
 
 \item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
 expansions for the slice sampler.}
@@ -131,7 +150,8 @@ truncated to the support of gamma.}
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 }
 \value{
-An object of class "\code{exdqlmMCMC}" containing the following:
+An object with classes "\code{exdqlmMCMC}" and "\code{exdqlmFit}"
+containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.

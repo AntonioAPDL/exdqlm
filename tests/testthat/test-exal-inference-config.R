@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_static_xy_builder <- function(n = 18L) {
   x <- seq(-1, 1, length.out = n)
   X <- cbind(1, x)
@@ -430,6 +432,9 @@ test_that("precision-beta config resolves preset aliases and explicit overrides"
 
 test_that("public control builders expose the normalized advanced warmup surface", {
   vb_sigmagam_default <- exdqlm::exal_make_vb_sigmagam_control()
+  expect_identical(vb_sigmagam_default$factorization, "structured")
+  expect_equal(vb_sigmagam_default$structured_grid_size, 151L)
+  expect_equal(vb_sigmagam_default$structured_span_sd, 6)
   expect_equal(vb_sigmagam_default$freeze_warmup_iters, 10L)
   expect_true(isTRUE(vb_sigmagam_default$force_after_warmup))
   expect_equal(vb_sigmagam_default$postwarmup_damping, 0.6, tolerance = 1e-12)
@@ -437,12 +442,14 @@ test_that("public control builders expose the normalized advanced warmup surface
   expect_equal(vb_sigmagam_default$min_postwarmup_updates, 1L)
 
   vb_sigmagam <- exdqlm::exal_make_vb_sigmagam_control(
+    factorization = "laplace_delta",
     freeze_warmup_iters = 12L,
     force_after_warmup = FALSE,
     postwarmup_damping = 0.5,
     postwarmup_damping_iters = 3L,
     min_postwarmup_updates = 2L
   )
+  expect_identical(vb_sigmagam$factorization, "laplace_delta")
   expect_equal(vb_sigmagam$freeze_warmup_iters, 12L)
   expect_false(isTRUE(vb_sigmagam$force_after_warmup))
   expect_equal(vb_sigmagam$postwarmup_damping, 0.5, tolerance = 1e-12)
@@ -710,6 +717,8 @@ test_that("entrypoints apply the default warmup profile and allow explicit opt-o
     verbose = FALSE
   )
   expect_equal(vb_fit_default$misc$sigmagam$freeze_warmup_iters, 10L)
+  expect_identical(vb_fit_default$misc$sigmagam$factorization, "structured")
+  expect_identical(vb_fit_default$qsiggam$factorization, "structured_qgamma_qsigma_given_gamma")
   expect_equal(vb_fit_default$misc$sigmagam$postwarmup_damping, 0.6, tolerance = 1e-12)
 
   vb_fit_none <- exalStaticLDVB(
@@ -740,6 +749,8 @@ test_that("entrypoints apply the default warmup profile and allow explicit opt-o
     verbose = FALSE
   )
   expect_equal(mcmc_fit_default$diagnostics$sigmagam$freeze_burnin_iters, 25L)
+  expect_identical(mcmc_fit_default$mh.diagnostics$proposal, "collapsed_slice")
+  expect_true(isTRUE(mcmc_fit_default$mh.diagnostics$sigma_collapsed))
 
   mcmc_fit_none <- exalStaticMCMC(
     y = dat$y,
@@ -856,6 +867,8 @@ test_that("dynamic entrypoints use the default sigmagam warmup profile", {
     verbose = FALSE
   )
   expect_equal(vb_fit$misc$sigmagam$freeze_warmup_iters, 10L)
+  expect_identical(vb_fit$misc$sigmagam$factorization, "structured")
+  expect_identical(vb_fit$gammasig.out$factorization, "structured_qgamma_qsigma_given_gamma")
 
   mcmc_fit <- exdqlmMCMC(
     y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
@@ -865,4 +878,6 @@ test_that("dynamic entrypoints use the default sigmagam warmup profile", {
     verbose = FALSE
   )
   expect_equal(mcmc_fit$diagnostics$sigmagam$freeze_burnin_iters, 25L)
+  expect_identical(mcmc_fit$mh.diagnostics$proposal, "collapsed_slice")
+  expect_true(isTRUE(mcmc_fit$mh.diagnostics$sigma_collapsed))
 })

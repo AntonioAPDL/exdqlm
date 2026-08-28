@@ -27,6 +27,10 @@
 #'   zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.
 #' @param tf.C0 Prior covariance of the transfer function component. Defaults to
 #'   the \eqn{(k+1)\times(k+1)} identity matrix.
+#' @param vb_control Optional normalized VB control list passed to
+#'   \code{\link{exdqlmLDVB}}. Use this to set common VB controls such as
+#'   \code{max_iter}, \code{tol}, or warmup blocks for the transfer-augmented
+#'   LDVB fit.
 #'
 #' @inherit exdqlmLDVB return
 #'
@@ -64,7 +68,8 @@
 #'   df = c(1,1), dim.df = c(1,4),
 #'   gam.init = -3.5, sig.init = 15,
 #'   lam = 0.38, tf.df = c(0.97,0.97),
-#'   n.samp = 20, tol = 0.2, verbose = FALSE
+#'   n.samp = 20, tol = 0.2, vb_control = list(max_iter = 20L),
+#'   verbose = FALSE
 #' )
 #' X_multi = cbind(ELIanoms[1:120], scale(scIVTmag[1:120])[, 1])
 #' M2 = exdqlmTransferLDVB(
@@ -72,7 +77,8 @@
 #'   df = c(1,1), dim.df = c(1,4),
 #'   gam.init = -3.5, sig.init = 15,
 #'   lam = 0.38, tf.df = c(0.97, 0.99),
-#'   n.samp = 20, tol = 0.2, verbose = FALSE
+#'   n.samp = 20, tol = 0.2, vb_control = list(max_iter = 20L),
+#'   verbose = FALSE
 #' )
 #' options(old)
 #' }
@@ -82,6 +88,7 @@ exdqlmTransferLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
                                dqlm.ind = FALSE, exps0, tol = 0.1, n.samp = 200,
                                PriorSigma = NULL, PriorGamma = NULL,
                                tf.m0 = NULL, tf.C0 = NULL,
+                               vb_control = NULL,
                                verbose = TRUE,
                                debug_shapes = FALSE, debug_every = 5) {
   prep <- .prepare_transfer_inputs(
@@ -125,6 +132,7 @@ exdqlmTransferLDVB <- function(y, p0, model, X, df, dim.df, lam, tf.df,
     dqlm.ind = dqlm.ind, exps0 = exps0, tol = tol,
     n.samp = n.samp,
     PriorSigma = PriorSigma, PriorGamma = PriorGamma,
+    vb_control = vb_control,
     verbose = verbose,
     debug_shapes = debug_shapes, debug_every = debug_every
   )
