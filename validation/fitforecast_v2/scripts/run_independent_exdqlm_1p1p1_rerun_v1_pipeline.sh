@@ -13,6 +13,7 @@ CAMPAIGN_STAGE="qdesn_dqlm_500obs_independent_exdqlm_1p1p1_rerun_v1"
 SEED_LEDGER="${REPO_ROOT}/config/validation/independent_qdesn_exdqlm_1p1p1_rerun_v1_seed_ledger.csv"
 TASK_TRACKER="${REPO_ROOT}/validation/fitforecast_v2/local_trackers/independent_qdesn_exdqlm_1p1p1_rerun_20260827"
 PACKAGE_TARBALL="${PACKAGE_TARBALL:-${TASK_TRACKER}/package/exdqlm_1.1.1.tar.gz}"
+PACKAGE_BUILD_MANIFEST="${PACKAGE_BUILD_MANIFEST:-${TASK_TRACKER}/package/package_build_manifest.json}"
 R_LIBRARY="${R_LIBRARY:-${TASK_TRACKER}/Rlib}"
 SMOKE="${SMOKE:-false}"
 if [[ "${SMOKE}" == "true" ]]; then
@@ -61,12 +62,19 @@ if [[ "${observed_version}" != "${PACKAGE_VERSION}" ]]; then
   echo "DESCRIPTION does not report exdqlm ${PACKAGE_VERSION}." >&2
   exit 2
 fi
-if [[ ! -f "${PACKAGE_TARBALL}" || ! -d "${R_LIBRARY}/exdqlm" ]]; then
-  echo "Pinned task-local tarball or installed library is missing." >&2
+if [[ ! -f "${PACKAGE_TARBALL}" || ! -f "${PACKAGE_BUILD_MANIFEST}" ||
+      ! -d "${R_LIBRARY}/exdqlm" ]]; then
+  echo "Pinned task-local tarball, build manifest, or installed library is missing." >&2
   exit 2
 fi
 
 package_sha256="$(sha256sum "${PACKAGE_TARBALL}" | awk '{print $1}')"
+build_head="$(Rscript --vanilla -e 'x <- jsonlite::fromJSON(commandArgs(TRUE)[[1L]]); cat(x$git_commit)' "${PACKAGE_BUILD_MANIFEST}")"
+build_sha256="$(Rscript --vanilla -e 'x <- jsonlite::fromJSON(commandArgs(TRUE)[[1L]]); cat(x$tarball_sha256)' "${PACKAGE_BUILD_MANIFEST}")"
+if [[ "${build_head}" != "${head}" || "${build_sha256}" != "${package_sha256}" ]]; then
+  echo "Pinned package build manifest does not match HEAD and tarball." >&2
+  exit 2
+fi
 mkdir -p "${STATE_ROOT}" "${STATE_ROOT}/manifests"
 exec 9>"${REPO_ROOT}/reports/shared_fitforecast_v2_orchestration/independent_qdesn_exdqlm_1p1p1_rerun_v1.lock"
 if ! flock -n 9; then
@@ -89,7 +97,7 @@ printf 'status=RUNNING run_id=%s head=%s upstream=%s package_sha256=%s started_a
 
 Rscript "${SCRIPT_DIR}/preflight_independent_exdqlm_1p1p1_rerun_v1.R" \
   --repo-root "${REPO_ROOT}" --state-root "${STATE_ROOT}/preflight" \
-  --tarball "${PACKAGE_TARBALL}"
+  --tarball "${PACKAGE_TARBALL}" --build-manifest "${PACKAGE_BUILD_MANIFEST}"
 
 materialize_args=(
   --repo-root "${REPO_ROOT}"

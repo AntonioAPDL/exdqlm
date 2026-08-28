@@ -24,6 +24,12 @@ shared-validation authority. This is necessary because Q-DESN replay code uses
 `pkgload::load_all()` and therefore must execute the same source tree as the
 installed DQLM code. The merge remains confined to the dedicated branch.
 
+The package tarball is built from `git archive HEAD`, not directly from the
+worktree filesystem. The build gate rejects a dirty or unpushed branch, records
+the exact commit and tree, and rejects tarballs containing runtime `reports/` or
+`results/` paths. The production launcher requires that build manifest and its
+tarball hash to match the launch HEAD.
+
 ## Preflight gates
 
 No production CPU may start unless all gates pass in a fresh R process:

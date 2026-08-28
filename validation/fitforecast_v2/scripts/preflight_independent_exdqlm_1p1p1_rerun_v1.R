@@ -16,6 +16,7 @@ state_root <- ffv2_resolve_path(args$`state-root` %||% file.path(
   "independent_qdesn_exdqlm_1p1p1_rerun_v1_preflight"
 ), repo_root = repo_root, must_work = FALSE)
 tarball_path <- as.character(args$tarball %||% "")[1L]
+build_manifest_path <- as.character(args$`build-manifest` %||% "")[1L]
 ffv2_ensure_dir(state_root)
 
 pkg_desc <- packageDescription("exdqlm")
@@ -137,7 +138,8 @@ checks <- c(
   al_gamma_fixed = al_gamma_fixed,
   rng_thread_invariant = identical(rng_1, rng_4),
   rng_fresh_process_thread_invariant = identical(fresh_rng_1, fresh_rng_4),
-  tarball_recorded = !nzchar(tarball_path) || file.exists(tarball_path)
+  tarball_recorded = nzchar(tarball_path) && file.exists(tarball_path),
+  build_manifest_recorded = nzchar(build_manifest_path) && file.exists(build_manifest_path)
 )
 
 check_df <- data.frame(check = names(checks), pass = unname(checks), stringsAsFactors = FALSE)
@@ -171,7 +173,13 @@ environment <- list(
     required_source_commit = i111_package_source_commit,
     tarball_path = if (nzchar(tarball_path)) normalizePath(tarball_path, winslash = "/",
                                                            mustWork = TRUE) else NULL,
-    tarball_sha256 = if (nzchar(tarball_path)) ffv2_file_sha256(tarball_path) else NULL
+    tarball_sha256 = if (nzchar(tarball_path)) ffv2_file_sha256(tarball_path) else NULL,
+    build_manifest_path = if (nzchar(build_manifest_path)) {
+      normalizePath(build_manifest_path, winslash = "/", mustWork = TRUE)
+    } else NULL,
+    build_manifest_sha256 = if (nzchar(build_manifest_path)) {
+      ffv2_file_sha256(build_manifest_path)
+    } else NULL
   ),
   r = list(version = R.version.string, platform = R.version$platform,
            blas = ext_software_version("BLAS"),

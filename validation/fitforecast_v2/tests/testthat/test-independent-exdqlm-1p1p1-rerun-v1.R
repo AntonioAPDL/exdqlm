@@ -70,3 +70,12 @@ test_that("production materialization records the complete scoring contract", {
   expect_match(text, "not_supported_by_the_frozen_independent_validation_tooling",
                fixed = TRUE)
 })
+
+test_that("the package builder archives only the committed tree", {
+  path <- file.path(ffv2_repo_root(), "validation", "fitforecast_v2", "scripts",
+                    "build_independent_exdqlm_1p1p1_tarball_v1.sh")
+  text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  expect_match(text, 'git -C "${REPO_ROOT}" archive --format=tar HEAD',
+               fixed = TRUE)
+  expect_match(text, "forbidden_runtime_paths = 0L", fixed = TRUE)
+})
