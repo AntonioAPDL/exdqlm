@@ -65,6 +65,7 @@ test_that("the scoped launcher cannot execute the broad campaign", {
   expect_match(launcher, "closeout_independent_exdqlm_1p1p1_scoped_continuation_v1.R",
                fixed = TRUE)
   expect_false(grepl("closeout_independent_metric_intervals_v1.R", launcher, fixed = TRUE))
+  expect_match(launcher, "pre-existing IND validation workers remain", fixed = TRUE)
   expect_match(preparer, 'model_variant == "exdqlm"', fixed = TRUE)
   expect_match(verifier, "no_out_of_scope_jobs", fixed = TRUE)
   expect_match(verifier, "no_mcmc_status_before_launch", fixed = TRUE)

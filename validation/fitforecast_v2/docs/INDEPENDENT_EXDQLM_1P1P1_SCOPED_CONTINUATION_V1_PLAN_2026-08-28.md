@@ -91,7 +91,8 @@ Before CPU launch, verification must establish:
    and one numerical thread;
 6. all nine imported VB statuses and artifacts still hash correctly;
 7. no DQLM or Q-DESN job enters the scoped plan;
-8. all 15 package/default/RNG preflight checks pass.
+8. all 15 package/default/RNG preflight checks pass; and
+9. no orphaned worker from an interrupted IND campaign remains active.
 
 The package runtime remains the exact task-local tarball used by the parent
 campaign. Its SHA-256 is part of every frozen config. New commits may change

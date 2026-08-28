@@ -88,6 +88,20 @@ if [[ "${observed_version}" != "${PACKAGE_VERSION}" ]]; then
   exit 2
 fi
 
+# A killed orchestrator can leave timeout-managed R children orphaned. Refuse
+# to compete with or silently duplicate an earlier worker from this IND lane.
+active_lane_workers=()
+while read -r candidate_pid candidate_args; do
+  if [[ "${candidate_args}" == *"/bin/exec/R "* &&
+        "${candidate_args}" == *"--file=${REPO_ROOT}/scripts/pipeline_real_main.R"* ]]; then
+    active_lane_workers+=("${candidate_pid}")
+  fi
+done < <(ps -eo pid=,args=)
+if (( ${#active_lane_workers[@]} > 0 )); then
+  echo "Refusing while pre-existing IND validation workers remain: ${active_lane_workers[*]}" >&2
+  exit 2
+fi
+
 mkdir -p "${STATE_ROOT}/manifests"
 exec 9>"${REPO_ROOT}/reports/shared_fitforecast_v2_orchestration/independent_exdqlm_1p1p1_scoped_v1.lock"
 if ! flock -n 9; then
