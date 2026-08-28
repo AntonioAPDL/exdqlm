@@ -67,6 +67,10 @@ if [[ ! -f "${PACKAGE_TARBALL}" || ! -f "${PACKAGE_BUILD_MANIFEST}" ||
   echo "Pinned task-local tarball, build manifest, or installed library is missing." >&2
   exit 2
 fi
+if [[ -e "${STATE_ROOT}" ]]; then
+  echo "Refusing a pre-existing run state root: ${STATE_ROOT}" >&2
+  exit 2
+fi
 
 package_sha256="$(sha256sum "${PACKAGE_TARBALL}" | awk '{print $1}')"
 build_head="$(Rscript --vanilla -e 'x <- jsonlite::fromJSON(commandArgs(TRUE)[[1L]]); cat(x$git_commit)' "${PACKAGE_BUILD_MANIFEST}")"
@@ -111,6 +115,7 @@ materialize_args=(
   --package-source-commit "${PACKAGE_COMMIT}"
   --package-tarball-sha256 "${package_sha256}"
   --seed-ledger "${SEED_LEDGER}"
+  --allow-pipeline-preflight-root true
 )
 if [[ "${SMOKE}" == "true" ]]; then
   materialize_args+=(--smoke true)

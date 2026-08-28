@@ -36,9 +36,34 @@ if (!is.finite(workers) || workers < 1L || workers > 20L) {
 }
 state_root <- ffv2_resolve_path(args$`state-root` %||% imi_v1_state_root(repo_root, run_id),
                                 repo_root = repo_root, must_work = FALSE)
+allow_pipeline_preflight_root <- ffv2_truthy(
+  args$`allow-pipeline-preflight-root` %||% FALSE
+)
 if (dir.exists(state_root)) {
-  stop(sprintf("State root already exists; refusing to overwrite: %s", state_root),
-       call. = FALSE)
+  if (!allow_pipeline_preflight_root) {
+    stop(sprintf("State root already exists; refusing to overwrite: %s", state_root),
+         call. = FALSE)
+  }
+  existing <- setdiff(list.files(state_root, all.files = TRUE, no.. = TRUE),
+                      character())
+  allowed <- c("manifests", "pipeline.status", "pipeline.stdout.log", "preflight")
+  unexpected <- setdiff(existing, allowed)
+  manifest_files <- list.files(file.path(state_root, "manifests"), all.files = TRUE,
+                               no.. = TRUE)
+  status_path <- file.path(state_root, "pipeline.status")
+  checks_path <- file.path(state_root, "preflight", "preflight_checks.csv")
+  status_text <- if (file.exists(status_path)) paste(readLines(status_path), collapse = "\n") else ""
+  checks <- if (file.exists(checks_path)) ffv2_read_csv(checks_path) else data.frame()
+  authenticated <- !length(unexpected) && !length(manifest_files) &&
+    grepl("^status=RUNNING\\b", status_text) &&
+    grepl(sprintf("\\brun_id=%s\\b", run_id), status_text) &&
+    nrow(checks) > 0L && "pass" %in% names(checks) && all(as.logical(checks$pass))
+  if (!authenticated) {
+    stop(sprintf(
+      "Existing state root is not an authenticated, preflight-only pipeline root: %s",
+      state_root
+    ), call. = FALSE)
+  }
 }
 dirs <- file.path(state_root, c(
   "materialization", "configs", "logs", "status", "sources", "manifests", "health",

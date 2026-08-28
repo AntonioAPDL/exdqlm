@@ -79,3 +79,18 @@ test_that("the package builder archives only the committed tree", {
                fixed = TRUE)
   expect_match(text, "forbidden_runtime_paths = 0L", fixed = TRUE)
 })
+
+test_that("the guarded pipeline authenticates its preflight-only state root", {
+  scripts <- file.path(ffv2_repo_root(), "validation", "fitforecast_v2", "scripts")
+  pipeline <- paste(readLines(file.path(
+    scripts, "run_independent_exdqlm_1p1p1_rerun_v1_pipeline.sh"
+  ), warn = FALSE), collapse = "\n")
+  materializer <- paste(readLines(file.path(
+    scripts, "materialize_independent_metric_intervals_v1.R"
+  ), warn = FALSE), collapse = "\n")
+  expect_match(pipeline, 'if [[ -e "${STATE_ROOT}" ]]', fixed = TRUE)
+  expect_match(pipeline, "--allow-pipeline-preflight-root true", fixed = TRUE)
+  expect_match(materializer, "authenticated, preflight-only pipeline root", fixed = TRUE)
+  expect_match(materializer, 'grepl("^status=RUNNING\\\\b"', fixed = TRUE)
+  expect_match(materializer, 'all(as.logical(checks$pass))', fixed = TRUE)
+})
