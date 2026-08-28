@@ -19,15 +19,51 @@ pkgload::load_all(repo_root, quiet = TRUE)
 run_id <- as.character(args$`run-id` %||%
   paste0("independent_metric_intervals_v1_", format(Sys.time(), "%Y%m%d_%H%M%S")))[1L]
 smoke <- ffv2_truthy(args$smoke %||% FALSE)
+campaign_schema <- as.character(args$schema %||% imi_v1_schema)[1L]
+campaign_stage <- as.character(args$stage %||% imi_v1_stage)[1L]
+campaign_authority_id <- as.character(args$`authority-id` %||% imi_v1_authority_id)[1L]
+campaign_package_version <- as.character(args$`package-version` %||% as.character(packageVersion("exdqlm")))[1L]
+campaign_package_commit <- as.character(args$`package-source-commit` %||% "")[1L]
+campaign_package_tarball_sha256 <- as.character(args$`package-tarball-sha256` %||% "")[1L]
+campaign_seed_ledger_path <- as.character(args$`seed-ledger` %||% "")[1L]
+campaign_seed_ledger <- if (nzchar(campaign_seed_ledger_path)) {
+  ffv2_read_csv(ffv2_resolve_path(campaign_seed_ledger_path, repo_root = repo_root,
+                                  must_work = TRUE))
+} else NULL
 workers <- as.integer(args$workers %||% if (smoke) 4L else imi_v1_workers)[1L]
 if (!is.finite(workers) || workers < 1L || workers > 20L) {
   stop("--workers must be between 1 and 20.", call. = FALSE)
 }
 state_root <- ffv2_resolve_path(args$`state-root` %||% imi_v1_state_root(repo_root, run_id),
                                 repo_root = repo_root, must_work = FALSE)
+allow_pipeline_preflight_root <- ffv2_truthy(
+  args$`allow-pipeline-preflight-root` %||% FALSE
+)
 if (dir.exists(state_root)) {
-  stop(sprintf("State root already exists; refusing to overwrite: %s", state_root),
-       call. = FALSE)
+  if (!allow_pipeline_preflight_root) {
+    stop(sprintf("State root already exists; refusing to overwrite: %s", state_root),
+         call. = FALSE)
+  }
+  existing <- setdiff(list.files(state_root, all.files = TRUE, no.. = TRUE),
+                      character())
+  allowed <- c("manifests", "pipeline.status", "pipeline.stdout.log", "preflight")
+  unexpected <- setdiff(existing, allowed)
+  manifest_files <- list.files(file.path(state_root, "manifests"), all.files = TRUE,
+                               no.. = TRUE)
+  status_path <- file.path(state_root, "pipeline.status")
+  checks_path <- file.path(state_root, "preflight", "preflight_checks.csv")
+  status_text <- if (file.exists(status_path)) paste(readLines(status_path), collapse = "\n") else ""
+  checks <- if (file.exists(checks_path)) ffv2_read_csv(checks_path) else data.frame()
+  authenticated <- !length(unexpected) && !length(manifest_files) &&
+    grepl("^status=RUNNING\\b", status_text) &&
+    grepl(sprintf("\\brun_id=%s\\b", run_id), status_text) &&
+    nrow(checks) > 0L && "pass" %in% names(checks) && all(as.logical(checks$pass))
+  if (!authenticated) {
+    stop(sprintf(
+      "Existing state root is not an authenticated, preflight-only pipeline root: %s",
+      state_root
+    ), call. = FALSE)
+  }
 }
 dirs <- file.path(state_root, c(
   "materialization", "configs", "logs", "status", "sources", "manifests", "health",
@@ -40,7 +76,7 @@ rel_or_abs <- function(path) {
   if (startsWith(path, "/")) path else file.path(repo_root, path)
 }
 
-audit <- imi_v1_static_audit(repo_root)
+audit <- imi_v1_static_audit(repo_root, authority_id = campaign_authority_id)
 if (!all(audit$checks$pass)) {
   stop(sprintf("Static authority audit failed: %s",
                paste(audit$checks$check[!audit$checks$pass], collapse = ", ")),
@@ -50,6 +86,23 @@ materialization_root <- file.path(state_root, "materialization")
 ffv2_write_csv(audit$metric_roles, file.path(materialization_root, "metric_role_ledger.csv"))
 ffv2_write_csv(audit$source_registry, file.path(materialization_root, "source_replay_registry.csv"))
 ffv2_write_csv(audit$checks, file.path(materialization_root, "static_audit.csv"))
+
+seed_row_for <- function(source_identity, chain_id) {
+  if (is.null(campaign_seed_ledger)) return(NULL)
+  keep <- campaign_seed_ledger$source_identity == as.character(source_identity) &
+    as.integer(campaign_seed_ledger$chain_id) == as.integer(chain_id)
+  if (sum(keep) != 1L) {
+    stop(sprintf("Frozen seed-ledger join failed for chain %d: %s",
+                 chain_id, source_identity), call. = FALSE)
+  }
+  campaign_seed_ledger[keep, , drop = FALSE]
+}
+
+seed_int <- function(row, field, fallback) {
+  if (is.null(row) || !field %in% names(row)) return(as.integer(fallback))
+  value <- suppressWarnings(as.integer(row[[field]][[1L]]))
+  if (is.finite(value) && value > 0L) value else as.integer(fallback)
+}
 
 stage_source <- local({
   cache <- new.env(parent = emptyenv())
@@ -153,17 +206,46 @@ for (i in seq_len(nrow(qdesn_rows))) {
     grid <- ffv2_read_csv(grid_path)
     grid_row <- grid[as.integer(registry_row$grid_row[[1L]]), , drop = FALSE]
   }
-  staged <- stage_source(request$root_spec, grid_row)
   n_chains <- if (smoke) 1L else as.integer(registry_row$planned_chains[[1L]])
   for (chain_id in seq_len(n_chains)) {
+    frozen_seed <- seed_row_for(registry_row$source_identity[[1L]], chain_id)
+    chain_request_path <- request_path
+    chain_request_sha256 <- registry_row$request_sha256[[1L]]
+    chain_request <- request
+    chain_grid_row <- grid_row
+    if (!is.null(frozen_seed) && "request_override_path" %in% names(frozen_seed) &&
+        nzchar(as.character(frozen_seed$request_override_path[[1L]]))) {
+      chain_request_path <- rel_or_abs(frozen_seed$request_override_path[[1L]])
+      chain_request_sha256 <- as.character(frozen_seed$request_override_sha256[[1L]])
+      if (!file.exists(chain_request_path) ||
+          !identical(ffv2_file_sha256(chain_request_path), chain_request_sha256)) {
+        stop(sprintf("Frozen chain-specific request failed verification: %s",
+                     chain_request_path), call. = FALSE)
+      }
+      chain_request <- ffv2_read_json(chain_request_path)
+      chain_grid_row <- NULL
+    }
+    if (!is.null(frozen_seed) && "source_override_path" %in% names(frozen_seed) &&
+        nzchar(as.character(frozen_seed$source_override_path[[1L]]))) {
+      source_override_path <- rel_or_abs(frozen_seed$source_override_path[[1L]])
+      source_override_sha256 <- as.character(frozen_seed$source_override_sha256[[1L]])
+      if (!file.exists(source_override_path) ||
+          !identical(ffv2_file_sha256(source_override_path), source_override_sha256)) {
+        stop(sprintf("Frozen source override failed verification: %s",
+                     source_override_path), call. = FALSE)
+      }
+      chain_request$root_spec$source_series_wide_path <- source_override_path
+      chain_request$root_spec$source_series_wide_sha256 <- source_override_sha256
+    }
+    staged <- stage_source(chain_request$root_spec, chain_grid_row)
     method <- as.character(registry_row$inference[[1L]])
     likelihood <- if (identical(registry_row$model_variant[[1L]], "qdesn_al_rhs_ns")) "al" else "exal"
     job_id <- sprintf("qdesn__%s__c%02d", registry_row$replay_id[[1L]], chain_id)
     job_root <- file.path(
-      repo_root, "results", "qdesn_mcmc_validation", imi_v1_stage, run_id, "jobs", job_id
+      repo_root, "results", "qdesn_mcmc_validation", campaign_stage, run_id, "jobs", job_id
     )
-    config <- request$config
-    root_spec <- request$root_spec
+    config <- chain_request$config
+    root_spec <- chain_request$root_spec
     root_spec$root_id <- job_id
     root_spec$scenario <- as.character(root_spec$scenario %||% root_spec$source_scenario)
     root_spec$source_family <- as.character(registry_row$family[[1L]])
@@ -183,10 +265,23 @@ for (i in seq_len(nrow(qdesn_rows))) {
     root_spec$source_total_size <- staged$n_rows
     root_spec$desn_seed <- as.integer(registry_row$reservoir_seed[[1L]])
     root_spec$seed <- root_spec$desn_seed
-    root_spec$mcmc_seed <- imi_v1_seed(run_id, registry_row$replay_id[[1L]], chain_id, "mcmc")
-    root_spec$mcmc_rng_seed <- imi_v1_seed(run_id, registry_row$replay_id[[1L]], chain_id, "rng")
-    root_spec$vb_warm_start_seed <- imi_v1_seed(registry_row$replay_id[[1L]], "vb_warm")
-    root_spec$synthesis_seed <- imi_v1_seed(run_id, registry_row$replay_id[[1L]], chain_id, "synthesis")
+    root_spec$mcmc_seed <- seed_int(
+      frozen_seed, "mcmc_seed",
+      imi_v1_seed(run_id, registry_row$replay_id[[1L]], chain_id, "mcmc")
+    )
+    root_spec$mcmc_rng_seed <- seed_int(
+      frozen_seed, "mcmc_rng_seed",
+      imi_v1_seed(run_id, registry_row$replay_id[[1L]], chain_id, "rng")
+    )
+    root_spec$vb_warm_start_seed <- seed_int(
+      frozen_seed, "vb_warm_start_seed", imi_v1_seed(registry_row$replay_id[[1L]], "vb_warm")
+    )
+    root_spec$synthesis_seed <- seed_int(
+      frozen_seed, "synthesis_seed",
+      imi_v1_seed(run_id, registry_row$replay_id[[1L]], chain_id, "synthesis")
+    )
+    root_spec$desn_seed <- seed_int(frozen_seed, "desn_seed", root_spec$desn_seed)
+    root_spec$seed <- root_spec$desn_seed
 
     config$pipeline$mode <- "real"
     config$split <- list(use_last = TRUE, T_use = staged$n_rows,
@@ -238,6 +333,18 @@ for (i in seq_len(nrow(qdesn_rows))) {
       config$inference$vb$n_samp_xi <- if (smoke) 20L else
         max(500L, as.integer(config$inference$vb$n_samp_xi %||% 0L))
       config$inference$vb$progress_every <- if (smoke) 1L else 50L
+      if (likelihood == "exal") {
+        config$inference$vb$sigmagam <- list(
+          factorization = "structured",
+          structured_grid_size = 151L,
+          structured_span_sd = 6,
+          freeze_warmup_iters = 10L,
+          force_after_warmup = TRUE,
+          postwarmup_damping = 0.6,
+          postwarmup_damping_iters = 5L,
+          min_postwarmup_updates = 1L
+        )
+      }
     } else {
       n_burn <- if (smoke) 4L else 5000L
       n_mcmc <- if (smoke) 8L else 20000L
@@ -259,7 +366,7 @@ for (i in seq_len(nrow(qdesn_rows))) {
     config$desn$seed <- root_spec$desn_seed
     config_path <- file.path(state_root, "configs", paste0(job_id, ".json"))
     job <- list(
-      schema_version = imi_v1_schema,
+      schema_version = campaign_schema,
       run_id = run_id,
       job_id = job_id,
       engine = "qdesn",
@@ -270,8 +377,8 @@ for (i in seq_len(nrow(qdesn_rows))) {
       inference = method, likelihood_family = likelihood, chain_id = chain_id,
       source_candidate_id = registry_row$source_candidate_id[[1L]],
       source_run_tag = registry_row$source_run_tag[[1L]],
-      source_request_path = request_path,
-      source_request_sha256 = registry_row$request_sha256[[1L]],
+      source_request_path = chain_request_path,
+      source_request_sha256 = chain_request_sha256,
       provenance_kind = registry_row$provenance_kind[[1L]],
       observed_path = staged$observed_path,
       observed_sha256 = staged$observed_sha256,
@@ -281,7 +388,16 @@ for (i in seq_len(nrow(qdesn_rows))) {
       root_spec = root_spec,
       config = config,
       study_contract = list(
-        authority_id = imi_v1_authority_id,
+        authority_id = campaign_authority_id,
+        package_version = campaign_package_version,
+        package_source_commit = campaign_package_commit,
+        package_tarball_sha256 = campaign_package_tarball_sha256,
+        exal_mcmc_update = if (likelihood == "exal" && method == "mcmc") {
+          "m0_v_collapsed_support_logit"
+        } else if (likelihood == "al") "gamma_fixed_al" else NA_character_,
+        exal_vb_factorization = if (likelihood == "exal" && method == "vb") {
+          "structured_qgamma_qsigma_given_gamma"
+        } else NA_character_,
         interval_estimand = "posterior_mean_of_draw_specific_metric",
         interval = "equal_tailed_95pct_credible_interval",
         fixed_reservoir_realization = TRUE,
@@ -315,7 +431,7 @@ for (method in c("vb", "mcmc")) {
   for (chain_id in chains) {
     d <- ffv2_load_defaults(base_defaults_path)
     d$study$run_tag <- sprintf("%s__dqlm_%s_c%02d", run_id, method, chain_id)
-    d$study$results_root <- file.path("results", "qdesn_mcmc_validation", imi_v1_stage,
+    d$study$results_root <- file.path("results", "qdesn_mcmc_validation", campaign_stage,
                                       run_id, "dqlm")
     d$source$fit_sizes <- 500L
     d$models <- ffv2_vb_screen_candidate_models(d, candidate)
@@ -371,7 +487,10 @@ for (method in c("vb", "mcmc")) {
         config <- ffv2_sync_model_provenance(config)
         config
       }
-      seed <- imi_v1_seed(run_id, replay$replay_id[[1L]], chain_id, "dqlm")
+      frozen_seed <- seed_row_for(replay$source_identity[[1L]], chain_id)
+      seed <- seed_int(
+        frozen_seed, "seed", imi_v1_seed(run_id, replay$replay_id[[1L]], chain_id, "dqlm")
+      )
       interval_draws <- if (smoke) 8L else if (method == "vb") imi_v1_vb_draws else
         imi_v1_mcmc_metric_draws
       run_root <- row$run_root[[1L]]
@@ -381,6 +500,16 @@ for (method in c("vb", "mcmc")) {
       config$seed <- seed
       config$chain_id <- chain_id
       config$source_replay_id <- replay$replay_id[[1L]]
+      config$package_contract <- list(
+        version = campaign_package_version,
+        source_commit = campaign_package_commit,
+        tarball_sha256 = campaign_package_tarball_sha256,
+        authority_id = campaign_authority_id,
+        gamma_update = if (row$model_variant[[1L]] == "exdqlm") {
+          if (method == "mcmc") "collapsed_slice" else
+            "structured_qgamma_qsigma_given_gamma"
+        } else "gamma_fixed_al"
+      )
       config$metric_intervals <- list(
         enabled = TRUE, required = TRUE, draws = interval_draws, chain_id = chain_id,
         estimator_id = "posterior_mean_draw_metric_equal_tailed_95cri_v1",
@@ -396,12 +525,26 @@ for (method in c("vb", "mcmc")) {
         run_root, "metric_interval_manifests", sprintf("%s_metric_intervals.json", row$row_key[[1L]])
       )
       config$budget$vb$n_samp <- if (smoke) 8L else imi_v1_vb_draws
+      if (row$model_variant[[1L]] == "exdqlm") {
+        config$budget$vb$sigmagam <- list(
+          factorization = "structured", structured_grid_size = 151L,
+          structured_span_sd = 6, freeze_warmup_iters = 10L,
+          force_after_warmup = TRUE, postwarmup_damping = 0.6,
+          postwarmup_damping_iters = 5L, min_postwarmup_updates = 1L
+        )
+        config$budget$mcmc$mh_proposal <- "collapsed_slice"
+      } else {
+        config$budget$mcmc$mh_proposal <- "slice"
+      }
       config$budget$mcmc$n_burn <- if (smoke) 4L else 5000L
       config$budget$mcmc$n_mcmc <- if (smoke) 8L else 20000L
       config$budget$mcmc$thin <- 1L
       config$budget$mcmc$init_from_vb <- !smoke
       config$handoff$prune_fit_on_success <- TRUE
       config$retention$allow_success_binary_payloads <- FALSE
+      config$inference_diagnostics_path <- file.path(
+        run_root, "metrics", sprintf("%s_inference_diagnostics.json", row$row_key[[1L]])
+      )
       ffv2_write_json(config, row$row_config_path[[1L]])
       manifest$source_replay_id[j] <- replay$replay_id[[1L]]
       manifest$chain_id[j] <- chain_id
@@ -464,16 +607,54 @@ source_inventory <- do.call(rbind, lapply(list.files(file.path(state_root, "sour
 }))
 ffv2_write_csv(source_inventory, file.path(materialization_root, "staged_source_inventory.csv"))
 manifest <- list(
-  schema_version = imi_v1_schema,
+  schema_version = campaign_schema,
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
   run_id = run_id, smoke = smoke, workers = workers,
-  authority_id = imi_v1_authority_id,
+  authority_id = campaign_authority_id,
+  package_version = campaign_package_version,
+  package_source_commit = campaign_package_commit,
+  package_tarball_sha256 = campaign_package_tarball_sha256,
+  seed_ledger_path = if (nzchar(campaign_seed_ledger_path)) {
+    normalizePath(ffv2_resolve_path(campaign_seed_ledger_path, repo_root = repo_root,
+                                    must_work = TRUE), winslash = "/", mustWork = TRUE)
+  } else NULL,
+  seed_ledger_sha256 = if (nzchar(campaign_seed_ledger_path)) {
+    ffv2_file_sha256(ffv2_resolve_path(campaign_seed_ledger_path, repo_root = repo_root,
+                                       must_work = TRUE))
+  } else NULL,
   git_branch = system("git branch --show-current", intern = TRUE),
   git_commit = system("git rev-parse HEAD", intern = TRUE),
   jobs = nrow(plan), qdesn_jobs = sum(plan$engine == "qdesn"),
   dqlm_jobs = sum(plan$engine == "dqlm"),
   vb_jobs = sum(plan$inference == "vb"), mcmc_jobs = sum(plan$inference == "mcmc"),
   expected_metric_roles = 216L, expected_source_identities = 90L,
+  scientific_contract = list(
+    families = c("normal", "laplace", "gausmix"),
+    quantiles = c(0.05, 0.25, 0.50),
+    train_source_indices = c(8501L, 9000L),
+    forecast_source_indices = c(9001L, 10000L),
+    forecast_origins = 34L,
+    origin_stride = 30L,
+    maximum_lead = 30L,
+    scored_origin_lead_pairs = 1000L,
+    forecast_protocol = "rolling_origin_no_refit_state_update",
+    models = c("dqlm", "exdqlm", "qdesn_al_rhs_ns", "qdesn_exal_rhs_ns"),
+    scores = list(
+      fit_rmse = "sqrt(mean((conditional_quantile_draw-oracle_quantile)^2))",
+      forecast_mae = "mean(abs(conditional_quantile_draw-oracle_quantile))",
+      forecast_rmse = "available_in_granular_forecast_path_and_lead_summaries",
+      forecast_check_loss = "mean((y-q)*(tau-I(y<q)))"
+    ),
+    metric_interval = "equal_tailed_95pct_over_draw_specific_metrics",
+    metric_draw_source = "conditional_quantile_not_response_predictive"
+  ),
+  exclusions = list(
+    acrps = "not_supported_by_the_frozen_independent_validation_tooling",
+    dense_or_overlapping_origins = "not_part_of_the_official_protocol",
+    response_predictive_noise = "excluded_from_metric_interval_draws",
+    successful_fitted_model_binaries = "forbidden",
+    article_or_overleaf_writes = "integration_lane_only"
+  ),
   plan_path = plan_path, plan_sha256 = ffv2_file_sha256(plan_path),
   static_checks_pass = sum(audit$checks$pass), static_checks_total = nrow(audit$checks),
   storage_policy = list(successful_binary_payloads_allowed = FALSE,

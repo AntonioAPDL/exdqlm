@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_dyn_model <- function(TT) {
   as.exdqlm(list(
     m0 = 0,
@@ -51,6 +53,32 @@ test_that("dynamic LDVB exposes joint convergence diagnostics", {
   ) %in% names(fit$diagnostics$state_path$trace)))
   expect_true(all(c("sts_mu", "ex_f", "theta_sm", "sfe") %in% names(fit$diagnostics$state_path$first_nonfinite)))
   expect_true(all(c("monitored_components", "first_problem_iter", "first_problem_components", "nonfinite_iter_count") %in% names(fit$diagnostics$state_path$summary)))
+})
+
+test_that("dynamic DQLM LDVB honors vb_control iteration cap", {
+  set.seed(1011)
+  TT <- 18
+  y <- cumsum(stats::rnorm(TT, sd = 0.2))
+  model <- tiny_dyn_model(TT)
+
+  old_opts <- options(
+    exdqlm.use_cpp_kf = FALSE,
+    exdqlm.max_iter = 25L,
+    exdqlm.vb.min_iter = 1L
+  )
+  on.exit(options(old_opts), add = TRUE)
+
+  fit <- exdqlmLDVB(
+    y = y, p0 = 0.5, model = model, df = 1, dim.df = 1,
+    dqlm.ind = TRUE, fix.sigma = TRUE, sig.init = 1,
+    tol = 0, n.samp = 8,
+    vb_control = list(max_iter = 4L),
+    verbose = FALSE
+  )
+
+  expect_lte(fit$iter, 4L)
+  expect_lte(fit$diagnostics$convergence$iter, 4L)
+  expect_true(fit$diagnostics$convergence$stop_reason %in% c("joint_converged", "max_iter"))
 })
 
 test_that("dynamic LDVB records sigmagam warmup scheduling", {
@@ -185,7 +213,7 @@ test_that("dynamic MCMC supports VB warm start and MH diagnostics", {
   expect_true(is.data.frame(fit$diagnostics$s_block$trace))
 })
 
-test_that("dynamic MCMC default proposal is slice", {
+test_that("dynamic MCMC default proposal is scale-collapsed slice", {
   set.seed(1035)
   TT <- 18
   y <- stats::rnorm(TT, sd = 0.25)
@@ -208,8 +236,11 @@ test_that("dynamic MCMC default proposal is slice", {
     verbose = FALSE
   )
 
-  expect_identical(fit$mh.diagnostics$proposal, "slice")
+  expect_identical(fit$mh.diagnostics$proposal, "collapsed_slice")
   expect_false(isTRUE(fit$mh.diagnostics$joint_sigma_gamma))
+  expect_true(isTRUE(fit$mh.diagnostics$sigma_collapsed))
+  expect_true(isTRUE(fit$mh.diagnostics$conditional_sigma_redraw))
+  expect_identical(fit$mh.diagnostics$transformed_state, c("logit_gamma_collapsed_sigma"))
   expect_true(is.list(fit$mh.diagnostics$laplace_refresh))
 })
 

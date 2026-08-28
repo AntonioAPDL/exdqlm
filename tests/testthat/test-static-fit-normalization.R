@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_static_xy <- function(n = 20L) {
   x <- seq(-1, 1, length.out = n)
   X <- cbind(1, x)

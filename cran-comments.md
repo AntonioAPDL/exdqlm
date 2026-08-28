@@ -1,76 +1,90 @@
-## exdqlm 1.0.0
+## exdqlm 1.1.1
 
 ### Release context
 
-This release builds on the consolidated 0.4.0 CRAN package line and focuses on
-dynamic diagnostic reproducibility:
+This is a narrow reproducibility and inference-stability update to CRAN
+version 1.1.0. The update was prepared while revising the accompanying Journal
+of Statistical Software article after editorial prescreening comments on the
+replication materials. The package API, exported object classes, and
+manuscript-level statistical claims are unchanged.
 
-- `exdqlmDiagnostics()` now computes CRPS through a finite integrated
-  quantile-score approximation over posterior predictive empirical quantiles.
-- `exdqlmForecastDiagnostics()` adds package-level held-out forecast scoring for
-  `exdqlmForecast()` objects, using target-quantile check loss and CRPS from
-  posterior predictive forecast draws.
-- `exdqlmForecast()` now validates future time-varying `fGG` arrays against the
-  forecast horizon and safely expands constant future `fGG` matrices.
-- `exdqlmDiagnostics()` now uses a deterministic one-dimensional semiclosed KL
-  normality diagnostic for MAP standardized forecast errors.
-- The reported `KL` direction is aligned with the documented diagnostic target
-  `KL(P_error || N(0,1))`; `KL (flipped)` reports the reverse direction.
-- The stochastic default `FNN::KL.divergence()` path was removed, so `FNN` is no
-  longer required as an imported package dependency.
+The main changes are:
 
-No default backend flip is introduced in this update:
-
-- `exdqlm.use_cpp_builders` remains opt-in (`FALSE` by default).
-- Existing R fallbacks remain available.
-
-This release intentionally excludes branch-local simulation/validation-study
-artifacts; only package-facing API, documentation, and tests are included.
+- compiled stochastic helper routines now use serial R-controlled random-number
+  streams for manuscript-relevant stochastic paths, avoiding OpenMP worker RNG
+  calls and wall-clock/thread-indexed private seeds;
+- repeated-seed tests were added for compiled stochastic helpers and small
+  dynamic/static MCMC workflows;
+- the default MCMC update for dynamic and static exAL likelihood fits now uses
+  a scale-collapsed gamma slice transition followed by an exact conditional GIG
+  redraw for sigma;
+- the default LDVB scale-skewness block for dynamic and static exAL likelihood
+  fits now uses a structured `q(gamma) q(sigma | gamma)` approximation;
+- legacy MCMC and LDVB scale-skewness options remain available by explicit
+  user selection.
 
 ### Test environments
 
 - Local: AlmaLinux/Rocky-compatible Linux (x86_64), R 4.6.0 (2026-04-24).
-- Local development tools available for this check included `pandoc` 3.9.0.2
-  and the R package `V8`, so README/NEWS and HTML math rendering checks ran.
-- Local commands used:
-  - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-kl-diagnostics.R")'`
-  - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-diagnostics-metrics.R")'`
-  - `Rscript -e 'pkgload::load_all("."); testthat::test_file("tests/testthat/test-exdqlm-transfer-mcmc.R")'`
-  - `Rscript -e 'testthat::test_local(reporter = "summary")'`
-  - `R CMD build --no-build-vignettes .`
-  - `R CMD check --no-manual --run-donttest exdqlm_1.0.0.tar.gz`
+- GitHub Actions:
+  - Ubuntu release;
+  - Ubuntu devel;
+  - Ubuntu oldrel-1;
+  - macOS release;
+  - Windows release.
+- R-hub:
+  - Linux R-devel;
+  - Windows R-devel;
+  - macOS ARM64 R-devel.
+
+### Local commands
+
+- `R CMD build .`
+- `R CMD check --as-cran exdqlm_1.1.1.tar.gz`
+- targeted package repeatability tests for compiled stochastic helpers and
+  dynamic/static MCMC workflows.
 
 ### R CMD check results
 
-- `0 errors | 0 warnings | 0 notes`.
+- Local `R CMD check --as-cran`: `0 errors | 0 warnings | 2 notes`.
+- GitHub Actions matrix: passed on all configured platforms.
+- R-hub matrix: passed on all configured platforms.
+
+The two local notes are expected:
+
+1. the package specifies C++17;
+2. the installed package size is dominated by the compiled shared library.
+
+### Reverse dependencies
+
+No reverse dependencies were found for `exdqlm` on CRAN under Depends, Imports,
+LinkingTo, or Suggests.
 
 ### Notes for CRAN
 
-1) Dependency reduction
+1) Timing relative to version 1.1.0
 
-- `FNN` has been removed from `Imports` because dynamic KL diagnostics no longer
-  use `FNN::KL.divergence()`.
-- The replacement KL diagnostic is implemented with package-internal base-R
-  one-dimensional nearest-neighbor calculations and deterministic reference
-  grids.
+- This update follows version 1.1.0 closely because the JSS prescreening
+  process identified reproducibility-interface concerns in the article archive.
+  While investigating those differences, we found and corrected stochastic
+  helper paths that should not depend on OpenMP worker RNG behavior. The update
+  also stabilizes the exAL scale-skewness default inference blocks. These
+  changes are backward compatible.
 
-2) Installed size note
+2) CPU time during tests
 
-- This package includes compiled C++ backends (Rcpp/RcppArmadillo), and the
-  shared library is expected to remain the dominant contributor to installed
-  package size.
+- As in earlier releases, the test entrypoint caps native OpenMP/BLAS thread
+  counts before loading the package. Heavyweight inference/backend-validation
+  files are skipped on CRAN while lighter API, regression, class, method,
+  diagnostic, and reproducibility tests remain covered by the CRAN suite.
 
-3) README/NEWS pandoc note
+3) Installed size note
 
-- The current local check host has `pandoc` 3.9.0.2 available, and the
-  top-level README/NEWS checks completed successfully.
+- This package includes compiled C++ backends through Rcpp/RcppArmadillo and
+  RcppEigen. The shared library is expected to remain the dominant contributor
+  to installed package size.
 
-4) Version numbering
-
-- This release intentionally moves from CRAN version 0.4.0 to 1.0.0 to mark the
-  stabilized package/API line used by the accompanying software article.
-
-5) Compiler hardening flag note
+4) Compiler hardening flag note
 
 - Some local Linux toolchains inject non-portable compiler hardening flags such
   as `-Werror=format-security`, `_FORTIFY_SOURCE`, and `_GLIBCXX_ASSERTIONS`.

@@ -15,9 +15,13 @@
 #'         [exdqlmLDVB()] and [exdqlmMCMC()], with legacy [exdqlmISVB()]
 #'         retained for backward compatibility and transfer-function extensions
 #'         through [exdqlmTransferLDVB()], [exdqlmTransferMCMC()], and legacy
-#'         [exdqlmTransferISVB()].
+#'         [exdqlmTransferISVB()]. Dynamic fitted objects support standard
+#'         [plot()], [predict()], and [diagnostics()] methods, with
+#'         [exdqlmPlot()], [compPlot()], [exdqlmForecast()], and the named
+#'         diagnostic helpers retained as explicit helpers.
 #'   \item Static Bayesian exAL regression via [exalStaticLDVB()] and
-#'         [exalStaticMCMC()].
+#'         [exalStaticMCMC()], with fitted-quantile plots through [plot()] and
+#'         static diagnostics through [diagnostics()].
 #'   \item Modular state-space construction via [polytrendMod()], [seasMod()],
 #'         and [regMod()].
 #'   \item Multi-quantile post-processing via
@@ -26,10 +30,31 @@
 #'         predictive distribution.
 #' }
 #'
+#' @section Object system:
+#' \itemize{
+#'   \item Model specifications have class `exdqlm` and can be combined with
+#'         the `+` method.
+#'   \item Dynamic fitted objects keep their engine-specific first class
+#'         (`exdqlmLDVB`, `exdqlmMCMC`, or legacy `exdqlmISVB`) and also inherit
+#'         from the shared `exdqlmFit` family. They support `print()`,
+#'         `summary()`, `plot()`, and `predict()` where natural.
+#'   \item Static fitted objects keep their engine-specific first class
+#'         (`exalStaticLDVB` or `exalStaticMCMC`) and also inherit from the
+#'         shared `exalStaticFit` family. They support `print()`, `summary()`,
+#'         fitted-quantile `plot()`, and `diagnostics()` methods.
+#'   \item Post-processing functions return explicit objects:
+#'         `exdqlmDiagnostic`, `exdqlmForecast`, `exdqlmForecastDiagnostic`,
+#'         `exdqlmSynthesis`, and `exalStaticDiagnostic`. These objects can be
+#'         inspected with standard `print()`/`summary()` methods and plotted
+#'         with `plot()` when a display is defined.
+#' }
+#'
 #' @section Distinctive features:
 #' \itemize{
-#'   \item Dynamic Bayesian quantile state-space inference with LDVB as the
-#'         main VB engine, MCMC for posterior simulation, and legacy ISVB
+#'   \item Dynamic Bayesian quantile state-space inference with
+#'         structured Laplace-delta variational Bayes (LDVB) as the main variational
+#'         Bayes (VB) engine, Markov chain Monte Carlo (MCMC) for posterior
+#'         simulation, and legacy importance-sampling variational Bayes (ISVB)
 #'         retained for compatibility and historical comparisons.
 #'   \item A unified package covering both dynamic exDQLM models and static
 #'         exAL regression.
@@ -38,13 +63,46 @@
 #'   \item Reduced AL/DQLM paths through `dqlm.ind = TRUE` in both dynamic and
 #'         static APIs.
 #'   \item Standardized VB diagnostics traces via
-#'         `fit$diagnostics$vb_trace` for ELBO, `sigma`, `gamma`, and
-#'         convergence deltas across VB engines.
+#'         `fit$diagnostics$vb_trace` for the evidence lower bound (ELBO),
+#'         `sigma`, `gamma`, and convergence deltas across VB engines.
 #'   \item Conservative automatic warmup defaults for the most failure-prone
 #'         shared blocks: RHS-family `tau` scheduling plus exAL
 #'         `(sigma, gamma)` warmup in VB and MCMC entry points, with explicit
 #'         controls available only when users need to override the defaults.
+#'   \item Structured exAL scale-skewness updates: unrestricted exAL LDVB fits
+#'         use a `q(gamma) q(sigma | gamma)` block by default, and unrestricted
+#'         exAL MCMC fits use an exact scale-collapsed gamma slice transition
+#'         by default.
 #'   \item Optional C++ acceleration for selected state-space computations.
+#' }
+#'
+#' @section Release changes in 1.1.1:
+#' \itemize{
+#'   \item Stochastic compiled helper paths were made serial and controlled by
+#'         the R random-number generator, improving exact repeatability under
+#'         fixed seeds.
+#'   \item The default unrestricted exAL MCMC kernel changed to
+#'         `mh.proposal = "collapsed_slice"`, which integrates out `sigma` for
+#'         the gamma slice step and then redraws `sigma` from its exact GIG
+#'         conditional. Legacy kernels remain available when selected
+#'         explicitly.
+#'   \item The default unrestricted exAL LDVB scale-skewness factor changed to
+#'         a structured `q(gamma) q(sigma | gamma)` approximation. The previous
+#'         two-dimensional Laplace-delta factor remains available through
+#'         `exal_make_vb_sigmagam_control(factorization = "laplace_delta")`.
+#' }
+#'
+#' @section Release changes in 1.1.0:
+#' \itemize{
+#'   \item Shared fit class families were added while preserving the existing
+#'         first-class object names: dynamic fits inherit from `exdqlmFit`, and
+#'         static fits inherit from `exalStaticFit`.
+#'   \item Fitted-model and post-processing objects have standardized
+#'         `print()` and `summary()` methods for inspecting object type, engine,
+#'         dimensions, stored draws, diagnostics, and run time.
+#'   \item Dynamic fits support standard `plot()`, `predict()`, and
+#'         `diagnostics()` methods; forecast and static-fit diagnostics use the
+#'         same `diagnostics()` generic where defined.
 #' }
 #'
 #' @section Release changes in 1.0.0:
@@ -54,9 +112,15 @@
 #'         quantiles, with user-configurable quantile levels and weights in
 #'         [exdqlmDiagnostics()].
 #'   \item Held-out forecast diagnostics are available for forecast objects
-#'         through [exdqlmForecastDiagnostics()].
+#'         through [diagnostics()].
+#'   \item Static diagnostics store fitted-quantile summaries and coefficient
+#'         intervals, with `plot(..., type = "coefficients")` available for
+#'         comparing static LDVB and MCMC coefficient summaries.
 #'   \item Dynamic KL normality diagnostics are deterministic for fixed fitted
-#'         objects and no longer depend on stochastic reference samples.
+#'         objects and no longer depend on stochastic reference samples. The
+#'         top-level diagnostic object exposes `KL` as the primary calibration
+#'         diagnostic and keeps advanced KL sensitivity details under
+#'         `kl.details`.
 #' }
 #'
 #' @section Runtime options:
@@ -71,8 +135,9 @@
 #'   \item `options(exdqlm.use_cpp_postpred = TRUE|FALSE)` – C++ posterior predictive sampler (optional; default FALSE).
 #'   \item `options(exdqlm.use_cpp_mcmc = TRUE|FALSE)` – MCMC backend routing (optional; default TRUE).
 #'   \item `options(exdqlm.cpp_mcmc_mode = "strict"|"fast")` – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
-#'   \item `options(exdqlm.cpp_threads = numeric)` – Positive integer thread cap for eligible
-#'         OpenMP-enabled C++ paths (`1L` forces single-thread; default `1L`).
+#'   \item `options(exdqlm.cpp_threads = numeric)` – Reserved compatibility
+#'         option for eligible compiled paths. Stochastic compiled samplers use
+#'         serial \proglang{R}-controlled RNG streams in version 1.1.1 and later.
 #' }
 #'
 #' @useDynLib exdqlm, .registration = TRUE

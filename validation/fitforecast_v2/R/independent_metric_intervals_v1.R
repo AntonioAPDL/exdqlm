@@ -15,16 +15,19 @@ imi_v1_relpath <- function(path, repo_root = imi_v1_repo_root()) {
   ifelse(startsWith(path, root), substring(path, nchar(root) + 1L), path)
 }
 
-imi_v1_authority_dir <- function(repo_root = imi_v1_repo_root()) {
-  file.path(repo_root, "validation", "fitforecast_v2", "promotions", imi_v1_authority_id)
+imi_v1_authority_dir <- function(repo_root = imi_v1_repo_root(),
+                                 authority_id = imi_v1_authority_id) {
+  file.path(repo_root, "validation", "fitforecast_v2", "promotions", authority_id)
 }
 
-imi_v1_authority_interface_path <- function(repo_root = imi_v1_repo_root()) {
-  file.path(imi_v1_authority_dir(repo_root), paste0(imi_v1_authority_id, "_interface.csv"))
+imi_v1_authority_interface_path <- function(repo_root = imi_v1_repo_root(),
+                                            authority_id = imi_v1_authority_id) {
+  file.path(imi_v1_authority_dir(repo_root, authority_id), paste0(authority_id, "_interface.csv"))
 }
 
-imi_v1_authority_manifest_path <- function(repo_root = imi_v1_repo_root()) {
-  file.path(imi_v1_authority_dir(repo_root), paste0(imi_v1_authority_id, "_manifest.json"))
+imi_v1_authority_manifest_path <- function(repo_root = imi_v1_repo_root(),
+                                           authority_id = imi_v1_authority_id) {
+  file.path(imi_v1_authority_dir(repo_root, authority_id), paste0(authority_id, "_manifest.json"))
 }
 
 imi_v1_metric_roles <- c(
@@ -193,7 +196,8 @@ imi_v1_target_registry_catalog <- function(repo_root = imi_v1_repo_root()) {
 imi_v1_request_catalog <- function(repo_root = imi_v1_repo_root()) {
   roots <- c(
     file.path(repo_root, "config", "validation"),
-    file.path(repo_root, "validation", "fitforecast_v2", "promotions")
+    file.path(repo_root, "validation", "fitforecast_v2", "promotions"),
+    file.path(repo_root, "validation", "fitforecast_v2", "audits")
   )
   files <- unlist(lapply(roots, function(root) {
     list.files(root, pattern = "[.]json$", recursive = TRUE, full.names = TRUE)
@@ -271,9 +275,10 @@ imi_v1_resolve_qdesn_requests <- function(registry, catalog) {
   registry
 }
 
-imi_v1_static_audit <- function(repo_root = imi_v1_repo_root()) {
-  interface_path <- imi_v1_authority_interface_path(repo_root)
-  manifest_path <- imi_v1_authority_manifest_path(repo_root)
+imi_v1_static_audit <- function(repo_root = imi_v1_repo_root(),
+                                authority_id = imi_v1_authority_id) {
+  interface_path <- imi_v1_authority_interface_path(repo_root, authority_id)
+  manifest_path <- imi_v1_authority_manifest_path(repo_root, authority_id)
   interface <- ffv2_read_csv(interface_path)
   roles <- imi_v1_expand_metric_sources(interface)
   registry <- imi_v1_source_registry(roles)

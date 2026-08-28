@@ -105,8 +105,8 @@ distribution after convergence. Default is \code{n.samp = 200}.}
 Laplace-Delta block. Under the current delta-only implementation this
 value is ignored.}
 
-\item{ld_controls}{Optional list of controls for the Laplace-Delta block.
-Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
+\item{ld_controls}{Optional list of controls for the exAL scale-skewness
+block. Supported keys include \code{optimizer_method} (\code{"lbfgsb"} or
 \code{"bfgs"}), \code{direct_commit}, \code{damping},
 \code{xi_damping}, \code{optimizer_maxit}, \code{eig_floor},
 \code{eig_cap}, \code{step_cap_eta}, \code{step_cap_ell},
@@ -132,7 +132,8 @@ the built-in RHS-family \code{tau} warmup defaults.}
 \item{verbose}{Logical; print progress.}
 }
 \value{
-An object of class "\code{exalStaticLDVB}" containing:
+An object with classes "\code{exalStaticLDVB}" and
+"\code{exalStaticFit}" containing:
 \itemize{
 \item \code{qbeta}: list with \code{m}, \code{V}.
 \item \code{samp.beta}: posterior sample from \eqn{q(\beta)} with
@@ -142,8 +143,11 @@ An object of class "\code{exalStaticLDVB}" containing:
 \item \code{qs}: list with \code{mu} (length n), \code{tau2} (length n),
 \code{E_s}, \code{E_s2}.
 \item \code{qsiggam}: list with \code{eta_hat}, \code{ell_hat},
-\code{Sigma} (2x2), approximate means
-\code{gamma_mean}, \code{sigma_mean}, and the \code{xi} expectations.
+\code{Sigma} (2x2 summary covariance), approximate means
+\code{gamma_mean}, \code{sigma_mean}, the \code{xi} expectations,
+and the selected scale-skewness \code{factorization}. Under the
+default structured factor, this list also stores the gamma
+quadrature grid and conditional GIG scale summaries.
 \item \code{samp.sigma}, \code{samp.gamma}: posterior samples from the
 variational approximation for the scale and skewness parameters. In
 the AL special case (\code{dqlm.ind = TRUE}), \code{samp.gamma} is a
@@ -161,9 +165,10 @@ also tracks \code{lambda2}, \code{nu}, \code{tau2}, \code{xi}, and
 including a standardized VB iteration trace at
 \code{diagnostics$vb_trace} (iteration-wise ELBO / sigma / gamma /
 convergence deltas), state/sigma/gamma/ELBO deltas, stopping reason,
-and Laplace-Delta block trace diagnostics, including
+and scale-skewness block trace diagnostics, including
 replicated-\code{xi} controls, automatic stabilization /
-cycle-detection fields, and final local-mode quality checks. For RHS
+cycle-detection fields, and final local-mode quality checks for the
+legacy Laplace-delta factor. For RHS
 fits this also includes \code{diagnostics$rhs} with the resolved
 preflight configuration and collapse diagnostics.
 }
@@ -179,15 +184,16 @@ Mean-field factorization:
 \deqn{q(\beta)\ \prod_{i=1}^n q(v_i)\ q(s_i)\ q(\sigma,\gamma).}
 This factorization induces a blockwise coordinate-ascent variational
 inference scheme. The \eqn{(\sigma,\gamma)} block is the only nonconjugate
-component, so LDVB approximates it in transformed coordinates
-\eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))} and \eqn{\ell=\log\sigma}.
-The \code{xi} expectations needed by the remaining block updates are then
-computed with a second-order Delta approximation. The \code{xi} expectations
-used in the updates can be computed either from a
-deterministic second-order Delta approximation in \eqn{(\eta,\ell)} or from a
-Gaussian Monte Carlo sample. The Laplace-Delta controls also allow bounded
-optimization in the transformed \eqn{(\eta,\ell)} block to better mimic the
-stabilized RHS-family readout implementation. For RHS-family priors, the
+component. By default, LDVB uses a structured
+\eqn{q(\gamma)q(\sigma \mid \gamma)} factor: \code{gamma} is represented on
+the bounded-logit scale
+\eqn{\eta=\mathrm{logit}((\gamma-L)/(U-L))}, and \code{sigma} is summarized
+through its conditional GIG moments given \code{gamma}. This weakens the
+gamma-scale dependence while retaining the same variational target used by
+the other block updates. The previous two-dimensional Laplace-delta factor
+on \eqn{(\eta,\ell)} with \eqn{\ell=\log\sigma} remains available through
+\code{exal_make_vb_sigmagam_control(factorization = "laplace_delta")}. For
+RHS-family priors, the
 prior block uses \code{tau} warmup/freeze scheduling to avoid the
 early-collapse regime where global shrinkage drives all slope coefficients
 toward zero before the likelihood-side variational factors stabilize.

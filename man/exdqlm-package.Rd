@@ -23,9 +23,13 @@ for static coefficients, and post hoc synthesis of several fitted quantiles.
 \code{\link[=exdqlmLDVB]{exdqlmLDVB()}} and \code{\link[=exdqlmMCMC]{exdqlmMCMC()}}, with legacy \code{\link[=exdqlmISVB]{exdqlmISVB()}}
 retained for backward compatibility and transfer-function extensions
 through \code{\link[=exdqlmTransferLDVB]{exdqlmTransferLDVB()}}, \code{\link[=exdqlmTransferMCMC]{exdqlmTransferMCMC()}}, and legacy
-\code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}.
+\code{\link[=exdqlmTransferISVB]{exdqlmTransferISVB()}}. Dynamic fitted objects support standard
+\code{\link[=plot]{plot()}}, \code{\link[=predict]{predict()}}, and \code{\link[=diagnostics]{diagnostics()}} methods, with
+\code{\link[=exdqlmPlot]{exdqlmPlot()}}, \code{\link[=compPlot]{compPlot()}}, \code{\link[=exdqlmForecast]{exdqlmForecast()}}, and the named
+diagnostic helpers retained as explicit helpers.
 \item Static Bayesian exAL regression via \code{\link[=exalStaticLDVB]{exalStaticLDVB()}} and
-\code{\link[=exalStaticMCMC]{exalStaticMCMC()}}.
+\code{\link[=exalStaticMCMC]{exalStaticMCMC()}}, with fitted-quantile plots through \code{\link[=plot]{plot()}} and
+static diagnostics through \code{\link[=diagnostics]{diagnostics()}}.
 \item Modular state-space construction via \code{\link[=polytrendMod]{polytrendMod()}}, \code{\link[=seasMod]{seasMod()}},
 and \code{\link[=regMod]{regMod()}}.
 \item Multi-quantile post-processing via
@@ -35,11 +39,34 @@ predictive distribution.
 }
 }
 
+\section{Object system}{
+
+\itemize{
+\item Model specifications have class \code{exdqlm} and can be combined with
+the \code{+} method.
+\item Dynamic fitted objects keep their engine-specific first class
+(\code{exdqlmLDVB}, \code{exdqlmMCMC}, or legacy \code{exdqlmISVB}) and also inherit
+from the shared \code{exdqlmFit} family. They support \code{print()},
+\code{summary()}, \code{plot()}, and \code{predict()} where natural.
+\item Static fitted objects keep their engine-specific first class
+(\code{exalStaticLDVB} or \code{exalStaticMCMC}) and also inherit from the
+shared \code{exalStaticFit} family. They support \code{print()}, \code{summary()},
+fitted-quantile \code{plot()}, and \code{diagnostics()} methods.
+\item Post-processing functions return explicit objects:
+\code{exdqlmDiagnostic}, \code{exdqlmForecast}, \code{exdqlmForecastDiagnostic},
+\code{exdqlmSynthesis}, and \code{exalStaticDiagnostic}. These objects can be
+inspected with standard \code{print()}/\code{summary()} methods and plotted
+with \code{plot()} when a display is defined.
+}
+}
+
 \section{Distinctive features}{
 
 \itemize{
-\item Dynamic Bayesian quantile state-space inference with LDVB as the
-main VB engine, MCMC for posterior simulation, and legacy ISVB
+\item Dynamic Bayesian quantile state-space inference with
+structured Laplace-delta variational Bayes (LDVB) as the main variational
+Bayes (VB) engine, Markov chain Monte Carlo (MCMC) for posterior
+simulation, and legacy importance-sampling variational Bayes (ISVB)
 retained for compatibility and historical comparisons.
 \item A unified package covering both dynamic exDQLM models and static
 exAL regression.
@@ -48,13 +75,50 @@ exAL regression.
 \item Reduced AL/DQLM paths through \code{dqlm.ind = TRUE} in both dynamic and
 static APIs.
 \item Standardized VB diagnostics traces via
-\code{fit$diagnostics$vb_trace} for ELBO, \code{sigma}, \code{gamma}, and
-convergence deltas across VB engines.
+\code{fit$diagnostics$vb_trace} for the evidence lower bound (ELBO),
+\code{sigma}, \code{gamma}, and convergence deltas across VB engines.
 \item Conservative automatic warmup defaults for the most failure-prone
 shared blocks: RHS-family \code{tau} scheduling plus exAL
 \verb{(sigma, gamma)} warmup in VB and MCMC entry points, with explicit
 controls available only when users need to override the defaults.
+\item Structured exAL scale-skewness updates: unrestricted exAL LDVB fits
+use a \verb{q(gamma) q(sigma | gamma)} block by default, and unrestricted
+exAL MCMC fits use an exact scale-collapsed gamma slice transition
+by default.
 \item Optional C++ acceleration for selected state-space computations.
+}
+}
+
+\section{Release changes in 1.1.1}{
+
+\itemize{
+\item Stochastic compiled helper paths were made serial and controlled by
+the R random-number generator, improving exact repeatability under
+fixed seeds.
+\item The default unrestricted exAL MCMC kernel changed to
+\code{mh.proposal = "collapsed_slice"}, which integrates out \code{sigma} for
+the gamma slice step and then redraws \code{sigma} from its exact GIG
+conditional. Legacy kernels remain available when selected
+explicitly.
+\item The default unrestricted exAL LDVB scale-skewness factor changed to
+a structured \verb{q(gamma) q(sigma | gamma)} approximation. The previous
+two-dimensional Laplace-delta factor remains available through
+\code{exal_make_vb_sigmagam_control(factorization = "laplace_delta")}.
+}
+}
+
+\section{Release changes in 1.1.0}{
+
+\itemize{
+\item Shared fit class families were added while preserving the existing
+first-class object names: dynamic fits inherit from \code{exdqlmFit}, and
+static fits inherit from \code{exalStaticFit}.
+\item Fitted-model and post-processing objects have standardized
+\code{print()} and \code{summary()} methods for inspecting object type, engine,
+dimensions, stored draws, diagnostics, and run time.
+\item Dynamic fits support standard \code{plot()}, \code{predict()}, and
+\code{diagnostics()} methods; forecast and static-fit diagnostics use the
+same \code{diagnostics()} generic where defined.
 }
 }
 
@@ -66,9 +130,15 @@ quantile-score approximation over posterior predictive empirical
 quantiles, with user-configurable quantile levels and weights in
 \code{\link[=exdqlmDiagnostics]{exdqlmDiagnostics()}}.
 \item Held-out forecast diagnostics are available for forecast objects
-through \code{\link[=exdqlmForecastDiagnostics]{exdqlmForecastDiagnostics()}}.
+through \code{\link[=diagnostics]{diagnostics()}}.
+\item Static diagnostics store fitted-quantile summaries and coefficient
+intervals, with \code{plot(..., type = "coefficients")} available for
+comparing static LDVB and MCMC coefficient summaries.
 \item Dynamic KL normality diagnostics are deterministic for fixed fitted
-objects and no longer depend on stochastic reference samples.
+objects and no longer depend on stochastic reference samples. The
+top-level diagnostic object exposes \code{KL} as the primary calibration
+diagnostic and keeps advanced KL sensitivity details under
+\code{kl.details}.
 }
 }
 
@@ -85,8 +155,9 @@ objects and no longer depend on stochastic reference samples.
 \item \code{options(exdqlm.use_cpp_postpred = TRUE|FALSE)} – C++ posterior predictive sampler (optional; default FALSE).
 \item \code{options(exdqlm.use_cpp_mcmc = TRUE|FALSE)} – MCMC backend routing (optional; default TRUE).
 \item \code{options(exdqlm.cpp_mcmc_mode = "strict"|"fast")} – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
-\item \code{options(exdqlm.cpp_threads = numeric)} – Positive integer thread cap for eligible
-OpenMP-enabled C++ paths (\code{1L} forces single-thread; default \code{1L}).
+\item \code{options(exdqlm.cpp_threads = numeric)} – Reserved compatibility
+option for eligible compiled paths. Stochastic compiled samplers use
+serial \proglang{R}-controlled RNG streams in version 1.1.1 and later.
 }
 }
 

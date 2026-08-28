@@ -1,0 +1,16 @@
+"check","pass"
+"package_version",TRUE
+"required_source_commit",TRUE
+"dynamic_default_collapsed_slice",TRUE
+"static_default_collapsed_slice",TRUE
+"vb_default_structured",TRUE
+"vb_default_grid_151",TRUE
+"mcmc_smoke_collapsed_slice",TRUE
+"mcmc_smoke_sigma_collapsed",TRUE
+"ldvb_smoke_structured",TRUE
+"qdesn_ldvb_smoke_structured",TRUE
+"al_gamma_fixed",TRUE
+"rng_thread_invariant",TRUE
+"rng_fresh_process_thread_invariant",TRUE
+"tarball_recorded",TRUE
+"build_manifest_recorded",TRUE

@@ -2,6 +2,22 @@
 #'
 #' The function applies a Markov chain Monte Carlo (MCMC) algorithm to sample the posterior of an exDQLM.
 #'
+#' @usage
+#' exdqlmMCMC(y, p0, model, df, dim.df, fix.gamma = FALSE, gam.init = NA,
+#'   fix.sigma = FALSE, sig.init = NA, dqlm.ind = FALSE, Sig.mh,
+#'   joint.sample = FALSE, n.burn = 2000, n.mcmc = 1500,
+#'   init.from.isvb = FALSE, PriorSigma = NULL, PriorGamma = NULL,
+#'   verbose = TRUE, init.from.vb = TRUE, vb_init_controls = NULL,
+#'   vb_init_fit = NULL, mcmc_control = NULL, sigmagam_controls = NULL,
+#'   latent_state_controls = NULL, theta_state_controls = NULL,
+#'   dqlm_sigma_controls = NULL,
+#'   mh.proposal = c("collapsed_slice", "slice", "laplace_rw", "rw"),
+#'   mh.adapt = TRUE, mh.adapt.interval = 50L,
+#'   mh.target.accept = c(0.20, 0.45), mh.scale.bounds = c(0.1, 10),
+#'   mh.max_scale.step = 0.35, mh.min_burn_adapt = 50L,
+#'   slice.width = 0.1, slice.max.steps = Inf, trace.diagnostics = TRUE,
+#'   trace.every = 1L, verbose.every = 500L, progress_callback = NULL)
+#'
 #' @param y A univariate time-series.
 #' @param p0 The quantile of interest, a value between 0 and 1.
 #' @param model List of the state-space model including \code{GG}, \code{FF},
@@ -54,12 +70,14 @@
 #' @param dqlm_sigma_controls Optional list controlling sigma-only
 #'   warmup/freeze in the DQLM branch. Supported keys mirror
 #'   `sigmagam_controls`.
-#' @param mh.proposal Character; proposal kernel for the exDQLM scale/skew block.
-#'   `"slice"` (default) uses
-#'   an exact sigma GIG update plus a bounded univariate slice sampler directly
-#'   on `gamma`; `"laplace_rw"` uses a Laplace-informed covariance then RW;
-#'   and `"rw"` uses joint random-walk MH on `(log sigma, logit gamma)`.
-#'   This choice is separate from the VB warm-start method.
+#' @param mh.proposal Character; proposal kernel for the exDQLM scale/skew
+#'   block. `"collapsed_slice"` (default) integrates out `sigma` for the
+#'   bounded gamma slice step and then redraws `sigma` from its exact GIG
+#'   conditional. `"slice"` keeps the previous exact conditional sigma draw
+#'   followed by bounded slice sampling directly on `gamma`. `"laplace_rw"`
+#'   uses a Laplace-informed covariance then RW, and `"rw"` uses joint
+#'   random-walk MH on `(log sigma, logit gamma)`. This choice is separate from
+#'   the VB warm-start method.
 #' @param mh.adapt Logical; adapt MH proposal scale during burn-in.
 #' @param mh.adapt.interval Integer; adaptation interval (iterations).
 #' @param mh.target.accept Numeric length-2 vector with lower/upper target acceptance rates.
@@ -67,7 +85,8 @@
 #' @param mh.max_scale.step Numeric in (0,1); maximum fractional scale change per adaptation step.
 #' @param mh.min_burn_adapt Minimum burn-in iterations required to enable adaptation.
 #' @param slice.width Positive numeric width for the bounded slice sampler when
-#'   `mh.proposal = "slice"`. Default `0.1` for parity with `bqrgal`.
+#'   `mh.proposal` is `"collapsed_slice"` or `"slice"`. Default `0.1` for
+#'   parity with `bqrgal`.
 #' @param slice.max.steps Positive integer or `Inf`; maximum stepping-out
 #'   expansions for the slice sampler.
 #' @param trace.diagnostics Logical; if `TRUE`, retain per-iteration
@@ -90,7 +109,8 @@
 #'   truncated to the support of gamma.
 #' @param verbose Logical value indicating whether progress should be displayed.
 #'
-#' @return An object of class "\code{exdqlmMCMC}" containing the following:
+#' @return An object with classes "\code{exdqlmMCMC}" and "\code{exdqlmFit}"
+#' containing the following:
 #'  \itemize{
 #'   \item `y` - Time-series data used to fit the model.
 #'   \item `run.time` - Algorithm run time in seconds.
@@ -246,7 +266,7 @@ NULL
 exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigma=FALSE,sig.init=NA,dqlm.ind=FALSE,
                     Sig.mh,joint.sample=FALSE,n.burn=2000,n.mcmc=1500,init.from.isvb=FALSE,PriorSigma=NULL,PriorGamma=NULL,verbose=TRUE,
                     init.from.vb=TRUE,vb_init_controls=NULL,vb_init_fit=NULL,mcmc_control=NULL,sigmagam_controls=NULL,latent_state_controls=NULL,theta_state_controls=NULL,dqlm_sigma_controls=NULL,
-                    mh.proposal=c("slice","laplace_rw","rw"),mh.adapt=TRUE,mh.adapt.interval=50L,
+                    mh.proposal=c("collapsed_slice","slice","laplace_rw","rw"),mh.adapt=TRUE,mh.adapt.interval=50L,
                     mh.target.accept=c(0.20,0.45),mh.scale.bounds=c(0.1,10),
                     mh.max_scale.step=0.35,mh.min_burn_adapt=50L,
                     slice.width=0.1,slice.max.steps=Inf,
@@ -286,6 +306,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     }
   I = n.mcmc + n.burn
   mh.proposal <- match.arg(mh.proposal)
+  mcmc_slice_like <- mh.proposal %in% c("collapsed_slice", "slice")
 
   if (is.null(init.from.vb)) {
     init.from.vb <- isTRUE(init.from.isvb)
@@ -944,6 +965,69 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       )[1]
       if (is.finite(sigma_new) && sigma_new > 0) sigma_new else sigma
     }
+    samp_collapsed_siggam <- function(reg1, sigma, gamma, sts, uts) {
+      stats <- .exal_sigmagam_stats_from_vectors(
+        t_i = y - reg1,
+        inv_v = 1 / uts,
+        v = uts,
+        s = sts,
+        s2 = sts^2,
+        a_sigma = PriorSigma$a_sig,
+        b_sigma = PriorSigma$b_sig
+      )
+      eta0 <- logit(gamma)
+      eta_lo <- logit(L + 1e-10)
+      eta_hi <- logit(U - 1e-10)
+      log_eta <- function(eta) {
+        .exal_sigmagam_collapsed_log_eta(
+          eta = eta,
+          stats = stats,
+          p0 = p0,
+          bounds = c(L, U),
+          log_prior_gamma = log_prior_gamma
+        )
+      }
+      slice_evals <- NA_integer_
+      if (!fix.gamma) {
+        current_lp <- log_eta(eta0)
+        if (!is.finite(current_lp)) {
+          eta0 <- min(max(logit(min(max(gamma, L + 1e-8), U - 1e-8)), eta_lo), eta_hi)
+          current_lp <- log_eta(eta0)
+        }
+        if (!is.finite(current_lp)) {
+          eta0 <- logit(min(max(0, L + 1e-8), U - 1e-8))
+        }
+        slice_out <- .exdqlm_uni_slice_bounded(
+          x0 = eta0,
+          log_density = log_eta,
+          w = max(0.25, 4 * slice.width),
+          m = slice.max.steps,
+          lower = eta_lo,
+          upper = eta_hi
+        )
+        eta0 <- as.numeric(slice_out$value)[1L]
+        slice_evals <- as.integer(slice_out$evals)
+      }
+      gamma_new <- if (fix.gamma) gamma else inv.logit(eta0)
+      sigma_new <- if (fix.sigma) {
+        sigma
+      } else {
+        .exal_sigmagam_sample_sigma_collapsed(
+          gamma = gamma_new,
+          stats = stats,
+          p0 = p0,
+          fallback = sigma,
+          context = "exdqlm_mcmc_collapsed_sigma"
+        )
+      }
+      list(
+        sigma = sigma_new,
+        gamma = gamma_new,
+        log.sigma = log(sigma_new),
+        logit.gamma = logit(gamma_new),
+        slice_evals = slice_evals
+      )
+    }
     laplace_cov_init <- function(reg1, log.sigma, logit.gamma, sts, uts) {
       fn <- function(z) {
         val <- logL(reg1, z[1], z[2], sts, uts)
@@ -1044,7 +1128,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       sigma = cursam.sigma,
       gamma = cursam.gamma,
       kernel = mh.proposal,
-      accept = if (identical(mh.proposal, "slice")) NA_real_ else 0
+      accept = if (mcmc_slice_like) NA_real_ else 0
     ))
     for (i in 1:I){
       current_iter <- as.integer(i)
@@ -1056,7 +1140,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           model = "exDQLM",
           phase = if (i <= n.burn) "burn" else "keep",
           iter = sprintf("%d/%d", i, I),
-          accept = if (identical(mh.proposal, "slice")) NULL else n.accept / i,
+          accept = if (mcmc_slice_like) NULL else n.accept / i,
           kept = sprintf("%d/%d", kept_now, n.mcmc),
           .verbose = verbose
         )
@@ -1072,7 +1156,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           sigma = cursam.sigma,
           gamma = cursam.gamma,
           kernel = mh.proposal,
-          accept = if (identical(mh.proposal, "slice")) NA_real_ else n.accept / i
+          accept = if (mcmc_slice_like) NA_real_ else n.accept / i
         ))
       }
 
@@ -1229,6 +1313,24 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           accept = NA,
           slice_evals = NA_integer_
         )
+      } else if (identical(mh.proposal, "collapsed_slice")) {
+        collapsed_out <- samp_collapsed_siggam(
+          reg1 = reg1,
+          sigma = cursam.sigma,
+          gamma = cursam.gamma,
+          sts = cursam.st,
+          uts = cursam.Ut
+        )
+        cursam.sigma <- collapsed_out$sigma
+        cursam.log.sigma <- collapsed_out$log.sigma
+        cursam.gamma <- collapsed_out$gamma
+        cursam.logit.gamma <- collapsed_out$logit.gamma
+        lsiglgam.out <- list(
+          log.sigma = cursam.log.sigma,
+          logit.gamma = cursam.logit.gamma,
+          accept = NA,
+          slice_evals = collapsed_out$slice_evals
+        )
       } else if (identical(mh.proposal, "slice")) {
         if (!fix.sigma) {
           cursam.sigma <- samp_sigma_exact(reg1, cursam.sigma, cursam.gamma, cursam.st, cursam.Ut)
@@ -1300,8 +1402,8 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           phase = if (i <= n.burn) "burn" else "keep",
           sigma = cursam.sigma,
           gamma = cursam.gamma,
-          accepted = if (identical(mh.proposal, "slice")) NA else isTRUE(lsiglgam.out$accept),
-          mh_scale = if (identical(mh.proposal, "slice")) NA_real_ else mh.scale,
+          accepted = if (mcmc_slice_like) NA else isTRUE(lsiglgam.out$accept),
+          mh_scale = if (mcmc_slice_like) NA_real_ else mh.scale,
           latent_frozen = isTRUE(latent_state_sched$active),
           latent_mode = latent_ctrl$mode,
           latent_update_reason = latent_state_sched$reason,
@@ -1339,7 +1441,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
 
       # save samples after burn
       if(i <= n.burn){
-        if (!identical(mh.proposal, "slice") && !isTRUE(sigmagam_warmup_active)) {
+        if (!mcmc_slice_like && !isTRUE(sigmagam_warmup_active)) {
           n.trial.burn <- n.trial.burn + 1L
           n.accept.burn <- n.accept.burn + as.integer(isTRUE(lsiglgam.out$accept))
           window.accept <- window.accept + as.integer(isTRUE(lsiglgam.out$accept))
@@ -1361,7 +1463,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
             laplace_refresh_success <- laplace_refresh_success + 1L
           }
         }
-        if (!identical(mh.proposal, "slice") &&
+        if (!mcmc_slice_like &&
             (!isTRUE(sigmagam_ctrl$delay_adapt_until_after_warmup) || !isTRUE(sigmagam_warmup_active)) &&
             mh.adapt && i >= mh.min_burn_adapt && i < n.burn && (i %% mh.adapt.interval == 0)) {
           acc.win <- window.accept / pmax(window.total, 1L)
@@ -1388,13 +1490,13 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
           window.accept <- 0L
           window.total <- 0L
         }
-        if(!identical(mh.proposal, "slice") && i==n.burn && joint.sample && !isTRUE(sigmagam_warmup_active)){
+        if(!mcmc_slice_like && i==n.burn && joint.sample && !isTRUE(sigmagam_warmup_active)){
           Sig.mh = stats::cov(cbind(init.log.sigma[1:n.burn],init.logit.gamma[1:n.burn]))
           Sig.mh <- prep_Sig_mh(Sig.mh)
           chol_Sig.mh <- build_chol(Sig.mh * (mh.scale^2))
           }
       }else{
-        if (!identical(mh.proposal, "slice") && !isTRUE(sigmagam_warmup_active)) {
+        if (!mcmc_slice_like && !isTRUE(sigmagam_warmup_active)) {
           n.trial.keep <- n.trial.keep + 1L
           n.accept.keep <- n.accept.keep + as.integer(isTRUE(lsiglgam.out$accept))
         }
@@ -1414,7 +1516,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       status = "complete",
       iter = I,
       runtime_sec = run.time$toc - run.time$tic,
-      accept = if (identical(mh.proposal, "slice")) NULL else n.accept / I,
+      accept = if (mcmc_slice_like) NULL else n.accept / I,
       .verbose = verbose
     )
     safe_progress_callback(list(
@@ -1427,7 +1529,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
       sigma = cursam.sigma,
       gamma = cursam.gamma,
       kernel = mh.proposal,
-      accept = if (identical(mh.proposal, "slice")) NA_real_ else n.accept / I,
+      accept = if (mcmc_slice_like) NA_real_ else n.accept / I,
       runtime_sec = as.numeric(run.time$toc - run.time$tic)
     ))
 
@@ -1448,24 +1550,32 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
     ess_gamma <- tryCatch(as.numeric(coda::effectiveSize(coda::as.mcmc(save.gamma))), error = function(e) NA_real_)
     chain_health_sigma <- .exdqlm_chain_health_metrics(save.sigma, n_keep = n.mcmc)
     chain_health_gamma <- .exdqlm_chain_health_metrics(save.gamma, n_keep = n.mcmc)
-    accept_total <- if (identical(mh.proposal, "slice")) NA_real_ else n.accept / I
-    accept_burn <- if (identical(mh.proposal, "slice")) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
-    accept_keep <- if (identical(mh.proposal, "slice")) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
-    kernel_exact <- mh.proposal %in% c("rw", "laplace_rw", "slice")
+    accept_total <- if (mcmc_slice_like) NA_real_ else n.accept / I
+    accept_burn <- if (mcmc_slice_like) NA_real_ else if (n.trial.burn > 0) n.accept.burn / n.trial.burn else NA_real_
+    accept_keep <- if (mcmc_slice_like) NA_real_ else if (n.trial.keep > 0) n.accept.keep / n.trial.keep else NA_real_
+    kernel_exact <- mh.proposal %in% c("rw", "laplace_rw", "slice", "collapsed_slice")
     mh.diag <- list(
       proposal = mh.proposal,
-      adapt = if (identical(mh.proposal, "slice")) FALSE else mh.adapt,
+      adapt = if (mcmc_slice_like) FALSE else mh.adapt,
       joint_sample = isTRUE(joint.sample),
-      adapt_interval = if (identical(mh.proposal, "slice")) NA_integer_ else mh.adapt.interval,
-      target_accept = if (identical(mh.proposal, "slice")) c(NA_real_, NA_real_) else mh.target.accept,
-      scale_bounds = if (identical(mh.proposal, "slice")) c(NA_real_, NA_real_) else mh.scale.bounds,
-      scale_final = if (identical(mh.proposal, "slice")) NA_real_ else mh.scale,
+      adapt_interval = if (mcmc_slice_like) NA_integer_ else mh.adapt.interval,
+      target_accept = if (mcmc_slice_like) c(NA_real_, NA_real_) else mh.target.accept,
+      scale_bounds = if (mcmc_slice_like) c(NA_real_, NA_real_) else mh.scale.bounds,
+      scale_final = if (mcmc_slice_like) NA_real_ else mh.scale,
       joint_sigma_gamma = mh.proposal %in% c("rw", "laplace_rw"),
-      transformed_state = if (mh.proposal %in% c("rw", "laplace_rw")) c("log_sigma", "logit_gamma") else c("gamma"),
+      sigma_collapsed = identical(mh.proposal, "collapsed_slice"),
+      conditional_sigma_redraw = mcmc_slice_like,
+      transformed_state = if (mh.proposal %in% c("rw", "laplace_rw")) {
+        c("log_sigma", "logit_gamma")
+      } else if (identical(mh.proposal, "collapsed_slice")) {
+        c("logit_gamma_collapsed_sigma")
+      } else {
+        c("gamma")
+      },
       # Backward-compatible aliases used by some diagnostics scripts.
-      final_scale = if (identical(mh.proposal, "slice")) NA_real_ else mh.scale,
-      slice_width = if (identical(mh.proposal, "slice")) slice.width else NA_real_,
-      slice_max_steps = if (identical(mh.proposal, "slice")) slice.max.steps else NA_real_,
+      final_scale = if (mcmc_slice_like) NA_real_ else mh.scale,
+      slice_width = if (mcmc_slice_like) slice.width else NA_real_,
+      slice_max_steps = if (mcmc_slice_like) slice.max.steps else NA_real_,
       laplace_refresh = list(
         enabled = identical(mh.proposal, "laplace_rw"),
         interval = if (identical(mh.proposal, "laplace_rw")) as.integer(mh.laplace.refresh.interval) else NA_integer_,
@@ -1481,13 +1591,13 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
         total = accept_total,
         burn = accept_burn,
         kept = accept_keep,
-        n_accept = if (identical(mh.proposal, "slice")) NA_integer_ else n.accept,
-        n_total = if (identical(mh.proposal, "slice")) NA_integer_ else I
+        n_accept = if (mcmc_slice_like) NA_integer_ else n.accept,
+        n_total = if (mcmc_slice_like) NA_integer_ else I
       ),
-      Sig.mh.initial = if (identical(mh.proposal, "slice")) matrix(NA_real_, 2, 2) else Sig.mh.initial,
-      Sig.mh.final = if (identical(mh.proposal, "slice")) matrix(NA_real_, 2, 2) else Sig.mh.final,
-      adaptation = if (identical(mh.proposal, "slice")) data.frame() else adapt.history,
-      adapt_trace = if (identical(mh.proposal, "slice")) data.frame() else adapt.history,
+      Sig.mh.initial = if (mcmc_slice_like) matrix(NA_real_, 2, 2) else Sig.mh.initial,
+      Sig.mh.final = if (mcmc_slice_like) matrix(NA_real_, 2, 2) else Sig.mh.final,
+      adaptation = if (mcmc_slice_like) data.frame() else adapt.history,
+      adapt_trace = if (mcmc_slice_like) data.frame() else adapt.history,
       trace_enabled = trace.diagnostics,
       trace_every = if (trace.diagnostics) trace.every else NA_integer_,
       verbose_every = as.integer(verbose.every),
@@ -1545,7 +1655,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
                 accept.rate = accept_total,
                 accept.rate.burn = accept_burn,
                 accept.rate.keep = accept_keep,
-                Sig.mh = if (identical(mh.proposal, "slice")) matrix(NA_real_, 2, 2) else Sig.mh.final,
+                Sig.mh = if (mcmc_slice_like) matrix(NA_real_, 2, 2) else Sig.mh.final,
                 init.from.vb = init.from.vb,
                 vb.init.method = if (init.from.vb) vb.ctrl$method else NA_character_,
                 mh.diagnostics = mh.diag,
@@ -2073,7 +2183,7 @@ exdqlmMCMC <- function(y,p0,model,df,dim.df,fix.gamma=FALSE,gam.init=NA,fix.sigm
   retlist$backend <- list(mcmc = mcmc_backend, mode = cpp_mcmc_mode, gig = gig_backend)
 
   # return results
-  class(retlist) <- "exdqlmMCMC"
+  class(retlist) <- .exdqlm_fit_class("exdqlmMCMC")
   return(retlist)
 }
 

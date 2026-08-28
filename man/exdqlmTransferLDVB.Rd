@@ -25,6 +25,7 @@ exdqlmTransferLDVB(
   PriorGamma = NULL,
   tf.m0 = NULL,
   tf.C0 = NULL,
+  vb_control = NULL,
   verbose = TRUE,
   debug_shapes = FALSE,
   debug_every = 5
@@ -85,6 +86,11 @@ zero vector of length \eqn{k+1}, where \eqn{k = ncol(X)}.}
 \item{tf.C0}{Prior covariance of the transfer function component. Defaults to
 the \eqn{(k+1)\times(k+1)} identity matrix.}
 
+\item{vb_control}{Optional normalized VB control list passed to
+\code{\link{exdqlmLDVB}}. Use this to set common VB controls such as
+\code{max_iter}, \code{tol}, or warmup blocks for the transfer-augmented
+LDVB fit.}
+
 \item{verbose}{Logical value indicating whether progress should be displayed.}
 
 \item{debug_shapes}{Logical; if TRUE, print KF input/output shapes every \code{debug_every} iterations.}
@@ -92,7 +98,8 @@ the \eqn{(k+1)\times(k+1)} identity matrix.}
 \item{debug_every}{Integer; frequency (in iterations) for shape prints when \code{debug_shapes=TRUE}.}
 }
 \value{
-An object of class "\code{exdqlmLDVB}" containing the following:
+An object with classes "\code{exdqlmLDVB}" and "\code{exdqlmFit}"
+containing the following:
 \itemize{
 \item \code{y} - Time-series data used to fit the model.
 \item \code{run.time} - Algorithm run time in seconds.
@@ -123,8 +130,11 @@ If \code{dqlm.ind=FALSE}, the list also contains:
 \item \code{seq.gamma} - Sequence of gamma estimated by the algorithm until convergence.
 \item \code{samp.gamma} - Posterior sample of skewness parameter gamma variational distribution.
 \item \code{samp.sts} - Posterior sample of latent parameters, s_t, variational distributions.
-\item \code{gammasig.out} - List containing the LD (Laplace-Delta) approximation for the
-variational distribution of \code{sigma} and \code{gamma} (means, transformed Hessian, and ELBO components).
+\item \code{gammasig.out} - List containing the variational approximation for
+\code{sigma} and \code{gamma}. In the default structured factor this includes the
+bounded-logit gamma quadrature grid and conditional GIG scale summaries;
+in the legacy Laplace-delta factor it includes the transformed mean and
+covariance.
 \item \code{sts.out} - List containing the variational distributions of latent parameters s_t.
 \item \code{fix.gamma} Logical value indicating whether gamma was fixed at \code{gam.init}.
 }
@@ -173,7 +183,8 @@ M1 = exdqlmTransferLDVB(
   df = c(1,1), dim.df = c(1,4),
   gam.init = -3.5, sig.init = 15,
   lam = 0.38, tf.df = c(0.97,0.97),
-  n.samp = 20, tol = 0.2, verbose = FALSE
+  n.samp = 20, tol = 0.2, vb_control = list(max_iter = 20L),
+  verbose = FALSE
 )
 X_multi = cbind(ELIanoms[1:120], scale(scIVTmag[1:120])[, 1])
 M2 = exdqlmTransferLDVB(
@@ -181,7 +192,8 @@ M2 = exdqlmTransferLDVB(
   df = c(1,1), dim.df = c(1,4),
   gam.init = -3.5, sig.init = 15,
   lam = 0.38, tf.df = c(0.97, 0.99),
-  n.samp = 20, tol = 0.2, verbose = FALSE
+  n.samp = 20, tol = 0.2, vb_control = list(max_iter = 20L),
+  verbose = FALSE
 )
 options(old)
 }

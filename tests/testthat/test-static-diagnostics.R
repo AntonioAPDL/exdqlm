@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tiny_static_truth_case <- function(n = 36L, p0 = 0.25) {
   x <- seq(-2, 2, length.out = n)
   X <- cbind(1, x)
@@ -57,8 +59,22 @@ test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
   expect_true(all(c(
     "m1.check_loss", "m2.check_loss",
     "m1.ref_rmse", "m2.ref_rmse",
-    "m1.beta.mean", "m2.beta.mean"
+    "m1.beta.mean", "m2.beta.mean",
+    "m1.beta.lb", "m1.beta.ub",
+    "m2.beta.lb", "m2.beta.ub",
+    "beta.names", "cr.percent"
   ) %in% names(diags)))
+  expect_false(any(c("active_rmse", "null_mae", "holdout_qrmse") %in% names(diags)))
+  expect_length(diags$m1.beta.mean, ncol(dat$X))
+  expect_length(diags$m1.beta.lb, ncol(dat$X))
+  expect_length(diags$m1.beta.ub, ncol(dat$X))
+  expect_length(diags$m2.beta.mean, ncol(dat$X))
+  expect_length(diags$beta.names, ncol(dat$X))
+  expect_equal(diags$cr.percent, 0.95)
+  expect_true(all(diags$m1.beta.lb <= diags$m1.beta.mean))
+  expect_true(all(diags$m1.beta.mean <= diags$m1.beta.ub))
+  expect_true(all(diags$m2.beta.lb <= diags$m2.beta.mean))
+  expect_true(all(diags$m2.beta.mean <= diags$m2.beta.ub))
   expect_true(all(is.finite(c(
     diags$m1.check_loss, diags$m2.check_loss,
     diags$m1.ref_rmse, diags$m2.ref_rmse,
@@ -72,9 +88,38 @@ test_that("exalStaticDiagnostics compares LDVB and MCMC on a shared design", {
   grDevices::pdf(tf)
   on.exit(grDevices::dev.off(), add = TRUE)
   expect_no_error(plot(diags))
+  expect_no_error(coef_plot <- plot(diags, type = "coefficients"))
+  expect_equal(coef_plot$type, "coefficients")
+  expect_length(coef_plot$coefficient, ncol(dat$X))
+  expect_null(coef_plot$beta.ref)
+  expect_no_error(
+    coef_plot_ref <- plot(
+      diags,
+      type = "coefficients",
+      beta.ref = c(0, 0.5),
+      include.intercept = FALSE,
+      ylim = c(-1, 1),
+      legend.labels = c("LDVB 95% interval", "MCMC 95% interval"),
+      beta.ref.label = "truth"
+    )
+  )
+  expect_length(coef_plot_ref$coefficient, ncol(dat$X) - 1L)
+  expect_equal(coef_plot_ref$beta.ref, 0.5)
+  expect_error(plot(diags, type = "coefficients", beta.ref = 0), "beta.ref")
+  expect_error(plot(diags, type = "coefficients", ylim = c(1, -1)), "ylim")
+  expect_error(plot(diags, type = "coefficients", legend.labels = "LDVB"), "legend.labels")
+  expect_error(plot(diags, type = "coefficients", beta.ref.label = ""), "beta.ref.label")
+  expect_error(plot(diags, type = "unknown"), "one of")
+  expect_error(
+    exalStaticDiagnostics(fit_ldvb, X = dat$X, cr.percent = 1, plot = FALSE),
+    "cr.percent"
+  )
+
+  one_model <- exalStaticDiagnostics(fit_ldvb, X = dat$X, y = dat$y, plot = FALSE)
+  expect_no_error(plot(one_model, type = "coefficients"))
 })
 
-test_that("static MCMC default proposal is slice", {
+test_that("static MCMC default proposal is scale-collapsed slice", {
   set.seed(20260410)
   dat <- tiny_static_truth_case(n = 24L, p0 = 0.25)
 
@@ -88,8 +133,11 @@ test_that("static MCMC default proposal is slice", {
     verbose = FALSE
   )
 
-  expect_identical(fit$mh.diagnostics$proposal, "slice")
+  expect_identical(fit$mh.diagnostics$proposal, "collapsed_slice")
   expect_true(isTRUE(fit$mh.diagnostics$kernel_exact))
+  expect_true(isTRUE(fit$mh.diagnostics$sigma_collapsed))
+  expect_true(isTRUE(fit$mh.diagnostics$conditional_sigma_redraw))
+  expect_identical(fit$mh.diagnostics$transformed_state, c("eta_collapsed_sigma"))
   expect_true(isTRUE(fit$mh.diagnostics$signoff_ready))
   expect_true(is.na(fit$accept.rate))
 })
@@ -187,8 +235,6 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
   dat <- tiny_static_sparse_rhs_case(n = 80L, p0 = 0.25)
   rhs_ctrl <- list(
     tau0 = 0.15,
-    a_zeta = 2,
-    b_zeta = 9,
     zeta2_fixed = 9,
     shrink_intercept = FALSE
   )
@@ -202,7 +248,6 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
       beta_prior_controls = rhs_ctrl,
       max_iter = 220,
       tol = 1e-4,
-      n_samp_xi = 120,
       verbose = FALSE
     )
   )
@@ -228,7 +273,7 @@ test_that("static rhs_ns sparse benchmark is silent and finite with VB warm star
       verbose = FALSE
     )
   )
-  expect_identical(fit_mcmc$mh.diagnostics$proposal, "slice")
+  expect_identical(fit_mcmc$mh.diagnostics$proposal, "collapsed_slice")
   expect_true(all(is.finite(as.matrix(fit_mcmc$samp.beta))))
   expect_false(isTRUE(fit_mcmc$beta_prior$summary$collapse_flag))
 

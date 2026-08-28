@@ -123,7 +123,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     vb_control$subset_fit$original_n <- as.integer(original_n)
     vb_control$subset_fit$n_subset <- as.integer(original_n)
   }
-  sigmagam_cfg <- vb_control$sigmagam %||% list()
+  sigmagam_cfg <- .exal_normalize_vb_sigmagam_cfg(vb_control$sigmagam %||% NULL)
   sigmagam_freeze_warmup_iters <- max(0L, as.integer(
     sigmagam_cfg$freeze_warmup_iters %||%
       sigmagam_cfg$freeze_sigmagam_warmup_iters %||%
@@ -156,6 +156,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     sigmagam_min_postwarmup_updates
   }
   vb_control$sigmagam <- list(
+    factorization = as.character(sigmagam_cfg$factorization),
+    structured_grid_size = as.integer(sigmagam_cfg$structured_grid_size),
+    structured_span_sd = as.numeric(sigmagam_cfg$structured_span_sd),
     freeze_warmup_iters = sigmagam_freeze_warmup_iters,
     force_after_warmup = sigmagam_force_after_warmup,
     postwarmup_damping = sigmagam_postwarmup_damping,
@@ -1316,6 +1319,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   sigmagam_update_count <- 0L
   sigmagam_postwarmup_update_count <- 0L
   sigmagam_first_active_iter <- NA_integer_
+  structured_sigmagam_moments <- NULL
   elbo_old    <- -Inf
   min_iter_elbo <- as.integer(vb_control$min_iter_elbo %||% 10L)
   t_last_tau <- 0L
@@ -1593,7 +1597,38 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       eta_prev_sigmagam <- qsiggam$eta_hat
       ell_prev_sigmagam <- qsiggam$ell_hat
       Sigma_prev_sigmagam <- qsiggam$Sigma
-      ld <- find_mode_ld(qsiggam$eta_hat, qsiggam$ell_hat)
+      ld <- if (!is_al && identical(vb_control$sigmagam$factorization, "structured")) {
+        structured <- .exal_sigmagam_structured_update(
+          stats = .exal_sigmagam_stats(
+            sum_einv_quad = S1,
+            sum_t = S2,
+            sum_v = S3,
+            sum_s_einv_t = S4,
+            sum_s = S6,
+            sum_s2_einv = S5,
+            n = n,
+            a_sigma = a_sigma,
+            b_sigma = b_sigma
+          ),
+          p0 = p0,
+          bounds = c(L, U),
+          PriorSigma = list(a_sig = a_sigma, b_sig = b_sigma),
+          log_prior_gamma = log_prior_gamma_fun,
+          eta_start = qsiggam$eta_hat,
+          eta_lo = eta_lo,
+          eta_hi = eta_hi,
+          grid_size = vb_control$sigmagam$structured_grid_size,
+          span_sd = vb_control$sigmagam$structured_span_sd
+        )
+        structured_sigmagam_moments <- structured
+        list(
+          eta_hat = as.numeric(structured$structured$eta_mean),
+          ell_hat = as.numeric(structured$E.log.sig),
+          Sigma = as.matrix(structured$Hess.LD)
+        )
+      } else {
+        find_mode_ld(qsiggam$eta_hat, qsiggam$ell_hat)
+      }
       postwarmup_damping_active <- isTRUE(
         sigmagam_postwarmup_damping < 1 &&
           sigmagam_postwarmup_damping_iters > 0L &&
@@ -2269,7 +2304,15 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     qs = list(mu = mu_s, tau2 = tau2, E_s = qs$m, E_s2 = qs$m2, m = qs$m, m2 = qs$m2),
     qsiggam = list(
       eta_hat = qsiggam$eta_hat, ell_hat = qsiggam$ell_hat, Sigma = qsiggam$Sigma,
-      gamma_mean = cur_gamma_hat(), sigma_mean = cur_sigma_hat(), xi = xis
+      gamma_mean = cur_gamma_hat(), sigma_mean = cur_sigma_hat(), xi = xis,
+      factorization = if (!is_al && identical(vb_control$sigmagam$factorization, "structured")) {
+        "structured_qgamma_qsigma_given_gamma"
+      } else {
+        "laplace_delta"
+      },
+      structured = if (!is.null(structured_sigmagam_moments)) {
+        structured_sigmagam_moments$structured
+      } else NULL
     ),
 
     converged = converged,

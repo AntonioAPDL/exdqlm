@@ -5,6 +5,9 @@
 \title{Build VB sigmagam warmup control}
 \usage{
 exal_make_vb_sigmagam_control(
+  factorization = NULL,
+  structured_grid_size = NULL,
+  structured_span_sd = NULL,
   freeze_warmup_iters = NULL,
   force_after_warmup = NULL,
   postwarmup_damping = NULL,
@@ -13,6 +16,17 @@ exal_make_vb_sigmagam_control(
 )
 }
 \arguments{
+\item{factorization}{Character; \code{"structured"} uses the
+\verb{q(gamma) q(sigma | gamma)} scale-skewness factorization. The legacy
+two-dimensional Laplace-delta factor can be requested with
+\code{"laplace_delta"}.}
+
+\item{structured_grid_size}{Odd integer; number of quadrature nodes for the
+structured gamma factor. The package default is 151.}
+
+\item{structured_span_sd}{Numeric; local quadrature half-width in curvature
+standard deviations for the structured gamma factor.}
+
 \item{freeze_warmup_iters}{Non-negative integer; number of early VB iterations
 during which the \verb{(sigma, gamma)} block is held fixed.}
 

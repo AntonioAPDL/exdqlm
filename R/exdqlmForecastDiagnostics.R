@@ -56,7 +56,7 @@
 #' y_holdout = y[61:65]
 #' model = polytrendMod(1, stats::quantile(y_train, 0.85), 10)
 #' M0 = exdqlmLDVB(y_train, p0 = 0.85, model, df = c(0.98), dim.df = c(1),
-#'                  gam.init = -3.5, sig.init = 15,
+#'                  dqlm.ind = TRUE, sig.init = 15,
 #'                  n.samp = 20, tol = 0.2, verbose = FALSE)
 #' fFF = model$FF[, 1, drop = FALSE]
 #' fGG = model$GG
@@ -64,7 +64,8 @@
 #'                              fFF = fFF, fGG = fGG,
 #'                              return.draws = TRUE, n.samp = 20, seed = 123,
 #'                              plot = FALSE)
-#' exdqlmForecastDiagnostics(M0.forecast, y = y_holdout)
+#' score <- exdqlmForecastDiagnostics(M0.forecast, y = y_holdout)
+#' score
 #' options(old)
 #' }
 exdqlmForecastDiagnostics <- function(m1, m2 = NULL, y, p0 = NULL,
@@ -144,6 +145,7 @@ exdqlmForecastDiagnostics <- function(m1, m2 = NULL, y, p0 = NULL,
     y = y,
     p0 = p0_resolved,
     horizon = length(y),
+    m1.class = class(m1)[1],
     m1.check_loss = m1_scores$check_loss,
     m1.CRPS = m1_scores$CRPS,
     m1.pointwise = m1_scores$pointwise,
@@ -161,63 +163,12 @@ exdqlmForecastDiagnostics <- function(m1, m2 = NULL, y, p0 = NULL,
       stop("m2 must be fitted at the same quantile level as p0.", call. = FALSE)
     }
     m2_scores <- score_one(m2, draws2)
+    ret$m2.class <- class(m2)[1]
     ret$m2.check_loss <- m2_scores$check_loss
     ret$m2.CRPS <- m2_scores$CRPS
     ret$m2.pointwise <- m2_scores$pointwise
   }
 
   class(ret) <- "exdqlmForecastDiagnostic"
-  invisible(ret)
-}
-
-#' \code{exdqlmForecastDiagnostic} objects
-#'
-#' \code{is.exdqlmForecastDiagnostic} tests if its argument is an
-#' \code{exdqlmForecastDiagnostic} object.
-#'
-#' @usage is.exdqlmForecastDiagnostic(x)
-#' @param x an \strong{R} object.
-#' @export
-is.exdqlmForecastDiagnostic <- function(x) {
-  methods::is(x, "exdqlmForecastDiagnostic")
-}
-
-.exdqlm_forecast_diagnostic_table <- function(x) {
-  m1 <- c(
-    "check loss" = as.numeric(x$m1.check_loss),
-    "CRPS" = as.numeric(x$m1.CRPS)
-  )
-  if (is.null(x$m2.check_loss)) {
-    data.frame(Diagnostic = names(m1), M1 = unname(m1), check.names = FALSE)
-  } else {
-    m2 <- c(
-      "check loss" = as.numeric(x$m2.check_loss),
-      "CRPS" = as.numeric(x$m2.CRPS)
-    )
-    data.frame(Diagnostic = names(m1), M1 = unname(m1), M2 = unname(m2), check.names = FALSE)
-  }
-}
-
-#' Print Method for \code{exdqlmForecastDiagnostic} Objects
-#'
-#' @param x An \code{exdqlmForecastDiagnostic} object.
-#' @param ... Additional arguments (unused).
-#' @export
-print.exdqlmForecastDiagnostic <- function(x, ...) {
-  cat("Held-out exDQLM forecast diagnostics\n")
-  cat("Quantile level (p0):", x$p0, "\n")
-  cat("Forecast horizon:", x$horizon, "\n")
-  print(.exdqlm_forecast_diagnostic_table(x), row.names = FALSE, digits = 4)
-  invisible(x)
-}
-
-#' Summary Method for \code{exdqlmForecastDiagnostic} Objects
-#'
-#' @param object An \code{exdqlmForecastDiagnostic} object.
-#' @param ... Additional arguments (unused).
-#' @export
-summary.exdqlmForecastDiagnostic <- function(object, ...) {
-  out <- .exdqlm_forecast_diagnostic_table(object)
-  print(out, row.names = FALSE, digits = 4)
-  invisible(out)
+  return(ret)
 }

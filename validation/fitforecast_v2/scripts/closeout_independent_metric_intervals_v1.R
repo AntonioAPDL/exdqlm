@@ -13,6 +13,9 @@ repo_root <- normalizePath(args$`repo-root` %||% ffv2_repo_root(), winslash = "/
 state_root <- normalizePath(args$`state-root` %||% "", winslash = "/", mustWork = TRUE)
 materialization <- ffv2_read_json(file.path(state_root, "manifests", "materialization_manifest.json"))
 smoke <- isTRUE(materialization$smoke)
+campaign_schema <- as.character(materialization$schema_version %||% imi_v1_schema)[1L]
+campaign_authority_id <- as.character(materialization$authority_id %||% imi_v1_authority_id)[1L]
+campaign_stage <- if (identical(campaign_schema, i111_schema)) i111_stage else imi_v1_stage
 plan <- ffv2_read_csv(file.path(state_root, "manifests", "job_plan.csv"))
 closeout_root <- file.path(state_root, "closeout")
 ffv2_ensure_dir(closeout_root)
@@ -44,6 +47,18 @@ status_rows <- lapply(seq_len(nrow(plan)), function(i) {
     tau = row$tau[[1L]], chain_id = row$chain_id[[1L]],
     metric_draws_path = as.character(x$metric_draws_path),
     metric_draws_sha256 = as.character(x$metric_draws_sha256),
+    inference_diagnostics_path = as.character(
+      x$inference_diagnostics_path %||% NA_character_
+    )[1L],
+    inference_diagnostics_sha256 = as.character(
+      x$inference_diagnostics_sha256 %||% NA_character_
+    )[1L],
+    chain_summary_path = as.character(x$chain_summary_path %||% NA_character_)[1L],
+    chain_summary_sha256 = as.character(x$chain_summary_sha256 %||% NA_character_)[1L],
+    sigmagam_trace_path = as.character(x$sigmagam_trace_path %||% NA_character_)[1L],
+    sigmagam_trace_sha256 = as.character(
+      x$sigmagam_trace_sha256 %||% NA_character_
+    )[1L],
     checks_pass = all(checks), failed_checks = paste(names(checks)[!checks], collapse = ";"),
     stringsAsFactors = FALSE
   )
@@ -54,6 +69,102 @@ if (!all(job_audit$checks_pass)) {
   stop(sprintf("Job artifact audit failed for: %s",
                paste(job_audit$job_id[!job_audit$checks_pass], collapse = ", ")), call. = FALSE)
 }
+
+diagnostic_artifacts <- list()
+diagnostic_i <- 0L
+for (i in seq_len(nrow(job_audit))) {
+  row <- job_audit[i, , drop = FALSE]
+  for (artifact_type in c("inference_diagnostics", "chain_summary", "sigmagam_trace")) {
+    path <- as.character(row[[paste0(artifact_type, "_path")]][[1L]])
+    expected_sha <- as.character(row[[paste0(artifact_type, "_sha256")]][[1L]])
+    if (is.na(path) || !nzchar(path)) next
+    diagnostic_i <- diagnostic_i + 1L
+    diagnostic_artifacts[[diagnostic_i]] <- data.frame(
+      job_id = row$job_id[[1L]], replay_id = row$replay_id[[1L]],
+      engine = row$engine[[1L]], inference = row$inference[[1L]],
+      model_variant = row$model_variant[[1L]], family = row$family[[1L]],
+      tau = row$tau[[1L]], chain_id = row$chain_id[[1L]],
+      artifact_type = artifact_type, path = path, expected_sha256 = expected_sha,
+      exists = file.exists(path),
+      hash_ok = file.exists(path) && identical(ffv2_file_sha256(path), expected_sha),
+      stringsAsFactors = FALSE
+    )
+  }
+}
+diagnostic_artifact_audit <- ffv2_bind_rows(diagnostic_artifacts)
+ffv2_write_csv(
+  diagnostic_artifact_audit,
+  file.path(closeout_root, "inference_diagnostic_artifact_audit.csv")
+)
+
+path_present <- function(x) !is.na(x) & nzchar(as.character(x))
+dqlm_rows <- job_audit$engine == "dqlm"
+qdesn_mcmc_rows <- job_audit$engine == "qdesn" & job_audit$inference == "mcmc"
+qdesn_exal_mcmc_rows <- qdesn_mcmc_rows &
+  job_audit$model_variant == "qdesn_exal_rhs_ns"
+diagnostic_contract <- c(
+  diagnostic_hashes = nrow(diagnostic_artifact_audit) > 0L &&
+    all(diagnostic_artifact_audit$exists & diagnostic_artifact_audit$hash_ok),
+  dqlm_compact_diagnostics = all(!dqlm_rows |
+    path_present(job_audit$inference_diagnostics_path)),
+  qdesn_mcmc_chain_summaries = all(!qdesn_mcmc_rows |
+    path_present(job_audit$chain_summary_path)),
+  qdesn_exal_mcmc_sigmagam_traces = all(!qdesn_exal_mcmc_rows |
+    path_present(job_audit$sigmagam_trace_path))
+)
+if (!all(diagnostic_contract)) {
+  stop(sprintf(
+    "Inference diagnostic contract failed: %s",
+    paste(names(diagnostic_contract)[!diagnostic_contract], collapse = ", ")
+  ), call. = FALSE)
+}
+
+numeric_or_na <- function(x) {
+  value <- suppressWarnings(as.numeric(x %||% NA_real_)[1L])
+  if (!length(value) || !is.finite(value)) NA_real_ else value
+}
+
+dqlm_diagnostic_summary <- ffv2_bind_rows(lapply(which(dqlm_rows), function(i) {
+  row <- job_audit[i, , drop = FALSE]
+  x <- ffv2_read_json(row$inference_diagnostics_path[[1L]])
+  data.frame(
+    job_id = row$job_id[[1L]], replay_id = row$replay_id[[1L]],
+    inference = row$inference[[1L]], model_variant = row$model_variant[[1L]],
+    family = row$family[[1L]], tau = row$tau[[1L]], chain_id = row$chain_id[[1L]],
+    gamma_fixed = isTRUE(x$gamma_fixed),
+    requested_mh_proposal = as.character(x$requested_mh_proposal %||% NA_character_)[1L],
+    observed_mh_proposal = as.character(x$observed_mh_proposal %||% NA_character_)[1L],
+    vb_sigmagam_factorization = as.character(
+      x$vb_sigmagam_factorization %||% NA_character_
+    )[1L],
+    gamma_n = as.integer(x$gamma$n %||% 0L),
+    gamma_mean = numeric_or_na(x$gamma$mean),
+    gamma_sd = numeric_or_na(x$gamma$sd),
+    gamma_ess = numeric_or_na(x$gamma$ess),
+    gamma_acf1 = numeric_or_na(x$gamma$acf1),
+    sigma_n = as.integer(x$sigma$n %||% 0L),
+    sigma_mean = numeric_or_na(x$sigma$mean),
+    sigma_sd = numeric_or_na(x$sigma$sd),
+    sigma_ess = numeric_or_na(x$sigma$ess),
+    sigma_acf1 = numeric_or_na(x$sigma$acf1),
+    stringsAsFactors = FALSE
+  )
+}))
+ffv2_write_csv(dqlm_diagnostic_summary,
+                file.path(closeout_root, "dqlm_exdqlm_inference_diagnostics.csv"))
+
+qdesn_chain_summary <- ffv2_bind_rows(lapply(which(qdesn_mcmc_rows), function(i) {
+  row <- job_audit[i, , drop = FALSE]
+  x <- ffv2_read_csv(row$chain_summary_path[[1L]])
+  cbind(data.frame(
+    job_id = row$job_id[[1L]], replay_id = row$replay_id[[1L]],
+    inference = row$inference[[1L]], model_variant = row$model_variant[[1L]],
+    family = row$family[[1L]], tau = row$tau[[1L]], chain_id = row$chain_id[[1L]],
+    stringsAsFactors = FALSE
+  ), x)
+}))
+ffv2_write_csv(qdesn_chain_summary,
+                file.path(closeout_root, "qdesn_mcmc_chain_diagnostics.csv"))
 
 registry <- ffv2_read_csv(file.path(state_root, "materialization", "source_replay_registry.csv"))
 roles <- ffv2_read_csv(file.path(state_root, "materialization", "metric_role_ledger.csv"))
@@ -120,7 +231,7 @@ if (smoke) {
                               source_summary$posterior_median <= source_summary$cri_upper)
   )
   ffv2_write_json(list(
-    schema_version = imi_v1_schema, smoke = TRUE,
+    schema_version = campaign_schema, smoke = TRUE,
     status = if (all(checks)) "PASS" else "FAIL",
     checks = as.list(checks), jobs = nrow(job_audit), sources = length(unique(source_summary$replay_id)),
     metric_rows = nrow(source_summary)
@@ -145,8 +256,12 @@ for (field in c("posterior_mean", "posterior_sd", "cri_lower", "posterior_median
                 "interval_label", "estimator_id")) {
   roles[[field]] <- source_summary[[field]][idx]
 }
-roles$point_delta_from_v9 <- roles$posterior_mean - roles$authoritative_value
-roles$point_ratio_to_v9 <- roles$posterior_mean / roles$authoritative_value
+roles$point_delta_from_authority <- roles$posterior_mean - roles$authoritative_value
+roles$point_ratio_to_authority <- roles$posterior_mean / roles$authoritative_value
+roles$strict_improvement <- is.finite(roles$point_delta_from_authority) &
+  roles$point_delta_from_authority < -1e-12
+roles$material_change_1e6 <- is.finite(roles$point_delta_from_authority) &
+  abs(roles$point_delta_from_authority) > 1e-6
 if (nrow(diagnostic_table)) {
   dkey <- paste(diagnostic_table$replay_id, diagnostic_table$metric, sep = "\r")
   didx <- match(role_key, dkey)
@@ -154,9 +269,18 @@ if (nrow(diagnostic_table)) {
                                    diagnostic_table$diagnostic_grade[didx])
 } else roles$diagnostic_grade <- ifelse(roles$inference == "vb", "APPROX", "WARN")
 ffv2_write_csv(roles, file.path(closeout_root, "article_metric_role_intervals.csv"))
+ffv2_write_csv(roles[, c(
+  "article_row", "inference", "model_variant", "family", "tau", "metric_role",
+  "metric_name", "authoritative_value", "posterior_mean", "posterior_sd",
+  "cri_lower", "posterior_median", "cri_upper", "point_delta_from_authority",
+  "point_ratio_to_authority", "strict_improvement", "material_change_1e6",
+  "diagnostic_grade", "replay_id"
+)], file.path(closeout_root, "exdqlm_1p1p1_vs_current_authority.csv"))
 
-interface <- ffv2_read_csv(imi_v1_authority_interface_path(repo_root))
-interface$article_interface_id <- "qdesn_dqlm_500obs_metric_intervals_v10"
+interface <- ffv2_read_csv(imi_v1_authority_interface_path(repo_root, campaign_authority_id))
+interface$article_interface_id <- if (identical(campaign_schema, i111_schema)) {
+  "qdesn_dqlm_500obs_exdqlm_1p1p1_candidate"
+} else "qdesn_dqlm_500obs_metric_intervals_v10"
 interface$metric_estimator_contract <- "posterior_mean_draw_metric_equal_tailed_95cri_v1"
 for (role in names(role_metric)) {
   block <- roles[roles$metric_role == role, , drop = FALSE]
@@ -174,7 +298,9 @@ for (role in names(role_metric)) {
   }
 }
 interface_path <- ffv2_write_csv(
-  interface, file.path(closeout_root, "qdesn_dqlm_500obs_metric_intervals_v10_interface.csv")
+  interface, file.path(closeout_root, if (identical(campaign_schema, i111_schema)) {
+    "qdesn_dqlm_500obs_exdqlm_1p1p1_candidate_interface.csv"
+  } else "qdesn_dqlm_500obs_metric_intervals_v10_interface.csv")
 )
 
 fmt <- function(x) {
@@ -292,7 +418,7 @@ asset_manifest <- data.frame(
 asset_manifest_path <- ffv2_write_csv(asset_manifest,
                                       file.path(closeout_root, "article_asset_manifest.csv"))
 
-heavy <- list.files(file.path(repo_root, "results", "qdesn_mcmc_validation", imi_v1_stage,
+heavy <- list.files(file.path(repo_root, "results", "qdesn_mcmc_validation", campaign_stage,
                               as.character(materialization$run_id)),
                     pattern = "[.](rds|rda|RData)$", recursive = TRUE,
                     full.names = TRUE, ignore.case = TRUE)
@@ -307,6 +433,9 @@ checks <- c(
                             roles$posterior_median <= roles$cri_upper),
   mcmc_draws_12000 = all(source_summary$n_draws[source_summary$inference == "mcmc"] == 12000L),
   vb_draws_10000 = all(source_summary$n_draws[source_summary$inference == "vb"] == 10000L),
+  inference_diagnostics_verified = all(diagnostic_contract),
+  dqlm_diagnostic_jobs_complete = nrow(dqlm_diagnostic_summary) == sum(dqlm_rows),
+  qdesn_mcmc_diagnostics_present = nrow(qdesn_chain_summary) >= sum(qdesn_mcmc_rows),
   no_heavy_binaries = length(heavy) == 0L,
   article_assets_9 = nrow(asset_manifest) == 9L
 )
@@ -314,10 +443,19 @@ checks_path <- ffv2_write_csv(data.frame(check = names(checks), pass = unname(ch
                               file.path(closeout_root, "closeout_checks.csv"))
 if (!all(checks)) stop(sprintf("Closeout failed: %s", paste(names(checks)[!checks], collapse = ", ")),
                        call. = FALSE)
+scientific_decision <- if (identical(campaign_schema, i111_schema) &&
+                           !any(roles$material_change_1e6)) {
+  "READY_NO_ARTICLE_CHANGE"
+} else "READY_FOR_INTEGRATION"
 manifest <- list(
-  schema_version = imi_v1_schema, status = "READY_FOR_INTEGRATION",
+  schema_version = campaign_schema, status = scientific_decision,
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
-  run_id = as.character(materialization$run_id), authority_id = imi_v1_authority_id,
+  run_id = as.character(materialization$run_id), authority_id = campaign_authority_id,
+  package_version = as.character(materialization$package_version %||% NA_character_),
+  package_source_commit = as.character(materialization$package_source_commit %||% NA_character_),
+  package_tarball_sha256 = as.character(
+    materialization$package_tarball_sha256 %||% NA_character_
+  ),
   estimator_id = "posterior_mean_draw_metric_equal_tailed_95cri_v1",
   jobs = nrow(job_audit), sources = length(unique(source_summary$replay_id)),
   metric_roles = nrow(roles), mcmc_diagnostic_warn_rows = if (nrow(diagnostic_table))
@@ -326,10 +464,30 @@ manifest <- list(
   article_asset_manifest_path = asset_manifest_path,
   article_asset_manifest_sha256 = ffv2_file_sha256(asset_manifest_path),
   checks_path = checks_path, checks_sha256 = ffv2_file_sha256(checks_path),
-  rollback_authority = imi_v1_authority_id,
+  inference_diagnostic_artifact_audit_path = file.path(
+    closeout_root, "inference_diagnostic_artifact_audit.csv"
+  ),
+  inference_diagnostic_artifact_audit_sha256 = ffv2_file_sha256(file.path(
+    closeout_root, "inference_diagnostic_artifact_audit.csv"
+  )),
+  dqlm_exdqlm_inference_diagnostics_path = file.path(
+    closeout_root, "dqlm_exdqlm_inference_diagnostics.csv"
+  ),
+  dqlm_exdqlm_inference_diagnostics_sha256 = ffv2_file_sha256(file.path(
+    closeout_root, "dqlm_exdqlm_inference_diagnostics.csv"
+  )),
+  qdesn_mcmc_chain_diagnostics_path = file.path(
+    closeout_root, "qdesn_mcmc_chain_diagnostics.csv"
+  ),
+  qdesn_mcmc_chain_diagnostics_sha256 = ffv2_file_sha256(file.path(
+    closeout_root, "qdesn_mcmc_chain_diagnostics.csv"
+  )),
+  strict_metric_improvements = sum(roles$strict_improvement),
+  material_metric_changes_1e6 = sum(roles$material_change_1e6),
+  rollback_authority = campaign_authority_id,
   article_write_performed = FALSE,
   integration_owner = "ARTICLE_QDESN_INTEGRATION",
   git_commit = system("git rev-parse HEAD", intern = TRUE)
 )
 ffv2_write_json(manifest, file.path(closeout_root, "integration_handoff.json"))
-cat("independent metric-interval production closeout: READY_FOR_INTEGRATION\n")
+cat(sprintf("independent metric-interval production closeout: %s\n", scientific_decision))

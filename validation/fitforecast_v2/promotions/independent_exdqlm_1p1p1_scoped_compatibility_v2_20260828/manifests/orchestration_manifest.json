@@ -1,0 +1,14 @@
+{
+  "schema_version": "independent_exdqlm_1p1p1_scoped_continuation_v1",
+  "status": "SUCCESS",
+  "started_at": "2026-08-28 03:27:14 EDT",
+  "ended_at": "2026-08-28 05:11:41 EDT",
+  "workers": 16,
+  "materialized_jobs": 36,
+  "executed_jobs": 27,
+  "skipped_jobs": 9,
+  "result_path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_exdqlm_1p1p1_rerun_20260827/reports/shared_fitforecast_v2_orchestration/independent_exdqlm_1p1p1_scoped_v1_20260828_032641/manifests/orchestration_results.csv",
+  "result_sha256": "94433ee0803f487a5da13cee7493363287a620dfc5649c3700fdd150fd6eab6c",
+  "launch_commit": "4d0d103e63729bcd73f5f1db677e5bca2f45e0ac",
+  "materialization_commit": []
+}

@@ -20,7 +20,8 @@ if (!engine %in% c("qdesn", "dqlm") || !nzchar(job_id)) {
 }
 config_header <- tryCatch(ffv2_read_json(config_path), error = function(...) list())
 job_schema <- as.character(config_header$schema_version %||% imi_v1_schema)[1L]
-supported_schemas <- c(imi_v1_schema, imid_v1_schema, imoh_v1_schema, icsi_v1_schema)
+supported_schemas <- c(imi_v1_schema, imid_v1_schema, imoh_v1_schema, icsi_v1_schema,
+                       i111_schema)
 if (!job_schema %in% supported_schemas) {
   stop(sprintf("Unsupported independent interval job schema: %s", job_schema),
        call. = FALSE)
@@ -55,6 +56,20 @@ result_payload <- NULL
 error_message <- NA_character_
 status <- "FAIL"
 tryCatch({
+  if (identical(job_schema, i111_schema)) {
+    source_commit_present <- identical(
+      system2("git", c("-C", repo_root, "merge-base", "--is-ancestor",
+                       i111_package_source_commit, "HEAD"),
+              stdout = FALSE, stderr = FALSE),
+      0L
+    )
+    if (!source_commit_present ||
+        !identical(as.character(read.dcf(file.path(repo_root, "DESCRIPTION"))[, "Version"]),
+                   i111_package_version)) {
+      stop("Worker source tree does not satisfy the exdqlm 1.1.1 package contract.",
+           call. = FALSE)
+    }
+  }
   if (engine == "qdesn") {
     if (!requireNamespace("pkgload", quietly = TRUE)) stop("pkgload is required.")
     pkgload::load_all(repo_root, quiet = TRUE)
@@ -153,6 +168,8 @@ tryCatch({
     common_shift_manifest_path <- file.path(
       job$job_root, "manifest", "common_shift_intervention_manifest.json"
     )
+    chain_summary_path <- file.path(job$job_root, "chain_summary.csv")
+    sigmagam_trace_path <- file.path(job$job_root, "sigmagam_trace.csv")
     binary_paths <- list.files(job$job_root, pattern = "[.](rds|rda|RData)$",
                                recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
     if (length(binary_paths)) {
@@ -182,6 +199,10 @@ tryCatch({
                     attribution_reconstruction_path)
     }
     if (common_shift_enabled) required <- c(required, common_shift_manifest_path)
+    if (job$inference == "mcmc") required <- c(required, chain_summary_path)
+    if (job$inference == "mcmc" && job$likelihood_family == "exal") {
+      required <- c(required, sigmagam_trace_path)
+    }
     if (any(!file.exists(required)) || length(remaining)) {
       stop("Q-DESN interval artifacts are incomplete or heavy binaries remain.", call. = FALSE)
     }
@@ -244,6 +265,14 @@ tryCatch({
       common_shift_intervention_manifest_sha256 = if (common_shift_enabled) {
         ffv2_file_sha256(common_shift_manifest_path)
       } else NULL,
+      chain_summary_path = if (file.exists(chain_summary_path)) chain_summary_path else NULL,
+      chain_summary_sha256 = if (file.exists(chain_summary_path)) {
+        ffv2_file_sha256(chain_summary_path)
+      } else NULL,
+      sigmagam_trace_path = if (file.exists(sigmagam_trace_path)) sigmagam_trace_path else NULL,
+      sigmagam_trace_sha256 = if (file.exists(sigmagam_trace_path)) {
+        ffv2_file_sha256(sigmagam_trace_path)
+      } else NULL,
       heavy_binary_count = 0L
     )
   } else {
@@ -255,7 +284,8 @@ tryCatch({
     }
     ffv2_run_row(config_path, force = FALSE, validation_stage = "all")
     required <- c(config$metric_draws_path, config$metric_interval_summary_path,
-                  config$metric_interval_manifest_path)
+                  config$metric_interval_manifest_path,
+                  config$inference_diagnostics_path)
     coupling_enabled <- isTRUE(
       (config$metric_intervals %||% list())$coupling_sensitivity$enabled
     )
@@ -281,6 +311,8 @@ tryCatch({
       metric_interval_manifest_path = config$metric_interval_manifest_path,
       metric_interval_manifest_sha256 = ffv2_file_sha256(config$metric_interval_manifest_path),
       metric_draws = nrow(draws),
+      inference_diagnostics_path = config$inference_diagnostics_path,
+      inference_diagnostics_sha256 = ffv2_file_sha256(config$inference_diagnostics_path),
       metric_coupling_draws_path = if (coupling_enabled) {
         config$metric_coupling_draws_path
       } else NULL,

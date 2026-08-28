@@ -1,3 +1,56 @@
+# exdqlm 1.1.1
+
+## Reproducibility fix
+- Corrected compiled stochastic helper routines so GIG draws,
+  positive-truncated-normal draws, posterior predictive simulation, and
+  compiled multivariate-normal draws use serial R-controlled RNG streams.
+  These paths no longer use OpenMP worker threads, wall-clock seeds, fixed
+  private Boost RNG streams, or thread-indexed seeds for stochastic draws.
+- Added repeatability checks covering compiled samplers and small dynamic and
+  static MCMC workflows under repeated seeds.
+
+## exAL scale-skewness inference
+- Changed the default MCMC update for dynamic and static exAL likelihood fits
+  to `mh.proposal = "collapsed_slice"`. This exact-target transition samples
+  `gamma` after analytically integrating out `sigma`, then redraws `sigma`
+  from its exact conditional GIG distribution at the new `gamma`. The legacy
+  `"slice"`, `"laplace_rw"`, and `"rw"` kernels remain available when selected
+  explicitly.
+- Changed the default LDVB scale-skewness block for dynamic and static exAL
+  likelihood fits to a structured `q(gamma) q(sigma | gamma)` approximation
+  using 151-node bounded-logit quadrature for `gamma` and conditional GIG
+  moments for `sigma`. The previous two-dimensional Laplace-delta block remains
+  available with `exal_make_vb_sigmagam_control(factorization = "laplace_delta")`.
+- Added focused tests for the structured scale-skewness moments, repeatable
+  structured posterior draws, default kernel selection, and legacy-factor
+  opt-in behavior.
+
+# exdqlm 1.1.0
+
+## JSS resubmission design updates
+- Added shared fit class families while preserving the existing first-class
+  object names. Dynamic fits now inherit from `exdqlmFit`; static fits now
+  inherit from `exalStaticFit`.
+- Standardized `print()` and `summary()` methods for fitted models and
+  post-processing objects so users can inspect model class, inference engine,
+  sample size, state dimension, stored draws, diagnostics, and run time without
+  manually reading list internals.
+- Added the `diagnostics()` generic with methods for dynamic fits, dynamic
+  forecast objects, and static fits. These methods return visible diagnostic
+  objects that can be printed, summarized, or plotted with standard methods.
+- Added standard dynamic post-processing methods. `plot(fit)` displays fitted
+  dynamic quantiles, `plot(fit, type = "component", index = ...)` displays
+  component contributions, `plot(fit, type = "state", index = ...)` displays
+  state summaries, and `predict(fit, ...)` returns an `exdqlmForecast` object.
+- Added a shared `plot()` method for the `exalStaticFit` family so static LDVB
+  and MCMC fits expose fitted-quantile plots through the same family-level API.
+- Made `exdqlmForecast()` object-first by returning forecast objects visibly
+  and using `plot = FALSE` by default. Explicit `plot = TRUE` remains
+  supported for convenience.
+- Retained the named helpers `exdqlmPlot()`, `compPlot()`, and
+  `exdqlmForecast()`, plus the named diagnostic helpers, for explicit workflows
+  and backward compatibility.
+
 # exdqlm 1.0.0
 
 ## New and changed
@@ -13,14 +66,22 @@
 - Added `exdqlmForecastDiagnostics()` for held-out `exdqlmForecast()` objects,
   reporting target-quantile check loss and CRPS from posterior predictive
   forecast draws without redefining article-side scoring helpers.
+- Added optional plotting controls to `exdqlmPlot()` and `compPlot()`, including
+  `plot = FALSE` summary extraction and user-supplied axis limits/labels, while
+  preserving the existing plotting defaults.
+- Added coefficient-interval summaries to `exalStaticDiagnostics()` objects and
+  a `plot(..., type = "coefficients")` display for static LDVB and MCMC coefficient
+  comparisons, with optional shared axis limits, legend labels, and a `beta.ref`
+  overlay for simulation benchmarks.
 - Fixed `exdqlmForecast()` handling of future evolution matrices so constant
   `fGG` matrices expand across the forecast horizon and time-varying `fGG`
   arrays are validated against horizon `k`.
 - Replaced the stochastic `FNN::KL.divergence()` dynamic diagnostic with a
   deterministic one-dimensional semiclosed KL normality diagnostic for MAP
-  standardized forecast errors. The scalar `KL` and `KL (flipped)` summaries are
-  preserved, with by-`k` sensitivity and Gaussian plug-in checks returned as
-  metadata.
+  standardized forecast errors. The scalar `KL` is the primary user-facing
+  calibration diagnostic, `KL (flipped)` is a secondary sensitivity diagnostic,
+  and by-`k` sensitivity/Gaussian plug-in checks are stored under `kl.details`
+  rather than as competing top-level KL fields.
 - Corrected the dynamic diagnostic KL direction so `KL` now corresponds to the
   documented forecast-error-to-standard-normal diagnostic
   `KL(P_error || N(0,1))`; `KL (flipped)` reports the reverse direction.
@@ -30,7 +91,7 @@
 ## New
 - Consolidated CRAN release (updating CRAN 0.3.0) that bundles several internal
   development branches in one submission.
-- `exdqlmLDVB`: Laplace-Delta variational Bayes routine for dynamic quantile
+- `exdqlmLDVB`: Laplace-delta variational Bayes routine for dynamic quantile
   state-space fitting under the extended asymmetric Laplace error distribution.
 - Reduced-model controls for dynamic routines (`exdqlmISVB()`,
   `exdqlmLDVB()`, `exdqlmMCMC()`) through `dqlm.ind = TRUE`, fixing `gamma = 0`
@@ -99,7 +160,7 @@
   by default, while exAL VB/MCMC entry points apply a light `(sigma, gamma)`
   warmup unless users explicitly override it through `vb_control` or
   `mcmc_control`.
-- Streamlined default LDVB/MCMC console progress lines to prioritize run phase,
+- Streamlined default LDVB and MCMC console progress lines to prioritize run phase,
   iteration, keep counters, acceptance summaries, and runtime while leaving
   full `sigma`/`gamma` histories in diagnostics objects and callbacks.
 - Clarified the `BTflow` dataset provenance as observed monthly USGS

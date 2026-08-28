@@ -27,7 +27,8 @@ exalStaticMCMC(
   vb_init_fit = NULL,
   mcmc_control = NULL,
   sigmagam_controls = NULL,
-  mh.proposal = c("slice", "laplace_rw", "rw", "slice_eta", "laplace_local"),
+  mh.proposal = c("collapsed_slice", "slice", "laplace_rw", "rw", "slice_eta",
+    "laplace_local"),
   mh.adapt = TRUE,
   mh.adapt.interval = 50L,
   mh.target.accept = c(0.2, 0.45),
@@ -148,9 +149,12 @@ for the nonconjugate \code{(sigma, gamma)} block. Prefer
 as a direct advanced override.}
 
 \item{mh.proposal}{Character string controlling the exAL nonconjugate update
-kernel. \code{"slice"} (default) uses an exact bounded univariate slice
-sampler on \code{gamma} (with \code{sigma} updated from its conditional),
-and \code{"slice_eta"} does the same on transformed \code{eta}.
+kernel. \code{"collapsed_slice"} (default) integrates out \code{sigma} for
+the bounded gamma slice step on transformed \code{eta} and then redraws
+\code{sigma} from its exact GIG conditional. \code{"slice"} uses the
+previous exact conditional sigma draw followed by bounded slice sampling on
+\code{gamma}, and \code{"slice_eta"} does the same on transformed
+\code{eta}.
 \code{"laplace_rw"} uses a Laplace-informed adaptive random-walk MH update
 on the transformed joint block
 \eqn{(\eta,\ell)=(\mathrm{logit}((\gamma-L)/(U-L)), \log\sigma)}.
@@ -161,7 +165,8 @@ Only \code{"laplace_local"} is approximate.}
 
 \item{mh.adapt}{Logical; adapt the random-walk proposal scale during burn-in
 for \code{"rw"} and \code{"laplace_rw"}. Ignored for
-\code{"laplace_local"}, \code{"slice"}, and \code{"slice_eta"}.}
+\code{"collapsed_slice"}, \code{"laplace_local"}, \code{"slice"}, and
+\code{"slice_eta"}.}
 
 \item{mh.adapt.interval}{Integer adaptation window for RW-based kernels.}
 
@@ -175,7 +180,8 @@ scale multiplier.}
 \item{mh.min_burn_adapt}{Integer minimum burn-in before adaptation starts.}
 
 \item{slice.width}{Positive numeric width for bounded slice updates when
-\code{mh.proposal = "slice"} or \code{"slice_eta"}.}
+\code{mh.proposal} is \code{"collapsed_slice"}, \code{"slice"}, or
+\code{"slice_eta"}.}
 
 \item{slice.max.steps}{Positive integer or \code{Inf}; maximum stepping-out
 expansions for the slice sampler.}
@@ -204,7 +210,8 @@ start, at each progress checkpoint, and on completion. Intended for
 workflow-level per-case progress logging.}
 }
 \value{
-An object of class "\code{exalStaticMCMC}" containing:
+An object with classes "\code{exalStaticMCMC}" and
+"\code{exalStaticFit}" containing:
 \itemize{
 \item \code{run.time} - total wall time in seconds.
 \item \code{X}, \code{p0}, \code{bounds} - design, quantile, and (L, U).
@@ -232,7 +239,8 @@ The function applies a Gibbs sampler for static Extended Asymmetric Laplace regr
 (exAL). We update \eqn{\beta, v, s} from their full conditionals, then update
 \eqn{(\sigma,\gamma)} either jointly on transformed coordinates
 \eqn{(\ell,\eta)=(\log \sigma,\mathrm{logit}((\gamma-L)/(U-L)))} (for
-\code{"rw"} and \code{"laplace_rw"}) or with univariate gamma kernels
+\code{"rw"} and \code{"laplace_rw"}), with a scale-collapsed gamma
+transition (the default), or with legacy univariate gamma kernels
 (\code{"slice"}, \code{"slice_eta"}, \code{"laplace_local"}).
 Optional multi-refresh and global-jump controls are available to improve
 exAL mixing in hard cases.
@@ -253,7 +261,7 @@ fit_rhs <- exalStaticMCMC(
   y, X, p0 = 0.5,
   beta_prior = "rhs",
   beta_prior_controls = list(tau0 = 0.5, nu = 3, s2 = 1, shrink_intercept = FALSE),
-  n.burn = 50, n.mcmc = 50, thin = 1, mh.proposal = "slice", verbose = FALSE
+  n.burn = 50, n.mcmc = 50, thin = 1, verbose = FALSE
 )
 fit_rhs$beta_prior$type
 
@@ -261,7 +269,7 @@ fit_rhs_ns <- exalStaticMCMC(
   y, X, p0 = 0.5,
   beta_prior = "rhs_ns",
   beta_prior_controls = list(tau0 = 0.5, a_zeta = 1.5, b_zeta = 1, zeta2_fixed = 1),
-  n.burn = 40, n.mcmc = 40, thin = 1, mh.proposal = "slice", verbose = FALSE
+  n.burn = 40, n.mcmc = 40, thin = 1, verbose = FALSE
 )
 fit_rhs_ns$beta_prior$type
 

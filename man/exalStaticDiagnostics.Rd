@@ -10,15 +10,18 @@ exalStaticDiagnostics(
   X = NULL,
   y = NULL,
   ref = NULL,
-  plot = TRUE,
+  plot = FALSE,
   cols = c("red", "blue"),
   cr.percent = 0.95
 )
 }
 \arguments{
-\item{m1}{An object of class \code{"exalStaticLDVB"} or \code{"exalStaticMCMC"}.}
+\item{m1}{A fitted static \code{exalStaticFit} object, such as an object
+returned by \code{\link{exalStaticLDVB}} or
+\code{\link{exalStaticMCMC}}.}
 
-\item{m2}{Optional second fitted static model to compare against \code{m1}.}
+\item{m2}{Optional second fitted static \code{exalStaticFit} object to
+compare against \code{m1}.}
 
 \item{X}{Optional design matrix. If omitted, the function uses \code{m1$X}
 when available.}
@@ -28,8 +31,10 @@ when available.}
 
 \item{ref}{Optional reference quantile vector on the same rows as \code{X}.}
 
-\item{plot}{Logical; if \code{TRUE}, produce a compact static-diagnostics
-plot.}
+\item{plot}{Logical; if \code{TRUE}, immediately plot the returned
+static-diagnostic object as a convenience shortcut. Default is
+\code{FALSE}; the preferred workflow is to save the object and then call
+\code{plot()} on it.}
 
 \item{cols}{Character vector of length 1 or 2 giving colors for plotted
 diagnostics.}
@@ -40,22 +45,29 @@ quantiles.}
 \value{
 An object of class \code{"exalStaticDiagnostic"} containing fitted-quantile
 summaries, residual summaries (when \code{y} is provided), optional
-reference-curve error metrics, and run-time metadata for \code{m1} and
-\code{m2} (if supplied).
+reference-curve error metrics, coefficient posterior summaries, and
+run-time metadata for \code{m1} and \code{m2} (if supplied).
 }
 \description{
 Static diagnostics companion for \code{exalStaticLDVB()} and
 \code{exalStaticMCMC()}. The function summarizes fitted quantiles on a
 shared design matrix, reports mean check loss against observed responses when
 available, and can optionally compare the fitted quantile curve against a
-known reference quantile function.
+known reference quantile function. The returned diagnostic object also stores
+posterior summaries for the static regression coefficients, which can be
+plotted with \code{plot(..., type = "coefficients")}.
 }
 \details{
 Unlike \code{\link{exdqlmDiagnostics}}, which is built around one-step-ahead
 dynamic forecast diagnostics, \code{exalStaticDiagnostics()} is designed for the
 static regression setting. It reports fitted quantile summaries on a common
 design matrix, optional mean check loss against observed responses, optional
-truth/reference errors, and compact comparison plots.
+reference-curve errors, coefficient posterior summaries, and compact
+comparison plots. The returned object can be printed, summarized, or plotted
+with standard methods. The \code{ref} argument is a reference conditional quantile
+evaluated on the rows of \code{X}; it is distinct from the optional
+\code{beta.ref} argument of \code{\link{plot.exalStaticDiagnostic}}, which is
+used only to overlay known coefficient values in simulation examples.
 }
 \examples{
 \donttest{
@@ -73,10 +85,11 @@ fit_ldvb <- exalStaticLDVB(
 fit_mcmc <- exalStaticMCMC(
   y = y, X = X, p0 = 0.25,
   n.burn = 60, n.mcmc = 60,
-  mh.proposal = "slice",
   verbose = FALSE
 )
-out <- exalStaticDiagnostics(fit_ldvb, fit_mcmc, ref = q_true, plot = FALSE)
-print(out)
+out <- exalStaticDiagnostics(fit_ldvb, fit_mcmc, ref = q_true)
+out
+plot(out)
+plot(out, type = "coefficients")
 }
 }

@@ -1,3 +1,5 @@
+skip_on_cran()
+
 # Strict mode should preserve the R backend for dynamic MCMC paths.
 # Draw-for-draw equality is not a stable invariant here because the dynamic
 # sampling stack includes compiled samplers that do not guarantee identical

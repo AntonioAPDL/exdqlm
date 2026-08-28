@@ -10,12 +10,21 @@ compPlot(
   add = FALSE,
   col = "purple",
   just.theta = FALSE,
-  cr.percent = 0.95
+  cr.percent = 0.95,
+  plot = TRUE,
+  xlim = NULL,
+  ylim = NULL,
+  xlab = "time",
+  ylab = NULL,
+  lwd = 1.5,
+  lwd.interval = 0.75,
+  lty.interval = 2
 )
 }
 \arguments{
-\item{m1}{An object of class "\code{exdqlmLDVB}", "\code{exdqlmMCMC}", or
-legacy "\code{exdqlmISVB}".}
+\item{m1}{A fitted dynamic \code{exdqlmFit} object, such as an object
+returned by \code{\link{exdqlmLDVB}}, \code{\link{exdqlmMCMC}}, or
+legacy \code{\link{exdqlmISVB}}.}
 
 \item{index}{Vector of consecutive integers in \eqn{\{1,\dots,q\}} indicating the component or element of the state vector to be plotted.}
 
@@ -27,17 +36,35 @@ legacy "\code{exdqlmISVB}".}
 
 \item{cr.percent}{Numeric in \code{(0, 1)} indicating the probability mass for the credible
 intervals (e.g., \code{0.95}). Default \code{0.95}.}
+
+\item{plot}{Logical value indicating whether to draw the plot. If \code{FALSE}, the
+function only returns the plotted summaries. Default is \code{TRUE}.}
+
+\item{xlim, ylim}{Optional limits passed to the base plotting call when \code{plot = TRUE}.}
+
+\item{xlab, ylab}{Optional axis labels passed to the base plotting call when \code{plot = TRUE}.}
+
+\item{lwd, lwd.interval}{Line widths for the dynamic component and credible interval
+bounds, respectively.}
+
+\item{lty.interval}{Line type for the credible interval bounds.}
 }
 \value{
 A list of the following is returned:
 \itemize{
-\item \code{map.comp} - MAP estimate of the dynamic component (or element of the state vector).
+\item \code{map.comp} - Posterior mean summary of the dynamic component (or
+element of the state vector; legacy field name retained for backward
+compatibility).
 \item \code{lb.comp} - Lower bound of the 95\% CrIs of the dynamic component (or element of the state vector).
 \item \code{ub.comp} - Upper bound of the 95\% CrIs of the dynamic component (or element of the state vector).
+\item \code{x} - Time/index values used for plotting.
 }
 }
 \description{
-The function plots the dynamic MAP estimates and 95\% credible intervals (CrIs) of a specified component of an exDQLM. Alternatively, if \code{just.theta=TRUE} the MAP estimates and 95\% credible intervals (CrIs) of a single element of the dynamic state vector are plotted.
+The function plots posterior mean summaries and 95\% credible intervals
+(CrIs) of a specified component of an exDQLM. Alternatively, if
+\code{just.theta=TRUE}, posterior mean summaries and 95\% CrIs of a single element
+of the dynamic state vector are plotted.
 }
 \examples{
 \donttest{
@@ -52,6 +79,7 @@ M0 = exdqlmLDVB(y, p0 = 0.85, model, df = c(0.98, 1), dim.df = c(2, 4),
                    n.samp = 20, tol = 0.2, verbose = FALSE)
 # plot first harmonic component
 compPlot(M0, index = c(3, 4), col = "blue")
+c.summary = compPlot(M0, index = c(3, 4), plot = FALSE)
 options(old)
 }
 

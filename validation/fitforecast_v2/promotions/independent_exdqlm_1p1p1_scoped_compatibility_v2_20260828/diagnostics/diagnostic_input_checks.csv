@@ -1,0 +1,10 @@
+"check","pass"
+"mcmc_jobs_27",TRUE
+"lead_cells_9",TRUE
+"forecast_cells_9",TRUE
+"fit_cells_9",TRUE
+"lead_chains_27",TRUE
+"forecast_chains_27",TRUE
+"fit_chains_27",TRUE
+"comparison_roles_54",TRUE
+"metric_diagnostics_27",TRUE
