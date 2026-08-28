@@ -21,7 +21,10 @@ if (!identical(as.character(manifest$schema_version), i111s_schema) ||
 plan <- ffv2_read_csv(file.path(state_root, "manifests", "job_plan.csv"))
 plan_checks <- i111s_plan_checks(plan)
 if (!all(plan_checks)) stop("The scoped plan contract changed before closeout.", call. = FALSE)
-closeout_root <- file.path(state_root, "closeout")
+closeout_root <- ffv2_resolve_path(
+  args$`output-root` %||% file.path(state_root, "closeout"),
+  repo_root = repo_root, must_work = FALSE
+)
 ffv2_ensure_dir(closeout_root)
 
 artifact_ok <- function(path, expected_sha) {
@@ -250,64 +253,237 @@ if (nrow(metric_diagnostics)) {
     roles$inference == "vb", "APPROX", metric_diagnostics$diagnostic_grade[diagnostic_index]
   )
 } else roles$diagnostic_grade <- ifelse(roles$inference == "vb", "APPROX", "WARN")
+
+point_source_relpath <- file.path(
+  "validation", "fitforecast_v2", "promotions", i111s_promotion_id,
+  "source_point_metric_summary.csv"
+)
+interval_source_relpath <- file.path(
+  "validation", "fitforecast_v2", "promotions", i111s_promotion_id,
+  "source_interval_summary.csv"
+)
+authority_source_fields <- c(
+  "source_candidate_id", "source_run_tag", "source_status",
+  "source_signoff_grade", "source_path", "source_sha256", "source_identity"
+)
+for (field in authority_source_fields) {
+  names(roles)[names(roles) == field] <- paste0("authority_", field)
+}
+roles$new_source_candidate_id <- i111s_interval_candidate_id
+roles$new_source_run_tag <- as.character(manifest$run_id)
+roles$new_source_status <- "SUCCESS"
+roles$new_source_signoff_grade <- ifelse(
+  roles$diagnostic_grade == "WARN", "WARN", "PASS"
+)
+roles$new_interval_source_path <- interval_source_relpath
+roles$new_interval_source_sha256 <- ffv2_file_sha256(source_summary_path)
+roles$new_point_source_path <- point_source_relpath
+roles$new_point_source_sha256 <- ffv2_file_sha256(point_summary_path)
+roles$new_source_identity <- paste(
+  roles$inference, roles$model_variant, roles$family, sprintf("%.2f", roles$tau),
+  roles$replay_id, as.character(manifest$run_id), sep = "|"
+)
 comparison_path <- ffv2_write_csv(
-  roles, file.path(closeout_root, "exdqlm_1p1p1_scoped_vs_authority.csv")
+  roles, file.path(closeout_root, "exdqlm_1p1p1_scoped_vs_authority_v2.csv")
 )
 
 authority <- ffv2_read_csv(imi_v1_authority_interface_path(repo_root, i111_authority_id))
-candidate <- authority
-candidate$article_interface_id <- "independent_exdqlm_1p1p1_scoped_candidate"
-interval_fields <- c("posterior_sd", "cri_lower", "posterior_median", "cri_upper",
-                     "posterior_mean_inside_cri", "n_draws", "n_chains",
-                     "interval_label", "diagnostic_grade", "replay_id")
-for (stem in c("fit", "forecast_mae", "forecast_check")) {
-  for (field in interval_fields) {
-    column <- paste0(stem, "_", field)
-    if (!column %in% names(candidate)) candidate[[column]] <- NA
-  }
-}
-candidate$compatibility_point_fit_rmse <- NA_real_
-candidate$compatibility_point_forecast_mae <- NA_real_
-candidate$compatibility_point_forecast_check_loss <- NA_real_
-for (i in seq_len(nrow(roles))) {
-  role <- roles[i, , drop = FALSE]
-  match_row <- candidate$inference == role$inference[[1L]] &
-    candidate$model_variant == "exdqlm" & candidate$family == role$family[[1L]] &
-    abs(candidate$tau - role$tau[[1L]]) < 1e-12
-  if (sum(match_row) != 1L) stop("Candidate interface join failed.", call. = FALSE)
-  stem <- switch(role$metric_role[[1L]], fit = "fit", forecast_mae = "forecast_mae",
-                 forecast_check = "forecast_check")
-  point_column <- switch(role$metric_role[[1L]], fit = "fit_qtrue_rmse",
-                         forecast_mae = "forecast_qtrue_mae_H1000",
-                         forecast_check = "forecast_check_loss_H1000")
-  candidate[[point_column]][match_row] <- role$posterior_mean[[1L]]
-  for (field in interval_fields) {
-    candidate[[paste0(stem, "_", field)]][match_row] <- role[[field]][[1L]]
-  }
-  compatibility_column <- switch(
-    role$metric_role[[1L]], fit = "compatibility_point_fit_rmse",
-    forecast_mae = "compatibility_point_forecast_mae",
-    forecast_check = "compatibility_point_forecast_check_loss"
-  )
-  candidate[[compatibility_column]][match_row] <- role$point_mean[[1L]]
-}
-exdqlm_rows <- candidate$model_variant == "exdqlm"
-candidate$package_version[exdqlm_rows] <- i111_package_version
-candidate$validation_branch[exdqlm_rows] <- system2(
-  "git", c("-C", repo_root, "branch", "--show-current"), stdout = TRUE
+point_candidate <- authority
+point_candidate$article_interface_id <- i111s_point_candidate_id
+point_columns <- c(
+  fit = "fit_qtrue_rmse",
+  forecast_mae = "forecast_qtrue_mae_H1000",
+  forecast_check = "forecast_check_loss_H1000"
 )
-candidate$validation_commit[exdqlm_rows] <- system2(
+source_prefixes <- c(
+  fit = "fit", forecast_mae = "forecast_mae",
+  forecast_check = "forecast_check"
+)
+execution_commit <- as.character(
+  manifest$launch_commit %||% manifest$git_commit %||%
+    manifest$preparation_commit %||% NA_character_
+)[1L]
+closeout_commit <- system2(
   "git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE
 )
-candidate$source_promotion_id[exdqlm_rows] <- "independent_exdqlm_1p1p1_scoped_candidate"
-candidate$metric_estimator_contract[exdqlm_rows] <-
-  "posterior_mean_draw_metric_equal_tailed_95cri_v1"
-candidate_path <- ffv2_write_csv(
-  candidate, file.path(closeout_root, "candidate_full_interface_exdqlm_only_replacement.csv")
+validation_branch <- system2(
+  "git", c("-C", repo_root, "branch", "--show-current"), stdout = TRUE
 )
-candidate_rows_path <- ffv2_write_csv(
-  candidate[exdqlm_rows, , drop = FALSE],
-  file.path(closeout_root, "candidate_exdqlm_rows.csv")
+for (i in seq_len(nrow(roles))) {
+  role <- roles[i, , drop = FALSE]
+  match_row <- point_candidate$inference == role$inference[[1L]] &
+    point_candidate$model_variant == "exdqlm" &
+    point_candidate$family == role$family[[1L]] &
+    abs(point_candidate$tau - role$tau[[1L]]) < 1e-12
+  if (sum(match_row) != 1L) stop("Candidate interface join failed.", call. = FALSE)
+  metric_role <- role$metric_role[[1L]]
+  point_candidate[[point_columns[[metric_role]]]][match_row] <- role$point_mean[[1L]]
+  prefix <- source_prefixes[[metric_role]]
+  updates <- list(
+    candidate_id = i111s_point_candidate_id,
+    run_tag = as.character(manifest$run_id),
+    signoff_grade = if (role$diagnostic_grade[[1L]] == "WARN") "WARN" else "PASS",
+    status = "SUCCESS", path = point_source_relpath,
+    sha256 = ffv2_file_sha256(point_summary_path)
+  )
+  for (field in names(updates)) {
+    column <- paste0(prefix, "_source_", field)
+    point_candidate[[column]][match_row] <- updates[[field]]
+  }
+}
+exdqlm_rows <- point_candidate$model_variant == "exdqlm"
+point_candidate$status[exdqlm_rows] <- "SUCCESS"
+point_candidate$signoff_grade[exdqlm_rows] <- vapply(
+  which(exdqlm_rows), function(i) {
+    row_roles <- roles[
+      roles$inference == point_candidate$inference[[i]] &
+        roles$family == point_candidate$family[[i]] &
+        abs(roles$tau - point_candidate$tau[[i]]) < 1e-12,
+      , drop = FALSE
+    ]
+    if (any(row_roles$diagnostic_grade == "WARN")) "WARN" else "PASS"
+  }, character(1L)
+)
+point_candidate$metric_source_mixed[exdqlm_rows] <- FALSE
+point_candidate$source_registry_hash_value[exdqlm_rows] <-
+  ffv2_file_sha256(point_summary_path)
+point_candidate$package_version[exdqlm_rows] <- i111_package_version
+point_candidate$validation_branch[exdqlm_rows] <- validation_branch
+point_candidate$validation_commit[exdqlm_rows] <- execution_commit
+point_candidate$validation_closeout_commit[exdqlm_rows] <- closeout_commit
+point_candidate$source_promotion_id[exdqlm_rows] <- i111s_point_candidate_id
+point_candidate$article_consumption_allowed[exdqlm_rows] <- TRUE
+point_candidate$promotion_validation_branch[exdqlm_rows] <- validation_branch
+point_candidate$promotion_validation_commit[exdqlm_rows] <- closeout_commit
+point_candidate$rolling_evidence_promotion_id[exdqlm_rows] <- i111s_point_candidate_id
+point_candidate$metric_estimator_contract[exdqlm_rows] <- i111s_point_estimator_id
+point_candidate$confirmation_chain_count[exdqlm_rows] <- ifelse(
+  point_candidate$inference[exdqlm_rows] == "mcmc", 3L, 1L
+)
+point_candidate$confirmation_execution_commit[exdqlm_rows] <- execution_commit
+point_candidate$confirmation_closeout_commit[exdqlm_rows] <- closeout_commit
+point_candidate$confirmation_state[exdqlm_rows] <- "COMPLETE"
+point_candidate_path <- ffv2_write_csv(
+  point_candidate,
+  file.path(closeout_root, "candidate_point_interface_exdqlm_only_replacement.csv")
+)
+point_candidate_rows_path <- ffv2_write_csv(
+  point_candidate[exdqlm_rows, , drop = FALSE],
+  file.path(closeout_root, "candidate_point_exdqlm_rows.csv")
+)
+
+interval_parent_path <- i111s_interval_authority_path(repo_root)
+if (!file.exists(interval_parent_path)) {
+  stop("The frozen v11.1 interval authority is unavailable.", call. = FALSE)
+}
+interval_parent <- ffv2_read_csv(interval_parent_path)
+interval_candidate <- interval_parent
+parent_key <- i111s_role_key(interval_parent)
+role_key <- i111s_role_key(roles)
+if (anyDuplicated(parent_key) || anyDuplicated(role_key)) {
+  stop("Point or interval candidate keys are not unique.", call. = FALSE)
+}
+interval_index <- match(role_key, parent_key)
+if (anyNA(interval_index) || length(interval_index) != i111s_expected_metric_roles) {
+  stop("The 1.1.1 interval roles do not cover the exDQLM authority block.",
+       call. = FALSE)
+}
+interval_fields <- c(
+  "posterior_mean", "posterior_sd", "cri_lower", "posterior_median",
+  "cri_upper", "posterior_mean_inside_cri", "n_draws", "n_chains",
+  "interval_label", "estimator_id"
+)
+for (i in seq_len(nrow(roles))) {
+  target <- interval_index[[i]]
+  role <- roles[i, , drop = FALSE]
+  interval_candidate$authoritative_value[[target]] <- role$point_mean[[1L]]
+  interval_candidate$source_candidate_id[[target]] <- i111s_interval_candidate_id
+  interval_candidate$source_run_tag[[target]] <- as.character(manifest$run_id)
+  interval_candidate$source_status[[target]] <- "SUCCESS"
+  interval_candidate$source_signoff_grade[[target]] <- if (
+    role$diagnostic_grade[[1L]] == "WARN"
+  ) "WARN" else "PASS"
+  interval_candidate$source_path[[target]] <- interval_source_relpath
+  interval_candidate$source_sha256[[target]] <- ffv2_file_sha256(source_summary_path)
+  interval_candidate$source_identity[[target]] <- role$new_source_identity[[1L]]
+  interval_candidate$replay_id[[target]] <- role$replay_id[[1L]]
+  interval_candidate$pooled_metric[[target]] <- role$metric[[1L]]
+  for (field in interval_fields) {
+    interval_candidate[[field]][[target]] <- role[[field]][[1L]]
+  }
+  interval_candidate$diagnostic_grade[[target]] <- role$diagnostic_grade[[1L]]
+  interval_candidate$point_authority_id[[target]] <- i111s_point_candidate_id
+  interval_candidate$point_delta_from_v11[[target]] <-
+    role$posterior_mean[[1L]] - role$point_mean[[1L]]
+  interval_candidate$point_ratio_to_v11[[target]] <-
+    role$posterior_mean[[1L]] / role$point_mean[[1L]]
+}
+interval_candidate_path <- ffv2_write_csv(
+  interval_candidate,
+  file.path(closeout_root, "candidate_interval_roles_exdqlm_only_replacement.csv")
+)
+interval_candidate_rows_path <- ffv2_write_csv(
+  interval_candidate[interval_index, , drop = FALSE],
+  file.path(closeout_root, "candidate_interval_exdqlm_roles.csv")
+)
+invariance <- i111s_invariance_ledger(interval_parent, interval_candidate)
+invariance_path <- ffv2_write_csv(
+  invariance, file.path(closeout_root, "non_exdqlm_interval_invariance_ledger.csv")
+)
+
+point_long <- function(x) {
+  ffv2_bind_rows(lapply(names(point_columns), function(metric_role) {
+    data.frame(
+      inference = x$inference, model_variant = x$model_variant,
+      family = x$family, tau = x$tau, metric_role = metric_role,
+      value = as.numeric(x[[point_columns[[metric_role]]]]),
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+winner_ledger <- function(parent, candidate, value_column) {
+  panel_fields <- c("inference", "family", "tau", "metric_role")
+  panel_key <- do.call(paste, c(parent[panel_fields], sep = "|"))
+  candidate_key <- i111s_role_key(candidate)
+  parent_role_key <- i111s_role_key(parent)
+  candidate <- candidate[match(parent_role_key, candidate_key), , drop = FALSE]
+  panels <- unique(panel_key)
+  ffv2_bind_rows(lapply(panels, function(panel) {
+    index <- which(panel_key == panel)
+    old_order <- order(parent[[value_column]][index], parent$model_variant[index])
+    new_order <- order(candidate[[value_column]][index], candidate$model_variant[index])
+    old_exdqlm <- index[parent$model_variant[index] == "exdqlm"]
+    new_exdqlm <- index[candidate$model_variant[index] == "exdqlm"]
+    data.frame(
+      parent[index[[1L]], panel_fields, drop = FALSE],
+      old_winner = parent$model_variant[index[old_order[[1L]]]],
+      new_winner = candidate$model_variant[index[new_order[[1L]]]],
+      old_winner_value = parent[[value_column]][index[old_order[[1L]]]],
+      new_winner_value = candidate[[value_column]][index[new_order[[1L]]]],
+      winner_changed = parent$model_variant[index[old_order[[1L]]]] !=
+        candidate$model_variant[index[new_order[[1L]]]],
+      exdqlm_old_value = parent[[value_column]][old_exdqlm],
+      exdqlm_new_value = candidate[[value_column]][new_exdqlm],
+      exdqlm_old_rank = rank(parent[[value_column]][index], ties.method = "min")[
+        parent$model_variant[index] == "exdqlm"
+      ],
+      exdqlm_new_rank = rank(candidate[[value_column]][index], ties.method = "min")[
+        candidate$model_variant[index] == "exdqlm"
+      ], stringsAsFactors = FALSE
+    )
+  }))
+}
+point_winner_ledger <- winner_ledger(
+  point_long(authority), point_long(point_candidate), "value"
+)
+point_winner_path <- ffv2_write_csv(
+  point_winner_ledger, file.path(closeout_root, "point_winner_change_ledger.csv")
+)
+interval_winner_ledger <- winner_ledger(
+  interval_parent, interval_candidate, "posterior_mean"
+)
+interval_winner_path <- ffv2_write_csv(
+  interval_winner_ledger, file.path(closeout_root, "interval_winner_change_ledger.csv")
 )
 
 heavy <- unique(unlist(lapply(unique(plan$job_root), function(root) {
@@ -315,6 +491,61 @@ heavy <- unique(unlist(lapply(unique(plan$job_root), function(root) {
   list.files(root, pattern = "[.](rds|rda|RData)$", recursive = TRUE,
              full.names = TRUE, ignore.case = TRUE)
 }), use.names = FALSE))
+point_candidate_long <- point_long(point_candidate)
+point_candidate_index <- match(role_key, i111s_role_key(point_candidate_long))
+point_candidate_matches <- !anyNA(point_candidate_index) && all(
+  abs(point_candidate_long$value[point_candidate_index] - roles$point_mean) < 1e-12
+)
+interval_candidate_matches <- all(vapply(seq_len(nrow(roles)), function(i) {
+  target <- interval_index[[i]]
+  all(vapply(interval_fields, function(field) {
+    i111s_values_equal(interval_candidate[[field]][[target]], roles[[field]][[i]])
+  }, logical(1L))) &&
+    i111s_values_equal(interval_candidate$authoritative_value[[target]],
+                       roles$point_mean[[i]])
+}, logical(1L)))
+inherited_invariance <- invariance$inherited_role
+
+old_interval_target <- interval_parent[interval_index, , drop = FALSE]
+new_interval_target <- interval_candidate[interval_index, , drop = FALSE]
+posterior_mean_pct_change <- 100 * (
+  new_interval_target$posterior_mean / old_interval_target$posterior_mean - 1
+)
+old_width <- old_interval_target$cri_upper - old_interval_target$cri_lower
+new_width <- new_interval_target$cri_upper - new_interval_target$cri_lower
+interval_width_pct_change <- 100 * (new_width / old_width - 1)
+mcmc_roles <- roles$inference == "mcmc"
+mcmc_forecast_roles <- mcmc_roles & roles$metric_role != "fit"
+scientific_summary <- data.frame(
+  indicator = c(
+    "jobs_completed", "point_roles", "interval_roles",
+    "strict_point_improvements", "strict_posterior_improvements",
+    "mcmc_fit_point_improvements", "mcmc_forecast_mae_point_improvements",
+    "mcmc_forecast_check_point_improvements",
+    "posterior_means_changed_at_least_1pct",
+    "max_abs_forecast_posterior_mean_change_pct",
+    "max_abs_interval_width_change_pct", "point_winner_changes",
+    "interval_winner_changes", "mcmc_metric_warning_rows"
+  ),
+  value = c(
+    nrow(job_audit), nrow(roles), nrow(interval_candidate),
+    sum(roles$strict_point_improvement), sum(roles$strict_posterior_improvement),
+    sum(roles$strict_point_improvement[mcmc_roles & roles$metric_role == "fit"]),
+    sum(roles$strict_point_improvement[mcmc_roles &
+                                         roles$metric_role == "forecast_mae"]),
+    sum(roles$strict_point_improvement[mcmc_roles &
+                                         roles$metric_role == "forecast_check"]),
+    sum(abs(posterior_mean_pct_change) >= 1),
+    max(abs(posterior_mean_pct_change[mcmc_forecast_roles])),
+    max(abs(interval_width_pct_change)), sum(point_winner_ledger$winner_changed),
+    sum(interval_winner_ledger$winner_changed),
+    sum(metric_diagnostics$diagnostic_grade == "WARN")
+  ),
+  stringsAsFactors = FALSE
+)
+scientific_summary_path <- ffv2_write_csv(
+  scientific_summary, file.path(closeout_root, "scientific_change_summary.csv")
+)
 checks <- c(
   jobs_36 = nrow(job_audit) == i111s_expected_jobs,
   jobs_verified = all(job_audit$checks_pass),
@@ -324,7 +555,32 @@ checks <- c(
   source_metric_rows_54 = nrow(source_summary) == i111s_expected_metric_roles,
   point_metric_rows_54 = nrow(point_summary) == i111s_expected_metric_roles,
   roles_54 = nrow(roles) == i111s_expected_metric_roles,
-  candidate_rows_18 = sum(exdqlm_rows) == i111s_expected_article_rows,
+  point_candidate_rows_72 = nrow(point_candidate) == nrow(authority),
+  point_candidate_exdqlm_rows_18 = sum(exdqlm_rows) == i111s_expected_article_rows,
+  point_candidate_matches_54_roles = point_candidate_matches,
+  point_candidate_uses_point_estimator = all(
+    point_candidate$metric_estimator_contract[exdqlm_rows] == i111s_point_estimator_id
+  ),
+  point_candidate_source_is_point_summary = all(vapply(
+    c("fit_source_path", "forecast_mae_source_path", "forecast_check_source_path"),
+    function(field) all(point_candidate[[field]][exdqlm_rows] == point_source_relpath),
+    logical(1L)
+  )),
+  interval_candidate_rows_216 = nrow(interval_candidate) == nrow(interval_parent) &&
+    nrow(interval_candidate) == 216L,
+  interval_candidate_exdqlm_roles_54 = length(interval_index) ==
+    i111s_expected_metric_roles,
+  interval_candidate_matches_54_roles = interval_candidate_matches,
+  interval_candidate_uses_interval_estimator = all(
+    interval_candidate$estimator_id[interval_index] == i111s_interval_estimator_id
+  ),
+  interval_candidate_source_is_interval_summary = all(
+    interval_candidate$source_path[interval_index] == interval_source_relpath
+  ),
+  non_exdqlm_interval_rows_162_invariant =
+    sum(inherited_invariance) == 162L && all(invariance$unchanged[inherited_invariance]),
+  point_winner_panels_54 = nrow(point_winner_ledger) == 54L,
+  interval_winner_panels_54 = nrow(interval_winner_ledger) == 54L,
   intervals_ordered = all(roles$cri_lower <= roles$posterior_median &
                             roles$posterior_median <= roles$cri_upper),
   mcmc_draws_12000 = all(source_summary$n_draws[source_summary$inference == "mcmc"] ==
@@ -342,17 +598,16 @@ checks <- c(
 )
 checks_path <- ffv2_write_csv(
   data.frame(check = names(checks), pass = unname(checks), stringsAsFactors = FALSE),
-  file.path(closeout_root, "closeout_checks.csv")
+  file.path(closeout_root, "closeout_checks_v2.csv")
 )
 if (!all(checks)) {
   stop(sprintf("Scoped closeout failed: %s",
                paste(names(checks)[!checks], collapse = ", ")), call. = FALSE)
 }
-decision <- if (any(roles$material_point_change_1e6)) {
-  "READY_FOR_INTEGRATION"
-} else "READY_NO_ARTICLE_CHANGE"
+decision <- "READY_FOR_DIAGNOSTIC_RECOVERY"
 handoff <- list(
-  schema_version = i111s_schema, status = decision,
+  schema_version = i111s_schema, closeout_revision = "v2_estimator_separated",
+  status = decision,
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
   run_id = as.character(manifest$run_id), scope_id = i111s_scope_id,
   authority_id = i111_authority_id,
@@ -377,23 +632,44 @@ handoff <- list(
   metric_diagnostics_sha256 = ffv2_file_sha256(metric_diagnostics_path),
   inference_diagnostics_path = diagnostics_path,
   inference_diagnostics_sha256 = ffv2_file_sha256(diagnostics_path),
-  candidate_interface_path = candidate_path,
-  candidate_interface_sha256 = ffv2_file_sha256(candidate_path),
-  candidate_rows_path = candidate_rows_path,
-  candidate_rows_sha256 = ffv2_file_sha256(candidate_rows_path),
+  point_candidate_interface_path = point_candidate_path,
+  point_candidate_interface_sha256 = ffv2_file_sha256(point_candidate_path),
+  point_candidate_rows_path = point_candidate_rows_path,
+  point_candidate_rows_sha256 = ffv2_file_sha256(point_candidate_rows_path),
+  point_estimator_id = i111s_point_estimator_id,
+  interval_candidate_path = interval_candidate_path,
+  interval_candidate_sha256 = ffv2_file_sha256(interval_candidate_path),
+  interval_candidate_rows_path = interval_candidate_rows_path,
+  interval_candidate_rows_sha256 = ffv2_file_sha256(interval_candidate_rows_path),
+  interval_estimator_id = i111s_interval_estimator_id,
+  non_exdqlm_invariance_path = invariance_path,
+  non_exdqlm_invariance_sha256 = ffv2_file_sha256(invariance_path),
+  point_winner_change_path = point_winner_path,
+  point_winner_change_sha256 = ffv2_file_sha256(point_winner_path),
+  interval_winner_change_path = interval_winner_path,
+  interval_winner_change_sha256 = ffv2_file_sha256(interval_winner_path),
+  scientific_summary_path = scientific_summary_path,
+  scientific_summary_sha256 = ffv2_file_sha256(scientific_summary_path),
   checks_path = checks_path, checks_sha256 = ffv2_file_sha256(checks_path),
+  scientific_decision = "EXDQLM_1P1P1_COMPATIBILITY_REFRESH_CONCLUSIONS_STABLE",
+  forecast_conclusion = paste(
+    "The 1.1.1 rerun does not provide a material forecast improvement;",
+    "it refreshes the complete exDQLM compatibility block and confirms the prior conclusions."
+  ),
   replacement_policy = paste(
     "The 18 exDQLM rows form one coherent exdqlm 1.1.1 compatibility block;",
     "the integration lane must not cherry-pick only favorable cells."
   ),
   article_write_performed = FALSE,
   integration_owner = "ARTICLE_QDESN_INTEGRATION",
-  git_commit = system2("git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE)
+  execution_commit = execution_commit,
+  closeout_commit = closeout_commit,
+  diagnostic_recovery_required = TRUE
 )
-handoff_path <- file.path(closeout_root, "integration_handoff.json")
+handoff_path <- file.path(closeout_root, "closeout_handoff_v2.json")
 ffv2_write_json(handoff, handoff_path)
 writeLines(c(
-  "# exDQLM 1.1.1 scoped continuation closeout",
+  "# exDQLM 1.1.1 scoped continuation closeout v2",
   "",
   sprintf("- Decision: `%s`", decision),
   sprintf("- Completed jobs: %d/%d", nrow(job_audit), i111s_expected_jobs),
@@ -403,7 +679,13 @@ writeLines(c(
           sum(roles$strict_posterior_improvement), nrow(roles)),
   sprintf("- MCMC metric diagnostic warnings: %d/%d",
           sum(metric_diagnostics$diagnostic_grade == "WARN"), nrow(metric_diagnostics)),
+  sprintf("- Point-estimate winner changes: %d/54",
+          sum(point_winner_ledger$winner_changed)),
+  sprintf("- Posterior-interval winner changes: %d/54",
+          sum(interval_winner_ledger$winner_changed)),
+  "- Point estimates and posterior metric intervals are separate candidate artifacts.",
+  "- The original pipeline failure and closeout remain immutable; this v2 closeout is additive.",
   "- Article, shared-validation, and Overleaf writes: none",
   "- Integration policy: replace or retain the complete 18-row exDQLM block; do not cherry-pick."
-), file.path(closeout_root, "CLOSEOUT.md"), useBytes = TRUE)
+), file.path(closeout_root, "CLOSEOUT_V2.md"), useBytes = TRUE)
 cat(sprintf("exDQLM-only 1.1.1 closeout: %s\n", decision))

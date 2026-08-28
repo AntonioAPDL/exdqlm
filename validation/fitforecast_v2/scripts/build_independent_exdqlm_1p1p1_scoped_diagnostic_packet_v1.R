@@ -22,20 +22,32 @@ packet_root <- ffv2_resolve_path(
   args$`output-root` %||% file.path(state_root, "diagnostics", "exdqlm_1p1p1_scoped"),
   repo_root = ffv2_repo_root(), must_work = FALSE
 )
+closeout_root <- ffv2_resolve_path(
+  args$`closeout-root` %||% file.path(state_root, "closeout"),
+  repo_root = ffv2_repo_root(), must_work = TRUE
+)
 figure_root <- file.path(packet_root, "figures")
 table_root <- file.path(packet_root, "tables")
 ffv2_ensure_dir(figure_root)
 ffv2_ensure_dir(table_root)
 
-comparison <- ffv2_read_csv(file.path(
-  state_root, "closeout", "exdqlm_1p1p1_scoped_vs_authority.csv"
-))
-job_audit <- ffv2_read_csv(file.path(state_root, "closeout", "job_artifact_audit.csv"))
+comparison_candidates <- file.path(
+  closeout_root,
+  c("exdqlm_1p1p1_scoped_vs_authority_v2.csv",
+    "exdqlm_1p1p1_scoped_vs_authority.csv")
+)
+comparison_path <- comparison_candidates[file.exists(comparison_candidates)][1L]
+if (is.na(comparison_path)) {
+  stop("No scoped comparison table exists in the requested closeout root.",
+       call. = FALSE)
+}
+comparison <- ffv2_read_csv(comparison_path)
+job_audit <- ffv2_read_csv(file.path(closeout_root, "job_artifact_audit.csv"))
 inference_diagnostics <- ffv2_read_csv(file.path(
-  state_root, "closeout", "exdqlm_inference_diagnostics.csv"
+  closeout_root, "exdqlm_inference_diagnostics.csv"
 ))
 metric_diagnostics <- ffv2_read_csv(file.path(
-  state_root, "closeout", "mcmc_metric_diagnostics.csv"
+  closeout_root, "mcmc_metric_diagnostics.csv"
 ))
 if (nrow(comparison) != i111s_expected_metric_roles ||
     nrow(job_audit) != i111s_expected_jobs) {
@@ -70,8 +82,9 @@ metric_plot <- ggplot2::ggplot(
   mcmc_comparison,
   ggplot2::aes(x = posterior_mean, y = case)
 ) +
-  ggplot2::geom_errorbarh(
-    ggplot2::aes(xmin = cri_lower, xmax = cri_upper), height = 0.18,
+  ggplot2::geom_errorbar(
+    ggplot2::aes(xmin = cri_lower, xmax = cri_upper), width = 0.18,
+    orientation = "y",
     colour = "#1B6CA8", linewidth = 0.45
   ) +
   ggplot2::geom_point(shape = 4, size = 2.1, stroke = 0.8, colour = "#1B6CA8") +
@@ -94,15 +107,62 @@ granular <- lapply(seq_len(nrow(mcmc_jobs)), function(i) {
   lead <- ffv2_read_csv(cfg$forecast_lead_metrics_path)
   forecast <- ffv2_read_csv(cfg$forecast_path_summary_path)
   fit <- ffv2_read_csv(cfg$fit_path_summary_path)
-  lead$chain_id <- row$chain_id[[1L]]
-  forecast$chain_id <- row$chain_id[[1L]]
-  fit$chain_id <- row$chain_id[[1L]]
+  lead <- i111s_add_job_metadata(lead, row, "forecast lead metrics")
+  forecast <- i111s_add_job_metadata(forecast, row, "forecast path summary")
+  fit <- i111s_add_job_metadata(fit, row, "fit path summary")
+  i111s_require_columns(
+    lead,
+    c("family", "tau", "chain_id", "forecast_lead", "forecast_qtrue_mae",
+      "forecast_pinball_mean"),
+    "forecast lead metrics"
+  )
+  i111s_require_columns(
+    forecast,
+    c("family", "tau", "chain_id", "source_index", "q_true", "qhat",
+      "abs_q_error", "pinball_tau", "forecast_origin_source_index",
+      "forecast_lead"),
+    "forecast path summary"
+  )
+  i111s_require_columns(
+    fit, c("family", "tau", "chain_id", "source_index", "q_true", "qhat"),
+    "fit path summary"
+  )
   list(lead = lead, forecast = forecast, fit = fit)
 })
 lead <- ffv2_bind_rows(lapply(granular, `[[`, "lead"))
 forecast <- ffv2_bind_rows(lapply(granular, `[[`, "forecast"))
 fit <- ffv2_bind_rows(lapply(granular, `[[`, "fit"))
-ffv2_write_csv(lead, file.path(table_root, "mcmc_forecast_lead_profiles.csv"))
+lead_path <- ffv2_write_csv(
+  lead, file.path(table_root, "mcmc_forecast_lead_profiles.csv")
+)
+forecast_path <- ffv2_write_csv(
+  forecast, file.path(table_root, "mcmc_forecast_path_summaries.csv")
+)
+fit_path <- ffv2_write_csv(
+  fit, file.path(table_root, "mcmc_fit_path_summaries.csv")
+)
+cell_key <- function(x) paste(x$family, sprintf("%.2f", x$tau), sep = "|")
+input_checks <- c(
+  mcmc_jobs_27 = nrow(mcmc_jobs) == i111s_expected_mcmc_jobs,
+  lead_cells_9 = length(unique(cell_key(lead))) == 9L,
+  forecast_cells_9 = length(unique(cell_key(forecast))) == 9L,
+  fit_cells_9 = length(unique(cell_key(fit))) == 9L,
+  lead_chains_27 = length(unique(paste(cell_key(lead), lead$chain_id))) == 27L,
+  forecast_chains_27 = length(unique(paste(cell_key(forecast), forecast$chain_id))) == 27L,
+  fit_chains_27 = length(unique(paste(cell_key(fit), fit$chain_id))) == 27L,
+  comparison_roles_54 = nrow(comparison) == i111s_expected_metric_roles,
+  metric_diagnostics_27 = nrow(metric_diagnostics) == 27L
+)
+input_checks_path <- ffv2_write_csv(
+  data.frame(check = names(input_checks), pass = unname(input_checks),
+             stringsAsFactors = FALSE),
+  file.path(packet_root, "diagnostic_input_checks.csv")
+)
+if (!all(input_checks)) {
+  stop(sprintf("Diagnostic input checks failed: %s",
+               paste(names(input_checks)[!input_checks], collapse = ", ")),
+       call. = FALSE)
+}
 
 lead_summary <- stats::aggregate(
   lead[c("forecast_qtrue_mae", "forecast_pinball_mean")],
@@ -223,16 +283,34 @@ figure_manifest <- data.frame(
 figure_manifest_path <- ffv2_write_csv(
   figure_manifest, file.path(packet_root, "figure_manifest.csv")
 )
+table_manifest <- data.frame(
+  table = basename(c(lead_path, forecast_path, fit_path, input_checks_path)),
+  path = c(lead_path, forecast_path, fit_path, input_checks_path),
+  sha256 = vapply(c(lead_path, forecast_path, fit_path, input_checks_path),
+                  ffv2_file_sha256, character(1L)),
+  stringsAsFactors = FALSE
+)
+table_manifest_path <- ffv2_write_csv(
+  table_manifest, file.path(packet_root, "table_manifest.csv")
+)
 packet_manifest <- list(
   schema_version = i111s_schema,
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
   status = "PASS", run_id = as.character(manifest$run_id),
   purpose = "ignored_exdqlm_1p1p1_scoped_diagnostic_review_not_article_asset",
+  closeout_root = closeout_root,
+  comparison_path = comparison_path,
+  comparison_sha256 = ffv2_file_sha256(comparison_path),
   figures = nrow(figure_manifest),
   combined_pdf_path = normalizePath(combined_path, winslash = "/", mustWork = TRUE),
   combined_pdf_sha256 = ffv2_file_sha256(combined_path),
   figure_manifest_path = figure_manifest_path,
   figure_manifest_sha256 = ffv2_file_sha256(figure_manifest_path),
+  table_manifest_path = table_manifest_path,
+  table_manifest_sha256 = ffv2_file_sha256(table_manifest_path),
+  input_checks_path = input_checks_path,
+  input_checks_sha256 = ffv2_file_sha256(input_checks_path),
+  mcmc_metric_warning_rows = sum(metric_diagnostics$diagnostic_grade == "WARN"),
   article_write_performed = FALSE
 )
 ffv2_write_json(packet_manifest, file.path(packet_root, "packet_manifest.json"))

@@ -17,6 +17,17 @@ i111s_expected_mcmc_jobs <- 27L
 i111s_expected_source_identities <- 18L
 i111s_expected_metric_roles <- 54L
 i111s_expected_article_rows <- 18L
+i111s_point_candidate_id <-
+  "independent_exdqlm_1p1p1_scoped_point_compatibility_v2"
+i111s_interval_candidate_id <-
+  "independent_exdqlm_1p1p1_scoped_interval_compatibility_v2"
+i111s_promotion_id <-
+  "independent_exdqlm_1p1p1_scoped_compatibility_v2_20260828"
+i111s_interval_authority_id <-
+  "qdesn_dqlm_500obs_metric_interval_reporting_v11_1_20260827"
+i111s_point_estimator_id <- "fixed_path_point_metric_chain_mean_v1"
+i111s_interval_estimator_id <-
+  "posterior_mean_draw_metric_equal_tailed_95cri_v1"
 i111_seed_ledger_relpath <- file.path(
   "config", "validation", "independent_qdesn_exdqlm_1p1p1_rerun_v1_seed_ledger.csv"
 )
@@ -197,5 +208,162 @@ i111s_contract <- function(repo_root = ffv2_repo_root()) {
       "article_writes", "overleaf_writes", "shared_validation_merge"
     ),
     repo_root = normalizePath(repo_root, winslash = "/", mustWork = TRUE)
+  )
+}
+
+i111s_interval_authority_path <- function(repo_root = ffv2_repo_root()) {
+  file.path(
+    repo_root, "validation", "fitforecast_v2", "promotions",
+    i111s_interval_authority_id, "plot_ready_metric_intervals.csv"
+  )
+}
+
+i111s_promotion_root <- function(repo_root = ffv2_repo_root()) {
+  file.path(
+    repo_root, "validation", "fitforecast_v2", "promotions",
+    i111s_promotion_id
+  )
+}
+
+i111s_assert_clean_synced_branch <- function(repo_root = ffv2_repo_root()) {
+  repo_root <- normalizePath(repo_root, winslash = "/", mustWork = TRUE)
+  git_output <- function(args) {
+    value <- system2("git", c("-C", repo_root, args), stdout = TRUE, stderr = TRUE)
+    status <- attr(value, "status") %||% 0L
+    if (!identical(as.integer(status), 0L)) {
+      stop(sprintf("Git command failed: git %s", paste(args, collapse = " ")),
+           call. = FALSE)
+    }
+    value
+  }
+  branch <- trimws(paste(git_output(c("branch", "--show-current")), collapse = ""))
+  if (!identical(branch, i111_branch)) {
+    stop(sprintf("Expected dedicated branch %s, found %s.", i111_branch, branch),
+         call. = FALSE)
+  }
+  dirty <- git_output(c("status", "--porcelain"))
+  if (length(dirty)) {
+    stop("Postprocessing requires a clean dedicated worktree.", call. = FALSE)
+  }
+  upstream <- trimws(paste(
+    git_output(c("rev-parse", "--abbrev-ref", "@{upstream}")), collapse = ""
+  ))
+  counts <- strsplit(trimws(paste(
+    git_output(c("rev-list", "--left-right", "--count", "@{upstream}...HEAD")),
+    collapse = " "
+  )), "[[:space:]]+")[[1L]]
+  if (length(counts) != 2L || any(as.integer(counts) != 0L)) {
+    stop("Postprocessing requires HEAD to match its upstream exactly.", call. = FALSE)
+  }
+  list(branch = branch, upstream = upstream, head = trimws(paste(
+    git_output(c("rev-parse", "HEAD")), collapse = ""
+  )))
+}
+
+i111s_assert_scoped_state_root <- function(state_root, repo_root = ffv2_repo_root()) {
+  state_root <- normalizePath(state_root, winslash = "/", mustWork = TRUE)
+  repo_root <- normalizePath(repo_root, winslash = "/", mustWork = TRUE)
+  allowed_parent <- normalizePath(
+    file.path(repo_root, "reports", "shared_fitforecast_v2_orchestration"),
+    winslash = "/", mustWork = TRUE
+  )
+  if (!startsWith(state_root, paste0(allowed_parent, "/"))) {
+    stop("Scoped state root must belong to this dedicated worktree.", call. = FALSE)
+  }
+  state_root
+}
+
+i111s_role_key <- function(x, metric_column = "metric_role") {
+  required <- c("inference", "model_variant", "family", "tau", metric_column)
+  missing <- setdiff(required, names(x))
+  if (length(missing)) {
+    stop(sprintf("Metric-role key is missing: %s", paste(missing, collapse = ", ")),
+         call. = FALSE)
+  }
+  paste(
+    as.character(x$inference), as.character(x$model_variant),
+    as.character(x$family), sprintf("%.2f", as.numeric(x$tau)),
+    as.character(x[[metric_column]]), sep = "|"
+  )
+}
+
+i111s_add_job_metadata <- function(x, job, table_name = "granular artifact") {
+  if (!is.data.frame(x) || !is.data.frame(job) || nrow(job) != 1L) {
+    stop("Job metadata injection requires one data frame and one job row.",
+         call. = FALSE)
+  }
+  fields <- c("replay_id", "inference", "model_variant", "family", "tau", "chain_id")
+  missing_job <- setdiff(fields, names(job))
+  if (length(missing_job)) {
+    stop(sprintf("Job row is missing metadata: %s", paste(missing_job, collapse = ", ")),
+         call. = FALSE)
+  }
+  for (field in fields) {
+    expected <- job[[field]][[1L]]
+    if (field %in% names(x)) {
+      observed <- unique(x[[field]])
+      observed <- observed[!is.na(observed)]
+      compatible <- if (field == "tau") {
+        length(observed) <= 1L && (length(observed) == 0L ||
+          abs(as.numeric(observed[[1L]]) - as.numeric(expected)) < 1e-12)
+      } else if (field == "chain_id") {
+        length(observed) <= 1L && (length(observed) == 0L ||
+          identical(as.integer(observed[[1L]]), as.integer(expected)))
+      } else {
+        length(observed) <= 1L && (length(observed) == 0L ||
+          identical(as.character(observed[[1L]]), as.character(expected)))
+      }
+      if (!compatible) {
+        stop(sprintf("%s has conflicting %s metadata.", table_name, field),
+             call. = FALSE)
+      }
+    }
+    x[[field]] <- rep(expected, nrow(x))
+  }
+  x
+}
+
+i111s_require_columns <- function(x, required, table_name) {
+  missing <- setdiff(required, names(x))
+  if (length(missing)) {
+    stop(sprintf("%s is missing: %s", table_name, paste(missing, collapse = ", ")),
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+i111s_values_equal <- function(x, y) {
+  if (length(x) != 1L || length(y) != 1L) return(FALSE)
+  if (is.na(x) && is.na(y)) return(TRUE)
+  if (is.numeric(x) || is.numeric(y)) {
+    return(isTRUE(all.equal(as.numeric(x), as.numeric(y), tolerance = 0,
+                            check.attributes = FALSE)))
+  }
+  identical(as.character(x), as.character(y))
+}
+
+i111s_invariance_ledger <- function(parent, candidate, target_model = "exdqlm") {
+  parent_key <- i111s_role_key(parent)
+  candidate_key <- i111s_role_key(candidate)
+  if (anyDuplicated(parent_key) || anyDuplicated(candidate_key) ||
+      !setequal(parent_key, candidate_key)) {
+    stop("Interval candidate does not preserve the parent role-key surface.",
+         call. = FALSE)
+  }
+  index <- match(parent_key, candidate_key)
+  shared <- intersect(names(parent), names(candidate))
+  changed <- vapply(seq_len(nrow(parent)), function(i) {
+    fields <- shared[!vapply(shared, function(field) {
+      i111s_values_equal(parent[[field]][[i]], candidate[[field]][[index[[i]]]])
+    }, logical(1L))]
+    paste(fields, collapse = ";")
+  }, character(1L))
+  data.frame(
+    key = parent_key,
+    model_variant = parent$model_variant,
+    inherited_role = parent$model_variant != target_model,
+    unchanged = !nzchar(changed),
+    changed_fields = changed,
+    stringsAsFactors = FALSE
   )
 }

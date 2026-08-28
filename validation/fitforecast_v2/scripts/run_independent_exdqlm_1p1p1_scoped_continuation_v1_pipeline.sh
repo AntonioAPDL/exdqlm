@@ -17,6 +17,7 @@ PACKAGE_TARBALL="${PACKAGE_TARBALL:-${TASK_TRACKER}/package/exdqlm_1.1.1.tar.gz}
 PACKAGE_BUILD_MANIFEST="${PACKAGE_BUILD_MANIFEST:-${TASK_TRACKER}/package/package_build_manifest.json}"
 R_LIBRARY="${R_LIBRARY:-${TASK_TRACKER}/Rlib}"
 PIPELINE_LOG="${STATE_ROOT}/pipeline.stdout.log"
+CURRENT_STAGE="preflight_guards"
 
 export R_LIBS_USER="${R_LIBRARY}"
 export OMP_NUM_THREADS=1
@@ -113,8 +114,8 @@ exec > >(tee -a "${PIPELINE_LOG}") 2>&1
 write_terminal_status() {
   local state="$1"
   local code="$2"
-  printf 'status=%s exit=%s run_id=%s head=%s package_build_head=%s ended_at=%s\n' \
-    "${state}" "${code}" "${RUN_ID}" "${head}" "${build_head}" \
+  printf 'status=%s exit=%s stage=%s run_id=%s head=%s package_build_head=%s ended_at=%s\n' \
+    "${state}" "${code}" "${CURRENT_STAGE}" "${RUN_ID}" "${head}" "${build_head}" \
     "$(date --iso-8601=seconds)" > "${STATE_ROOT}/pipeline.status"
 }
 on_error() {
@@ -133,26 +134,33 @@ printf 'status=RUNNING run_id=%s head=%s package_build_head=%s package_sha256=%s
   "${RUN_ID}" "${head}" "${build_head}" "${package_sha256}" "${PARENT_RUN_ID}" \
   "$(date --iso-8601=seconds)" > "${STATE_ROOT}/pipeline.status"
 
+CURRENT_STAGE="package_preflight"
 Rscript "${SCRIPT_DIR}/preflight_independent_exdqlm_1p1p1_rerun_v1.R" \
   --repo-root "${REPO_ROOT}" --state-root "${STATE_ROOT}/preflight" \
   --tarball "${PACKAGE_TARBALL}" --build-manifest "${PACKAGE_BUILD_MANIFEST}"
 
+CURRENT_STAGE="materialization"
 Rscript "${SCRIPT_DIR}/prepare_independent_exdqlm_1p1p1_scoped_continuation_v1.R" \
   --repo-root "${REPO_ROOT}" --parent-state-root "${PARENT_STATE_ROOT}" \
   --state-root "${STATE_ROOT}" --run-id "${RUN_ID}"
 
+CURRENT_STAGE="scope_verification"
 Rscript "${SCRIPT_DIR}/verify_independent_exdqlm_1p1p1_scoped_continuation_v1.R" \
   --state-root "${STATE_ROOT}"
 
+CURRENT_STAGE="scientific_orchestration"
 IMI_V1_LAUNCH_APPROVED=true Rscript \
   "${SCRIPT_DIR}/orchestrate_independent_metric_intervals_v1.R" \
   --repo-root "${REPO_ROOT}" --state-root "${STATE_ROOT}" --workers "${WORKERS}"
 
+CURRENT_STAGE="scientific_closeout"
 Rscript "${SCRIPT_DIR}/closeout_independent_exdqlm_1p1p1_scoped_continuation_v1.R" \
   --repo-root "${REPO_ROOT}" --state-root "${STATE_ROOT}"
 
+CURRENT_STAGE="diagnostic_postprocessing"
 Rscript "${SCRIPT_DIR}/build_independent_exdqlm_1p1p1_scoped_diagnostic_packet_v1.R" \
   --state-root "${STATE_ROOT}"
 
+CURRENT_STAGE="complete"
 write_terminal_status "SUCCESS" 0
 echo "scoped exDQLM 1.1.1 continuation complete: ${STATE_ROOT}"
