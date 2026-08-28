@@ -41,13 +41,17 @@ if (!identical(as.character(final_handoff$status), "READY_FOR_INTEGRATION") ||
        call. = FALSE)
 }
 
-copy_one <- function(source, relative_target) {
+copy_one <- function(source, relative_target, normalize_text = FALSE) {
   if (!file.exists(source)) stop(sprintf("Freeze source is missing: %s", source),
                                  call. = FALSE)
   target <- file.path(output_root, relative_target)
   ffv2_ensure_dir(dirname(target))
   if (!file.copy(source, target, overwrite = FALSE, copy.mode = TRUE)) {
     stop(sprintf("Could not freeze %s.", source), call. = FALSE)
+  }
+  if (isTRUE(normalize_text)) {
+    lines <- readLines(target, warn = FALSE)
+    writeLines(sub("[[:blank:]]+$", "", lines), target, useBytes = TRUE)
   }
   normalizePath(target, winslash = "/", mustWork = TRUE)
 }
@@ -85,7 +89,10 @@ support_map <- c(
   "diagnostics/diagnostic_input_checks.csv" = file.path(diagnostic_root, "diagnostic_input_checks.csv")
 )
 support_paths <- vapply(names(support_map), function(target) {
-  copy_one(unname(support_map[[target]]), target)
+  copy_one(
+    unname(support_map[[target]]), target,
+    normalize_text = identical(target, "environment/sessionInfo.txt")
+  )
 }, character(1L))
 frozen_paths <- c(frozen_paths, support_paths)
 

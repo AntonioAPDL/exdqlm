@@ -159,5 +159,7 @@ test_that("diagnostic recovery is additive and does not rerun models", {
   expect_match(freezer, "integration_owner = \"ARTICLE_QDESN_INTEGRATION\"",
                fixed = TRUE)
   expect_match(freezer, "i111s_assert_clean_synced_branch", fixed = TRUE)
+  expect_match(freezer, 'normalize_text = identical(target, "environment/sessionInfo.txt")',
+               fixed = TRUE)
   expect_false(grepl("git push", freezer, fixed = TRUE))
 })
