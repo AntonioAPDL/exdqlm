@@ -13,6 +13,8 @@ state_root <- normalizePath(args$`state-root` %||% "", winslash = "/", mustWork 
 plan <- ffv2_read_csv(file.path(state_root, "manifests", "job_plan.csv"))
 materialization <- ffv2_read_json(file.path(state_root, "manifests", "materialization_manifest.json"))
 smoke <- isTRUE(materialization$smoke)
+campaign_schema <- as.character(materialization$schema_version %||% imi_v1_schema)[1L]
+is_i111 <- identical(campaign_schema, i111_schema)
 
 config_hash_ok <- vapply(seq_len(nrow(plan)), function(i) {
   identical(ffv2_file_sha256(plan$config_path[[i]]), plan$config_sha256[[i]])
@@ -38,7 +40,11 @@ reservoir_contract <- TRUE
 for (replay_id in unique(plan$replay_id[is_qdesn])) {
   idx <- which(plan$replay_id == replay_id)
   seeds <- vapply(configs[idx], function(x) as.integer(x$config$desn$seed), integer(1L))
-  reservoir_contract <- reservoir_contract && length(unique(seeds)) == 1L
+  source_ids <- unique(plan$source_identity[idx])
+  is_chain_specific_v11 <- is_i111 && length(source_ids) == 1L &&
+    grepl("idol2_al_normal_t0p05_o1_orthogonalized", source_ids[[1L]], fixed = TRUE)
+  reservoir_contract <- reservoir_contract &&
+    (length(unique(seeds)) == 1L || is_chain_specific_v11)
 }
 
 checks <- c(
@@ -60,6 +66,21 @@ checks <- c(
   exal_m0 = all(q_value(which(q_exal), function(x) {
     identical(as.character(x$config$inference$mcmc$slice$core_update_mode),
               "m0_v_collapsed_support_logit")
+  })),
+  qdesn_exal_vb_structured = !is_i111 || all(q_value(which(
+    q_vb & plan$model_variant == "qdesn_exal_rhs_ns"
+  ), function(x) {
+    identical(as.character(x$config$inference$vb$sigmagam$factorization), "structured") &&
+      identical(as.integer(x$config$inference$vb$sigmagam$structured_grid_size), 151L)
+  })),
+  exdqlm_mcmc_collapsed_slice = !is_i111 || all(d_value(which(
+    d_mcmc & plan$model_variant == "exdqlm"
+  ), function(x) identical(as.character(x$budget$mcmc$mh_proposal), "collapsed_slice"))),
+  exdqlm_vb_structured = !is_i111 || all(d_value(which(
+    d_vb & plan$model_variant == "exdqlm"
+  ), function(x) {
+    identical(as.character(x$budget$vb$sigmagam$factorization), "structured") &&
+      identical(as.integer(x$budget$vb$sigmagam$structured_grid_size), 151L)
   })),
   qdesn_mcmc_budget = smoke || all(q_value(which(q_mcmc), function(x) {
     identical(as.integer(x$config$inference$mcmc$n_burn), 5000L) &&
@@ -87,6 +108,23 @@ checks <- c(
     q_value(which(is_qdesn), function(x) isTRUE(x$config$metrics$posterior_metric_intervals$required)),
     d_value(which(!is_qdesn), function(x) isTRUE(x$metric_intervals$required))
   )),
+  package_1p1p1_contract = !is_i111 || (
+    identical(as.character(materialization$package_version), i111_package_version) &&
+      identical(as.character(materialization$package_source_commit),
+                i111_package_source_commit) &&
+      nzchar(as.character(materialization$package_tarball_sha256)) &&
+      all(vapply(configs, function(x) {
+        contract <- x$study_contract %||% x$package_contract %||% list()
+        identical(as.character(contract$package_version %||% contract$version),
+                  i111_package_version) &&
+          identical(as.character(contract$package_source_commit %||% contract$source_commit),
+                    i111_package_source_commit) &&
+          identical(
+            as.character(contract$package_tarball_sha256 %||% contract$tarball_sha256),
+            as.character(materialization$package_tarball_sha256)
+          )
+      }, logical(1L)))
+  ),
   no_legacy_home_paths = !any(grepl(
     paste0("/home/jaguir26", "/local/src"), unlist(configs), fixed = TRUE
   ))
@@ -94,7 +132,7 @@ checks <- c(
 out <- data.frame(check = names(checks), pass = unname(checks), stringsAsFactors = FALSE)
 path <- ffv2_write_csv(out, file.path(state_root, "manifests", "plan_verification.csv"))
 ffv2_write_json(list(
-  schema_version = imi_v1_schema, status = if (all(checks)) "PASS" else "FAIL",
+  schema_version = campaign_schema, status = if (all(checks)) "PASS" else "FAIL",
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), smoke = smoke,
   jobs = nrow(plan), checks_pass = sum(checks), checks_total = length(checks),
   verification_path = path, verification_sha256 = ffv2_file_sha256(path)

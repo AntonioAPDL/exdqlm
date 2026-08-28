@@ -25,6 +25,67 @@ ffv2_post_pred_draws <- function(fit, n_rows, seed, n_draws) {
   ffv2_select_draws(draws, n_draws = n_draws, seed = seed)
 }
 
+ffv2_compact_inference_diagnostics <- function(fit, config) {
+  list_field <- function(x, name) {
+    if (!is.list(x) || is.null(x[[name]])) return(NULL)
+    x[[name]]
+  }
+  nested_list_field <- function(x, names) {
+    value <- x
+    for (name in names) {
+      value <- list_field(value, name)
+      if (is.null(value)) return(NULL)
+    }
+    value
+  }
+  finite_summary <- function(x) {
+    x <- as.numeric(x %||% numeric(0))
+    x <- x[is.finite(x)]
+    if (!length(x)) return(list(n = 0L, mean = NA_real_, sd = NA_real_, ess = NA_real_, acf1 = NA_real_))
+    ess <- if (length(x) > 2L && requireNamespace("coda", quietly = TRUE)) {
+      suppressWarnings(as.numeric(coda::effectiveSize(x))[1L])
+    } else NA_real_
+    acf1 <- if (length(x) > 2L) {
+      suppressWarnings(as.numeric(stats::acf(x, lag.max = 1L, plot = FALSE)$acf[[2L]]))
+    } else NA_real_
+    list(n = length(x), mean = mean(x), sd = stats::sd(x), ess = ess, acf1 = acf1)
+  }
+  qsiggam <- list_field(fit, "qsiggam") %||%
+    nested_list_field(fit, c("VB", "qsiggam")) %||%
+    nested_list_field(fit, c("vb", "qsiggam")) %||% list()
+  mh_diagnostics <- list_field(fit, "mh.diagnostics")
+  if (!is.list(mh_diagnostics)) mh_diagnostics <- list()
+  factorization <- as.character(
+    list_field(qsiggam, "factorization") %||%
+      nested_list_field(fit, c("misc", "sigmagam", "factorization")) %||%
+      nested_list_field(fit, c("misc", "controls", "sigmagam", "factorization")) %||%
+      NA_character_
+  )[1L]
+  list(
+    schema_version = "ffv2_compact_inference_diagnostics_v1",
+    generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+    model_variant = as.character(config$model_variant),
+    inference = as.character(config$inference),
+    likelihood_family = if (isTRUE(config$dqlm_ind)) "al" else "exal",
+    gamma_fixed = isTRUE(config$dqlm_ind),
+    requested_mh_proposal = as.character(
+      nested_list_field(config, c("budget", "mcmc", "mh_proposal")) %||% NA_character_
+    )[1L],
+    observed_mh_proposal = as.character(
+      list_field(mh_diagnostics, "proposal") %||% NA_character_
+    )[1L],
+    vb_sigmagam_factorization = factorization,
+    package_contract = config$package_contract %||% list(),
+    gamma = finite_summary(
+      list_field(fit, "samp.gamma") %||% list_field(qsiggam, "gamma_draws")
+    ),
+    sigma = finite_summary(
+      list_field(fit, "samp.sigma") %||% list_field(qsiggam, "sigma_draws")
+    ),
+    mh_diagnostics = mh_diagnostics
+  )
+}
+
 ffv2_fit_row <- function(config, data, model, started_at = Sys.time()) {
   tau <- as.numeric(config$tau)
   runtime <- ffv2_runtime_controls(config)
@@ -44,7 +105,8 @@ ffv2_fit_row <- function(config, data, model, started_at = Sys.time()) {
     max_iter = as.integer(vb_budget$max_iter %||% 300L),
     tol = as.numeric(vb_budget$tol %||% 0.03),
     n_samp_xi = min(1000L, as.integer(vb_budget$n_samp %||% 20000L)),
-    verbose = isTRUE(runtime$verbose)
+    verbose = isTRUE(runtime$verbose),
+    sigmagam = vb_budget$sigmagam %||% NULL
   )
   if (identical(as.character(config$inference), "vb")) {
     vb_max_iter <- as.integer(vb_budget$max_iter %||% 300L)
@@ -194,7 +256,7 @@ ffv2_fit_row <- function(config, data, model, started_at = Sys.time()) {
     vb_init_fit = vb_init,
     mcmc_control = mcmc_control,
     verbose = isTRUE(runtime$verbose),
-    mh.proposal = "slice",
+    mh.proposal = as.character(mcmc_budget$mh_proposal %||% "slice")[1L],
     trace.diagnostics = TRUE,
     trace.every = runtime$trace_every,
     verbose.every = runtime$progress_every,
@@ -451,7 +513,15 @@ ffv2_run_row <- function(config_path,
           message = "Building dynamic model"
         )
         model <- ffv2_build_dynamic_model(config, train_n = nrow(data$train))
+        set.seed(seed)
         fit <- ffv2_fit_row(config, data, model, started_at = started)
+        if (!is.null(config$inference_diagnostics_path) &&
+            nzchar(as.character(config$inference_diagnostics_path))) {
+          ffv2_write_json(
+            ffv2_compact_inference_diagnostics(fit, config),
+            config$inference_diagnostics_path
+          )
+        }
         if (ffv2_handoff_enabled(config, "fit")) {
           ffv2_save_handoff(
             fit,
