@@ -18,6 +18,23 @@ test_that("rolling-state repair selects the intended sentinel and full surfaces"
   expect_true(all(sentinel$chain_id == 1L))
 })
 
+test_that("rolling-state repair enforces the generic launcher schema", {
+  config_path <- tempfile(fileext = ".json")
+  writeLines("{}", config_path)
+  manifest <- data.frame(
+    row_id = 1L, row_key = "row_0001", spec_id = "spec", family = "normal",
+    tau = 0.05, fit_size = 500L, model_variant = "exdqlm",
+    inference = "mcmc", phase = "mcmc_tt500", chain_id = 1L,
+    row_config_path = config_path, row_status_path = tempfile(fileext = ".csv"),
+    stringsAsFactors = FALSE
+  )
+  expect_true(iems_v1_validate_launcher_manifest(manifest))
+  expect_error(
+    iems_v1_validate_launcher_manifest(manifest[, setdiff(names(manifest), "row_status_path")]),
+    "row_status_path"
+  )
+})
+
 test_that("rolling-state repair remaps only generated output paths", {
   source_config <- tempfile(fileext = ".json")
   writeLines("{}", source_config)

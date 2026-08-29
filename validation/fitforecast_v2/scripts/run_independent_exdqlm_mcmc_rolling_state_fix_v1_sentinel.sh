@@ -64,6 +64,16 @@ exec > >(tee -a "${PIPELINE_LOG}") 2>&1
 printf 'status=RUNNING run_id=%s started_at=%s\n' "${RUN_ID}" "$(date --iso-8601=seconds)" \
   > "${STATE_ROOT}/pipeline.status"
 
+record_failure() {
+  rc=$?
+  if [[ ${rc} -ne 0 ]]; then
+    printf 'status=FAILED run_id=%s exit_code=%d ended_at=%s\n' \
+      "${RUN_ID}" "${rc}" "$(date --iso-8601=seconds)" \
+      > "${STATE_ROOT}/pipeline.status"
+  fi
+}
+trap record_failure EXIT
+
 Rscript "${SCRIPT_DIR}/materialize_independent_exdqlm_mcmc_rolling_state_fix_v1.R" \
   --repo-root "${REPO_ROOT}" --run-id "${RUN_ID}" --mode sentinel
 MANIFEST="${RUN_ROOT}/manifests/job_manifest.csv"
@@ -74,4 +84,5 @@ Rscript "${SCRIPT_DIR}/summarize_independent_exdqlm_mcmc_rolling_state_fix_v1.R"
   --manifest "${MANIFEST}"
 printf 'status=SUCCESS run_id=%s ended_at=%s\n' "${RUN_ID}" "$(date --iso-8601=seconds)" \
   > "${STATE_ROOT}/pipeline.status"
+trap - EXIT
 echo "SENTINEL_COMPLETE run_id=${RUN_ID}"

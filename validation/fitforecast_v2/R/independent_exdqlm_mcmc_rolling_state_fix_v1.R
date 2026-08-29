@@ -136,6 +136,25 @@ iems_v1_select_source_jobs <- function(audit, mode = c("sentinel", "full")) {
   out[order(out$family, out$tau, out$chain_id), , drop = FALSE]
 }
 
+iems_v1_validate_launcher_manifest <- function(manifest) {
+  required <- c(
+    "row_id", "row_key", "spec_id", "family", "tau", "fit_size",
+    "model_variant", "inference", "phase", "chain_id", "row_config_path",
+    "row_status_path"
+  )
+  missing <- setdiff(required, names(manifest))
+  if (length(missing)) {
+    stop(sprintf(
+      "Launcher manifest is missing required fields: %s",
+      paste(missing, collapse = ", ")
+    ), call. = FALSE)
+  }
+  if (any(!file.exists(manifest$row_config_path))) {
+    stop("Launcher manifest references a missing row config.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 iems_v1_remap_output_path <- function(path, source_root, target_root) {
   path <- as.character(path %||% "")[1L]
   if (!nzchar(path) || !startsWith(path, paste0(source_root, "/"))) return(path)
@@ -293,6 +312,7 @@ iems_v1_materialize <- function(repo_root, run_id, mode = c("sentinel", "full"))
       chain_id = as.integer(config$chain_id),
       status = "pending",
       row_config_path = normalizePath(config_path, winslash = "/", mustWork = TRUE),
+      row_status_path = as.character(config$row_status_path),
       row_config_sha256 = ffv2_file_sha256(config_path),
       source_job_id = as.character(jobs$job_id[[i]]),
       source_config_path = normalizePath(source_path, winslash = "/", mustWork = TRUE),
@@ -306,6 +326,7 @@ iems_v1_materialize <- function(repo_root, run_id, mode = c("sentinel", "full"))
     )
   }
   manifest <- ffv2_bind_rows(manifest_rows)
+  iems_v1_validate_launcher_manifest(manifest)
   manifest_path <- ffv2_write_csv(
     manifest, file.path(run_root, "manifests", "job_manifest.csv")
   )
