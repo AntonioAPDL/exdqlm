@@ -134,3 +134,80 @@ If the sentinel succeeds, the scientific repair is a validation forecast-state
 transport correction, not an exDQLM sampler retuning campaign. Additional MCMC
 iterations or broader gamma tuning would be wasteful before this correction is
 evaluated on all nine cells.
+
+## Sentinel result and authorization
+
+The full-budget sentinel completed successfully under run ID
+`independent_exdqlm_mcmc_rolling_state_fix_v1_sentinel_20260829_022824`.
+All three jobs completed, all row-health gates passed, no fitted-model binary
+was retained, and all eight predeclared causal gates passed.
+
+| Family | tau | Historical forecast MAE | Corrected forecast MAE | Historical check loss | Corrected check loss |
+|---|---:|---:|---:|---:|---:|
+| Gaussian mixture | 0.25 | 8.935540 | 1.728352 | 5.647109 | 4.516536 |
+| Gaussian | 0.05 | 16.225080 | 1.235261 | 4.312564 | 1.065948 |
+| Gaussian | 0.50 | 1.658973 | 1.160679 | 4.114976 | 4.028750 |
+
+Fit RMSE and first-origin forecasts were invariant to numerical tolerance in
+all three jobs. This combination is the identifying signature expected from a
+repair confined to post-origin rolling-state transport. The sentinel decision
+is therefore frozen as
+`SENTINEL_PASS_PROCEED_TO_FULL_27_JOB_CONFIRMATION`.
+
+## Full confirmation implementation
+
+The authorized full campaign contains exactly 27 jobs: three simulation
+families by three target quantiles by three independently seeded chains. It
+replays the frozen CRAN 1.1.1 exDQLM MCMC configurations without changing the
+DGP, training or forecast windows, priors, dynamic model, chain budgets,
+forecast origins, horizons, or scoring definitions. Each fit uses one
+numerical thread. The orchestrator may run at most 20 jobs concurrently and
+selects the least-used available logical CPUs after checking system load,
+available memory, and free disk space.
+
+The launcher fails closed unless all of the following hold:
+
+1. the dedicated task branch is clean and exactly synchronized with its
+   upstream;
+2. the immutable sentinel decision and hashes verify;
+3. the task-local package is CRAN `exdqlm` 1.1.1 and its source tarball SHA-256
+   is `3f3ed643ded7602fd62357d7f62024ca9071e0096214456650ed2de79722443e`;
+4. the materializer produces 27 hash-verified rows with no scientific-contract
+   changes beyond generated paths, provenance, and the state-update method;
+5. the generic launcher dry run selects all 27 jobs before compute begins; and
+6. at least 64 GiB of memory and 100 GiB of disk remain available, with the
+   one-thread contract exported for OpenMP and common BLAS runtimes.
+
+The pipeline records its run contract, CPU set, stage transitions, periodic
+resource heartbeat, row progress, and terminal status below
+`reports/shared_fitforecast_v2_orchestration/<run-id>/`. Other worktrees and
+their jobs are neither inspected beyond resource accounting nor modified.
+The read-only `healthcheck_independent_exdqlm_mcmc_rolling_state_fix_v1_full.R`
+reporter derives completed, active, stale, pending, failed, and remaining counts
+from the frozen manifest and row artifacts and audits transient binary payloads.
+
+## Full closeout and integration boundary
+
+Successful closeout requires all 27 jobs and all nine cells, three chains per
+cell, finite point metrics, 12,000 pooled metric draws per cell and metric,
+ordered 95% credible intervals, exact `collapsed_slice` evidence, the corrected
+state-update identifier, complete 500-row fit and 1,000-row forecast paths, 34
+forecast origins, maximum lead 30, invariant fit and first-origin metrics, and
+zero `.rds`, `.rda`, or `.RData` payloads in the completed run.
+
+The closeout produces:
+
+- chain- and cell-level historical-versus-corrected comparisons;
+- pooled posterior metric intervals and chain diagnostics;
+- gamma and sigma diagnostics;
+- lead, origin, and origin-by-lead summaries;
+- a complete nine-cell point and interval replacement packet;
+- hash manifests and a machine-readable integration handoff; and
+- an ignored diagnostic PDF packet for scientific review.
+
+Diagnostic grades are disclosed but do not exclude finite metric values. The
+repair changes the estimator implementation, so the complete corrected exDQLM
+MCMC block is the coherent integration unit even if an individual score moves
+unfavorably. The scientific lane never edits Article-v2, shared validation,
+Overleaf, or another task branch. The Article QDESN integration coordinator
+alone reviews and promotes the frozen packet after the campaign completes.

@@ -4,6 +4,23 @@ iems_v1_expected_branch <-
 iems_v1_cran_version <- "1.1.1"
 iems_v1_cran_tarball_sha256 <-
   "3f3ed643ded7602fd62357d7f62024ca9071e0096214456650ed2de79722443e"
+iems_v1_sentinel_run_id <-
+  "independent_exdqlm_mcmc_rolling_state_fix_v1_sentinel_20260829_022824"
+iems_v1_expected_full_jobs <- 27L
+iems_v1_expected_cells <- 9L
+iems_v1_expected_chains <- 3L
+iems_v1_point_metric_columns <- c(
+  fit_rmse = "fit_q_rmse",
+  forecast_mae = "forecast_h1000_q_mae",
+  forecast_check_loss = "forecast_h1000_pinball_mean"
+)
+iems_v1_immutable_artifact_roles <- c(
+  "row_status_path", "row_health_path", "row_metrics_path",
+  "fit_path_summary_path", "forecast_path_summary_path",
+  "forecast_lead_metrics_path", "metric_draws_path",
+  "metric_interval_summary_path", "metric_interval_manifest_path",
+  "row_config_path"
+)
 
 iems_v1_promotion_root <- function(repo_root) {
   file.path(
@@ -153,6 +170,201 @@ iems_v1_validate_launcher_manifest <- function(manifest) {
     stop("Launcher manifest references a missing row config.", call. = FALSE)
   }
   invisible(TRUE)
+}
+
+iems_v1_verify_row_artifacts <- function(config, row_key = NA_character_) {
+  label <- as.character(row_key %||% config$row_key %||% "unknown")[1L]
+  required_paths <- c(
+    config$row_metrics_path, config$fit_path_summary_path,
+    config$forecast_path_summary_path, config$forecast_lead_metrics_path,
+    config$metric_draws_path, config$metric_interval_summary_path,
+    config$metric_interval_manifest_path, config$inference_diagnostics_path,
+    config$row_health_path, config$artifact_manifest_path
+  )
+  path_exists <- vapply(required_paths, function(path) {
+    path <- as.character(path %||% "")[1L]
+    nzchar(path) && file.exists(path)
+  }, logical(1L))
+  if (!all(path_exists)) {
+    stop(sprintf("A required row artifact is missing: %s", label), call. = FALSE)
+  }
+
+  artifact_manifest <- ffv2_read_json(config$artifact_manifest_path)
+  artifact_roles <- vapply(
+    artifact_manifest$artifacts, function(x) as.character(x$role), character(1L)
+  )
+  missing_roles <- setdiff(iems_v1_immutable_artifact_roles, artifact_roles)
+  if (length(missing_roles)) {
+    stop(sprintf(
+      "Immutable artifact roles are missing for %s: %s",
+      label, paste(missing_roles, collapse = ", ")
+    ), call. = FALSE)
+  }
+  artifact_index <- setNames(artifact_manifest$artifacts, artifact_roles)
+  immutable_ok <- vapply(iems_v1_immutable_artifact_roles, function(role) {
+    entry <- artifact_index[[role]]
+    path <- as.character(entry$path)
+    expected_path <- as.character(config[[role]])
+    isTRUE(entry$exists) && file.exists(path) &&
+      identical(normalizePath(path, winslash = "/", mustWork = TRUE),
+                normalizePath(expected_path, winslash = "/", mustWork = TRUE)) &&
+      identical(ffv2_file_sha256(path), as.character(entry$sha256))
+  }, logical(1L))
+  if (!all(immutable_ok)) {
+    stop(sprintf(
+      "Immutable artifact verification failed for %s: %s",
+      label,
+      paste(iems_v1_immutable_artifact_roles[!immutable_ok], collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  metric_interval_manifest <- ffv2_read_json(config$metric_interval_manifest_path)
+  interval_manifest_ok <- identical(
+    ffv2_file_sha256(config$metric_draws_path),
+    as.character(metric_interval_manifest$metric_draws_sha256)
+  ) && identical(
+    ffv2_file_sha256(config$metric_interval_summary_path),
+    as.character(metric_interval_manifest$metric_interval_summary_sha256)
+  )
+  if (!interval_manifest_ok) {
+    stop(sprintf("Metric-interval manifest failed for %s", label), call. = FALSE)
+  }
+  list(
+    immutable_roles = iems_v1_immutable_artifact_roles,
+    artifact_manifest_path = normalizePath(
+      config$artifact_manifest_path, winslash = "/", mustWork = TRUE
+    ),
+    artifact_manifest_sha256 = ffv2_file_sha256(config$artifact_manifest_path),
+    inference_diagnostics_path = normalizePath(
+      config$inference_diagnostics_path, winslash = "/", mustWork = TRUE
+    ),
+    inference_diagnostics_sha256 = ffv2_file_sha256(config$inference_diagnostics_path)
+  )
+}
+
+iems_v1_full_cell_summary <- function(chain_summary) {
+  required <- c(
+    "family", "tau", "chain_id", "historical_fit_rmse", "corrected_fit_rmse",
+    "historical_forecast_mae", "corrected_forecast_mae",
+    "historical_forecast_check", "corrected_forecast_check",
+    "historical_first_origin_mae", "corrected_first_origin_mae", "health_gate"
+  )
+  missing <- setdiff(required, names(chain_summary))
+  if (length(missing)) {
+    stop(sprintf(
+      "Full chain summary is missing required fields: %s",
+      paste(missing, collapse = ", ")
+    ), call. = FALSE)
+  }
+  key <- paste(chain_summary$family, sprintf("%.2f", chain_summary$tau), sep = "|")
+  groups <- split(seq_len(nrow(chain_summary)), key)
+  rows <- lapply(groups, function(index) {
+    x <- chain_summary[index, , drop = FALSE]
+    mean_sd <- function(field) {
+      value <- as.numeric(x[[field]])
+      c(mean = mean(value), sd = if (length(value) > 1L) stats::sd(value) else 0)
+    }
+    old_fit <- mean_sd("historical_fit_rmse")
+    new_fit <- mean_sd("corrected_fit_rmse")
+    old_mae <- mean_sd("historical_forecast_mae")
+    new_mae <- mean_sd("corrected_forecast_mae")
+    old_check <- mean_sd("historical_forecast_check")
+    new_check <- mean_sd("corrected_forecast_check")
+    old_first <- mean_sd("historical_first_origin_mae")
+    new_first <- mean_sd("corrected_first_origin_mae")
+    data.frame(
+      family = as.character(x$family[[1L]]),
+      tau = as.numeric(x$tau[[1L]]),
+      chains = nrow(x),
+      historical_fit_rmse = old_fit[["mean"]],
+      corrected_fit_rmse = new_fit[["mean"]],
+      corrected_fit_rmse_chain_sd = new_fit[["sd"]],
+      fit_rmse_change = new_fit[["mean"]] - old_fit[["mean"]],
+      historical_forecast_mae = old_mae[["mean"]],
+      corrected_forecast_mae = new_mae[["mean"]],
+      corrected_forecast_mae_chain_sd = new_mae[["sd"]],
+      forecast_mae_change = new_mae[["mean"]] - old_mae[["mean"]],
+      forecast_mae_ratio = new_mae[["mean"]] / old_mae[["mean"]],
+      historical_forecast_check = old_check[["mean"]],
+      corrected_forecast_check = new_check[["mean"]],
+      corrected_forecast_check_chain_sd = new_check[["sd"]],
+      forecast_check_change = new_check[["mean"]] - old_check[["mean"]],
+      forecast_check_ratio = new_check[["mean"]] / old_check[["mean"]],
+      historical_first_origin_mae = old_first[["mean"]],
+      corrected_first_origin_mae = new_first[["mean"]],
+      first_origin_mae_change = new_first[["mean"]] - old_first[["mean"]],
+      health_pass_chains = sum(as.character(x$health_gate) == "PASS"),
+      health_warn_chains = sum(as.character(x$health_gate) == "WARN"),
+      health_fail_chains = sum(as.character(x$health_gate) == "FAIL"),
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- ffv2_bind_rows(rows)
+  out[order(out$family, out$tau), , drop = FALSE]
+}
+
+iems_v1_full_confirmation_checks <- function(chain_summary, cell_summary,
+                                              pooled_intervals, run_root,
+                                              manifest) {
+  point_fields <- c(
+    "historical_fit_rmse", "corrected_fit_rmse",
+    "historical_forecast_mae", "corrected_forecast_mae",
+    "historical_forecast_check", "corrected_forecast_check",
+    "historical_first_origin_mae", "corrected_first_origin_mae"
+  )
+  point_finite <- all(vapply(point_fields, function(field) {
+    all(is.finite(as.numeric(chain_summary[[field]])))
+  }, logical(1L)))
+  interval_fields <- c(
+    "posterior_mean", "posterior_sd", "cri_lower", "posterior_median", "cri_upper"
+  )
+  interval_finite <- all(vapply(interval_fields, function(field) {
+    all(is.finite(as.numeric(pooled_intervals[[field]])))
+  }, logical(1L)))
+  heavy <- if (dir.exists(run_root)) {
+    list.files(
+      run_root, pattern = "[.](rds|rda|RData)$", recursive = TRUE,
+      full.names = TRUE, ignore.case = TRUE
+    )
+  } else character(0)
+  cell_key <- paste(chain_summary$family, sprintf("%.2f", chain_summary$tau), sep = "|")
+  chain_key <- paste(cell_key, chain_summary$chain_id, sep = "|")
+  c(
+    jobs_27 = nrow(chain_summary) == iems_v1_expected_full_jobs,
+    cells_9 = nrow(cell_summary) == iems_v1_expected_cells &&
+      length(unique(cell_key)) == iems_v1_expected_cells,
+    chains_3_per_cell = all(table(cell_key) == iems_v1_expected_chains) &&
+      !anyDuplicated(chain_key),
+    manifest_27 = nrow(manifest) == iems_v1_expected_full_jobs &&
+      all(as.logical(manifest$scientific_contract_equal)),
+    point_metrics_finite = point_finite,
+    pooled_intervals_27 = nrow(pooled_intervals) == 27L && interval_finite,
+    intervals_ordered = all(
+      pooled_intervals$cri_lower <= pooled_intervals$posterior_median &
+        pooled_intervals$posterior_median <= pooled_intervals$cri_upper
+    ),
+    pooled_draws_12000 = all(as.integer(pooled_intervals$n_draws) == 12000L),
+    state_method_exact = all(
+      chain_summary$state_update_method ==
+        ffv2_exdqlm_mcmc_predictive_state_update_method()
+    ),
+    package_cran_1p1p1 = all(chain_summary$package_version == iems_v1_cran_version) &&
+      all(chain_summary$package_repository == "CRAN"),
+    collapsed_slice_exact = all(
+      chain_summary$requested_mh_proposal == "collapsed_slice" &
+        chain_summary$observed_mh_proposal == "collapsed_slice"
+    ),
+    fit_invariant_1e6 = all(abs(chain_summary$fit_rmse_change) <= 1e-6),
+    first_origin_invariant_1e6 = all(
+      abs(chain_summary$first_origin_mae_change) <= 1e-6
+    ),
+    complete_path_shapes = all(chain_summary$fit_rows == 500L) &&
+      all(chain_summary$forecast_rows == 1000L) &&
+      all(chain_summary$forecast_origins == 34L) &&
+      all(chain_summary$forecast_max_lead == 30L),
+    health_disclosed = all(chain_summary$health_gate %in% c("PASS", "WARN", "FAIL")),
+    no_heavy_binaries = length(heavy) == 0L
+  )
 }
 
 iems_v1_remap_output_path <- function(path, source_root, target_root) {
