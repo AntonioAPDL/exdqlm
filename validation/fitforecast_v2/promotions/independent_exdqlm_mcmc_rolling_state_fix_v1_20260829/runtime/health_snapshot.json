@@ -1,0 +1,23 @@
+{
+  "schema_version": "independent_exdqlm_mcmc_rolling_state_fix_v1",
+  "generated_at": "2026-08-29 03:51:30 EDT",
+  "summary": {
+    "run_id": "independent_exdqlm_mcmc_rolling_state_fix_v1_full_20260829_035028__git-7ace661",
+    "planned": 27,
+    "completed": 0,
+    "running": 20,
+    "stale_running": 0,
+    "pending": 7,
+    "failed": 0,
+    "remaining": 27,
+    "metrics_present": 0,
+    "intervals_present": 0,
+    "heavy_binary_files": 0,
+    "pipeline_status": "status=RUNNING run_id=independent_exdqlm_mcmc_rolling_state_fix_v1_full_20260829_035028__git-7ace661 started_at=2026-08-29T03:50:28-04:00"
+  },
+  "manifest_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exdqlm_mcmc_rolling_state_fix_v1_1p0p0/results/qdesn_mcmc_validation/qdesn_dqlm_500obs_independent_exdqlm_mcmc_rolling_state_fix_v1/independent_exdqlm_mcmc_rolling_state_fix_v1_full_20260829_035028__git-7ace661/manifests/job_manifest.csv",
+  "manifest_sha256": "d4fb701d52a61fb88bf615181e09b94b85f96ab9e7f6bf72ba67762ead49d5a4",
+  "active_job_pids": [2415275, 2415276, 2415277, 2415278, 2415279, 2415280, 2415281, 2415282, 2415283, 2415284, 2415286, 2415288, 2415289, 2415290, 2415291, 2415292, 2415293, 2415294, 2415295, 2415296],
+  "heavy_binary_paths": [],
+  "article_write_performed": false
+}

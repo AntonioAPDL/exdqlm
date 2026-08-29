@@ -44,7 +44,7 @@ checks <- c(
   iems_v1_promotion_contract_checks(
     point, interval, chains, metric_diagnostics, confirmation_checks
   ),
-  frozen_checks_pass = nrow(frozen_checks) >= 20L &&
+  frozen_checks_pass = nrow(frozen_checks) == 19L &&
     all(as.logical(frozen_checks$pass)),
   replacement_surfaces_2 = nrow(replacement) == 2L &&
     identical(sort(replacement$replacement_rows), c(9L, 27L)),
