@@ -292,7 +292,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   qsiggam <- list(
     eta_hat = as.numeric(eta_hat),
     ell_hat = as.numeric(ell_hat),
-    Sigma   = as.matrix(init$siggam_Sigma %||% diag(c(1e-16, 1e-16), 2L))  # (eta, ell)
+    Sigma   = as.matrix(init$siggam_Sigma %||% diag(c(1e-16, 1e-16), 2L)),  # (eta, ell)
+    gamma_mean = as.numeric(gamma0),
+    sigma_mean = as.numeric(sigma0)
   )
   if (!all(dim(qsiggam$Sigma) == c(2,2))) .stopf("init$siggam_Sigma must be 2x2 if supplied.")
 
@@ -406,9 +408,11 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     NA_real_
   }
   cur_gamma_hat <- function() {
-    if (is_al) as.numeric(gamma_fixed) else L + (U - L) * plogis(qsiggam$eta_hat)
+    if (is_al) as.numeric(gamma_fixed) else as.numeric(
+      qsiggam$gamma_mean %||% (L + (U - L) * plogis(qsiggam$eta_hat))
+    )
   }
-  cur_sigma_hat <- function() exp(qsiggam$ell_hat)
+  cur_sigma_hat <- function() as.numeric(qsiggam$sigma_mean %||% exp(qsiggam$ell_hat))
   exp_safe <- function(x) exp(pmin(pmax(as.numeric(x), -745), 709))
 
   log1p_exp <- function(x) {
@@ -1320,6 +1324,13 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   sigmagam_postwarmup_update_count <- 0L
   sigmagam_first_active_iter <- NA_integer_
   structured_sigmagam_moments <- NULL
+  structured_exact_commit_count <- 0L
+  structured_moment_commit_trace <- character(0)
+  structured_moment_source <- if (!is_al && identical(vb_control$sigmagam$factorization, "structured")) {
+    "laplace_delta_initialization"
+  } else {
+    "laplace_delta"
+  }
   elbo_old    <- -Inf
   min_iter_elbo <- as.integer(vb_control$min_iter_elbo %||% 10L)
   t_last_tau <- 0L
@@ -1591,12 +1602,15 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     }
     sigmagam_forced_postwarmup <- FALSE
     sigmagam_update_performed <- FALSE
+    postwarmup_damping_active <- FALSE
 
     if (!isTRUE(sigmagam_warmup_active) && isTRUE(sigmagam_update_due)) {
       substep_t0 <- substep_start()
       eta_prev_sigmagam <- qsiggam$eta_hat
       ell_prev_sigmagam <- qsiggam$ell_hat
       Sigma_prev_sigmagam <- qsiggam$Sigma
+      gamma_prev_sigmagam <- cur_gamma_hat()
+      sigma_prev_sigmagam <- cur_sigma_hat()
       ld <- if (!is_al && identical(vb_control$sigmagam$factorization, "structured")) {
         structured <- .exal_sigmagam_structured_update(
           stats = .exal_sigmagam_stats(
@@ -1643,10 +1657,27 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
           ((1 - damp_use) * as.matrix(Sigma_prev_sigmagam) + damp_use * as.matrix(ld$Sigma)) +
             t((1 - damp_use) * as.matrix(Sigma_prev_sigmagam) + damp_use * as.matrix(ld$Sigma))
         )
+        if (!is_al && identical(vb_control$sigmagam$factorization, "structured")) {
+          qsiggam$gamma_mean <- (1 - damp_use) * gamma_prev_sigmagam +
+            damp_use * structured$E.gam
+          qsiggam$sigma_mean <- (1 - damp_use) * sigma_prev_sigmagam +
+            damp_use * structured$E.sigma
+        } else {
+          qsiggam$gamma_mean <- if (is_al) as.numeric(gamma_fixed) else L + (U - L) * plogis(qsiggam$eta_hat)
+          qsiggam$sigma_mean <- exp(qsiggam$ell_hat)
+        }
       } else {
         qsiggam$eta_hat <- as.numeric(ld$eta_hat)
         qsiggam$ell_hat <- as.numeric(ld$ell_hat)
         qsiggam$Sigma   <- as.matrix(ld$Sigma)
+        if (!is_al && identical(vb_control$sigmagam$factorization, "structured")) {
+          qsiggam$gamma_mean <- as.numeric(structured$E.gam)
+          qsiggam$sigma_mean <- as.numeric(structured$E.sigma)
+          structured_exact_commit_count <- structured_exact_commit_count + 1L
+        } else {
+          qsiggam$gamma_mean <- if (is_al) as.numeric(gamma_fixed) else L + (U - L) * plogis(qsiggam$eta_hat)
+          qsiggam$sigma_mean <- exp(qsiggam$ell_hat)
+        }
       }
       sigmagam_update_performed <- TRUE
       sigmagam_update_count <- sigmagam_update_count + 1L
@@ -1662,10 +1693,39 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     sigmagam_update_reason_trace <- c(sigmagam_update_reason_trace, sigmagam_update_reason)
     sigmagam_forced_postwarmup_trace <- c(sigmagam_forced_postwarmup_trace, isTRUE(sigmagam_forced_postwarmup))
     sigmagam_update_performed_trace <- c(sigmagam_update_performed_trace, isTRUE(sigmagam_update_performed))
+    structured_moment_commit <- if (is_al || !identical(vb_control$sigmagam$factorization, "structured")) {
+      "not_structured"
+    } else if (!isTRUE(sigmagam_update_performed)) {
+      "held"
+    } else if (isTRUE(postwarmup_damping_active)) {
+      "underrelaxed_structured_moments"
+    } else {
+      "exact_structured_moments"
+    }
+    structured_moment_commit_trace <- c(structured_moment_commit_trace, structured_moment_commit)
+    if (identical(structured_moment_commit, "underrelaxed_structured_moments")) {
+      structured_moment_source <- "conditional_gig_underrelaxed"
+    } else if (identical(structured_moment_commit, "exact_structured_moments")) {
+      structured_moment_source <- "conditional_gig_exact"
+    }
 
-    # refresh xis after LD update
+    # Refresh from the factorization that was actually selected. The declared
+    # damping window applies to the structured moments, not only to their
+    # Gaussian summary coordinates.
     substep_t0 <- substep_start()
-    xis <- compute_xi_fast(qsiggam$eta_hat, qsiggam$ell_hat, qsiggam$Sigma)
+    if (!is_al && identical(vb_control$sigmagam$factorization, "structured") &&
+        isTRUE(sigmagam_update_performed)) {
+      structured_xis <- structured_sigmagam_moments$xi
+      xis <- if (isTRUE(postwarmup_damping_active)) {
+        .exal_static_ld_mix_numeric_lists(
+          xis, structured_xis, damping = sigmagam_postwarmup_damping
+        )
+      } else {
+        structured_xis
+      }
+    } else if (!isTRUE(sigmagam_warmup_active) && isTRUE(sigmagam_update_due)) {
+      xis <- compute_xi_fast(qsiggam$eta_hat, qsiggam$ell_hat, qsiggam$Sigma)
+    }
     xi_vec <- unlist(xis)
     if (any(!is.finite(xi_vec))) {
       saveRDS(list(iter=iter, xis=xis, qsiggam=qsiggam),
@@ -1846,11 +1906,17 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         log(Ztn)
     )
 
-    # (12) Entropy H(q_{sigma,gamma}) from LD Gaussian + Jacobian term
+    # (12) Entropy H(q_{sigma,gamma}). An exact structured commit uses the
+    # quadrature/GIG entropy; under-relaxed iterations retain the Gaussian
+    # summary entropy until the first exact commit.
     if (is_al) {
       var_ell <- pmax(as.numeric(qsiggam$Sigma[2, 2]), 1e-12)
       H_qsg <- 0.5 * (1 + log(2 * pi) + log(var_ell)) +
         as.numeric(xis$zeta_logsigma)
+    } else if (identical(vb_control$sigmagam$factorization, "structured") &&
+               identical(structured_moment_commit, "exact_structured_moments") &&
+               !is.null(structured_sigmagam_moments)) {
+      H_qsg <- as.numeric(structured_sigmagam_moments$entrop)
     } else {
       Sig <- qsiggam$Sigma
       detSig <- Sig[1,1] * Sig[2,2] - Sig[1,2] * Sig[2,1]
@@ -2152,6 +2218,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       min_tau_ok <- (u_tau >= rhs_min_tau_updates)
     }
     sigmagam_min_updates_ok <- (sigmagam_postwarmup_update_count >= sigmagam_required_postwarmup_updates)
+    structured_exact_commit_ok <- is_al ||
+      !identical(vb_control$sigmagam$factorization, "structured") ||
+      structured_exact_commit_count > 0L
 
     if (iter >= min_iter_elbo &&
         is.finite(rel_elbo) &&
@@ -2159,7 +2228,8 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         is.finite(new_term) &&
         new_term < vb_control$tol_par &&
         isTRUE(min_tau_ok) &&
-        isTRUE(sigmagam_min_updates_ok)) {
+        isTRUE(sigmagam_min_updates_ok) &&
+        isTRUE(structured_exact_commit_ok)) {
       converged <- TRUE
       break
     }
@@ -2305,6 +2375,7 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
     qsiggam = list(
       eta_hat = qsiggam$eta_hat, ell_hat = qsiggam$ell_hat, Sigma = qsiggam$Sigma,
       gamma_mean = cur_gamma_hat(), sigma_mean = cur_sigma_hat(), xi = xis,
+      moment_source = structured_moment_source,
       factorization = if (!is_al && identical(vb_control$sigmagam$factorization, "structured")) {
         "structured_qgamma_qsigma_given_gamma"
       } else {
@@ -2376,6 +2447,9 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
       sigmagam_forced_postwarmup_trace = sigmagam_forced_postwarmup_trace,
       sigmagam_update_performed_trace = sigmagam_update_performed_trace,
       sigmagam_update_count_trace = cumsum(as.integer(sigmagam_update_performed_trace)),
+      structured_exact_commit_count = as.integer(structured_exact_commit_count),
+      structured_moment_commit_trace = structured_moment_commit_trace,
+      structured_moment_source = structured_moment_source,
       rhs_tau_trace = rhs_tau_trace,
       rhs_c2_trace = rhs_c2_trace,
       rhs_lambda_mean_trace = rhs_lambda_mean_trace,

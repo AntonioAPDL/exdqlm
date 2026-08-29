@@ -151,7 +151,10 @@
     return(psigamma(alpha, deriv = 1L))
   }
   z <- sqrt(chi * psi)
-  h <- 1e-4
+  # A 1e-4 order step amplifies besselK roundoff in the second difference and
+  # can break exact/full-refresh chunk equivalence. The derivative is stable
+  # over 3e-4--1e-2 for the supported kernels; 1e-3 keeps truncation small.
+  h <- 1e-3
   logK <- function(nu) {
     log(pmax(besselK(z, nu = nu, expon.scaled = TRUE), 1e-300)) - z
   }
@@ -232,8 +235,26 @@
   coarse <- seq(eta_lo, eta_hi, length.out = 81L)
   coarse_vals <- vapply(coarse, log_eta, numeric(1L))
   finite_idx <- which(is.finite(coarse_vals))
-  start <- if (length(finite_idx)) coarse[finite_idx[which.max(coarse_vals[finite_idx])]] else eta_start
-  start <- min(max(as.numeric(start)[1L], eta_lo), eta_hi)
+  eta_start <- min(max(as.numeric(eta_start)[1L], eta_lo), eta_hi)
+  # Chunk-equivalent sufficient statistics can differ at machine precision.
+  # Stabilize the continuation coordinate so those differences do not select
+  # numerically distinct optimizer/Hessian paths.
+  eta_start <- round(eta_start, digits = 12L)
+  start_value <- log_eta(eta_start)
+  start <- if (is.finite(start_value)) {
+    eta_start
+  } else if (length(finite_idx)) {
+    coarse[finite_idx[which.max(coarse_vals[finite_idx])]]
+  } else {
+    eta_start
+  }
+  start_source <- if (is.finite(start_value)) {
+    "eta_start"
+  } else if (length(finite_idx)) {
+    "coarse_fallback"
+  } else {
+    "eta_start_nonfinite_fallback"
+  }
 
   opt <- try(
     stats::optim(
@@ -437,6 +458,8 @@
       eta_mode = as.numeric(eta_mode),
       eta_mean = as.numeric(E_eta),
       eta_sd = sqrt(max(Sigma_eta_ell[1, 1], 0)),
+      optimizer_start = as.numeric(start),
+      optimizer_start_source = start_source,
       logZ_eta = as.numeric(logZ_eta),
       grid = grid,
       grid_size = nrow(grid),
