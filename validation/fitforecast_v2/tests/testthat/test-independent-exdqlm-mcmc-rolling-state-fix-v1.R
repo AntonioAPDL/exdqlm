@@ -205,3 +205,70 @@ test_that("full confirmation gates the complete contract and heavy binaries", {
   expect_false(unname(checks_with_binary[["no_heavy_binaries"]]))
   expect_true(all(checks_with_binary[names(checks_with_binary) != "no_heavy_binaries"]))
 })
+
+test_that("promotion contract requires the complete corrected exDQLM block", {
+  point <- expand.grid(
+    family = c("gausmix", "laplace", "normal"),
+    tau = c(0.05, 0.25, 0.50),
+    KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE
+  )
+  point$inference <- "mcmc"
+  point$model_variant <- "exdqlm"
+  point$package_version <- iems_v1_cran_version
+  point$state_update_method <- ffv2_exdqlm_mcmc_predictive_state_update_method()
+  point$fit_rmse_change <- 0
+  point$first_origin_mae_change <- 0
+  point$forecast_mae_change <- -1
+  point$forecast_check_change <- -0.1
+  point$health_pass_chains <- 3L
+  point$health_warn_chains <- 0L
+  point$health_fail_chains <- 0L
+  point$article_consumption_allowed <- TRUE
+
+  interval <- merge(
+    point[c("family", "tau")],
+    data.frame(metric = c("fit_rmse", "forecast_mae", "forecast_check_loss")),
+    by = NULL
+  )
+  interval$posterior_mean <- 2
+  interval$cri_lower <- 1
+  interval$posterior_median <- 2
+  interval$cri_upper <- 3
+  interval$n_draws <- 12000L
+  interval$n_chains <- 3L
+  interval$inference <- "mcmc"
+  interval$model_variant <- "exdqlm"
+  interval$package_version <- iems_v1_cran_version
+  interval$state_update_method <-
+    ffv2_exdqlm_mcmc_predictive_state_update_method()
+
+  chains <- merge(
+    point[c("family", "tau")], data.frame(chain_id = 1:3), by = NULL
+  )
+  chains$status <- "done"
+  chains$health_gate <- "PASS"
+  chains$fit_rmse_change <- 0
+  chains$first_origin_mae_change <- 0
+  chains$state_update_method <-
+    ffv2_exdqlm_mcmc_predictive_state_update_method()
+  chains$package_version <- iems_v1_cran_version
+  chains$package_repository <- "CRAN"
+  chains$requested_mh_proposal <- "collapsed_slice"
+  chains$observed_mh_proposal <- "collapsed_slice"
+
+  metric_diagnostics <- interval[c("family", "tau", "metric")]
+  metric_diagnostics$diagnostic_grade <- "PASS"
+  confirmation_checks <- data.frame(
+    check = paste0("check_", seq_len(23)), pass = TRUE
+  )
+  checks <- iems_v1_promotion_contract_checks(
+    point, interval, chains, metric_diagnostics, confirmation_checks
+  )
+  expect_true(all(checks))
+
+  point$forecast_mae_change[[1L]] <- 0
+  failed <- iems_v1_promotion_contract_checks(
+    point, interval, chains, metric_diagnostics, confirmation_checks
+  )
+  expect_false(unname(failed[["point_forecast_mae_improved_9"]]))
+})

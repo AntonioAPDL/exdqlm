@@ -9,6 +9,10 @@ iems_v1_sentinel_run_id <-
 iems_v1_expected_full_jobs <- 27L
 iems_v1_expected_cells <- 9L
 iems_v1_expected_chains <- 3L
+iems_v1_full_run_id <-
+  "independent_exdqlm_mcmc_rolling_state_fix_v1_full_20260829_035028__git-7ace661"
+iems_v1_frozen_promotion_id <-
+  "independent_exdqlm_mcmc_rolling_state_fix_v1_20260829"
 iems_v1_point_metric_columns <- c(
   fit_rmse = "fit_q_rmse",
   forecast_mae = "forecast_h1000_q_mae",
@@ -46,6 +50,147 @@ iems_v1_results_root <- function(repo_root, run_id) {
     repo_root, "results", "qdesn_mcmc_validation",
     "qdesn_dqlm_500obs_independent_exdqlm_mcmc_rolling_state_fix_v1",
     run_id
+  )
+}
+
+iems_v1_orchestration_root <- function(repo_root, run_id = iems_v1_full_run_id) {
+  file.path(repo_root, "reports", "shared_fitforecast_v2_orchestration", run_id)
+}
+
+iems_v1_frozen_promotion_root <- function(repo_root) {
+  file.path(
+    repo_root, "validation", "fitforecast_v2", "promotions",
+    iems_v1_frozen_promotion_id
+  )
+}
+
+iems_v1_assert_clean_synced_task_branch <- function(repo_root) {
+  git <- function(...) {
+    out <- system2("git", c("-C", repo_root, ...), stdout = TRUE, stderr = TRUE)
+    if (!is.null(attr(out, "status")) && attr(out, "status") != 0L) {
+      stop(paste(out, collapse = "\n"), call. = FALSE)
+    }
+    out
+  }
+  branch <- git("branch", "--show-current")[[1L]]
+  if (!identical(branch, iems_v1_expected_branch)) {
+    stop(sprintf("Refusing unexpected branch: %s", branch), call. = FALSE)
+  }
+  status <- git("status", "--porcelain=v1")
+  if (length(status)) {
+    stop("Promotion freeze requires a clean task worktree.", call. = FALSE)
+  }
+  upstream <- git("rev-parse", "--abbrev-ref", "@{upstream}")[[1L]]
+  divergence <- strsplit(
+    git("rev-list", "--left-right", "--count", "HEAD...@{upstream}")[[1L]],
+    "[[:space:]]+"
+  )[[1L]]
+  divergence <- divergence[nzchar(divergence)]
+  if (length(divergence) != 2L || any(as.integer(divergence) != 0L)) {
+    stop("Promotion freeze requires 0 ahead / 0 behind upstream.", call. = FALSE)
+  }
+  list(branch = branch, upstream = upstream, head = git("rev-parse", "HEAD")[[1L]])
+}
+
+iems_v1_promotion_contract_checks <- function(point, interval, chains,
+                                               metric_diagnostics,
+                                               confirmation_checks) {
+  required <- list(
+    point = c(
+      "family", "tau", "inference", "model_variant", "package_version",
+      "state_update_method", "fit_rmse_change", "first_origin_mae_change",
+      "forecast_mae_change", "forecast_check_change", "health_pass_chains",
+      "health_warn_chains", "health_fail_chains", "article_consumption_allowed"
+    ),
+    interval = c(
+      "family", "tau", "metric", "posterior_mean", "cri_lower",
+      "posterior_median", "cri_upper", "n_draws", "n_chains", "inference",
+      "model_variant", "package_version", "state_update_method"
+    ),
+    chains = c(
+      "family", "tau", "chain_id", "status", "health_gate",
+      "fit_rmse_change", "first_origin_mae_change", "state_update_method",
+      "package_version", "package_repository", "requested_mh_proposal",
+      "observed_mh_proposal"
+    ),
+    metric_diagnostics = c("family", "tau", "metric", "diagnostic_grade"),
+    confirmation_checks = c("check", "pass")
+  )
+  objects <- list(
+    point = point, interval = interval, chains = chains,
+    metric_diagnostics = metric_diagnostics,
+    confirmation_checks = confirmation_checks
+  )
+  missing <- unlist(Map(function(x, fields) setdiff(fields, names(x)),
+                        objects, required), use.names = FALSE)
+  if (length(missing)) {
+    stop(sprintf("Promotion evidence is missing fields: %s",
+                 paste(unique(missing), collapse = ", ")), call. = FALSE)
+  }
+
+  expected_cells <- expand.grid(
+    family = c("gausmix", "laplace", "normal"),
+    tau = c(0.05, 0.25, 0.50),
+    KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE
+  )
+  cell_key <- function(x) paste(x$family, sprintf("%.2f", x$tau), sep = "|")
+  expected_cell_keys <- sort(cell_key(expected_cells))
+  point_keys <- cell_key(point)
+  chain_keys <- cell_key(chains)
+  interval_keys <- paste(cell_key(interval), interval$metric, sep = "|")
+  expected_interval_keys <- sort(as.vector(outer(
+    expected_cell_keys,
+    c("fit_rmse", "forecast_check_loss", "forecast_mae"),
+    paste, sep = "|"
+  )))
+  state_method <- ffv2_exdqlm_mcmc_predictive_state_update_method()
+  interval_numeric <- unlist(interval[c(
+    "posterior_mean", "cri_lower", "posterior_median", "cri_upper"
+  )], use.names = FALSE)
+
+  c(
+    point_rows_9 = nrow(point) == 9L &&
+      identical(sort(point_keys), expected_cell_keys) && !anyDuplicated(point_keys),
+    point_scope_exact = all(point$inference == "mcmc") &&
+      all(point$model_variant == "exdqlm") &&
+      all(point$package_version == iems_v1_cran_version) &&
+      all(point$state_update_method == state_method),
+    point_fit_invariant_1e6 = all(abs(point$fit_rmse_change) <= 1e-6),
+    point_first_origin_invariant_1e6 = all(abs(point$first_origin_mae_change) <= 1e-6),
+    point_forecast_mae_improved_9 = all(point$forecast_mae_change < 0),
+    point_forecast_check_improved_9 = all(point$forecast_check_change < 0),
+    point_health_disclosed = all(point$health_pass_chains == 3L) &&
+      all(point$health_warn_chains == 0L) && all(point$health_fail_chains == 0L),
+    point_article_consumption_allowed = all(as.logical(point$article_consumption_allowed)),
+    interval_roles_27 = nrow(interval) == 27L &&
+      identical(sort(interval_keys), expected_interval_keys) &&
+      !anyDuplicated(interval_keys),
+    interval_scope_exact = all(interval$inference == "mcmc") &&
+      all(interval$model_variant == "exdqlm") &&
+      all(interval$package_version == iems_v1_cran_version) &&
+      all(interval$state_update_method == state_method),
+    interval_finite_ordered = all(is.finite(interval_numeric)) &&
+      all(interval$cri_lower <= interval$posterior_median) &&
+      all(interval$posterior_median <= interval$cri_upper),
+    interval_draw_contract = all(interval$n_draws == 12000L) &&
+      all(interval$n_chains == 3L),
+    chain_rows_27 = nrow(chains) == 27L &&
+      identical(sort(unique(chain_keys)), expected_cell_keys) &&
+      all(table(chain_keys) == 3L) &&
+      !anyDuplicated(paste(chain_keys, chains$chain_id, sep = "|")),
+    chain_execution_exact = all(chains$status == "done") &&
+      all(chains$health_gate == "PASS") &&
+      all(chains$package_version == iems_v1_cran_version) &&
+      all(chains$package_repository == "CRAN") &&
+      all(chains$state_update_method == state_method) &&
+      all(chains$requested_mh_proposal == "collapsed_slice") &&
+      all(chains$observed_mh_proposal == "collapsed_slice"),
+    chain_causal_controls_invariant = all(abs(chains$fit_rmse_change) <= 1e-6) &&
+      all(abs(chains$first_origin_mae_change) <= 1e-6),
+    metric_diagnostics_27 = nrow(metric_diagnostics) == 27L &&
+      all(metric_diagnostics$diagnostic_grade %in% c("PASS", "WARN")),
+    confirmation_checks_23 = nrow(confirmation_checks) == 23L &&
+      all(as.logical(confirmation_checks$pass))
   )
 }
 
