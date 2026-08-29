@@ -104,8 +104,8 @@ resource_values() {
   load1="$(awk '{print $1}' /proc/loadavg)"
   memory_kb="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
   disk_kb="$(df -Pk "${REPO_ROOT}" | awk 'NR==2 {print $4}')"
-  awk -v load="${load1}" -v memory="${memory_kb}" -v disk="${disk_kb}" \
-    'BEGIN {printf "%.2f %.1f %.1f", load, memory/1048576, disk/1048576}'
+  awk -v load1="${load1}" -v memory="${memory_kb}" -v disk="${disk_kb}" \
+    'BEGIN {printf "%.2f %.1f %.1f", load1, memory/1048576, disk/1048576}'
 }
 
 write_heartbeat() {
@@ -143,10 +143,10 @@ wait_for_resources() {
     values="$(resource_values)"
     read -r load memory disk <<< "${values}"
     write_heartbeat
-    if awk -v load="${load}" -v memory="${memory}" -v disk="${disk}" \
+    if awk -v load1="${load}" -v memory="${memory}" -v disk="${disk}" \
       -v max_load="${MAX_LOAD}" -v min_memory="${MIN_MEMORY_GB}" \
       -v min_disk="${MIN_DISK_GB}" \
-      'BEGIN {exit !((load <= max_load) && (memory >= min_memory) && (disk >= min_disk))}'; then
+      'BEGIN {exit !((load1 <= max_load) && (memory >= min_memory) && (disk >= min_disk))}'; then
       record_status "resource_gate" "PASS" \
         "load=${load};memory_gb=${memory};disk_gb=${disk}"
       return 0
