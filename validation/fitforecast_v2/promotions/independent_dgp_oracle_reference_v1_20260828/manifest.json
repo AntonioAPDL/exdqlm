@@ -1,0 +1,52 @@
+{
+  "schema_version": "independent_dgp_oracle_reference_v1",
+  "recorded_date": "2026-08-28",
+  "scientific_lane": "IND QDESN VAL",
+  "scenario_id": "dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+  "source_git_head": "cc85a75ceca51c6e6a699147c45742591c7e3679",
+  "source_root": "external-workspace://shared_dynamic_fit_forecast_validation/sources/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast",
+  "protocol": {
+    "train_indices": [8501, 9000],
+    "forecast_indices": [9001, 10000],
+    "maximum_lead": 30,
+    "origin_stride": 30,
+    "forecast_origins": 34,
+    "forecast_pairs": 1000
+  },
+  "oracle_policy": {
+    "fit_rmse": "exact zero at the true conditional-quantile path",
+    "forecast_mae": "exact zero at the true conditional-quantile path",
+    "forecast_check": "population expected check loss at the true conditional quantile",
+    "realized_check": "retained as a same-sample diagnostic, not the plotted population reference"
+  },
+  "model_refits_required": false,
+  "article_metric_values_changed": false,
+  "checks_passed": 13,
+  "checks_total": 13,
+  "code_paths": {
+    "module": "validation/fitforecast_v2/R/independent_dgp_oracle_reference_v1.R",
+    "builder": "validation/fitforecast_v2/scripts/build_independent_dgp_oracle_reference_v1.R",
+    "verifier": "validation/fitforecast_v2/scripts/verify_independent_dgp_oracle_reference_v1.R"
+  },
+  "code_sha256": {
+    "module": "72ca23d08440caeec213fb44d6c8f823e8f14c018188441a2c4720c6177fefd9",
+    "builder": "c2cbbe82c29d2952c45f6f49f5dd86835fa87473585d206bc17614548315b3ab",
+    "verifier": "06ad6999fecccb1e7e27512a3db974a43577bd085bd3d9b1c594c24b6c48478d"
+  },
+  "artifact_paths": {
+    "source_registry": "validation/fitforecast_v2/promotions/independent_dgp_oracle_reference_v1_20260828/source_registry.csv",
+    "reference_ledger": "validation/fitforecast_v2/promotions/independent_dgp_oracle_reference_v1_20260828/oracle_reference_ledger.csv",
+    "check_loss_audit": "validation/fitforecast_v2/promotions/independent_dgp_oracle_reference_v1_20260828/oracle_check_loss_audit.csv",
+    "forecast_grid": "validation/fitforecast_v2/promotions/independent_dgp_oracle_reference_v1_20260828/forecast_grid.csv",
+    "checks": "validation/fitforecast_v2/promotions/independent_dgp_oracle_reference_v1_20260828/checks.csv",
+    "article_asset": "validation/fitforecast_v2/promotions/independent_dgp_oracle_reference_v1_20260828/article_assets/qdesn_validation_500obs_dgp_oracle_reference_v1.csv"
+  },
+  "artifact_sha256": {
+    "source_registry": "65ed0a0f4e1b262dca7798ea2d96a71f63c48005e2dd2735047c505a42058238",
+    "reference_ledger": "e3e494fdf2667c2096109f497bb957762a68d4f526c719e9b66da239760628e2",
+    "check_loss_audit": "3683c67f9bc6a2337f6738d816d931b432b8501362aaf11645b95c70026b50db",
+    "forecast_grid": "378676744c1e1b19e18df0af20ac87add598d055b2d3358090e9c7cc6b3caf2e",
+    "checks": "d9cca2ea898b114cb368bceb4a0e3703ea5713e743a285d48ffaa93278214c32",
+    "article_asset": "1adc9c8c83b3564ef84be90e146286feac604484638ee31bbe684b66cbe928a8"
+  }
+}
