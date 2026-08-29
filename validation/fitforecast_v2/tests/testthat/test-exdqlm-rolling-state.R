@@ -79,6 +79,95 @@ test_that("plug-in pseudo-observation parameters are finite and positive", {
   expect_true(all(is.finite(exdqlm_params$ex_q) & exdqlm_params$ex_q > 0))
 })
 
+test_that("MCMC exAL state updating uses posterior-predictive moments", {
+  fit <- list(
+    p0 = 0.05,
+    dqlm.ind = FALSE,
+    samp.sigma = c(2.7, 2.8, 2.9),
+    samp.gamma = c(4.5, 4.6, 4.7)
+  )
+  sigma <- as.numeric(fit$samp.sigma)
+  gamma <- as.numeric(fit$samp.gamma)
+  a <- exdqlm:::A.fn(fit$p0, gamma)
+  b <- exdqlm:::B.fn(fit$p0, gamma)
+  alpha <- exdqlm:::C.fn(fit$p0, gamma) * abs(gamma)
+  conditional_mean <- sigma * (a + alpha * sqrt(2 / pi))
+  conditional_var <- sigma^2 * (b + a^2 + alpha^2 * (1 - 2 / pi))
+  expected_var <- mean(conditional_var + conditional_mean^2) - mean(conditional_mean)^2
+
+  params <- ffv2_fit_plugin_pseudo_params(
+    fit,
+    4L,
+    method = ffv2_exdqlm_mcmc_predictive_state_update_method()
+  )
+  historical <- ffv2_fit_plugin_pseudo_params(
+    fit,
+    1L,
+    method = ffv2_exdqlm_plugin_state_update_method()
+  )
+
+  expect_equal(params$ex_f, rep(mean(conditional_mean), 4L), tolerance = 1e-12)
+  expect_equal(params$ex_q, rep(expected_var, 4L), tolerance = 1e-12)
+  expect_gt(params$ex_f[[1L]], 10)
+  expect_equal(historical$ex_f[[1L]], 0)
+})
+
+test_that("MCMC posterior-predictive state updating fails closed without draws", {
+  fit <- list(p0 = 0.05, dqlm.ind = FALSE, samp.sigma = 2, samp.gamma = numeric())
+  expect_error(
+    ffv2_fit_plugin_pseudo_params(
+      fit,
+      1L,
+      method = ffv2_exdqlm_mcmc_predictive_state_update_method()
+    ),
+    "paired sigma and gamma draws"
+  )
+})
+
+test_that("posterior-predictive centering prevents deterministic state drift", {
+  fit <- list(
+    p0 = 0.05,
+    dqlm.ind = FALSE,
+    samp.sigma = rep(2.8, 20),
+    samp.gamma = rep(4.6, 20),
+    y = 0,
+    model = list(
+      m0 = 0,
+      C0 = matrix(1),
+      GG = array(1, dim = c(1, 1, 1)),
+      FF = matrix(1, nrow = 1, ncol = 1)
+    ),
+    df = 0.99,
+    dim.df = 1,
+    theta.out = list(
+      fm = matrix(0, nrow = 1, ncol = 1),
+      fC = array(1, dim = c(1, 1, 1))
+    )
+  )
+  predictive <- ffv2_fit_plugin_pseudo_params(
+    fit,
+    1L,
+    method = ffv2_exdqlm_mcmc_predictive_state_update_method()
+  )
+  corrected <- ffv2_extend_theta_filtered_state(
+    fit,
+    predictive$ex_f,
+    method = ffv2_exdqlm_mcmc_predictive_state_update_method()
+  )
+  historical <- ffv2_extend_theta_filtered_state(
+    fit,
+    predictive$ex_f,
+    method = ffv2_exdqlm_plugin_state_update_method()
+  )
+
+  expect_equal(corrected$theta.out$fm[[2L]], 0, tolerance = 1e-12)
+  expect_gt(historical$theta.out$fm[[2L]], 1)
+  expect_identical(
+    corrected$ffv2_state_update$method,
+    ffv2_exdqlm_mcmc_predictive_state_update_method()
+  )
+})
+
 test_that("state extension updates filtered span without refitting", {
   fixture <- ffv2_tiny_dynamic_fit(dqlm_ind = TRUE)
   fit <- fixture$fit
