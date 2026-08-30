@@ -1,0 +1,54 @@
+{
+  "schema_version": "independent_exdqlm_mcmc_rolling_state_fix_v1",
+  "generated_at": "2026-08-29 03:50:35 EDT",
+  "package_checks": {
+    "version": true,
+    "repository": true,
+    "mcmc_default": true,
+    "state_method": true
+  },
+  "package_description": {
+    "Package": "exdqlm",
+    "Version": "1.1.1",
+    "Repository": "CRAN",
+    "Built": "R 4.6.0; x86_64-pc-linux-gnu; 2026-08-29 06:09:52 UTC; unix",
+    "Packaged": "2026-08-26 21:25:25 UTC; raquel"
+  },
+  "installed_package_path": "/data/jaguir26/local/src/exdqlm__wt__independent_exdqlm_mcmc_rolling_state_fix_v1_1p0p0/validation/fitforecast_v2/local_trackers/independent_exdqlm_mcmc_rolling_state_fix_v1/Rlib/exdqlm",
+  "cran_tarball": {
+    "path": "/data/jaguir26/local/src/exdqlm__wt__independent_exdqlm_mcmc_rolling_state_fix_v1_1p0p0/validation/fitforecast_v2/local_trackers/independent_exdqlm_mcmc_rolling_state_fix_v1/package/exdqlm_1.1.1.tar.gz",
+    "sha256": "3f3ed643ded7602fd62357d7f62024ca9071e0096214456650ed2de79722443e"
+  },
+  "exal_generator_moment_contract": {
+    "checks": {
+      "mean_agreement": true,
+      "variance_agreement": true,
+      "target_quantile_agreement": true
+    },
+    "n": 50000,
+    "seed": 20260829,
+    "p0": 0.05,
+    "sigma": 2.8,
+    "gamma": 4.6,
+    "expected_mean": 20.0014,
+    "empirical_mean": 20.0454,
+    "mean_z": 0.6545,
+    "expected_variance": 225.9879,
+    "empirical_variance": 222.8563,
+    "variance_relative_error": -0.0139,
+    "empirical_target_quantile": 0.0877
+  },
+  "r_version": "R version 4.6.0 (2026-04-24)",
+  "session_info": ["R version 4.6.0 (2026-04-24)", "Platform: x86_64-pc-linux-gnu", "Running under: AlmaLinux 8.10 (Cerulean Leopard)", "", "Matrix products: default", "BLAS:   /data/jaguir26/local/opt/R/4.6.0/lib64/R/lib/libRblas.so ", "LAPACK: /data/jaguir26/local/opt/R/4.6.0/lib64/R/lib/libRlapack.so;  LAPACK version 3.12.1", "", "locale:", " [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       ", " [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   ", " [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          ", "[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   ", "", "time zone: America/New_York", "tzcode source: system (glibc)", "", "attached base packages:", "[1] stats     graphics  grDevices utils     datasets  methods   base     ", "", "loaded via a namespace (and not attached):", " [1] igraph_2.3.1        R6_2.6.1            numDeriv_2016.8-1.1", " [4] lattice_0.22-9      coda_0.19-4.1       magrittr_2.0.5     ", " [7] parallel_4.6.0      pkgconfig_2.0.3     lifecycle_1.0.5    ", "[10] exdqlm_1.1.1        cli_3.6.6           grid_4.6.0         ", "[13] compiler_4.6.0      nimble_1.4.2        tools_4.6.0        ", "[16] pracma_2.4.6        Rcpp_1.1.1-1.1      jsonlite_2.0.0     ", "[19] rlang_1.2.0        "],
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "OMP_THREAD_LIMIT": "1",
+    "OMP_DYNAMIC": "FALSE",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "RCPP_PARALLEL_NUM_THREADS": "1"
+  }
+}

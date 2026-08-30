@@ -1,0 +1,3 @@
+"surface","candidate_file","key_columns","replacement_rows","estimator_contract","replacement_policy"
+"fixed_path_point_metrics","scientific/candidate_point_exdqlm_mcmc_rows.csv","inference;model_variant;family;tau",9,"fixed_path_point_metric_three_chain_mean_v1","replace_complete_exdqlm_mcmc_block_preserve_all_non_exdqlm_rows"
+"posterior_draw_metric_intervals","scientific/candidate_interval_exdqlm_mcmc_roles.csv","inference;model_variant;family;tau;metric",27,"posterior_mean_draw_metric_equal_tailed_95cri_v1","replace_complete_exdqlm_mcmc_block_preserve_all_non_exdqlm_rows"

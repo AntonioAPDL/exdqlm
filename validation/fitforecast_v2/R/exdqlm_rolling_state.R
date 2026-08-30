@@ -16,11 +16,69 @@ ffv2_exdqlm_plugin_state_update_method <- function() {
   "deterministic_plugin_filter_train_median_latent_moments"
 }
 
+ffv2_exdqlm_mcmc_predictive_state_update_method <- function() {
+  "deterministic_plugin_filter_mcmc_posterior_predictive_moments_v1"
+}
+
 ffv2_safe_finite_median <- function(x, default) {
   x <- as.numeric(x)
   x <- x[is.finite(x)]
   if (!length(x)) return(default)
   stats::median(x)
+}
+
+ffv2_exdqlm_mcmc_predictive_pseudo_params <- function(fit) {
+  sigma <- as.numeric(fit$samp.sigma)
+  gamma <- as.numeric(fit$samp.gamma)
+  n_draws <- min(length(sigma), length(gamma))
+  if (n_draws < 2L) {
+    stop(
+      "MCMC posterior-predictive state updating requires paired sigma and gamma draws.",
+      call. = FALSE
+    )
+  }
+  sigma <- sigma[seq_len(n_draws)]
+  gamma <- gamma[seq_len(n_draws)]
+  keep <- is.finite(sigma) & sigma > 0 & is.finite(gamma)
+  sigma <- sigma[keep]
+  gamma <- gamma[keep]
+  if (length(sigma) < 2L) {
+    stop(
+      "MCMC posterior-predictive state updating found fewer than two valid sigma/gamma draw pairs.",
+      call. = FALSE
+    )
+  }
+
+  p0 <- as.numeric(fit$p0)[1L]
+  p_fn <- ffv2_pkg_internal("p.fn")
+  a_fn <- ffv2_pkg_internal("A.fn")
+  b_fn <- ffv2_pkg_internal("B.fn")
+  c_fn <- ffv2_pkg_internal("C.fn")
+  p <- as.numeric(p_fn(p0, gamma))
+  a <- as.numeric(a_fn(p0, gamma))
+  b <- as.numeric(b_fn(p0, gamma))
+  alpha <- as.numeric(c_fn(p0, gamma)) * abs(gamma)
+  if (any(!is.finite(c(p, a, b, alpha))) || any(p <= 0 | p >= 1) || any(b <= 0)) {
+    stop("Invalid exAL posterior moments in the MCMC state-update bridge.", call. = FALSE)
+  }
+
+  half_normal_mean <- sqrt(2 / pi)
+  conditional_mean <- sigma * (a + alpha * half_normal_mean)
+  conditional_var <- sigma^2 * (
+    b + a^2 + alpha^2 * (1 - 2 / pi)
+  )
+  predictive_mean <- mean(conditional_mean)
+  predictive_var <- mean(conditional_var + conditional_mean^2) - predictive_mean^2
+
+  data.frame(
+    ex_f = as.numeric(predictive_mean),
+    ex_q = ffv2_regularize_var(
+      predictive_var,
+      context = "ffv2_mcmc_posterior_predictive_ex_q"
+    ),
+    n_posterior_draws = as.integer(length(sigma)),
+    stringsAsFactors = FALSE
+  )
 }
 
 ffv2_fit_plugin_pseudo_params <- function(fit, n, method = ffv2_exdqlm_plugin_state_update_method()) {
@@ -29,7 +87,11 @@ ffv2_fit_plugin_pseudo_params <- function(fit, n, method = ffv2_exdqlm_plugin_st
   if (n == 0L) {
     return(data.frame(ex_f = numeric(0), ex_q = numeric(0), stringsAsFactors = FALSE))
   }
-  if (!identical(method, ffv2_exdqlm_plugin_state_update_method())) {
+  supported <- c(
+    ffv2_exdqlm_plugin_state_update_method(),
+    ffv2_exdqlm_mcmc_predictive_state_update_method()
+  )
+  if (!(method %in% supported)) {
     stop(sprintf("Unsupported state update method: %s", method), call. = FALSE)
   }
   p0 <- as.numeric(fit$p0)[1L]
@@ -50,6 +112,15 @@ ffv2_fit_plugin_pseudo_params <- function(fit, n, method = ffv2_exdqlm_plugin_st
     return(data.frame(
       ex_f = rep(a_tau / e_inv_v, n),
       ex_q = rep(b_tau / (e_inv_sigma * e_inv_v), n),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (identical(method, ffv2_exdqlm_mcmc_predictive_state_update_method())) {
+    params <- ffv2_exdqlm_mcmc_predictive_pseudo_params(fit)
+    return(data.frame(
+      ex_f = rep(params$ex_f[[1L]], n),
+      ex_q = rep(params$ex_q[[1L]], n),
       stringsAsFactors = FALSE
     ))
   }
@@ -191,7 +262,10 @@ ffv2_extend_fit_to_source_origin <- function(fit, config, data, origin_source_in
       expected_n, origin_source_index, nrow(future_rows)
     ), call. = FALSE)
   }
-  ffv2_extend_theta_filtered_state(fit, future_rows$y)
+  method <- as.character(
+    config$state_update_method %||% ffv2_exdqlm_plugin_state_update_method()
+  )[1L]
+  ffv2_extend_theta_filtered_state(fit, future_rows$y, method = method)
 }
 
 ffv2_rolling_exdqlm_forecast_summary <- function(fit,
@@ -223,6 +297,9 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
   common_abs_error <- if (isTRUE(coupling_cfg$enabled)) numeric(interval_cfg$draws) else NULL
   common_check_loss <- if (isTRUE(coupling_cfg$enabled)) numeric(interval_cfg$draws) else NULL
   interval_rows <- 0L
+  state_update_method <- as.character(
+    config$state_update_method %||% ffv2_exdqlm_plugin_state_update_method()
+  )[1L]
   rows <- list()
   row_i <- 0L
   for (origin_idx in seq_along(origins)) {
@@ -311,7 +388,7 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
           coverage_minus_tau = as.integer(as.numeric(target_row$y[[1L]]) <= qhat) - as.numeric(config$tau),
           horizon = lead,
           forecast_protocol = "rolling_origin_no_refit_state_update",
-          state_update_method = ffv2_exdqlm_plugin_state_update_method(),
+          state_update_method = state_update_method,
           refit_per_origin = FALSE,
           forecast_origin_source_index = origin,
           forecast_lead = lead,
@@ -380,13 +457,18 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
 
 ffv2_rolling_lead_metrics <- function(config, forecast_summary) {
   if (!nrow(forecast_summary)) return(data.frame())
+  state_update_methods <- unique(as.character(forecast_summary$state_update_method))
+  state_update_methods <- state_update_methods[nzchar(state_update_methods)]
+  if (length(state_update_methods) != 1L) {
+    stop("Forecast summary must contain exactly one state-update method.", call. = FALSE)
+  }
   pieces <- lapply(split(forecast_summary, forecast_summary$forecast_lead), function(x) {
     data.frame(
       row_id = as.integer(config$row_id),
       row_key = as.character(config$row_key),
       run_tag = as.character(config$run_tag),
       forecast_protocol = "rolling_origin_no_refit_state_update",
-      state_update_method = ffv2_exdqlm_plugin_state_update_method(),
+      state_update_method = state_update_methods[[1L]],
       refit_per_origin = FALSE,
       model_variant = as.character(config$model_variant),
       inference = as.character(config$inference),

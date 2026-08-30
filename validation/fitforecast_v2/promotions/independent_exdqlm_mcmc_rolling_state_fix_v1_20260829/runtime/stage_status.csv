@@ -1,0 +1,16 @@
+timestamp,stage,status,detail
+2026-08-29T03:50:29-04:00,sentinel_gate,PASS,decision=SENTINEL_PASS_PROCEED_TO_FULL_27_JOB_CONFIRMATION;checks=8/8
+2026-08-29T03:50:29-04:00,resource_gate,PASS,load=27.56;memory_gb=474.4;disk_gb=417.4
+2026-08-29T03:50:30-04:00,cpu_selection,PASS,workers=20;threads_per_fit=1;cpus=29;34;37;42;46;50;52;54;56;58;28;38;44;49;27;36;40;41;48;57
+2026-08-29T03:50:30-04:00,materialization,STARTED,run_id=independent_exdqlm_mcmc_rolling_state_fix_v1_full_20260829_035028__git-7ace661;mode=full
+2026-08-29T03:50:35-04:00,materialization,PASS,jobs=27;scientific_contract_equal=27
+2026-08-29T03:50:36-04:00,launcher_dry_run,STARTED,manifest=/data/jaguir26/local/src/exdqlm__wt__independent_exdqlm_mcmc_rolling_state_fix_v1_1p0p0/results/qdesn_mcmc_validation/qdesn_dqlm_500obs_independent_exdqlm_mcmc_rolling_state_fix_v1/independent_exdqlm_mcmc_rolling_state_fix_v1_full_20260829_035028__git-7ace661/manifests/job_manifest.csv
+2026-08-29T03:50:37-04:00,launcher_dry_run,PASS,selected_rows=27;compute=FALSE
+2026-08-29T03:50:38-04:00,full_confirmation,STARTED,jobs=27;workers=20;threads_per_fit=1
+2026-08-29T05:59:34-04:00,full_confirmation,PASS,launcher_exit=0
+2026-08-29T05:59:34-04:00,closeout,STARTED,three-chain aggregation and evidence audit
+2026-08-29T06:00:00-04:00,closeout,PASS,27/27 jobs;9/9 cells;candidate block frozen
+2026-08-29T06:00:00-04:00,diagnostics,STARTED,ignored review packet
+2026-08-29T06:00:08-04:00,diagnostics,PASS,packet generated;article untouched
+2026-08-29T06:00:08-04:00,storage_audit,PASS,fitted_model_binaries=0
+2026-08-29T06:00:08-04:00,pipeline_complete,PASS,ready_for_integration;article_shared_overleaf_untouched

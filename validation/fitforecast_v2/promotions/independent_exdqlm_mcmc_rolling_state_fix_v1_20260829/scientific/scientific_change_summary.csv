@@ -1,0 +1,13 @@
+"indicator","value"
+"jobs_completed",27
+"cells_completed",9
+"forecast_mae_cells_improved",9
+"forecast_check_cells_improved",9
+"lower_tail_mae_cells_improved",6
+"median_mae_cells_improved",3
+"metric_diagnostic_warnings",2
+"health_pass_chains",27
+"health_warn_chains",0
+"health_fail_chains",0
+"maximum_abs_fit_change",0
+"maximum_abs_first_origin_change",0
