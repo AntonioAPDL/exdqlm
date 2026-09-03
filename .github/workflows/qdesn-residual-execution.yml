@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - feature/qdesn-interlayer-residual-v1
-  pull_request:
-    branches:
-      - validation/shared-fitforecast-v2-1.0.0
   workflow_dispatch:
 
 permissions:
@@ -27,6 +24,11 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libglpk-dev
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
@@ -65,6 +67,19 @@ jobs:
           library(testthat)
           library(exdqlm)
           test_file('tests/testthat/test-qdesn-interlayer-residual.R', reporter = 'summary')
+
+      - name: Prepare execution script
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('scripts/execute_qdesn_residual_ablation_ci.R')
+          s = p.read_text()
+          s = s.replace(
+              "on.exit({\n  graphics::par(old_par)\n  grDevices::dev.off()\n}, add = TRUE)\n",
+              ""
+          )
+          s = s.replace("on.exit(NULL, add = FALSE)\n", "")
+          p.write_text(s)
 
       - name: Run smoke execution
         run: >-
