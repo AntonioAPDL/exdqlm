@@ -1,0 +1,17 @@
+stage,seed,role
+screening,1101,paired_reservoir_seed
+screening,1102,paired_reservoir_seed
+confirmation,1201,paired_reservoir_seed
+confirmation,1202,paired_reservoir_seed
+confirmation,1203,paired_reservoir_seed
+confirmation,1204,paired_reservoir_seed
+final,1301,held_out_paired_reservoir_seed
+final,1302,held_out_paired_reservoir_seed
+final,1303,held_out_paired_reservoir_seed
+final,1304,held_out_paired_reservoir_seed
+final,1305,held_out_paired_reservoir_seed
+final,1306,held_out_paired_reservoir_seed
+final,1307,held_out_paired_reservoir_seed
+final,1308,held_out_paired_reservoir_seed
+final,1309,held_out_paired_reservoir_seed
+final,1310,held_out_paired_reservoir_seed
