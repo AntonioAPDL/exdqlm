@@ -57,9 +57,11 @@ teacher-forced.
 
 Selected: `D`, `n`, `m`, `alpha`, `rho`.
 
+Screening uses two paired seeds and 400 paths. Confirmation evaluates the shortlisted candidates at 1,000 paths on six paired seeds (the two screening seeds plus four new seeds) while reusing phase-level reservoir and VB-fit caches.
+
 Fixed: AL likelihood, VB, `tau0 = 0.1`, identity residual strength, `pi_w = 0.1`,
 `pi_in = 1`, `tanh`, identity reduced-state activation, identity reducers,
-training-only input/readout scaling, and an unshrunk intercept.
+training-only response, input, and readout scaling, and an unshrunk intercept.
 
 ## Execution
 
@@ -67,9 +69,12 @@ training-only input/readout scaling, and an unshrunk intercept.
 Rscript scripts/run_qdesn_residual_skip_single_origin.R \
   --input=/data/qdesn/simulated_series.csv \
   --column=y \
-  --output=/data/qdesn/residual_ablation_v1
+  --output=/data/qdesn/residual_ablation_v1 \
+  --workers=4
 ```
 
-Use `--quick=true` only to validate wiring. The complete run writes cell-level
+Use `--quick=true` only to validate wiring. The complete run writes phase-level fit caches, stage-level forecast
 checkpoints, rankings, final paired tables, three compact figures, and a single
 RDS result object.
+
+On Linux, `--workers` parallelizes independent candidate-seed jobs with fork-based workers. Keep BLAS/OpenMP thread counts at one per worker to avoid oversubscription.

@@ -414,6 +414,7 @@ qdesn_build_paired_architecture_designs <- function(
 
   # Reroll the plain path only to recover preactivation diagnostics and to
   # enforce exact nestedness against the untouched legacy implementation.
+  plain_audit_started <- proc.time()[3]
   plain_audit <- .qdesn_roll_architecture_states(
     y = y,
     base_fit = base_fit,
@@ -427,16 +428,21 @@ qdesn_build_paired_architecture_designs <- function(
       call. = FALSE
     )
   }
+  plain_audit_runtime_sec <- as.numeric(proc.time()[3] - plain_audit_started)
   plain$states$preactivation <- plain_audit$states$preactivation
   plain$meta$state_summary <- plain_audit$meta$state_summary
   plain$meta$legacy_parity_max_abs_error <- parity_error
+  plain$meta$state_roll_runtime_sec <- plain_audit_runtime_sec
 
+  residual_started <- proc.time()[3]
   residual <- .qdesn_roll_architecture_states(
     y = y,
     base_fit = base_fit,
     connection_type = "interlayer_residual",
     skip_scale = skip_scale
   )
+  residual_runtime_sec <- as.numeric(proc.time()[3] - residual_started)
+  residual$meta$state_roll_runtime_sec <- residual_runtime_sec
 
   base_hash <- digest::digest(
     list(W = base_fit$reservoir$W, Win = base_fit$reservoir$Win, Q = base_fit$reservoir$Q),
@@ -457,7 +463,9 @@ qdesn_build_paired_architecture_designs <- function(
       m = as.integer(m)[1L],
       alpha = alpha,
       rho = rho,
-      skip_scale = as.numeric(skip_scale)[1L]
+      skip_scale = as.numeric(skip_scale)[1L],
+      plain_state_roll_runtime_sec = plain_audit_runtime_sec,
+      residual_state_roll_runtime_sec = residual_runtime_sec
     )
   )
   class(out) <- "qdesn_paired_architecture_designs"

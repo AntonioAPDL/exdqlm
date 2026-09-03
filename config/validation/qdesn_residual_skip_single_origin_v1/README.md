@@ -23,6 +23,7 @@ reservoir seed. The first layer and the readout are unchanged.
 - Inference: existing variational Bayes implementation.
 - Readout prior: existing RHS-NS implementation with `tau0 = 0.1`.
 - Tuned parameters only: `D`, `n`, `m`, `alpha`, `rho`.
+- Screening uses two paired seeds and 400 paths; confirmation reruns the shortlisted candidates with 1,000 paths on those two seeds plus four new seeds, reusing the existing VB fits.
 - No rolling origins, exAL fit, MCMC, synthesis, or external competitors.
 
 ## Run
@@ -33,8 +34,11 @@ From the repository root:
 Rscript scripts/run_qdesn_residual_skip_single_origin.R \
   --input=/data/qdesn/simulated_series.csv \
   --column=y \
-  --output=/data/qdesn/residual_ablation_v1
+  --output=/data/qdesn/residual_ablation_v1 \
+  --workers=4
 ```
 
-Use `--quick=true` for a small software smoke run. Cell-level RDS checkpoints
+Use `--quick=true` for a small software smoke run. Phase-level reservoir and VB-fit caches plus stage-level forecast checkpoints
 are written below the output directory and reused on restart.
+
+On Linux, `--workers` parallelizes independent candidate-seed jobs with fork-based workers. Keep BLAS/OpenMP thread counts at one per worker to avoid oversubscription.

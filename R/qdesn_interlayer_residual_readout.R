@@ -36,6 +36,69 @@ if (!exists("%||%", mode = "function")) {
   (x - center) / scale
 }
 
+.qdesn_process_lag_matrix_from_meta <- function(lag_matrix, meta) {
+  lag_matrix <- as.matrix(lag_matrix)
+  m <- nrow(lag_matrix)
+  if (m == 0L) return(lag_matrix)
+
+  center <- as.numeric(meta$lag_center %||% rep(0, m))
+  scale <- as.numeric(meta$lag_scale %||% rep(1, m))
+  if (length(center) == 1L) center <- rep(center, m)
+  if (length(scale) == 1L) scale <- rep(scale, m)
+  if (length(center) != m || length(scale) != m) {
+    stop("Lag preprocessing metadata has incompatible dimensions.", call. = FALSE)
+  }
+  scale[!is.finite(scale) | abs(scale) < 1e-12] <- 1
+
+  out <- lag_matrix
+  if (isTRUE(meta$standardize_inputs %||% FALSE)) {
+    out <- sweep(sweep(out, 1L, center, "-"), 1L, scale, "/")
+  }
+
+  lag_weights <- meta$win_scale_lags %||% NULL
+  if (!is.null(lag_weights)) {
+    lag_weights <- as.numeric(lag_weights)
+    if (length(lag_weights) != m) {
+      stop("win_scale_lags has incompatible dimensions.", call. = FALSE)
+    }
+    out <- sweep(out, 1L, lag_weights, "*")
+  }
+
+  input_bound <- tolower(as.character(meta$input_bound %||% "none")[1L])
+  if (identical(input_bound, "tanh")) out <- base::tanh(out)
+  if (!input_bound %in% c("none", "tanh")) {
+    stop("Unsupported input_bound in residual forecast recursion.", call. = FALSE)
+  }
+  out
+}
+
+.qdesn_make_input_matrix_from_lags <- function(lag_matrix, meta, nd) {
+  nd <- as.integer(nd)[1L]
+  if (!is.finite(nd) || nd < 1L) stop("nd must be positive.", call. = FALSE)
+  lag_matrix <- as.matrix(lag_matrix)
+  if (ncol(lag_matrix) != nd) {
+    stop("lag_matrix must have one column per predictive path.", call. = FALSE)
+  }
+  z <- .qdesn_process_lag_matrix_from_meta(lag_matrix, meta)
+  u <- rbind(rep(1, nd), z)
+  u[1L, ] <- u[1L, ] * as.numeric(meta$win_scale_bias %||% 1)
+  if (nrow(u) > 1L) {
+    u[-1L, ] <- u[-1L, , drop = FALSE] * as.numeric(meta$win_scale_global %||% 1)
+  }
+  u
+}
+
+.qdesn_apply_readout_scale_matrix <- function(X, scale_info) {
+  X <- as.matrix(X)
+  if (is.null(scale_info) || !isTRUE(scale_info$scaled)) return(X)
+  center <- as.numeric(scale_info$center)
+  scale <- as.numeric(scale_info$scale)
+  if (nrow(X) != length(center) || nrow(X) != length(scale)) {
+    stop("Readout scaling dimensions do not match the forecast feature matrix.", call. = FALSE)
+  }
+  sweep(sweep(X, 1L, center, "-"), 1L, scale, "/")
+}
+
 #' Fit an AL-VB readout to an architecture design
 #'
 #' Reuses the existing `exal_ldvb_fit()` implementation and fixes the exAL
@@ -117,6 +180,14 @@ qdesn_fit_al_vb_from_design <- function(
     likelihood_family = "al",
     al_fixed_gamma = 0
   )
+  if (!identical(tolower(as.character(fit$likelihood_family)[1L]), "al") ||
+      !isTRUE(all.equal(as.numeric(fit$misc$al_fixed_gamma)[1L], 0, tolerance = 0))) {
+    stop("The existing VB engine did not preserve the requested AL contract.", call. = FALSE)
+  }
+  fitted_tau0 <- as.numeric(fit$beta_prior$hypers$tau0 %||% NA_real_)[1L]
+  if (!isTRUE(all.equal(fitted_tau0, tau0, tolerance = 0))) {
+    stop("The existing VB engine did not preserve the requested RHS tau0.", call. = FALSE)
+  }
 
   out <- design
   out$fit <- fit
@@ -185,6 +256,67 @@ qdesn_fit_al_vb_from_design <- function(
       as.numeric(k_act(h_tilde[[d]]))
     }), use.names = FALSE)
     c(as.numeric(h_new[[D]]), lower)
+  }
+  list(h = h_new, x_raw = x_raw)
+}
+
+.qdesn_forward_architecture_paths <- function(h_prev, u_matrix, reservoir) {
+  D <- as.integer(reservoir$D)[1L]
+  f_act <- .qdesn_residual_activation(reservoir$act_f)
+  k_act <- .qdesn_residual_activation(reservoir$act_k)
+  alpha <- as.numeric(reservoir$alpha)
+  if (length(alpha) == 1L) alpha <- rep(alpha, D)
+  Q_is_identity <- reservoir$Q_is_identity %||% rep(FALSE, max(0L, D - 1L))
+  nd <- ncol(u_matrix)
+
+  if (!is.list(h_prev) || length(h_prev) != D ||
+      any(vapply(h_prev, ncol, integer(1L)) != nd)) {
+    stop("Path states must be matrices with one column per predictive path.", call. = FALSE)
+  }
+
+  h_new <- vector("list", D)
+  h_tilde <- if (D > 1L) vector("list", D - 1L) else list()
+
+  pre1 <- reservoir$W[[1L]] %*% h_prev[[1L]] + reservoir$Win[[1L]] %*% u_matrix
+  omega1 <- f_act(pre1)
+  h_new[[1L]] <- (1 - alpha[1L]) * h_prev[[1L]] + alpha[1L] * omega1
+
+  if (D > 1L) {
+    h_tilde[[1L]] <- if (isTRUE(Q_is_identity[1L])) {
+      h_new[[1L]]
+    } else {
+      reservoir$Q[[1L]] %*% h_new[[1L]]
+    }
+
+    for (d in seq.int(2L, D)) {
+      pre_d <- reservoir$W[[d]] %*% h_prev[[d]] +
+        reservoir$Win[[d]] %*% h_tilde[[d - 1L]]
+      omega_d <- f_act(pre_d)
+      if (identical(reservoir$connection_type %||% "plain", "interlayer_residual")) {
+        P_layer <- (reservoir$Pskip %||% list())[[d - 1L]] %||% NULL
+        if (is.null(P_layer)) {
+          stop("Residual projection is missing for layer ", d, ".", call. = FALSE)
+        }
+        omega_d <- omega_d +
+          as.numeric(reservoir$skip_scale %||% 1) *
+          (P_layer %*% h_tilde[[d - 1L]])
+      }
+      h_new[[d]] <- (1 - alpha[d]) * h_prev[[d]] + alpha[d] * omega_d
+      if (d < D) {
+        h_tilde[[d]] <- if (isTRUE(Q_is_identity[d])) {
+          h_new[[d]]
+        } else {
+          reservoir$Q[[d]] %*% h_new[[d]]
+        }
+      }
+    }
+  }
+
+  x_raw <- if (D == 1L) {
+    h_new[[1L]]
+  } else {
+    lower <- do.call(rbind, lapply(seq_len(D - 1L), function(d) k_act(h_tilde[[d]])))
+    rbind(h_new[[D]], lower)
   }
   list(h = h_new, x_raw = x_raw)
 }
@@ -266,33 +398,47 @@ qdesn_forecast_single_origin_al_vb <- function(
   add_bias <- isTRUE(object$meta$add_bias %||% FALSE)
   scale_info <- object$meta$readout_scale %||% NULL
   origin_state <- lapply(object$states$H_all, function(Hd) as.numeric(Hd[nrow(Hd), ]))
+  h_now <- lapply(origin_state, function(x) {
+    matrix(x, nrow = length(x), ncol = nd_eff)
+  })
+  lag_matrix <- if (m_input > 0L) {
+    lag0 <- rev(tail(y_history, m_input))
+    matrix(lag0, nrow = m_input, ncol = nd_eff)
+  } else {
+    matrix(numeric(0), nrow = 0L, ncol = nd_eff)
+  }
+  beta_path_matrix <- t(beta_draws)
 
   yrep <- matrix(NA_real_, nrow = H, ncol = nd_eff)
   mu_draws <- matrix(NA_real_, nrow = H, ncol = nd_eff)
 
-  for (j in seq_len(nd_eff)) {
-    h_now <- lapply(origin_state, identity)
-    history <- y_history
+  # Vectorize over posterior paths. Only the 100 forecast horizons remain as
+  # an explicit loop, which is substantially faster than path-by-path state
+  # propagation while preserving each draw's own recursive response history.
+  for (h in seq_len(H)) {
+    u_h <- .qdesn_make_input_matrix_from_lags(lag_matrix, object$meta, nd_eff)
+    step <- .qdesn_forward_architecture_paths(h_now, u_h, reservoir)
+    h_now <- step$h
 
-    for (h in seq_len(H)) {
-      lag_vec <- if (m_input > 0L) rev(tail(history, m_input)) else numeric(0)
-      u_h <- .qdesn_make_input_from_buffer(lag_vec, object$meta)
-      step <- .qdesn_forward_architecture_one(h_now, u_h, reservoir)
-      h_now <- step$h
+    x_raw <- step$x_raw
+    if (add_bias) x_raw <- rbind(rep(1, nd_eff), x_raw)
+    x_row <- .qdesn_apply_readout_scale_matrix(x_raw, scale_info)
+    if (nrow(x_row) != nrow(beta_path_matrix)) {
+      stop("Forecast readout dimension does not match beta draws.", call. = FALSE)
+    }
 
-      x_raw <- step$x_raw
-      if (add_bias) x_raw <- c(1, x_raw)
-      x_row <- .qdesn_apply_readout_scale(x_raw, scale_info)
-      if (length(x_row) != ncol(beta_draws)) {
-        stop("Forecast readout dimension does not match beta draws.", call. = FALSE)
+    mu_h <- colSums(x_row * beta_path_matrix)
+    v_h <- sigma_draws * e_draws[h, ]
+    y_h <- mu_h + A * v_h + sqrt(B * sigma_draws * v_h) * z_draws[h, ]
+    mu_draws[h, ] <- mu_h
+    yrep[h, ] <- y_h
+
+    if (m_input > 0L) {
+      lag_matrix <- if (m_input == 1L) {
+        matrix(y_h, nrow = 1L)
+      } else {
+        rbind(y_h, lag_matrix[seq_len(m_input - 1L), , drop = FALSE])
       }
-
-      mu_h <- sum(x_row * beta_draws[j, ])
-      v_h <- sigma_draws[j] * e_draws[h, j]
-      y_h <- mu_h + A * v_h + sqrt(B * sigma_draws[j] * v_h) * z_draws[h, j]
-      mu_draws[h, j] <- mu_h
-      yrep[h, j] <- y_h
-      history <- c(history, y_h)
     }
   }
 

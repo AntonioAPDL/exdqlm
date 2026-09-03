@@ -42,6 +42,7 @@ fixed_reservoir:
   act_k: identity
   add_bias: true
   standardize_inputs: true
+  standardize_response: true
   input_bound: none
   standardize_readout: true
 
@@ -52,6 +53,8 @@ selection:
   confirmation_paths: 1000
   final_paths: 2000
   confirmation_top_per_architecture: 2
+  confirmation_reuses_screening_fits: true
+  confirmation_total_seeds: 6
   near_tie_fraction: 0.01
   residual_retuned_min_validation_gain: 0.01
 
@@ -63,3 +66,8 @@ final_decision:
   minimum_median_improvement_percent: 2
   minimum_seed_wins: 7
   maximum_per_quantile_median_degradation_percent: 5
+  forgetting_tolerance: 1.0e-6
+
+execution:
+  workers: 1
+  resume: true

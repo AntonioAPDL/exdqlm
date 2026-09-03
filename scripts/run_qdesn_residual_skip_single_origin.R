@@ -47,9 +47,36 @@ config_path <- args$config %||%
 if (is.null(input_path) || is.null(output_dir)) {
   stop(
     "Usage: Rscript scripts/run_qdesn_residual_skip_single_origin.R ",
-    "--input=/path/series.csv --column=y --output=/path/results [--quick=true]",
+    "--input=/path/series.csv --column=y --output=/path/results ",
+    "[--workers=4] [--quick=true]",
     call. = FALSE
   )
+}
+
+if (!requireNamespace("yaml", quietly = TRUE)) {
+  stop("The runner requires the yaml package.", call. = FALSE)
+}
+cfg <- yaml::read_yaml(config_path)
+workers <- as.integer(args$workers %||% (cfg$execution %||% list())$workers %||% 1L)
+if (!is.finite(workers) || workers < 1L) {
+  stop("--workers must be a positive integer.", call. = FALSE)
+}
+
+# Candidate-seed jobs are process-parallel.  Keep numerical libraries
+# single-threaded inside each worker unless the caller has explicitly supplied
+# a thread count, preventing severe oversubscription on Linux servers.
+if (workers > 1L) {
+  thread_vars <- c(
+    "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS"
+  )
+  current <- Sys.getenv(thread_vars, unset = "")
+  to_set <- thread_vars[!nzchar(current)]
+  if (length(to_set)) {
+    values <- rep("1", length(to_set))
+    names(values) <- to_set
+    do.call(Sys.setenv, as.list(values))
+  }
 }
 
 if (requireNamespace("pkgload", quietly = TRUE) && file.exists("DESCRIPTION")) {
@@ -57,11 +84,6 @@ if (requireNamespace("pkgload", quietly = TRUE) && file.exists("DESCRIPTION")) {
 } else {
   suppressPackageStartupMessages(library(exdqlm))
 }
-
-if (!requireNamespace("yaml", quietly = TRUE)) {
-  stop("The runner requires the yaml package.", call. = FALSE)
-}
-cfg <- yaml::read_yaml(config_path)
 
 candidate_path <- cfg$selection$candidate_file
 seed_path <- cfg$selection$seed_file
@@ -87,7 +109,23 @@ result <- qdesn_run_residual_ablation(
   nd_confirm = as.integer(cfg$selection$confirmation_paths),
   nd_final = as.integer(cfg$selection$final_paths),
   skip_scale = as.numeric(cfg$model$skip_scale),
-  resume = TRUE,
+  confirmation_top_per_architecture = as.integer(
+    cfg$selection$confirmation_top_per_architecture
+  ),
+  near_tie_fraction = as.numeric(cfg$selection$near_tie_fraction),
+  residual_retuned_min_validation_gain = as.numeric(
+    cfg$selection$residual_retuned_min_validation_gain
+  ),
+  minimum_median_improvement_percent = as.numeric(
+    cfg$final_decision$minimum_median_improvement_percent
+  ),
+  minimum_seed_wins = as.integer(cfg$final_decision$minimum_seed_wins),
+  maximum_quantile_degradation_percent = as.numeric(
+    cfg$final_decision$maximum_per_quantile_median_degradation_percent
+  ),
+  forgetting_tolerance = as.numeric(cfg$final_decision$forgetting_tolerance),
+  workers = workers,
+  resume = as_flag(args$resume, (cfg$execution %||% list())$resume %||% TRUE),
   quick = quick
 )
 

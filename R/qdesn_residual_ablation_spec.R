@@ -83,7 +83,12 @@ qdesn_residual_ablation_protocol <- function() {
       add_bias = TRUE
     ),
     screening = list(seeds = c(1101L, 1102L), nd = 400L),
-    confirmation = list(seeds = c(1201L, 1202L, 1203L, 1204L), nd = 1000L),
+    confirmation = list(
+      additional_seeds = c(1201L, 1202L, 1203L, 1204L),
+      all_seeds = c(1101L, 1102L, 1201L, 1202L, 1203L, 1204L),
+      nd = 1000L,
+      reuse_screening_fits = TRUE
+    ),
     final_evaluation = list(
       seeds = 1301:1310,
       nd = 2000L,
@@ -213,7 +218,6 @@ qdesn_residual_ablation_protocol <- function() {
 .qdesn_ablation_fit_forecast_cell <- function(
     design,
     y_observed,
-    y_future,
     p0,
     tau0,
     H,
@@ -224,17 +228,20 @@ qdesn_residual_ablation_protocol <- function() {
     architecture,
     vb_control,
     standardize_readout,
-    cache_path,
+    fit_cache_path,
+    forecast_cache_path,
     resume) {
-  .qdesn_cache_compute(cache_path, resume, function() {
-    fit_seed <- .qdesn_ablation_seed(stage, candidate_id, reservoir_seed, p0, "vb")
-    posterior_seed <- .qdesn_ablation_seed(stage, candidate_id, reservoir_seed, p0, "posterior")
-    noise_seed <- .qdesn_ablation_seed(stage, candidate_id, reservoir_seed, p0, "forecast-noise")
-    noise <- .qdesn_ablation_noise(H = H, nd = nd, seed = noise_seed)
-
+  # Fitting depends on the observed history, architecture, candidate, seed, and
+  # quantile, but not on whether the result is used for screening or
+  # confirmation.  A phase-level fit cache therefore lets confirmation increase
+  # the Monte Carlo path count without repeating the VB optimization.
+  fit_seed <- .qdesn_ablation_seed(
+    "fit", length(y_observed), candidate_id, reservoir_seed, p0
+  )
+  fit_cache <- .qdesn_cache_compute(fit_cache_path, resume, function() {
     started <- proc.time()[3]
     ans <- tryCatch({
-      fit <- qdesn_fit_al_vb_from_design(
+      fit_object <- qdesn_fit_al_vb_from_design(
         design = design,
         p0 = p0,
         tau0 = tau0,
@@ -242,29 +249,78 @@ qdesn_residual_ablation_protocol <- function() {
         vb_control = vb_control,
         fit_seed = fit_seed
       )
+      status <- .qdesn_vb_status(fit_object$fit)
+      list(
+        ok = TRUE,
+        error = NA_character_,
+        readout_fit = fit_object$fit,
+        readout_scale = fit_object$meta$readout_scale,
+        vb_converged = status$converged,
+        vb_iterations = status$iterations
+      )
+    }, error = function(e) {
+      list(
+        ok = FALSE,
+        error = conditionMessage(e),
+        readout_fit = NULL,
+        readout_scale = NULL,
+        vb_converged = FALSE,
+        vb_iterations = NA_integer_
+      )
+    })
+    ans$fit_runtime_sec <- as.numeric(proc.time()[3] - started)
+    ans$fit_seed <- fit_seed
+    ans
+  })
+
+  posterior_seed <- .qdesn_ablation_seed(
+    stage, candidate_id, reservoir_seed, p0, "posterior"
+  )
+  noise_seed <- .qdesn_ablation_seed(
+    stage, candidate_id, reservoir_seed, p0, "forecast-noise"
+  )
+
+  forecast_cache <- .qdesn_cache_compute(forecast_cache_path, resume, function() {
+    if (!isTRUE(fit_cache$ok)) {
+      return(list(
+        ok = FALSE,
+        error = fit_cache$error,
+        qhat = rep(NA_real_, H),
+        forecast_runtime_sec = 0,
+        posterior_seed = posterior_seed,
+        noise_seed = noise_seed,
+        n_paths = nd
+      ))
+    }
+
+    forecast_object <- design
+    forecast_object$fit <- fit_cache$readout_fit
+    forecast_object$meta$p0 <- p0
+    forecast_object$meta$likelihood_family <- "al"
+    forecast_object$meta$al_fixed_gamma <- 0
+    forecast_object$meta$rhs_tau0 <- tau0
+    forecast_object$meta$readout_scale <- fit_cache$readout_scale
+    forecast_object$meta$standardize_readout <- isTRUE(standardize_readout)
+    forecast_object$meta$fit_seed <- fit_seed
+    class(forecast_object) <- "qdesn_fit"
+
+    noise <- .qdesn_ablation_noise(H = H, nd = nd, seed = noise_seed)
+    started <- proc.time()[3]
+    ans <- tryCatch({
       forecast <- qdesn_forecast_single_origin_al_vb(
-        object = fit,
+        object = forecast_object,
         y_history = y_observed,
         H = H,
         nd = nd,
         posterior_seed = posterior_seed,
         noise_draws = noise
       )
-      status <- .qdesn_vb_status(fit$fit)
-      state_summary <- fit$meta$state_summary %||% data.frame()
       list(
         ok = TRUE,
         error = NA_character_,
         qhat = as.numeric(forecast$qhat),
-        vb_converged = status$converged,
-        vb_iterations = status$iterations,
-        max_abs_state = if (nrow(state_summary)) max(state_summary$max_abs_state, na.rm = TRUE) else NA_real_,
-        max_abs_preactivation = if (nrow(state_summary)) max(state_summary$max_abs_preactivation, na.rm = TRUE) else NA_real_,
-        tanh_saturation_rate = if (nrow(state_summary)) mean(state_summary$tanh_saturation_rate, na.rm = TRUE) else NA_real_,
-        state_finite = if (nrow(state_summary)) all(state_summary$finite) else all(is.finite(unlist(fit$states$H_all))),
         posterior_seed = posterior_seed,
         noise_seed = noise_seed,
-        fit_seed = fit_seed,
         n_paths = forecast$nd
       )
     }, error = function(e) {
@@ -272,21 +328,35 @@ qdesn_residual_ablation_protocol <- function() {
         ok = FALSE,
         error = conditionMessage(e),
         qhat = rep(NA_real_, H),
-        vb_converged = FALSE,
-        vb_iterations = NA_integer_,
-        max_abs_state = NA_real_,
-        max_abs_preactivation = NA_real_,
-        tanh_saturation_rate = NA_real_,
-        state_finite = FALSE,
         posterior_seed = posterior_seed,
         noise_seed = noise_seed,
-        fit_seed = fit_seed,
         n_paths = nd
       )
     })
-    ans$runtime_sec <- as.numeric(proc.time()[3] - started)
-    ans$architecture <- architecture
-    ans$p0 <- p0
+    ans$forecast_runtime_sec <- as.numeric(proc.time()[3] - started)
     ans
   })
+
+  state_summary <- design$meta$state_summary %||% data.frame()
+  list(
+    ok = isTRUE(fit_cache$ok) && isTRUE(forecast_cache$ok),
+    error = if (!isTRUE(fit_cache$ok)) fit_cache$error else forecast_cache$error,
+    qhat = as.numeric(forecast_cache$qhat),
+    vb_converged = fit_cache$vb_converged,
+    vb_iterations = fit_cache$vb_iterations,
+    max_abs_state = if (nrow(state_summary)) max(state_summary$max_abs_state, na.rm = TRUE) else NA_real_,
+    max_abs_preactivation = if (nrow(state_summary)) max(state_summary$max_abs_preactivation, na.rm = TRUE) else NA_real_,
+    tanh_saturation_rate = if (nrow(state_summary)) mean(state_summary$tanh_saturation_rate, na.rm = TRUE) else NA_real_,
+    state_finite = if (nrow(state_summary)) all(state_summary$finite) else all(is.finite(unlist(design$states$H_all))),
+    fit_runtime_sec = as.numeric(fit_cache$fit_runtime_sec %||% NA_real_),
+    forecast_runtime_sec = as.numeric(forecast_cache$forecast_runtime_sec %||% NA_real_),
+    runtime_sec = as.numeric(fit_cache$fit_runtime_sec %||% 0) +
+      as.numeric(forecast_cache$forecast_runtime_sec %||% 0),
+    posterior_seed = posterior_seed,
+    noise_seed = noise_seed,
+    fit_seed = fit_seed,
+    n_paths = as.integer(forecast_cache$n_paths %||% nd),
+    architecture = architecture,
+    p0 = p0
+  )
 }

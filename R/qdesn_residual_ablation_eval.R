@@ -40,11 +40,11 @@ if (!exists("%||%", mode = "function")) {
     if (!is.finite(response_scale) || response_scale < 1e-12) response_scale <- 1
   }
   y_observed_model <- (as.numeric(y_observed) - response_center) / response_scale
-  y_future_model <- (as.numeric(y_future) - response_center) / response_scale
+  phase_id <- sprintf("origin-%d", length(y_observed))
 
   design_path <- file.path(
     cache_dir,
-    stage,
+    phase_id,
     "design",
     sprintf("%s__seed-%d.rds", cand$candidate_id, reservoir_seed)
   )
@@ -86,17 +86,23 @@ if (!exists("%||%", mode = "function")) {
 
     for (ip in seq_along(p_vec)) {
       p0 <- p_vec[ip]
-      cell_path <- file.path(
+      fit_cache_path <- file.path(
         cache_dir,
-        stage,
-        "cells",
+        phase_id,
+        "fits",
         sprintf("%s__seed-%d__%s__p-%0.2f.rds",
                 cand$candidate_id, reservoir_seed, architecture, p0)
+      )
+      forecast_cache_path <- file.path(
+        cache_dir,
+        stage,
+        "forecasts",
+        sprintf("%s__seed-%d__%s__p-%0.2f__nd-%d.rds",
+                cand$candidate_id, reservoir_seed, architecture, p0, nd)
       )
       cell <- .qdesn_ablation_fit_forecast_cell(
         design = design,
         y_observed = y_observed_model,
-        y_future = y_future_model,
         p0 = p0,
         tau0 = tau0,
         H = H,
@@ -107,7 +113,8 @@ if (!exists("%||%", mode = "function")) {
         architecture = architecture,
         vb_control = vb_control,
         standardize_readout = standardize_readout,
-        cache_path = cell_path,
+        fit_cache_path = fit_cache_path,
+        forecast_cache_path = forecast_cache_path,
         resume = resume
       )
 
@@ -136,6 +143,8 @@ if (!exists("%||%", mode = "function")) {
         hit_rate = if (all(is.finite(hits))) mean(hits) else NA_real_,
         crossing_rate = NA_real_,
         runtime_sec = cell$runtime_sec,
+        fit_runtime_sec = cell$fit_runtime_sec,
+        forecast_runtime_sec = cell$forecast_runtime_sec,
         state_roll_runtime_sec = as.numeric(design$meta$state_roll_runtime_sec %||% NA_real_),
         total_runtime_sec = cell$runtime_sec +
           as.numeric(design$meta$state_roll_runtime_sec %||% 0) / length(p_vec),
