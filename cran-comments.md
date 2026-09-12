@@ -53,9 +53,16 @@ The main changes are:
 - Local `R CMD check --as-cran` produced two informational entries only:
   1. the package specifies C++17;
   2. the installed package size is dominated by the compiled shared library.
-- GitHub Actions matrix: pending.
-- R-hub matrix: pending.
-- Manual GitHub FFBS cross-OS diagnostic: pending.
+- GitHub Actions matrix: passed on Ubuntu release, Ubuntu devel,
+  Ubuntu oldrel-1, macOS release, and Windows release.
+- Manual GitHub FFBS cross-OS diagnostic: passed on Ubuntu, macOS, and
+  Windows; the comparison job confirmed identical fixed-seed FFBS/MCMC
+  diagnostic output across the three operating systems.
+- R-hub: passed on Linux R-devel and Windows R-devel.
+- R-hub macOS ARM64 R-devel did not reach package checking. The job failed in
+  `r-hub/actions/setup-deps@v1` before package installation/checking, and
+  `r-hub/actions/run-check@v1` was skipped. The retry reproduced the same
+  setup-stage failure; the package itself was not checked on that runner.
 
 ### Reverse dependencies
 
