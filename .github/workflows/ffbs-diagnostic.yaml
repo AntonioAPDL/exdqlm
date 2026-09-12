@@ -1,0 +1,47 @@
+name: FFBS cross-OS diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  ffbs-diagnostic:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      OMP_NUM_THREADS: 1
+      OMP_THREAD_LIMIT: 1
+      OPENBLAS_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      BLIS_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: local::.
+          needs: check
+
+      - name: Run FFBS diagnostic
+        shell: bash
+        run: |
+          Rscript tools/cross_os_ffbs_diagnostic.R 2>&1 | tee ffbs-diagnostic-${{ matrix.os }}.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffbs-diagnostic-${{ matrix.os }}
+          path: ffbs-diagnostic-${{ matrix.os }}.txt
