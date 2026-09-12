@@ -50,3 +50,72 @@ jobs:
         with:
           upload-snapshots: true
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+
+  FFBS-cross-OS-diagnostic:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      OMP_NUM_THREADS: 1
+      OMP_THREAD_LIMIT: 1
+      OPENBLAS_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      BLIS_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+
+      - name: Install package
+        shell: bash
+        run: R CMD INSTALL .
+
+      - name: Run FFBS diagnostic
+        shell: bash
+        run: |
+          mkdir -p ffbs-diagnostic
+          Rscript --vanilla .github/scripts/ffbs_cross_os_diagnostic.R run ffbs-diagnostic/${{ matrix.os }}.rds
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffbs-diagnostic-${{ matrix.os }}
+          path: ffbs-diagnostic/*.rds
+          if-no-files-found: error
+
+  FFBS-cross-OS-compare:
+    if: github.event_name == 'workflow_dispatch'
+    needs: FFBS-cross-OS-diagnostic
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ffbs-diagnostic-*
+          path: ffbs-diagnostics
+          merge-multiple: false
+
+      - name: Compare OS diagnostics
+        shell: bash
+        run: Rscript --vanilla .github/scripts/ffbs_cross_os_diagnostic.R compare ffbs-diagnostics
