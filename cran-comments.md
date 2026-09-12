@@ -1,27 +1,28 @@
-## exdqlm 1.1.1
+## exdqlm 1.1.2
 
 ### Release context
 
-This is a narrow reproducibility and inference-stability update to CRAN
-version 1.1.0. The update was prepared while revising the accompanying Journal
-of Statistical Software article after editorial prescreening comments on the
-replication materials. The package API, exported object classes, and
-manuscript-level statistical claims are unchanged.
+This is a narrow reproducibility patch to CRAN version 1.1.1. While checking
+the replication materials for the accompanying Journal of Statistical Software
+article, we found that the fast C++ dynamic MCMC FFBS backend was fixed-seed
+repeatable within a platform but could produce different multivariate-normal
+state draws across operating systems. The source of the difference was the use
+of an SVD covariance square root in the stochastic state simulation step, where
+valid singular-vector bases can differ by BLAS/LAPACK platform.
+
+The package API, exported object classes, model specification interface, and
+statistical target are unchanged.
 
 The main changes are:
 
-- compiled stochastic helper routines now use serial R-controlled random-number
-  streams for manuscript-relevant stochastic paths, avoiding OpenMP worker RNG
-  calls and wall-clock/thread-indexed private seeds;
-- repeated-seed tests were added for compiled stochastic helpers and small
-  dynamic/static MCMC workflows;
-- the default MCMC update for dynamic and static exAL likelihood fits now uses
-  a scale-collapsed gamma slice transition followed by an exact conditional GIG
-  redraw for sigma;
-- the default LDVB scale-skewness block for dynamic and static exAL likelihood
-  fits now uses a structured `q(gamma) q(sigma | gamma)` approximation;
-- legacy MCMC and LDVB scale-skewness options remain available by explicit
-  user selection.
+- the fast C++ dynamic MCMC FFBS backend now uses a Cholesky covariance square
+  root for stochastic state simulation, avoiding platform-dependent SVD bases
+  under fixed seeds;
+- a direct multistate C++ FFBS repeatability test was added;
+- the fresh-process/thread-setting repeatability test now also covers the
+  multistate C++ FFBS path;
+- a manual GitHub Actions diagnostic was added to compare the same FFBS and
+  small fast-MCMC probes across Linux, macOS, and Windows.
 
 ### Test environments
 
@@ -39,21 +40,22 @@ The main changes are:
 
 ### Local commands
 
+- `R CMD INSTALL .`
+- targeted repeatability tests for compiled stochastic helpers, the direct C++
+  FFBS path, and dynamic/static MCMC workflows;
+- targeted MCMC backend-routing and fast/strict parity tests;
 - `R CMD build .`
-- `R CMD check --as-cran exdqlm_1.1.1.tar.gz`
-- targeted package repeatability tests for compiled stochastic helpers and
-  dynamic/static MCMC workflows.
+- `R CMD check --as-cran exdqlm_1.1.2.tar.gz`
 
 ### R CMD check results
 
-- Local `R CMD check --as-cran`: `0 errors | 0 warnings | 2 notes`.
-- GitHub Actions matrix: passed on all configured platforms.
-- R-hub matrix: passed on all configured platforms.
-
-The two local notes are expected:
-
-1. the package specifies C++17;
-2. the installed package size is dominated by the compiled shared library.
+- Local `R CMD check --as-cran`: `Status: OK` (`0 errors | 0 warnings | 0 notes`).
+- Local `R CMD check --as-cran` produced two informational entries only:
+  1. the package specifies C++17;
+  2. the installed package size is dominated by the compiled shared library.
+- GitHub Actions matrix: pending.
+- R-hub matrix: pending.
+- Manual GitHub FFBS cross-OS diagnostic: pending.
 
 ### Reverse dependencies
 
@@ -62,14 +64,12 @@ LinkingTo, or Suggests.
 
 ### Notes for CRAN
 
-1) Timing relative to version 1.1.0
+1) Timing relative to version 1.1.1
 
-- This update follows version 1.1.0 closely because the JSS prescreening
-  process identified reproducibility-interface concerns in the article archive.
-  While investigating those differences, we found and corrected stochastic
-  helper paths that should not depend on OpenMP worker RNG behavior. The update
-  also stabilizes the exAL scale-skewness default inference blocks. These
-  changes are backward compatible.
+- This update follows version 1.1.1 closely because the JSS replication audit
+  identified an additional platform-specific fixed-seed reproducibility issue
+  in the fast dynamic MCMC backend. The correction is narrowly scoped to the
+  covariance square root used for stochastic FFBS state simulation.
 
 2) CPU time during tests
 

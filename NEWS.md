@@ -1,3 +1,17 @@
+# exdqlm 1.1.2
+
+## Reproducibility fix
+- Changed the stochastic state simulation step in the fast C++ dynamic MCMC
+  FFBS backend to use a Cholesky covariance square root rather than an SVD
+  covariance square root. This avoids platform-dependent SVD bases in fixed-seed
+  multivariate-normal state draws while preserving the same Gaussian smoothing
+  target.
+- Added a direct multistate C++ FFBS repeatability test and extended the
+  fresh-process repeatability test to cover that path.
+- Added a manual GitHub Actions diagnostic that runs the same FFBS and small
+  fast-MCMC probes on Linux, macOS, and Windows, then compares the numerical
+  artifacts across operating systems.
+
 # exdqlm 1.1.1
 
 ## Reproducibility fix

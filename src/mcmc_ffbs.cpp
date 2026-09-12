@@ -12,6 +12,8 @@
  * Numerical policy:
  * - Covariance matrices are symmetrized after each update.
  * - SVD-based inversion is used for forecast covariance stabilization.
+ * - Stochastic state draws use a Cholesky square root, avoiding
+ *   platform-dependent SVD bases under fixed seeds.
  * - Invalid/non-positive scalar forecast variances are floored at 1e-12.
  */
 
@@ -42,22 +44,34 @@ arma::mat svd_inv(const arma::mat& M, double tol = 1e-12) {
   return U * arma::diagmat(s_inv) * U.t();
 }
 
-// Draw N(mean, cov) using SVD on the symmetrized covariance.
-arma::vec mvn_svd_draw(const arma::vec& mean, const arma::mat& cov, double tol = 0.0) {
+// Draw N(mean, cov) using a deterministic Cholesky square root.
+arma::vec mvn_chol_draw(const arma::vec& mean, const arma::mat& cov) {
   arma::mat S = symmetrize(cov);
-  arma::mat U, V;
-  arma::vec s;
-  arma::svd(U, s, V, S);
-  for (arma::uword i = 0; i < s.n_elem; ++i) {
-    if (!std::isfinite(s(i)) || s(i) < tol) {
-      s(i) = tol;
+  arma::mat U;
+  const double jitter_vals[] = {0.0, 1e-12, 1e-10, 1e-8};
+  bool chol_ok = false;
+
+  for (double jitter : jitter_vals) {
+    arma::mat S_try = S;
+    if (jitter > 0.0) {
+      S_try += jitter * arma::eye<arma::mat>(S_try.n_rows, S_try.n_cols);
+    }
+    S_try = symmetrize(S_try);
+    if (arma::chol(U, S_try, "upper")) {
+      chol_ok = true;
+      break;
     }
   }
+
+  if (!chol_ok) {
+    Rcpp::stop("Cholesky decomposition failed in C++ FFBS state draw.");
+  }
+
   arma::vec z(mean.n_elem);
   for (arma::uword i = 0; i < mean.n_elem; ++i) {
     z(i) = R::rnorm(0.0, 1.0);
   }
-  return mean + U * arma::diagmat(arma::sqrt(s)) * z;
+  return mean + U.t() * z;
 }
 
 } // namespace
@@ -177,7 +191,7 @@ Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG,
   }
 
   // Backward simulation recursion.
-  sam_theta.col(TT - 1) = mvn_svd_draw(m.col(TT - 1), C.slice(TT - 1), 0.0);
+  sam_theta.col(TT - 1) = mvn_chol_draw(m.col(TT - 1), C.slice(TT - 1));
   for (int t = TT - 2; t >= 0; --t) {
     arma::mat P = GG.slice(t + 1) * C.slice(t) * GG.slice(t + 1).t();
     arma::mat R = symmetrize(P + (df_mat % P));
@@ -185,7 +199,7 @@ Rcpp::List mcmc_ffbs_sample_cpp(const arma::cube& GG,
     arma::mat sB = C.slice(t) * GG.slice(t + 1).t() * invR;
     arma::vec sm_t = m.col(t) + sB * (sam_theta.col(t + 1) - GG.slice(t + 1) * m.col(t));
     arma::mat sC_t = symmetrize(C.slice(t) - sB * GG.slice(t + 1) * C.slice(t));
-    sam_theta.col(t) = mvn_svd_draw(sm_t, sC_t, 0.0);
+    sam_theta.col(t) = mvn_chol_draw(sm_t, sC_t);
   }
 
   return Rcpp::List::create(

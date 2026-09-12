@@ -63,6 +63,14 @@ Development (GitHub):
 pak::pak("AntonioAPDL/exdqlm")
 ```
 
+## Current release note
+
+Version 1.1.2 is a narrow reproducibility update to the fast C++
+dynamic MCMC backend. The FFBS state simulation step now uses a Cholesky
+covariance square root for stochastic multivariate-normal state draws,
+avoiding platform-dependent SVD bases under fixed seeds. The exported
+API and model specification workflow are unchanged.
+
 ## Why `exdqlm` is distinctive
 
 - **Dynamic Bayesian quantile state-space modeling** is the core use
@@ -263,7 +271,7 @@ head(fit$diagnostics$vb_trace[, c("iter", "elbo", "sigma", "gamma")])
 | `exdqlm.use_cpp_samplers` |  FALSE  | C++ samplers for posterior draws | same as above; keep OFF on CRAN/examples |
 | `exdqlm.use_cpp_postpred` |  FALSE  | C++ posterior predictive sampler | optional speed path after parity checks  |
 | `exdqlm.use_cpp_mcmc`     |  TRUE   | MCMC backend routing             | C++ forward-filtering backward-sampling (FFBS) by default for MCMC |
-| `exdqlm.cpp_mcmc_mode`    | `fast`  | MCMC mode (`strict`/`fast`)      | strict parity checks or fast C++ FFBS    |
+| `exdqlm.cpp_mcmc_mode`    | `fast`  | MCMC mode (`strict`/`fast`)      | strict parity checks or fast C++ FFBS; v1.1.2 uses a Cholesky state-draw square root for fixed-seed platform stability |
 
 Set with:
 
