@@ -1,7 +1,8 @@
 # Independent Q-DESN mean-readout-state forecast v2
 
-Status: verified implementation plan; no implementation or scientific run has
-been launched.
+Status: superseded by
+`INDEPENDENT_QDESN_MEAN_READOUT_STATE_FORECAST_V3_IMPLEMENTATION_BLUEPRINT_2026-09-24.md`;
+no implementation or scientific run was launched from v2.
 
 This plan supersedes
 `INDEPENDENT_QDESN_MEAN_READOUT_STATE_FORECAST_V1_PLAN_2026-09-24.md`.
