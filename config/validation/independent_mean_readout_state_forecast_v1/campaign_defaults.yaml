@@ -1,0 +1,34 @@
+schema_version: independent_mean_readout_state_forecast_v1
+execution_host: muscat.be.ucsc.edu
+scheduler: load_balanced
+campaign_workers: 8
+max_active_workers: 8
+threads_per_worker: 1
+native_artifact_consistency_tolerance: 1.0e-6
+fit_jobs: 96
+forecast_jobs: 46
+source_identities: 44
+scored_targets: 1000
+forecast_horizon: 30
+origin_stride: 30
+candidate_chunk_size: 256
+canary_source_ids:
+  - imi_v1_source_007
+  - imi_v1_source_010
+  - imi_v1_source_044
+  - imi_v1_source_084
+  - idolp_v2_winner_three_chain_pool
+stability_checks:
+  odd_even: true
+  replicate_innovations: true
+  replicate_seed_offset: 104729
+decision_rules:
+  median_interval_width_ratio_max: 1.0
+  improved_interval_role_fraction_min: 0.5
+  median_point_score_ratio_max: 1.05
+  maximum_point_score_ratio_max: 1.25
+recursion_mode_native: posterior_predictive
+recursion_mode_candidate: posterior_predictive_mean_readout_state
+metric_estimator: mean_readout_state_quantile_draw_metric_equal_tailed_95cri_v1
+old_imi_job_plan_sha256: d34ca859ad1e4d46f7c6700f8790d17c51363037d1abf534ee80efb5e9a2a76a
+old_imi_materialization_sha256: 21a4aea427ed17ea163ed3cea1f32759d33bdf907c49f2b437fede5097da0cc3

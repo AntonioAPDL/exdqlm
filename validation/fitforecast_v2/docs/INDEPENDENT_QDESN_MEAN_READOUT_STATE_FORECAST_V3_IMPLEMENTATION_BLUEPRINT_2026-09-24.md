@@ -287,7 +287,9 @@ yrep[s,o,h] = draw_working_likelihood(
 ```
 
 `yrep` updates the particle-specific response histories at lead `h+1`.
-`qdraw` is the only object used for forecast MAE, RMSE, and check-loss draws.
+`qdraw` is the only object used for the official forecast-MAE and check-loss
+draws. Forecast RMSE is retained as a point/path diagnostic because the frozen
+native authority does not provide draw-level forecast RMSE for every source.
 
 The state-particle index and posterior-draw index use the same chain-balanced
 posterior ensemble in the primary implementation. The common `xbar` removes
@@ -610,15 +612,22 @@ shorter scientific fits. Cover at least:
 The smoke determines peak memory, stable chunk size, output schema, basis
 guard behavior, and approximate runtime. It does not make scientific claims.
 
-### Stage D: native replay gate
+### Stage D: native-authority artifact gate
 
-For every reconstructed smoke capsule, rerun the native estimator with the
-frozen draw selection and innovations. Verify within `1e-6`:
+Before reconstruction, materialization stages all 96 retained historical
+native metric-draw artifacts behind immutable SHA-256 hashes. Each frozen fit
+reconstruction then executes the unchanged native estimator once and exports a
+compact native metric-draw artifact and point path. The fit worker must reproduce
+the staged historical forecast-MAE and check-loss summaries within `1e-6` before
+its capsules become eligible. This proves that the frozen request, package,
+source trajectory, posterior draw selection, and scoring path still reproduce
+the published authority.
 
-- point forecast MAE and check loss;
-- posterior score means, medians, and interval endpoints;
-- origin/lead indexing and output scale;
-- chain and source identities.
+The forecast worker hash-verifies and reuses the newly reconstructed compact
+native artifacts rather than repeat the expensive recursion. It independently
+recomputes posterior score means, standard deviations, medians, and interval
+endpoints within `1e-6`, and verifies the 1,000-target origin/lead grid, output
+scale, posterior source-draw indices, chain identity, and feature-basis hash.
 
 A failure is diagnosed as provenance, package, RNG, draw-selection, or scale
 drift. Do not proceed to the full campaign and do not loosen the tolerance.
@@ -634,17 +643,21 @@ capsule already exists.
 ### Stage F: full paired forecast replay
 
 Run all 46 compatible-basis evaluations through the same eight-slot queue.
-Native and new forecasts use the same posterior capsule and pre-generated
-innovations. For compatible MCMC chains, pool chain-balanced draws before
-calculating the common state. For `idolp`, run three basis-specific forecasts
-and aggregate only after scoring.
+Native and new forecasts use the same posterior draws and exactly paired
+innovations. The replay preserves the native two-stream pipeline contract: the
+complete 30-step origin blocks consume the frozen forecast seed, while the
+truncated tail block consumes that seed plus 31. If chain balancing selects a
+strict subset, generate the original full draw stream first and then select its
+columns, so draw indices remain RNG-aligned. For compatible MCMC chains, pool
+chain-balanced draws before calculating the common state. For `idolp`, run
+three basis-specific forecasts and aggregate only after scoring.
 
 ### Stage G: score and diagnose
 
 For every source, calculate:
 
-- point-path forecast MAE and check loss;
-- draw-level forecast MAE, RMSE, and check loss;
+- point-path forecast MAE, RMSE, and check loss;
+- draw-level forecast MAE and check loss;
 - posterior mean, median, SD, and 2.5%/97.5% limits;
 - interval width and center shift relative to native recursion;
 - lead profiles, origin profiles, and origin-by-lead heatmaps;
@@ -875,7 +888,7 @@ Retain through scientific closeout:
 
 Do not retain:
 
-- duplicate full fitted objects after capsule and native replay verification;
+- duplicate full fitted objects after capsule and native-artifact verification;
 - full candidate-state arrays;
 - duplicate native path matrices already represented by verified compact
   artifacts;
@@ -890,7 +903,7 @@ lanes. The old native evidence remains immutable, providing the rollback path.
 | Risk | Consequence | Mitigation |
 |---|---|---|
 | Pooling incompatible bases | Meaningless state and beta averages | Content-addressed basis hash and hard stop |
-| Historical environment drift | Forecast change confounded with refit change | Source-specific reconstruction environment and native replay gate |
+| Historical environment drift | Forecast change confounded with refit change | Source-specific reconstruction plus hash-staged historical and same-run native-artifact gates |
 | Mean computed before nonlinear transform | Wrong estimator | Average complete post-transform readout feature |
 | Hidden future-data leakage | Optimistic forecasts | Origin-index tests and no-oracle recursion contract |
 | Excess memory | Worker or host failure | Streaming chunks, smoke profiling, fixed eight-worker cap, and hard preflight |
@@ -915,24 +928,37 @@ The following are complete now:
 - resource, storage, rollback, and integration policies specified;
 - no active IND job or launch requiring interruption.
 
-The following remain implementation work and are deliberately not performed:
+The implementation layer is now complete on the dedicated IND validation
+branch:
 
-- package helper and dispatch implementation;
-- tests and compact fixtures;
-- authority materializer and capsule exporters;
-- smoke and native replay;
-- 96 frozen reconstructions;
-- 46 basis forecast evaluations;
-- full score/diagnostic closeout;
-- promotion-candidate and coordinator handoff.
+- package helper and explicit recursion dispatch;
+- focused package and campaign regression tests;
+- content-addressed basis and posterior capsule export;
+- frozen authority materializer for 96 fit reconstructions, 46 basis forecast
+  evaluations, 44 source identities, and 72 article metric roles;
+- dependency-aware canary/full orchestration with exactly eight one-core
+  workers;
+- staged historical-authority reproduction and same-run native-artifact
+  consistency checks at absolute tolerance `1e-6`;
+- score, stability, dispersion, health, closeout, verification, and
+  coordinator-handoff tooling;
+- storage-light removal of fitted-model binaries only after capsule and native
+  evidence have been hashed and verified.
+
+The remaining work is runtime execution, not software construction. The
+launcher must first pass the full-source canary gate, then complete all 96 fit
+reconstructions and 46 forecast evaluations before closeout can make a
+scientific decision. Partial results are never promotable.
 
 ## 18. Final recommendation
 
-Implement this v3 blueprint next, beginning with basis hashing, the isolated R
-estimator, and unit tests. Launch no expensive reconstruction until the
-representative smoke and native replay gates pass. Once those gates pass,
-launch the full campaign on Muscat with exactly eight concurrent one-core
-workers using the background contract in Section 14.
+Execute the implemented v3 campaign on Muscat only after the focused tests,
+installed-package check, representative full-source canary, and
+native-artifact consistency gate pass. The production launcher then uses
+exactly eight concurrent one-core workers under the background contract in
+Section 14. The immutable materialization and launch manifests record the
+execution commit, selected CPU IDs, thread caps, source/config hashes, and
+complete dependency graph.
 
 This is the most direct and efficient test of the advisors' proposal because it
 holds every fitted model choice fixed and changes only the recursive forecast
