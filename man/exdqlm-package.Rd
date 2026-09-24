@@ -89,6 +89,16 @@ by default.
 }
 }
 
+\section{Release changes in 1.1.2}{
+
+\itemize{
+\item The fast C++ dynamic MCMC FFBS backend now uses a Cholesky
+covariance square root for stochastic state simulation. This avoids
+platform-dependent SVD bases in fixed-seed multivariate-normal state
+draws while preserving the same Gaussian smoothing target.
+}
+}
+
 \section{Release changes in 1.1.1}{
 
 \itemize{
@@ -154,7 +164,7 @@ diagnostic and keeps advanced KL sensitivity details under
 \item \code{options(exdqlm.use_cpp_samplers = TRUE|FALSE)} – C++ samplers (optional; default FALSE).
 \item \code{options(exdqlm.use_cpp_postpred = TRUE|FALSE)} – C++ posterior predictive sampler (optional; default FALSE).
 \item \code{options(exdqlm.use_cpp_mcmc = TRUE|FALSE)} – MCMC backend routing (optional; default TRUE).
-\item \code{options(exdqlm.cpp_mcmc_mode = "strict"|"fast")} – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast").
+\item \code{options(exdqlm.cpp_mcmc_mode = "strict"|"fast")} – strict keeps legacy R-kernel parity; fast enables C++ FFBS in MCMC (default "fast"). In version 1.1.2 and later, fast-mode stochastic state draws use a Cholesky covariance square root for fixed-seed platform stability.
 \item \code{options(exdqlm.cpp_threads = numeric)} – Reserved compatibility
 option for eligible compiled paths. Stochastic compiled samplers use
 serial \proglang{R}-controlled RNG streams in version 1.1.1 and later.

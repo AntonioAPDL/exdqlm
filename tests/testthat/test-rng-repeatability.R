@@ -1,3 +1,18 @@
+ffbs_repeatability_inputs <- function() {
+  TT <- 6L
+  GG_base <- matrix(c(1.00, 0.00, 0.20, 0.95), nrow = 2L, byrow = TRUE)
+  list(
+    GG = array(rep(GG_base, TT), dim = c(2L, 2L, TT)),
+    m0 = c(0.2, -0.1),
+    C0 = matrix(c(1.2, 0.15, 0.15, 0.8), nrow = 2L),
+    FF = rbind(rep(1, TT), seq(-0.4, 0.6, length.out = TT)),
+    y = c(0.12, -0.06, 0.19, 0.03, 0.21, 0.08),
+    ex_f = rep(0.04, TT),
+    ex_q = rep(0.85, TT),
+    df_mat = exdqlm:::make_df_mat(c(0.96, 0.91), c(1L, 1L), 2L)
+  )
+}
+
 test_that("compiled stochastic helpers obey the R seed", {
   old_env <- Sys.getenv(c("OMP_NUM_THREADS", "OMP_THREAD_LIMIT"), unset = NA_character_)
   on.exit({
@@ -59,6 +74,35 @@ test_that("compiled stochastic helpers obey the R seed", {
     n_samp = 5L, TT = 3L, sC = sC, sm = sm, p = 1L, J = 1L
   )
   expect_false(identical(mvn_1, mvn_3))
+})
+
+test_that("C++ FFBS state simulation is repeatable for multistate models", {
+  x <- ffbs_repeatability_inputs()
+
+  set.seed(2026091201)
+  ffbs_1 <- exdqlm:::mcmc_ffbs_sample_cpp(
+    GG = x$GG, m0 = x$m0, C0 = x$C0, FF = x$FF,
+    y = x$y, ex_f = x$ex_f, ex_q = x$ex_q, df_mat = x$df_mat
+  )
+  set.seed(2026091201)
+  ffbs_2 <- exdqlm:::mcmc_ffbs_sample_cpp(
+    GG = x$GG, m0 = x$m0, C0 = x$C0, FF = x$FF,
+    y = x$y, ex_f = x$ex_f, ex_q = x$ex_q, df_mat = x$df_mat
+  )
+
+  expect_identical(ffbs_1$sam.theta, ffbs_2$sam.theta)
+  expect_identical(
+    ffbs_1$standard.forecast.errors,
+    ffbs_2$standard.forecast.errors
+  )
+  expect_true(all(is.finite(ffbs_1$sam.theta)))
+
+  set.seed(2026091202)
+  ffbs_3 <- exdqlm:::mcmc_ffbs_sample_cpp(
+    GG = x$GG, m0 = x$m0, C0 = x$C0, FF = x$FF,
+    y = x$y, ex_f = x$ex_f, ex_q = x$ex_q, df_mat = x$df_mat
+  )
+  expect_false(identical(ffbs_1$sam.theta, ffbs_3$sam.theta))
 })
 
 test_that("dynamic MCMC fast path is repeatable under a fixed seed", {
@@ -147,6 +191,27 @@ test_that("stochastic helpers are repeatable across fresh R processes and thread
       "  sts_mu = c(-0.3, 0.0, 0.2, 0.6),",
       "  sts_sig2 = c(0.6, 0.9, 1.2, 1.5)",
       ")",
+      "make_ffbs_inputs <- function() {",
+      "  TT <- 6L",
+      "  GG_base <- matrix(c(1.00, 0.00, 0.20, 0.95), nrow = 2L, byrow = TRUE)",
+      "  list(",
+      "    GG = array(rep(GG_base, TT), dim = c(2L, 2L, TT)),",
+      "    m0 = c(0.2, -0.1),",
+      "    C0 = matrix(c(1.2, 0.15, 0.15, 0.8), nrow = 2L),",
+      "    FF = rbind(rep(1, TT), seq(-0.4, 0.6, length.out = TT)),",
+      "    y = c(0.12, -0.06, 0.19, 0.03, 0.21, 0.08),",
+      "    ex_f = rep(0.04, TT),",
+      "    ex_q = rep(0.85, TT),",
+      "    df_mat = exdqlm:::make_df_mat(c(0.96, 0.91), c(1L, 1L), 2L)",
+      "  )",
+      "}",
+      "ffbs_inputs <- make_ffbs_inputs()",
+      "set.seed(2026091201)",
+      "ffbs <- exdqlm:::mcmc_ffbs_sample_cpp(",
+      "  GG = ffbs_inputs$GG, m0 = ffbs_inputs$m0, C0 = ffbs_inputs$C0,",
+      "  FF = ffbs_inputs$FF, y = ffbs_inputs$y, ex_f = ffbs_inputs$ex_f,",
+      "  ex_q = ffbs_inputs$ex_q, df_mat = ffbs_inputs$df_mat",
+      ")",
       "model <- as.exdqlm(list(m0 = 0, C0 = matrix(1, 1, 1), FF = 1, GG = 1))",
       "set.seed(2026082413)",
       "fit <- exdqlmMCMC(",
@@ -159,6 +224,7 @@ test_that("stochastic helpers are repeatable across fresh R processes and thread
       "saveRDS(",
       "  list(",
       "    gig = gig, trn = trn,",
+      "    ffbs_theta = ffbs$sam.theta, ffbs_sfe = ffbs$standard.forecast.errors,",
       "    gamma = fit$samp.gamma, theta = fit$samp.theta,",
       "    post_pred = fit$samp.post.pred",
       "  ),",
