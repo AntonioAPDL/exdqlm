@@ -165,6 +165,14 @@ testthat::test_that("reconstructed native scores must reproduce frozen authority
   testthat::expect_false(parity$pass[parity$metric == "forecast_mae"])
 })
 
+testthat::test_that("scheduler status labels preserve an empty job set", {
+  testthat::expect_identical(imrs_v1_label_ids("fit:", character()), character())
+  testthat::expect_identical(
+    imrs_v1_label_ids("forecast:", c("a", "b")),
+    c("forecast:a", "forecast:b")
+  )
+})
+
 testthat::test_that("campaign scripts preserve eight-core lane ownership", {
   scripts <- file.path(harness_root, "scripts", c(
     "materialize_independent_mean_readout_state_forecast_v1.R",

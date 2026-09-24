@@ -150,14 +150,18 @@ validate_existing_statuses <- function() {
     status_value("forecast", id)
   }, character(1L))
   bad <- c(
-    paste0("fit:", fit_plan$job_id[fit_status %in% c("FAILED", "CORRUPT")]),
-    paste0("forecast:", forecast_plan$forecast_id[
+    imrs_v1_label_ids(
+      "fit:", fit_plan$job_id[fit_status %in% c("FAILED", "CORRUPT")]
+    ),
+    imrs_v1_label_ids("forecast:", forecast_plan$forecast_id[
       fc_status %in% c("FAILED", "CORRUPT")
     ])
   )
   running <- c(
-    paste0("fit:", fit_plan$job_id[fit_status == "RUNNING"]),
-    paste0("forecast:", forecast_plan$forecast_id[fc_status == "RUNNING"])
+    imrs_v1_label_ids("fit:", fit_plan$job_id[fit_status == "RUNNING"]),
+    imrs_v1_label_ids(
+      "forecast:", forecast_plan$forecast_id[fc_status == "RUNNING"]
+    )
   )
   if (length(bad)) stop("Terminal failed statuses exist: ", paste(bad, collapse = ", "))
   if (length(running)) {

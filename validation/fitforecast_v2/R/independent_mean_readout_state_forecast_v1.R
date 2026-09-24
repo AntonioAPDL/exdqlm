@@ -692,6 +692,12 @@ imrs_v1_split_ids <- function(x) {
   out[nzchar(out)]
 }
 
+imrs_v1_label_ids <- function(prefix, ids) {
+  ids <- as.character(ids)
+  if (!length(ids)) return(character())
+  paste0(as.character(prefix)[[1L]], ids)
+}
+
 imrs_v1_flatten_dispersion <- function(lattice) {
   rows <- list()
   k <- 0L
