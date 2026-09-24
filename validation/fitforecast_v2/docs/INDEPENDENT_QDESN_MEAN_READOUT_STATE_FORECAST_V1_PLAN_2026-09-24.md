@@ -1,6 +1,8 @@
 # Independent Q-DESN mean-readout-state forecast v1
 
-Status: design frozen for implementation; no scientific run launched.
+Status: superseded by
+`INDEPENDENT_QDESN_MEAN_READOUT_STATE_FORECAST_V2_PLAN_2026-09-24.md`;
+no scientific run was launched from v1.
 
 ## 1. Scientific question
 
@@ -358,4 +360,3 @@ DESN/tau0 screen. Do not refit DQLM/exDQLM, do not reconsider winners, and do
 not alter fit metrics. Start with implementation tests and a paired two-cell
 smoke. Launch the complete frozen-source replay only after the native replay
 gate proves that the comparison is scientifically anchored.
-
