@@ -72,7 +72,9 @@ The audit was performed on 2026-09-24 from the dedicated planning worktree:
 | Article-v14 authority inspected read-only | Article-v2 `origin/main` at `757522db0f85815244370ec92a194de132268883` |
 | Package version in planning tree | `1.1.2` |
 | Active jobs owned by this lane | none |
+| Execution host | `muscat.be.ucsc.edu` |
 | Hardware observed | 64 logical cores, 479 GiB available RAM, 311 GiB free on `/data` |
+| Reserved campaign capacity | 8 concurrent one-core workers |
 
 The Article-v2 working checkout was on an unrelated dirty GloFAS branch during
 the audit. It was not modified. Article evidence was read directly from
@@ -561,7 +563,8 @@ replay, and downstream score reconstruction all pass.
 | `validation/fitforecast_v2/scripts/materialize_independent_mean_readout_state_forecast_v1.R` | Freeze article source-role ledger and job plans | Read Article-v2; never write it |
 | `validation/fitforecast_v2/scripts/run_independent_mean_readout_state_fit_job.R` | Exact fit reconstruction and capsule export | One core, source environment pinned |
 | `validation/fitforecast_v2/scripts/run_independent_mean_readout_state_forecast_job.R` | Paired native/new forecast replay by compatible basis | Atomic outputs and resumable markers |
-| `validation/fitforecast_v2/scripts/orchestrate_independent_mean_readout_state_forecast_v1.R` | Capacity-aware scheduler | Maximum 20 workers after memory probe |
+| `validation/fitforecast_v2/scripts/orchestrate_independent_mean_readout_state_forecast_v1.R` | Dependency-aware load-balanced scheduler | Fixed maximum of eight one-core workers |
+| `validation/fitforecast_v2/scripts/launch_independent_mean_readout_state_forecast_v1.sh` | Muscat preflight, one-thread environment, and background `tmux` launch | Exactly eight workers; no duplicate controller |
 | `validation/fitforecast_v2/scripts/healthcheck_independent_mean_readout_state_forecast_v1.R` | Read-only progress and integrity report | Never mutates run state |
 | `validation/fitforecast_v2/scripts/closeout_independent_mean_readout_state_forecast_v1.R` | Full-surface comparison and decision packet | Partial surfaces cannot close |
 | `validation/fitforecast_v2/scripts/verify_independent_mean_readout_state_forecast_v1.R` | Hash/schema/count/replay verifier | Nonzero exit on any mismatch |
@@ -622,16 +625,19 @@ drift. Do not proceed to the full campaign and do not loosen the tolerance.
 
 ### Stage E: frozen fit reconstruction
 
-Run the 18 VB and 78 MCMC reconstructions in resumable waves. Export capsules
-atomically. Each fit receives one process and one thread. Do not refit a source
-whose verified capsule already exists.
+Run the 18 VB and 78 MCMC reconstructions through the eight-slot Muscat queue.
+Export capsules atomically. Each fit receives one process and one thread. As
+soon as a compatible basis group has every required capsule, its forecast job
+becomes eligible for the same queue. Do not refit a source whose verified
+capsule already exists.
 
 ### Stage F: full paired forecast replay
 
-Run all 46 compatible-basis evaluations. Native and new forecasts use the same
-posterior capsule and pre-generated innovations. For compatible MCMC chains,
-pool chain-balanced draws before calculating the common state. For `idolp`,
-run three basis-specific forecasts and aggregate only after scoring.
+Run all 46 compatible-basis evaluations through the same eight-slot queue.
+Native and new forecasts use the same posterior capsule and pre-generated
+innovations. For compatible MCMC chains, pool chain-balanced draws before
+calculating the common state. For `idolp`, run three basis-specific forecasts
+and aggregate only after scoring.
 
 ### Stage G: score and diagnose
 
@@ -739,7 +745,19 @@ If accepted, the promotion packet contains:
 The integration coordinator independently reviews, compiles, merges, and
 publishes. This lane never edits or pushes Article-v2 main or Overleaf.
 
-## 14. Resource and scheduler policy
+## 14. Muscat launch and scheduler policy
+
+The production campaign is pinned to `muscat.be.ucsc.edu`. It uses a local
+background controller in a named `tmux` session, following the repository's
+existing load-balanced orchestration pattern. It does not use Slurm, PBS, or a
+remote scheduler.
+
+The fixed campaign limit is eight concurrent workers. "All in parallel" means
+that every scientifically independent ready job is eligible for immediate
+parallel execution, while no more than eight one-core workers run at once.
+Stages with scientific dependencies remain ordered: a forecast cannot start
+until all capsules required by its basis group verify, and closeout cannot
+start until the full forecast surface is terminal.
 
 Every fit or forecast worker uses one process with:
 
@@ -750,14 +768,83 @@ MKL_NUM_THREADS=1
 VECLIB_MAXIMUM_THREADS=1
 ```
 
-After the smoke measures peak resident memory, choose concurrency as:
+The committed runtime defaults must include:
 
 ```text
-min(20, available logical cores, floor((available RAM - safety headroom) /
-                                      observed peak worker RAM))
+execution_host: muscat.be.ucsc.edu
+scheduler: load_balanced
+campaign_workers: 8
+max_active_workers: 8
+threads_per_worker: 1
 ```
 
-Use a 25% RAM safety headroom and leave capacity for unrelated active projects.
+Eight is a hard ceiling, not an adaptive target above eight. The smoke still
+measures peak resident memory. If eight observed workers would violate a 25%
+RAM safety headroom, the launch must stop for review rather than silently
+reducing or increasing the declared campaign capacity.
+
+### 14.1 Dependency-aware eight-worker queue
+
+The controller maintains one queue containing:
+
+1. capsule reconstruction jobs whose source evidence is fully resolved;
+2. VB forecast jobs whose single capsule verifies;
+3. compatible-basis MCMC forecast jobs whose three chain capsules verify;
+4. basis-specific `idolp` forecasts whose corresponding chain capsule verifies;
+5. deterministic score and verification jobs after their forecast dependency
+   completes.
+
+The controller continuously backfills idle slots from ready work. At most eight
+fit or forecast workers may be alive in aggregate; it must not run eight fits
+and eight forecasts simultaneously. Tiny deterministic aggregation steps run
+in the controller only when they cannot oversubscribe the eight-core contract.
+
+Within a priority class, use longest-observed-runtime-first scheduling after
+the smoke estimates runtimes. This reduces the final long-job tail without
+changing scientific order. A job's output never depends on queue order because
+all seeds, posterior rows, innovations, and source hashes are frozen.
+
+### 14.2 Muscat preflight
+
+Immediately before launch, the controller must verify:
+
+- `hostname -f` is exactly `muscat.be.ucsc.edu`;
+- at least eight logical cores are visible;
+- the dedicated branch and expected implementation commit are checked out;
+- the worktree is clean and synchronized with its upstream;
+- no earlier campaign controller or worker is active;
+- all eight worker thread environments resolve to one thread;
+- `/data` has sufficient free space for the dry-run estimate plus 25%;
+- available memory exceeds eight times smoke peak RSS plus 25% headroom;
+- all authority, config, package, and capsule-schema hashes match;
+- the materialized plan contains 96 reconstruction jobs and 46 basis forecast
+  evaluations before reuse is applied.
+
+Any failed preflight is a hard stop. Existing unrelated Muscat jobs and tmux
+sessions must not be stopped or modified.
+
+### 14.3 Background launch contract
+
+The implementation must provide one checked launch wrapper. The wrapper sets
+and verifies the one-thread environment, performs the Muscat preflight, records
+the launch manifest, and starts the named `tmux` controller. Its eventual
+invocation should have this shape:
+
+```bash
+cd /data/jaguir26/local/src/exdqlm__wt__independent_fixed_state_forecast_plan_20260924
+validation/fitforecast_v2/scripts/launch_independent_mean_readout_state_forecast_v1.sh \
+  --workers 8 --scheduler load_balanced --background --resume
+```
+
+The wrapper uses the fixed session name
+`ind_qdesn_mean_readout_state_v1_8core`. It may add frozen run-tag and manifest
+arguments, but it may not change the eight-worker or one-thread-per-worker
+contract. The controller PID, tmux session, start time, branch HEAD, command,
+environment, and run root must be written to the orchestration manifest before
+the first worker starts.
+
+### 14.4 Runtime observability
+
 The scheduler must provide:
 
 - atomic `PLANNED`, `RUNNING`, `SUCCESS`, and `FAILED` markers;
@@ -769,7 +856,12 @@ The scheduler must provide:
 - a read-only health reporter with completed, running, failed, and remaining
   counts by stage and inference method.
 
-No scheduler or job is created by this planning document.
+The health report must also show active worker count out of eight, queued-ready
+jobs, dependency-blocked jobs, peak RSS, disk growth, and estimated completion
+based on completed jobs of the same class.
+
+No scheduler, tmux session, or scientific job is created by this planning
+document.
 
 ## 15. Storage, cleanup, and rollback
 
@@ -801,7 +893,7 @@ lanes. The old native evidence remains immutable, providing the rollback path.
 | Historical environment drift | Forecast change confounded with refit change | Source-specific reconstruction environment and native replay gate |
 | Mean computed before nonlinear transform | Wrong estimator | Average complete post-transform readout feature |
 | Hidden future-data leakage | Optimistic forecasts | Origin-index tests and no-oracle recursion contract |
-| Excess memory | Worker or host failure | Streaming chunks, smoke profiling, capacity formula |
+| Excess memory | Worker or host failure | Streaming chunks, smoke profiling, fixed eight-worker cap, and hard preflight |
 | Monte Carlo noise in common state | Artificial method differences | Frozen innovations and split/replicate integration checks |
 | Cell-wise estimator selection | Hidden tuning and biased comparison | One global recursion decision for the complete Q-DESN surface |
 | Partial article replacement | Incoherent table | No promotion until all 36 Q-DESN rows are complete |
@@ -838,7 +930,9 @@ The following remain implementation work and are deliberately not performed:
 
 Implement this v3 blueprint next, beginning with basis hashing, the isolated R
 estimator, and unit tests. Launch no expensive reconstruction until the
-representative smoke and native replay gates pass.
+representative smoke and native replay gates pass. Once those gates pass,
+launch the full campaign on Muscat with exactly eight concurrent one-core
+workers using the background contract in Section 14.
 
 This is the most direct and efficient test of the advisors' proposal because it
 holds every fitted model choice fixed and changes only the recursive forecast
