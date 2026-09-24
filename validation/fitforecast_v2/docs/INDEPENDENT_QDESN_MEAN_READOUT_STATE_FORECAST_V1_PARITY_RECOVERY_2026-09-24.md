@@ -288,3 +288,25 @@ Rollback is non-destructive: retain the failed and fresh run roots, revert the
 dedicated repair commit if necessary, and leave the current article authority
 unchanged. No reset, force-push, cross-lane cleanup, or modification of another
 worktree is part of this plan.
+
+## 11. Endpoint-review recovery amendment
+
+The fresh production root later stopped after one MCMC chain passed the row,
+finite, mean, familywise KS, and interval-overlap checks but missed only the
+per-chain interval-endpoint threshold. The balanced three-chain source passed
+the complete unchanged policy for both metrics. The campaign therefore uses a
+documented recovery amendment: an endpoint-only MCMC chain may remain pending
+until the forecast worker applies the original hard gate to the balanced source
+pool. Core incompatibility and all VB incompatibility remain terminal.
+
+The diagnosis, exact pooled evidence, prior-semantics audit, and next-stage
+variance-attribution plan are frozen in:
+
+```text
+validation/fitforecast_v2/docs/
+  INDEPENDENT_QDESN_RHS_VARIANCE_ATTRIBUTION_AND_RUN_RECOVERY_2026-09-24.md
+```
+
+The amendment archives the original materialization manifest and artifact
+ledger before recording changed runtime hashes. It neither relaxes a numerical
+threshold nor changes any model, prior, seed, score, or candidate forecast.

@@ -36,6 +36,27 @@ materialized <- ffv2_read_csv(
 )
 closeout <- imrs_v1_read_json(file.path(state_root, "closeout", "closeout_manifest.json"))
 closeout_artifacts <- ffv2_read_csv(closeout$artifact_manifest_path)
+recovery_amendment <- materialization_manifest$recovery_amendment %||% NULL
+recovery_amendment_pass <- if (is.null(recovery_amendment)) {
+  TRUE
+} else {
+  record_path <- normalizePath(
+    recovery_amendment$record_path, winslash = "/", mustWork = TRUE
+  )
+  record <- imrs_v1_read_json(record_path)
+  identical(
+    ffv2_file_sha256(record_path), as.character(recovery_amendment$record_sha256)
+  ) && identical(
+    as.character(record$recovery_id),
+    as.character(recovery_amendment$recovery_id)
+  ) && identical(
+    ffv2_file_sha256(record$original_manifest_copy),
+    as.character(recovery_amendment$original_materialization_manifest_sha256)
+  ) && identical(
+    ffv2_file_sha256(record$original_artifact_copy),
+    as.character(recovery_amendment$original_artifact_manifest_sha256)
+  )
+}
 role_comparison <- ffv2_read_csv(
   file.path(state_root, "closeout", "role_level_comparison.csv")
 )
@@ -50,6 +71,17 @@ native_authority <- ffv2_read_csv(
     state_root, "closeout", "historical_native_authority_compatibility.csv"
   )
 )
+native_authority <- imrs_v1_complete_compatibility_fields(native_authority)
+native_authority_source_pool <- ffv2_read_csv(file.path(
+  state_root, "closeout",
+  "historical_native_authority_source_pool_compatibility.csv"
+))
+native_authority_decisions <- lapply(fit_plan$job_id, function(id) {
+  rows <- native_authority[native_authority$fit_job_id == id, , drop = FALSE]
+  imrs_v1_fit_compatibility_decision(
+    rows, fit_plan$inference[match(id, fit_plan$job_id)]
+  )
+})
 innovation_pairing <- ffv2_read_csv(
   file.path(state_root, "closeout", "innovation_pairing_ledger.csv")
 )
@@ -93,6 +125,7 @@ checks <- c(
   fits_success = all(fit_success),
   forecasts_success = all(forecast_success),
   materialized_hashes = all(materialized_hashes == materialized$sha256),
+  recovery_amendment = isTRUE(recovery_amendment_pass),
   closeout_hashes = all(closeout_hashes == closeout_artifacts$sha256),
   role_comparison_rows = nrow(role_comparison) == 72L,
   source_interval_rows = nrow(source_intervals) == 44L * 2L * 2L,
@@ -104,7 +137,9 @@ checks <- c(
     max(parity$max_abs_difference) <= imrs_v1_tolerance,
   historical_native_authority_compatibility =
     nrow(native_authority) == compatibility_policy$familywise_comparisons &&
-    all(native_authority$pass) &&
+    all(vapply(
+      native_authority_decisions, `[[`, logical(1L), "accepted"
+    )) &&
     all(native_authority$row_count_pass) &&
     all(native_authority$finite_contract) &&
     all(native_authority$policy_schema_version ==
@@ -112,8 +147,13 @@ checks <- c(
     all(native_authority$authority_package_version ==
           compatibility_policy$source_package_version) &&
     all(native_authority$current_package_version ==
-          execution_package_version) &&
-    all(native_authority$gate_mode %in% c("exact", "distributional")),
+          execution_package_version),
+  historical_native_authority_source_pool =
+    nrow(native_authority_source_pool) ==
+      compatibility_policy$metrics_per_fit * nrow(forecast_plan) &&
+    all(native_authority_source_pool$pass) &&
+    all(native_authority_source_pool$row_count_pass) &&
+    all(native_authority_source_pool$finite_contract),
   posterior_draw_alignment =
     setequal(names(alignment_counts), fit_plan$job_id) &&
     setequal(names(pairing_counts), fit_plan$job_id) &&

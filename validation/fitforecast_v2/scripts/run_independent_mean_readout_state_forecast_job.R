@@ -66,6 +66,22 @@ tryCatch({
   if (any(vapply(fit_status, function(x) !identical(x$status, "SUCCESS"), logical(1L)))) {
     stop("One or more forecast dependencies are not successful.", call. = FALSE)
   }
+  fit_configs <- lapply(seq_len(nrow(rows)), function(i) {
+    path <- normalizePath(rows$config_path[[i]], winslash = "/", mustWork = TRUE)
+    if (!identical(ffv2_file_sha256(path), rows$config_sha256[[i]])) {
+      stop("Fit configuration hash mismatch: ", rows$job_id[[i]], call. = FALSE)
+    }
+    ffv2_read_json(path)
+  })
+  policy_hashes <- vapply(fit_configs, function(x) {
+    imrs_v1_object_sha256(x$native_authority$compatibility_policy)
+  }, character(1L))
+  if (length(unique(policy_hashes)) != 1L) {
+    stop("Forecast dependencies use incompatible authority policies.", call. = FALSE)
+  }
+  compatibility_policy <- imrs_v1_historical_compatibility_policy(
+    fit_configs[[1L]]$native_authority$compatibility_policy
+  )
 
   bases <- Map(function(row, stat) {
     path <- normalizePath(stat$basis_capsule_path, winslash = "/", mustWork = TRUE)
@@ -169,6 +185,7 @@ tryCatch({
     ffv2_read_csv(path)
   }
   native_draw_blocks <- vector("list", length(fit_status))
+  authority_draw_blocks <- vector("list", length(fit_status))
   native_path_blocks <- vector("list", length(fit_status))
   parity_rows <- list()
   alignment_rows <- list()
@@ -177,6 +194,11 @@ tryCatch({
     expected <- read_verified(
       stat$native_metric_draws_path, stat$native_metric_draws_sha256,
       paste0("Native metric draws for ", rows$job_id[[i]])
+    )
+    authority <- read_verified(
+      fit_configs[[i]]$native_authority$metric_draws_path,
+      fit_configs[[i]]$native_authority$metric_draws_sha256,
+      paste0("Historical authority draws for ", rows$job_id[[i]])
     )
     expected_summary <- read_verified(
       stat$native_metric_summary_path, stat$native_metric_summary_sha256,
@@ -205,6 +227,18 @@ tryCatch({
       forecast_check_loss = as.numeric(expected$forecast_check_loss[idx]),
       stringsAsFactors = FALSE
     )
+    if (nrow(authority) != nrow(expected)) {
+      stop("Historical authority draw count changed for ", rows$job_id[[i]],
+           call. = FALSE)
+    }
+    authority_draw_blocks[[i]] <- data.frame(
+      draw_id = seq_along(idx),
+      chain_id = as.integer(rows$chain_id[[i]]),
+      within_chain_draw_id = seq_along(idx),
+      forecast_mae = as.numeric(authority$forecast_mae[idx]),
+      forecast_check_loss = as.numeric(authority$forecast_check_loss[idx]),
+      stringsAsFactors = FALSE
+    )
     parity <- imrs_v1_native_artifact_parity(
       expected, expected_summary, imrs_v1_tolerance
     )
@@ -220,6 +254,18 @@ tryCatch({
   }
   native_draws_raw <- do.call(rbind, native_draw_blocks)
   native_draws_raw$draw_id <- seq_len(nrow(native_draws_raw))
+  authority_draws_raw <- do.call(rbind, authority_draw_blocks)
+  authority_draws_raw$draw_id <- seq_len(nrow(authority_draws_raw))
+  source_pool_compatibility <- imrs_v1_native_authority_compatibility(
+    native_draws_raw, authority_draws_raw, compatibility_policy
+  )
+  source_pool_compatibility$scope <- "balanced_forecast_source_pool"
+  source_pool_compatibility$fit_jobs <- length(fit_ids)
+  source_pool_compatibility$source_id <- request$source_id
+  if (!all(source_pool_compatibility$pass)) {
+    stop("Pooled source is incompatible with its frozen historical authority.",
+         call. = FALSE)
+  }
   native_path_score <- imrs_v1_score_native_paths(
     native_path_blocks, as.numeric(basis$root_spec$tau)
   )
@@ -474,6 +520,7 @@ tryCatch({
     dispersion = dispersion,
     stability = stability,
     parity = parity,
+    source_pool_compatibility = source_pool_compatibility,
     posterior_alignment = decorate(posterior_alignment, imrs_v1_estimator),
     innovation_pairing = decorate(innovation_pairing, imrs_v1_estimator)
   )
@@ -501,6 +548,10 @@ tryCatch({
     chains = length(unique(chain_id)), draws = nrow(candidate_draws),
     targets = nrow(candidate_path),
     native_artifact_consistency_max_abs_difference = max(parity$max_abs_difference),
+    native_authority_source_pool_metric_count = nrow(source_pool_compatibility),
+    native_authority_source_pool_pass = all(source_pool_compatibility$pass),
+    native_authority_source_pool_max_endpoint_width_ratio =
+      max(source_pool_compatibility$endpoint_width_ratio),
     posterior_alignment_rows = nrow(posterior_alignment),
     primary_innovation_pairing_rows = sum(innovation_pairing$stream == "primary"),
     replicate_innovation_pairing_rows = sum(innovation_pairing$stream == "replicate"),

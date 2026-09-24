@@ -156,9 +156,30 @@ validate_existing_statuses <- function() {
   fc_status <- vapply(forecast_plan$forecast_id, function(id) {
     status_value("forecast", id)
   }, character(1L))
+  retryable_fit <- vapply(seq_len(nrow(fit_plan)), function(i) {
+    if (!identical(fit_status[[i]], "FAILED")) return(FALSE)
+    status_path <- imrs_v1_status_path(state_root, "fit", fit_plan$job_id[[i]])
+    compatibility_path <- file.path(
+      fit_plan$job_root[[i]], "manifest",
+      "historical_native_authority_compatibility.csv"
+    )
+    if (!file.exists(status_path) || !file.exists(compatibility_path)) {
+      return(FALSE)
+    }
+    status <- tryCatch(imrs_v1_read_json(status_path), error = function(...) NULL)
+    compatibility <- tryCatch(
+      ffv2_read_csv(compatibility_path), error = function(...) NULL
+    )
+    if (is.null(status) || is.null(compatibility)) return(FALSE)
+    imrs_v1_retryable_fit_compatibility_failure(
+      status, compatibility, fit_plan$inference[[i]]
+    )
+  }, logical(1L))
   bad <- c(
     imrs_v1_label_ids(
-      "fit:", fit_plan$job_id[fit_status %in% c("FAILED", "CORRUPT")]
+      "fit:", fit_plan$job_id[
+        fit_status %in% c("FAILED", "CORRUPT") & !retryable_fit
+      ]
     ),
     imrs_v1_label_ids("forecast:", forecast_plan$forecast_id[
       fc_status %in% c("FAILED", "CORRUPT")
@@ -171,6 +192,10 @@ validate_existing_statuses <- function() {
     )
   )
   if (length(bad)) stop("Terminal failed statuses exist: ", paste(bad, collapse = ", "))
+  if (any(retryable_fit)) {
+    cat("Retrying endpoint-review fit statuses under the pooled-source gate: ",
+        paste(fit_plan$job_id[retryable_fit], collapse = ", "), "\n", sep = "")
+  }
   if (length(running)) {
     stop("Stale or externally owned RUNNING statuses exist: ",
          paste(running, collapse = ", "))

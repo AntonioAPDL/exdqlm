@@ -69,17 +69,36 @@ native_authority_compatibility <- do.call(rbind, Map(function(status, id) {
   out$fit_job_id <- id
   out
 }, fit_statuses, fit_plan$job_id))
+native_authority_compatibility <- imrs_v1_complete_compatibility_fields(
+  native_authority_compatibility
+)
 compatibility_fields <- c(
   "policy_schema_version", "row_count_pass", "finite_contract", "exact_pass",
   "mean_pass", "ks_pass", "endpoint_pass", "overlap_pass",
+  "core_distributional_pass", "endpoint_review_required",
   "compatibility_pass", "gate_mode", "pass",
   "current_package_version", "authority_package_version",
   "authority_git_commit"
 )
+fit_compatibility_decisions <- Map(function(status, id) {
+  rows <- native_authority_compatibility[
+    native_authority_compatibility$fit_job_id == id, , drop = FALSE
+  ]
+  inference <- fit_plan$inference[match(id, fit_plan$job_id)]
+  decision <- imrs_v1_fit_compatibility_decision(rows, inference)
+  recorded_mode <- status$native_authority_fit_gate_mode %||% NULL
+  if (!is.null(recorded_mode) && !identical(
+    as.character(recorded_mode), decision$gate_mode
+  )) stop("Fit compatibility decision/status mismatch: ", id, call. = FALSE)
+  decision
+}, fit_statuses, fit_plan$job_id)
+fit_compatibility_accepted <- vapply(
+  fit_compatibility_decisions, `[[`, logical(1L), "accepted"
+)
 if (nrow(native_authority_compatibility) !=
       compatibility_policy$metrics_per_fit * nrow(fit_plan) ||
     any(!compatibility_fields %in% names(native_authority_compatibility)) ||
-    !all(native_authority_compatibility$pass) ||
+    !all(fit_compatibility_accepted) ||
     !all(native_authority_compatibility$row_count_pass) ||
     !all(native_authority_compatibility$finite_contract) ||
     !all(native_authority_compatibility$policy_schema_version ==
@@ -96,6 +115,9 @@ authority_exact_count <- sum(
 )
 authority_distributional_count <- sum(
   native_authority_compatibility$gate_mode == "distributional"
+)
+authority_endpoint_review_count <- sum(
+  native_authority_compatibility$endpoint_review_required
 )
 authority_max_relative_mean_difference <- max(
   native_authority_compatibility$relative_mean_difference
@@ -145,6 +167,7 @@ read_forecast_output <- function(i) {
     dispersion = read_artifact("dispersion"),
     stability = read_artifact("stability"),
     parity = read_artifact("parity"),
+    source_pool_compatibility = read_artifact("source_pool_compatibility"),
     posterior_alignment = read_artifact("posterior_alignment"),
     innovation_pairing = read_artifact("innovation_pairing")
   )
@@ -152,6 +175,17 @@ read_forecast_output <- function(i) {
 forecast_outputs <- lapply(seq_len(nrow(forecast_plan)), read_forecast_output)
 if (any(vapply(forecast_outputs, function(x) !all(x$parity$pass), logical(1L)))) {
   stop("At least one forecast failed native-artifact consistency.", call. = FALSE)
+}
+source_pool_compatibility <- do.call(rbind, lapply(forecast_outputs, function(x) {
+  out <- x$source_pool_compatibility
+  out$forecast_id <- x$plan$forecast_id[[1L]]
+  out
+}))
+if (nrow(source_pool_compatibility) !=
+      compatibility_policy$metrics_per_fit * nrow(forecast_plan) ||
+    !all(source_pool_compatibility$pass)) {
+  stop("At least one pooled forecast source failed historical compatibility.",
+       call. = FALSE)
 }
 
 write_csv_gz_atomic <- function(x, path) {
@@ -364,7 +398,11 @@ decision_checks <- c(
   historical_native_authority_compatibility =
     nrow(native_authority_compatibility) ==
       compatibility_policy$familywise_comparisons &&
-    all(native_authority_compatibility$pass),
+    all(fit_compatibility_accepted),
+  historical_native_authority_source_pool =
+    nrow(source_pool_compatibility) ==
+      compatibility_policy$metrics_per_fit * nrow(forecast_plan) &&
+    all(source_pool_compatibility$pass),
   posterior_draw_alignment = isTRUE(alignment_gate),
   innovation_pairing = isTRUE(pairing_gate),
   median_width = median_width_ratio <=
@@ -380,7 +418,8 @@ decision_checks <- c(
 )
 decision <- if (!all(decision_checks[c(
   "full_surface", "finite_scores", "native_artifact_consistency",
-  "historical_native_authority_compatibility", "posterior_draw_alignment",
+  "historical_native_authority_compatibility",
+  "historical_native_authority_source_pool", "posterior_draw_alignment",
   "innovation_pairing", "stability_evidence"
 )])) {
   "BLOCKED_PROVENANCE_OR_IMPLEMENTATION_FAILURE"
@@ -419,6 +458,12 @@ paths <- list(
   historical_native_authority_compatibility = imrs_v1_atomic_write_csv(
     native_authority_compatibility,
     file.path(closeout_root, "historical_native_authority_compatibility.csv")
+  ),
+  historical_native_authority_source_pool = imrs_v1_atomic_write_csv(
+    source_pool_compatibility,
+    file.path(
+      closeout_root, "historical_native_authority_source_pool_compatibility.csv"
+    )
   ),
   stability = imrs_v1_atomic_write_csv(
     stability_ledger, file.path(closeout_root, "integration_stability.csv")
@@ -562,6 +607,10 @@ decision_payload <- list(
     historical_native_authority_exact_metrics = authority_exact_count,
     historical_native_authority_distributional_metrics =
       authority_distributional_count,
+    historical_native_authority_endpoint_review_metrics =
+      authority_endpoint_review_count,
+    historical_native_authority_source_pool_metrics =
+      nrow(source_pool_compatibility),
     historical_native_authority_max_relative_mean_difference =
       authority_max_relative_mean_difference,
     historical_native_authority_max_familywise_ks_ratio =
@@ -617,6 +666,10 @@ closeout_md <- c(
           authority_exact_count, nrow(native_authority_compatibility)),
   sprintf("| Historical distributional-compatibility metrics | %d/%d |",
           authority_distributional_count, nrow(native_authority_compatibility)),
+  sprintf("| Chain endpoint-review metrics | %d |",
+          authority_endpoint_review_count),
+  sprintf("| Strict pooled-source compatibility metrics | %d/%d |",
+          sum(source_pool_compatibility$pass), nrow(source_pool_compatibility)),
   sprintf("| Maximum historical relative mean difference | %.4f |",
           authority_max_relative_mean_difference),
   sprintf("| Maximum historical familywise KS ratio | %.4f |",

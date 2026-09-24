@@ -176,7 +176,10 @@ tryCatch({
   imrs_v1_atomic_write_csv(
     authority_compatibility, authority_compatibility_path
   )
-  if (!all(authority_compatibility$pass)) {
+  compatibility_decision <- imrs_v1_fit_compatibility_decision(
+    authority_compatibility, job$inference
+  )
+  if (!isTRUE(compatibility_decision$accepted)) {
     stop("Reconstructed native forecast is incompatible with its frozen authority.",
          call. = FALSE)
   }
@@ -263,6 +266,12 @@ tryCatch({
     native_authority_source_package_version =
       as.character(job$native_authority$source_package_version),
     native_authority_current_package_version = current_package_version,
+    native_authority_fit_gate_mode = compatibility_decision$gate_mode,
+    native_authority_strict_chain_pass = compatibility_decision$strict_pass,
+    native_authority_source_pool_required =
+      compatibility_decision$source_pool_required,
+    native_authority_endpoint_review_metric_count =
+      compatibility_decision$endpoint_review_metric_count,
     native_authority_exact_metric_count =
       sum(authority_compatibility$gate_mode == "exact"),
     native_authority_distributional_metric_count =

@@ -284,6 +284,52 @@ testthat::test_that("historical compatibility policy controls all 192 metrics", 
   testthat::expect_gt(policy$ks_constant, 2)
 })
 
+testthat::test_that("MCMC endpoint-only reviews defer to a strict source pool", {
+  evidence <- data.frame(
+    pass = c(TRUE, FALSE), exact_pass = c(FALSE, FALSE),
+    row_count_pass = TRUE, finite_contract = TRUE,
+    mean_pass = TRUE, ks_pass = TRUE,
+    endpoint_pass = c(TRUE, FALSE), overlap_pass = TRUE,
+    stringsAsFactors = FALSE
+  )
+  evidence <- imrs_v1_complete_compatibility_fields(evidence)
+  mcmc <- imrs_v1_fit_compatibility_decision(evidence, "mcmc")
+  vb <- imrs_v1_fit_compatibility_decision(evidence, "vb")
+  testthat::expect_true(mcmc$accepted)
+  testthat::expect_true(mcmc$source_pool_required)
+  testthat::expect_identical(
+    mcmc$gate_mode, "mcmc_endpoint_review_pending_source_pool"
+  )
+  testthat::expect_false(vb$accepted)
+
+  status <- list(
+    status = "FAILED",
+    error_message = paste(
+      "Reconstructed native forecast is incompatible with its frozen authority."
+    )
+  )
+  testthat::expect_true(imrs_v1_retryable_fit_compatibility_failure(
+    status, evidence, "mcmc"
+  ))
+  status$error_message <- "A numerical fit failed."
+  testthat::expect_false(imrs_v1_retryable_fit_compatibility_failure(
+    status, evidence, "mcmc"
+  ))
+})
+
+testthat::test_that("core incompatibility cannot be rescued by source pooling", {
+  evidence <- data.frame(
+    pass = FALSE, exact_pass = FALSE,
+    row_count_pass = TRUE, finite_contract = TRUE,
+    mean_pass = FALSE, ks_pass = TRUE,
+    endpoint_pass = FALSE, overlap_pass = TRUE,
+    stringsAsFactors = FALSE
+  )
+  decision <- imrs_v1_fit_compatibility_decision(evidence, "mcmc")
+  testthat::expect_false(decision$accepted)
+  testthat::expect_false(decision$source_pool_required)
+})
+
 testthat::test_that("scheduler status labels preserve an empty job set", {
   testthat::expect_identical(imrs_v1_label_ids("fit:", character()), character())
   testthat::expect_identical(
@@ -294,6 +340,8 @@ testthat::test_that("scheduler status labels preserve an empty job set", {
 
 testthat::test_that("campaign scripts preserve eight-core lane ownership", {
   scripts <- file.path(harness_root, "scripts", c(
+    "amend_independent_mean_readout_state_recovery_v1.R",
+    "backfill_independent_mean_readout_state_source_pool_v1.R",
     "materialize_independent_mean_readout_state_forecast_v1.R",
     "run_independent_mean_readout_state_fit_job.R",
     "run_independent_mean_readout_state_forecast_job.R",
@@ -318,6 +366,9 @@ testthat::test_that("campaign scripts preserve eight-core lane ownership", {
   )
   testthat::expect_match(
     text, "historical_native_authority_compatibility", fixed = TRUE
+  )
+  testthat::expect_match(
+    text, "historical_native_authority_source_pool_compatibility", fixed = TRUE
   )
   testthat::expect_false(grepl(
     "historical_native_authority_parity[.]csv", text

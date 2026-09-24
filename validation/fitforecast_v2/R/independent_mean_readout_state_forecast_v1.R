@@ -703,7 +703,8 @@ imrs_v1_native_authority_compatibility <- function(
         endpoint_width_tolerance = policy$interval_endpoint_width_tolerance,
         endpoint_pass = FALSE, interval_overlap_fraction = 0,
         interval_overlap_min = policy$interval_overlap_min,
-        overlap_pass = FALSE, compatibility_pass = FALSE,
+        overlap_pass = FALSE, core_distributional_pass = FALSE,
+        endpoint_review_required = FALSE, compatibility_pass = FALSE,
         gate_mode = "failed_contract", pass = FALSE,
         stringsAsFactors = FALSE
       ))
@@ -778,8 +779,10 @@ imrs_v1_native_authority_compatibility <- function(
     } else min(1, overlap_width / narrower_width)
     overlap_pass <- is.finite(overlap_fraction) &&
       overlap_fraction >= policy$interval_overlap_min
-    compatibility_pass <- row_count_pass && finite_contract && mean_pass &&
-      ks_pass && endpoint_pass && overlap_pass
+    core_distributional_pass <- row_count_pass && finite_contract && mean_pass &&
+      ks_pass && overlap_pass
+    endpoint_review_required <- core_distributional_pass && !endpoint_pass
+    compatibility_pass <- core_distributional_pass && endpoint_pass
     final_pass <- exact_pass || compatibility_pass
     data.frame(
       policy_schema_version = policy$schema_version,
@@ -808,7 +811,10 @@ imrs_v1_native_authority_compatibility <- function(
       endpoint_pass = endpoint_pass,
       interval_overlap_fraction = overlap_fraction,
       interval_overlap_min = policy$interval_overlap_min,
-      overlap_pass = overlap_pass, compatibility_pass = compatibility_pass,
+      overlap_pass = overlap_pass,
+      core_distributional_pass = core_distributional_pass,
+      endpoint_review_required = endpoint_review_required,
+      compatibility_pass = compatibility_pass,
       gate_mode = if (exact_pass) "exact" else if (compatibility_pass) {
         "distributional"
       } else "failed_compatibility",
@@ -817,6 +823,73 @@ imrs_v1_native_authority_compatibility <- function(
     )
   })
   do.call(rbind, rows)
+}
+
+imrs_v1_complete_compatibility_fields <- function(compatibility) {
+  legacy_required <- c(
+    "pass", "exact_pass", "row_count_pass", "finite_contract",
+    "mean_pass", "ks_pass", "endpoint_pass", "overlap_pass"
+  )
+  if (!is.data.frame(compatibility) || !nrow(compatibility) ||
+      any(!legacy_required %in% names(compatibility))) {
+    stop("Fit compatibility evidence is incomplete.", call. = FALSE)
+  }
+  if (!"core_distributional_pass" %in% names(compatibility)) {
+    compatibility$core_distributional_pass <- with(
+      compatibility,
+      row_count_pass & finite_contract & mean_pass & ks_pass & overlap_pass
+    )
+  }
+  if (!"endpoint_review_required" %in% names(compatibility)) {
+    compatibility$endpoint_review_required <- with(
+      compatibility, core_distributional_pass & !endpoint_pass
+    )
+  }
+  compatibility
+}
+
+imrs_v1_fit_compatibility_decision <- function(compatibility, inference) {
+  compatibility <- imrs_v1_complete_compatibility_fields(compatibility)
+  inference <- tolower(as.character(inference)[[1L]])
+  strict_pass <- all(compatibility$pass)
+  endpoint_only_review <- !strict_pass && identical(inference, "mcmc") &&
+    all(
+      compatibility$pass |
+        (compatibility$core_distributional_pass &
+           compatibility$endpoint_review_required)
+    ) && any(compatibility$endpoint_review_required)
+  list(
+    accepted = strict_pass || endpoint_only_review,
+    strict_pass = strict_pass,
+    source_pool_required = endpoint_only_review,
+    endpoint_review_metric_count =
+      sum(compatibility$endpoint_review_required),
+    gate_mode = if (strict_pass) {
+      "strict_chain_compatibility"
+    } else if (endpoint_only_review) {
+      "mcmc_endpoint_review_pending_source_pool"
+    } else {
+      "failed_chain_compatibility"
+    }
+  )
+}
+
+imrs_v1_retryable_fit_compatibility_failure <- function(
+    status, compatibility, inference) {
+  expected_error <- paste(
+    "Reconstructed native forecast is incompatible with its frozen authority."
+  )
+  if (!is.list(status) ||
+      !identical(as.character(status$status %||% ""), "FAILED") ||
+      !identical(as.character(status$error_message %||% ""), expected_error)) {
+    return(FALSE)
+  }
+  decision <- tryCatch(
+    imrs_v1_fit_compatibility_decision(compatibility, inference),
+    error = function(...) NULL
+  )
+  !is.null(decision) && isTRUE(decision$accepted) &&
+    isTRUE(decision$source_pool_required)
 }
 
 # Retained as a narrow compatibility wrapper for downstream callers. New
