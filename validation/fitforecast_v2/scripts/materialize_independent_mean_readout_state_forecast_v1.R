@@ -43,6 +43,52 @@ if (as.integer(defaults$campaign_workers) != imrs_v1_workers ||
     as.integer(defaults$threads_per_worker) != imrs_v1_threads_per_worker) {
   stop("Tracked worker defaults do not match the campaign contract.", call. = FALSE)
 }
+compatibility_defaults <- defaults$historical_authority_compatibility
+compatibility_policy <- imrs_v1_historical_compatibility_policy(
+  compatibility_defaults
+)
+imi_authority_commit <- as.character(
+  compatibility_defaults$imi_source_git_commit
+)[[1L]]
+idolp_authority_commit <- as.character(
+  compatibility_defaults$idolp_source_git_commit
+)[[1L]]
+if (any(!grepl("^[0-9a-f]{40}$", c(
+  imi_authority_commit, idolp_authority_commit
+)))) {
+  stop("Historical-authority source commits must be full Git hashes.",
+       call. = FALSE)
+}
+
+git_description_version <- function(commit) {
+  lines <- system2(
+    "git", c("show", paste0(commit, ":DESCRIPTION")),
+    stdout = TRUE, stderr = TRUE
+  )
+  if (!is.null(attr(lines, "status")) && attr(lines, "status") != 0L) {
+    stop("Could not read DESCRIPTION at authority commit: ", commit,
+         call. = FALSE)
+  }
+  version <- sub("^Version:[[:space:]]*", "", grep(
+    "^Version:", lines, value = TRUE
+  ))
+  if (length(version) != 1L) {
+    stop("Authority commit does not expose one package version: ", commit,
+         call. = FALSE)
+  }
+  version[[1L]]
+}
+authority_versions <- vapply(
+  c(imi = imi_authority_commit, idolp = idolp_authority_commit),
+  git_description_version, character(1L)
+)
+if (any(authority_versions != compatibility_policy$source_package_version)) {
+  stop("Historical-authority commits do not match the declared package version.",
+       call. = FALSE)
+}
+execution_package_version <- as.character(
+  read.dcf(file.path(repo_root, "DESCRIPTION"), fields = "Version")[[1L]]
+)
 
 dirs <- file.path(state_root, c(
   "configs/fit", "configs/forecast", "sources", "source_requests", "runtime/fit_jobs",
@@ -116,12 +162,17 @@ stage_request <- function(path, expected = NULL) {
   )
 }
 
-stage_native_authority <- function(path, expected, authority_id) {
+stage_native_authority <- function(path, expected, authority_id,
+                                   source_git_commit) {
   destination <- file.path(
     state_root, "native_authority", paste0(authority_id, "_metric_draws.csv.gz")
   )
   staged <- copy_verified(path, destination, expected)
-  list(path = staged, sha256 = ffv2_file_sha256(staged))
+  list(
+    path = staged, sha256 = ffv2_file_sha256(staged),
+    source_git_commit = as.character(source_git_commit),
+    source_package_version = compatibility_policy$source_package_version
+  )
 }
 
 configure_job <- function(job, source_id, chain_id, staged, request_path,
@@ -139,6 +190,7 @@ configure_job <- function(job, source_id, chain_id, staged, request_path,
   job$inference <- as.character(inference)
   job$likelihood_family <- as.character(likelihood)
   job$source_kind <- source_kind
+  job$execution_package_version <- execution_package_version
   job$source_request_path <- request_path
   job$source_request_sha256 <- request_sha
   job$observed_path <- staged$observed_path
@@ -148,7 +200,10 @@ configure_job <- function(job, source_id, chain_id, staged, request_path,
   job$native_authority <- list(
     metric_draws_path = native_authority$path,
     metric_draws_sha256 = native_authority$sha256,
-    tolerance = imrs_v1_tolerance
+    source_git_commit = native_authority$source_git_commit,
+    source_package_version = native_authority$source_package_version,
+    exact_summary_tolerance = compatibility_policy$exact_summary_tolerance,
+    compatibility_policy = compatibility_policy
   )
   job$job_root <- file.path(state_root, "runtime", "fit_jobs", job_id)
   job$root_spec$root_id <- job_id
@@ -204,7 +259,10 @@ configure_job <- function(job, source_id, chain_id, staged, request_path,
     duplicate_native_recursion = FALSE,
     reconstruction_forecast_mode = "mixture",
     excluded_unused_forecast = "separate_1000_origin_lead_one_pass",
-    artifact_consistency_tolerance = imrs_v1_tolerance
+    artifact_consistency_tolerance = imrs_v1_tolerance,
+    historical_gate = compatibility_policy$schema_version,
+    historical_gate_scope = "stochastic_distribution_compatibility",
+    same_run_candidate_gate_scope = "exact_paired_native_artifact"
   )
   job
 }
@@ -215,6 +273,12 @@ if (!identical(ffv2_file_sha256(old_plan_path), defaults$old_imi_job_plan_sha256
     !identical(ffv2_file_sha256(old_manifest_path),
                defaults$old_imi_materialization_sha256)) {
   stop("The frozen IMI authority no longer matches the tracked hashes.", call. = FALSE)
+}
+old_materialization <- ffv2_read_json(old_manifest_path)
+if (!identical(as.character(old_materialization$git_commit),
+               imi_authority_commit)) {
+  stop("The frozen IMI authority commit differs from the tracked policy.",
+       call. = FALSE)
 }
 old_plan <- ffv2_read_csv(old_plan_path)
 required_imi <- c(imrs_v1_vb_sources, imrs_v1_mcmc_sources)
@@ -249,7 +313,8 @@ for (i in seq_len(nrow(selected))) {
   }
   native_authority <- stage_native_authority(
     old_status$metric_draws_path, old_status$metric_draws_sha256,
-    paste0(row$replay_id, "__c", sprintf("%02d", as.integer(row$chain_id)))
+    paste0(row$replay_id, "__c", sprintf("%02d", as.integer(row$chain_id))),
+    imi_authority_commit
   )
   job <- configure_job(
     old_job, row$replay_id, row$chain_id, staged, request_path,
@@ -268,6 +333,11 @@ for (i in seq_len(nrow(selected))) {
     forecast_seed = job$forecast_seed,
     expected_draws = as.integer(job$config$sampling$nd_draws),
     native_authority_sha256 = job$native_authority$metric_draws_sha256,
+    native_authority_git_commit = job$native_authority$source_git_commit,
+    native_authority_package_version =
+      job$native_authority$source_package_version,
+    native_authority_policy = compatibility_policy$schema_version,
+    execution_package_version = job$execution_package_version,
     config_path = normalizePath(config_path, winslash = "/", mustWork = TRUE),
     config_sha256 = ffv2_file_sha256(config_path),
     job_root = job$job_root, status = "PLANNED", stringsAsFactors = FALSE
@@ -283,6 +353,14 @@ idolp_files <- file.path(
 )
 idolp_audit_root <- dirname(idolp_request_dir)
 idolp_manifest <- ffv2_read_csv(file.path(idolp_audit_root, "artifact_manifest.csv"))
+idolp_audit <- ffv2_read_json(file.path(idolp_audit_root, "audit_manifest.json"))
+if (!grepl(
+  substr(idolp_authority_commit, 1L, 7L),
+  as.character(idolp_audit$interval_replay_run_tag), fixed = TRUE
+)) {
+  stop("The orthogonalized authority commit differs from the tracked policy.",
+       call. = FALSE)
+}
 for (i in seq_along(idolp_files)) {
   request <- ffv2_read_json(idolp_files[[i]])
   request_sha <- ffv2_file_sha256(idolp_files[[i]])
@@ -305,7 +383,8 @@ for (i in seq_along(idolp_files)) {
   }
   native_authority <- stage_native_authority(
     file.path(idolp_audit_root, authority_relative), authority_row$sha256[[1L]],
-    paste0(imrs_v1_idolp_source, "__c", sprintf("%02d", i))
+    paste0(imrs_v1_idolp_source, "__c", sprintf("%02d", i)),
+    idolp_authority_commit
   )
   request$source_identity <- paste(
     "mcmc", "qdesn_al_rhs_ns", "normal", "0.05", imrs_v1_idolp_source,
@@ -330,6 +409,11 @@ for (i in seq_along(idolp_files)) {
     forecast_seed = job$forecast_seed,
     expected_draws = as.integer(job$config$sampling$nd_draws),
     native_authority_sha256 = job$native_authority$metric_draws_sha256,
+    native_authority_git_commit = job$native_authority$source_git_commit,
+    native_authority_package_version =
+      job$native_authority$source_package_version,
+    native_authority_policy = compatibility_policy$schema_version,
+    execution_package_version = job$execution_package_version,
     config_path = normalizePath(config_path, winslash = "/", mustWork = TRUE),
     config_sha256 = ffv2_file_sha256(config_path),
     job_root = job$job_root, status = "PLANNED", stringsAsFactors = FALSE
@@ -490,6 +574,13 @@ manifest <- list(
   fit_jobs = nrow(fit_plan), forecast_jobs = nrow(forecast_plan),
   source_identities = length(unique(role_map$source_id)),
   native_authority_files = nrow(fit_plan),
+  native_authority_source_package_version =
+    compatibility_policy$source_package_version,
+  execution_package_version = execution_package_version,
+  native_authority_source_commits = list(
+    imi = imi_authority_commit, idolp = idolp_authority_commit
+  ),
+  historical_authority_compatibility = compatibility_policy,
   role_rows = nrow(role_map),
   canary_fit_jobs = sum(fit_plan$is_canary),
   canary_forecast_jobs = sum(forecast_plan$is_canary),

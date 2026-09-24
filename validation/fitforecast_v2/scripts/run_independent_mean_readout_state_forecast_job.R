@@ -171,6 +171,7 @@ tryCatch({
   native_draw_blocks <- vector("list", length(fit_status))
   native_path_blocks <- vector("list", length(fit_status))
   parity_rows <- list()
+  alignment_rows <- list()
   for (i in seq_along(fit_status)) {
     stat <- fit_status[[i]]
     expected <- read_verified(
@@ -186,14 +187,16 @@ tryCatch({
       paste0("Native forecast path for ", rows$job_id[[i]])
     )
     idx <- balanced$indices[[i]]
-    if (nrow(expected) < max(idx) ||
-        !identical(
-          as.integer(expected$source_draw_index[idx]),
-          as.integer(selected_posteriors[[i]]$source_draw_index)
-        )) {
-      stop("Native metric draws and posterior capsule are misaligned for ",
-           rows$job_id[[i]], call. = FALSE)
-    }
+    alignment <- imrs_v1_validate_native_posterior_alignment(
+      expected, posteriors[[i]], idx
+    )
+    if (!identical(
+      alignment$posterior_original_draw_index,
+      as.integer(selected_posteriors[[i]]$source_draw_index)
+    )) stop("Balanced posterior provenance is misaligned.", call. = FALSE)
+    alignment$fit_job_id <- rows$job_id[[i]]
+    alignment$chain_id <- as.integer(rows$chain_id[[i]])
+    alignment_rows[[i]] <- alignment
     native_draw_blocks[[i]] <- data.frame(
       draw_id = seq_along(idx),
       chain_id = as.integer(rows$chain_id[[i]]),
@@ -210,6 +213,7 @@ tryCatch({
     parity_rows[[i]] <- parity
   }
   parity <- do.call(rbind, parity_rows)
+  posterior_alignment <- do.call(rbind, alignment_rows)
   if (!all(parity$pass)) {
     stop("Native reconstruction artifacts failed the fixed 1e-6 consistency gate.",
          call. = FALSE)
@@ -470,6 +474,7 @@ tryCatch({
     dispersion = dispersion,
     stability = stability,
     parity = parity,
+    posterior_alignment = decorate(posterior_alignment, imrs_v1_estimator),
     innovation_pairing = decorate(innovation_pairing, imrs_v1_estimator)
   )
   paths <- list()
@@ -496,6 +501,7 @@ tryCatch({
     chains = length(unique(chain_id)), draws = nrow(candidate_draws),
     targets = nrow(candidate_path),
     native_artifact_consistency_max_abs_difference = max(parity$max_abs_difference),
+    posterior_alignment_rows = nrow(posterior_alignment),
     primary_innovation_pairing_rows = sum(innovation_pairing$stream == "primary"),
     replicate_innovation_pairing_rows = sum(innovation_pairing$stream == "replicate"),
     stability_check = isTRUE(request$stability_check),

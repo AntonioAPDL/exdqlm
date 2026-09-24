@@ -5,6 +5,19 @@ campaign_workers: 8
 max_active_workers: 8
 threads_per_worker: 1
 native_artifact_consistency_tolerance: 1.0e-6
+historical_authority_compatibility:
+  schema_version: historical_native_authority_compatibility_v1
+  imi_source_git_commit: c72e19f345da88fc1a8175ed30bdde328eab88be
+  idolp_source_git_commit: d6bc4c5e47a922ea0255f3ad8d73e58f374827a0
+  source_package_version: "1.0.0"
+  fit_jobs: 96
+  metrics_per_fit: 2
+  familywise_alpha: 0.01
+  exact_summary_tolerance: 1.0e-6
+  mean_relative_tolerance: 0.05
+  interval_endpoint_width_tolerance: 0.10
+  interval_overlap_min: 0.90
+  absolute_floor: 1.0e-6
 fit_jobs: 96
 forecast_jobs: 46
 source_identities: 44

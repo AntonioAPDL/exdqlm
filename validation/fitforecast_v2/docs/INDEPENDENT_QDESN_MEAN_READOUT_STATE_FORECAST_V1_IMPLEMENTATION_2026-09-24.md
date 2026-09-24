@@ -1,5 +1,13 @@
 # Independent Q-DESN mean-readout-state forecast implementation
 
+> **2026-09-24 recovery amendment.** The historical `1e-6` reproduction gate
+> described below was found to conflate independent Monte Carlo samples across
+> exdqlm 1.0.0 and 1.1.2. It is superseded by
+> `INDEPENDENT_QDESN_MEAN_READOUT_STATE_FORECAST_V1_PARITY_RECOVERY_2026-09-24.md`.
+> Same-run native-artifact consistency remains exact at `1e-6`; historical
+> authority is now checked with a frozen, familywise-controlled stochastic
+> compatibility policy.
+
 ## Scope
 
 This implementation evaluates one forecast-estimator change for the frozen
@@ -57,10 +65,12 @@ forecast once and exports:
 - content-addressed basis and posterior capsules.
 
 The materializer also stages the compact, hash-verified native metric draws
-from each source's prior authority. Every reconstructed native fit must match
-the corresponding historical MAE and check-loss posterior summaries within
-`1e-6`. This prevents a package or refit change from being mistaken for an
-effect of the forecast-estimator intervention.
+from each source's prior authority. Every reconstructed native fit must pass a
+predeclared historical stochastic-compatibility policy. Exact draw identity is
+recorded when it occurs but is not required across package versions. This
+prevents a material baseline change from being mistaken for an estimator
+effect without demanding numerical identity from independent Monte Carlo
+samples.
 
 The forecast worker verifies those native artifacts and recomputes their
 summaries within `1e-6`; it does not repeat the native recursion. It then runs
@@ -85,8 +95,8 @@ required rolling-origin lattice is constructed before the pipeline's forecast
 mode branch and is identical to the lattice used by historical interval
 exports. This setting omits only the later, separate 1,000-origin lead-one pass,
 which does not contribute to this campaign's score draws, point path, profiles,
-or decision. Representative authority reproduction at tolerance `1e-6` is the
-hard gate for this optimization.
+or decision. Historical stochastic compatibility and same-run native-artifact
+reproduction at tolerance `1e-6` are separate hard gates for this optimization.
 
 Because the fixed protocol uses horizon 30 and origin stride 30, the full and
 tail rolling-origin blocks form a nonoverlapping tiling of the 1,000 held-out
@@ -136,8 +146,9 @@ eight selected CPUs and sets all known numerical thread variables to one.
 Canary fits and their dependent forecasts must all succeed before non-canary
 jobs are released. There is no automatic retry after a deterministic failure.
 Closeout requires all 96 fits, all 46 forecast evaluations, all 72 role rows,
-finite metrics, valid hashes, native-artifact consistency, and integration
-stability evidence. It then either accepts the candidate for the complete
+finite metrics, valid hashes, all 192 historical compatibility rows,
+native-artifact consistency, and integration stability evidence. It then
+either accepts the candidate for the complete
 Q-DESN forecast surface or retains the current native authority. Article edits
 remain a separate coordinator decision.
 

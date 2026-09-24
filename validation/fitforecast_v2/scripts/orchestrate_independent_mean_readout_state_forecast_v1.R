@@ -42,6 +42,13 @@ forecast_plan$is_canary <- as.logical(forecast_plan$is_canary)
 materialization <- ffv2_read_json(
   file.path(state_root, "manifests", "materialization_manifest.json")
 )
+if (!identical(
+  as.character(materialization$historical_authority_compatibility$schema_version),
+  imrs_v1_historical_compatibility_schema
+)) {
+  stop("Materialized historical-authority compatibility policy is invalid.",
+       call. = FALSE)
+}
 if (nrow(fit_plan) != 96L || nrow(forecast_plan) != 46L ||
     anyDuplicated(fit_plan$job_id) || anyDuplicated(forecast_plan$forecast_id)) {
   stop("Runtime plans do not match the frozen 96/46 contract.", call. = FALSE)
@@ -221,7 +228,9 @@ repeat {
         passed_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
         canary_fit_jobs = sum(fit_plan$is_canary),
         canary_forecast_jobs = sum(forecast_plan$is_canary),
-        native_artifact_consistency_tolerance = imrs_v1_tolerance
+        native_artifact_consistency_tolerance = imrs_v1_tolerance,
+        historical_authority_compatibility_schema =
+          imrs_v1_historical_compatibility_schema
       ), file.path(state_root, "manifests", "canary_gate.json"))
     }
   }

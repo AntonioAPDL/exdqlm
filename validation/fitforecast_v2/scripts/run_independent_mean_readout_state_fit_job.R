@@ -42,6 +42,9 @@ status <- "FAILED"
 error_message <- NULL
 result_payload <- list()
 tryCatch({
+  compatibility_policy <- imrs_v1_historical_compatibility_policy(
+    job$native_authority$compatibility_policy
+  )
   checks <- c(
     config_hash = identical(ffv2_file_sha256(config_path), config_sha),
     request_hash = identical(ffv2_file_sha256(job$source_request_path),
@@ -67,7 +70,17 @@ tryCatch({
       identical(
         ffv2_file_sha256(job$native_authority$metric_draws_path),
         as.character(job$native_authority$metric_draws_sha256)
-      )
+      ),
+    native_authority_policy = identical(
+      compatibility_policy$schema_version,
+      imrs_v1_historical_compatibility_schema
+    ) && identical(
+      as.character(job$native_authority$source_package_version),
+      compatibility_policy$source_package_version
+    ) && grepl(
+      "^[0-9a-f]{40}$",
+      as.character(job$native_authority$source_git_commit)
+    )
   )
   if (!all(checks)) {
     stop("Fit job contract failed: ", paste(names(checks)[!checks], collapse = ", "),
@@ -75,6 +88,13 @@ tryCatch({
   }
   if (!requireNamespace("pkgload", quietly = TRUE)) stop("pkgload is required.")
   pkgload::load_all(repo_root, quiet = TRUE)
+  current_package_version <- as.character(utils::packageVersion("exdqlm"))
+  if (!identical(
+    current_package_version, as.character(job$execution_package_version)
+  )) {
+    stop("Loaded package version differs from the materialized contract.",
+         call. = FALSE)
+  }
   defaults <- list(
     pipeline = list(outputs = job$config$outputs),
     metrics = job$config$metrics,
@@ -141,16 +161,23 @@ tryCatch({
     job$native_authority$metric_draws_path
   )
   reconstructed_native_draws <- ffv2_read_csv(native_draws_path)
-  authority_parity <- imrs_v1_native_authority_parity(
+  authority_compatibility <- imrs_v1_native_authority_compatibility(
     reconstructed_native_draws, native_authority_draws,
-    as.numeric(job$native_authority$tolerance %||% imrs_v1_tolerance)
+    compatibility_policy
   )
-  authority_parity_path <- file.path(
-    job$job_root, "manifest", "historical_native_authority_parity.csv"
+  authority_compatibility$current_package_version <- current_package_version
+  authority_compatibility$authority_package_version <-
+    as.character(job$native_authority$source_package_version)
+  authority_compatibility$authority_git_commit <-
+    as.character(job$native_authority$source_git_commit)
+  authority_compatibility_path <- file.path(
+    job$job_root, "manifest", "historical_native_authority_compatibility.csv"
   )
-  imrs_v1_atomic_write_csv(authority_parity, authority_parity_path)
-  if (!all(authority_parity$pass)) {
-    stop("Reconstructed native forecast does not reproduce its frozen authority.",
+  imrs_v1_atomic_write_csv(
+    authority_compatibility, authority_compatibility_path
+  )
+  if (!all(authority_compatibility$pass)) {
+    stop("Reconstructed native forecast is incompatible with its frozen authority.",
          call. = FALSE)
   }
 
@@ -183,7 +210,7 @@ tryCatch({
   imrs_v1_atomic_write_json(list(
     schema_version = imrs_v1_schema,
     job_id = job_id, source_id = job$source_id, chain_id = job$chain_id,
-    package_version = as.character(utils::packageVersion("exdqlm")),
+    package_version = current_package_version,
     git_commit = system("git rev-parse HEAD", intern = TRUE),
     r_version = R.version.string,
     session_info = capture.output(utils::sessionInfo()),
@@ -225,12 +252,27 @@ tryCatch({
       native_lead_path, winslash = "/", mustWork = TRUE
     ),
     native_lead_metrics_sha256 = ffv2_file_sha256(native_lead_path),
-    native_authority_parity_path = normalizePath(
-      authority_parity_path, winslash = "/", mustWork = TRUE
+    native_authority_compatibility_path = normalizePath(
+      authority_compatibility_path, winslash = "/", mustWork = TRUE
     ),
-    native_authority_parity_sha256 = ffv2_file_sha256(authority_parity_path),
-    native_authority_max_abs_difference =
-      max(authority_parity$max_abs_difference),
+    native_authority_compatibility_sha256 =
+      ffv2_file_sha256(authority_compatibility_path),
+    native_authority_policy_schema = compatibility_policy$schema_version,
+    native_authority_source_git_commit =
+      as.character(job$native_authority$source_git_commit),
+    native_authority_source_package_version =
+      as.character(job$native_authority$source_package_version),
+    native_authority_current_package_version = current_package_version,
+    native_authority_exact_metric_count =
+      sum(authority_compatibility$gate_mode == "exact"),
+    native_authority_distributional_metric_count =
+      sum(authority_compatibility$gate_mode == "distributional"),
+    native_authority_max_relative_mean_difference =
+      max(authority_compatibility$relative_mean_difference),
+    native_authority_max_endpoint_width_ratio =
+      max(authority_compatibility$endpoint_width_ratio),
+    native_authority_min_interval_overlap =
+      min(authority_compatibility$interval_overlap_fraction),
     environment_path = normalizePath(environment_path, winslash = "/", mustWork = TRUE),
     environment_sha256 = ffv2_file_sha256(environment_path),
     heavy_binary_count = 0L

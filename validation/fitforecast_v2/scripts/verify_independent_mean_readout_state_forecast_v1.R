@@ -12,6 +12,20 @@ ffv2_source_all(harness_root)
 args <- ffv2_parse_args()
 state_root <- normalizePath(args$`state-root` %||% "", winslash = "/",
                             mustWork = TRUE)
+repo_root <- normalizePath(ffv2_repo_root(), winslash = "/", mustWork = TRUE)
+defaults <- yaml::read_yaml(file.path(
+  repo_root, "config", "validation",
+  "independent_mean_readout_state_forecast_v1", "campaign_defaults.yaml"
+))
+compatibility_policy <- imrs_v1_historical_compatibility_policy(
+  defaults$historical_authority_compatibility
+)
+materialization_manifest <- imrs_v1_read_json(file.path(
+  state_root, "manifests", "materialization_manifest.json"
+))
+execution_package_version <- as.character(
+  materialization_manifest$execution_package_version
+)
 fit_plan <- ffv2_read_csv(file.path(state_root, "manifests", "fit_plan.csv"))
 forecast_plan <- ffv2_read_csv(
   file.path(state_root, "manifests", "forecast_plan.csv")
@@ -32,14 +46,23 @@ parity <- ffv2_read_csv(
   file.path(state_root, "closeout", "native_artifact_consistency.csv")
 )
 native_authority <- ffv2_read_csv(
-  file.path(state_root, "closeout", "historical_native_authority_parity.csv")
+  file.path(
+    state_root, "closeout", "historical_native_authority_compatibility.csv"
+  )
 )
 innovation_pairing <- ffv2_read_csv(
   file.path(state_root, "closeout", "innovation_pairing_ledger.csv")
 )
+posterior_alignment <- ffv2_read_csv(file.path(
+  state_root, "closeout", "native_posterior_alignment_ledger.csv"
+))
 primary_pairing <- innovation_pairing[
   innovation_pairing$stream == "primary", , drop = FALSE
 ]
+alignment_counts <- table(posterior_alignment$fit_job_id)
+pairing_counts <- stats::setNames(
+  as.integer(primary_pairing$selected_draw_count), primary_pairing$fit_job_id
+)
 
 fit_success <- vapply(seq_len(nrow(fit_plan)), function(i) {
   imrs_v1_status_success(
@@ -79,9 +102,31 @@ checks <- c(
   )),
   native_artifact_consistency = all(parity$pass) &&
     max(parity$max_abs_difference) <= imrs_v1_tolerance,
-  historical_native_authority = nrow(native_authority) == 2L * nrow(fit_plan) &&
+  historical_native_authority_compatibility =
+    nrow(native_authority) == compatibility_policy$familywise_comparisons &&
     all(native_authority$pass) &&
-    max(native_authority$max_abs_difference) <= imrs_v1_tolerance,
+    all(native_authority$row_count_pass) &&
+    all(native_authority$finite_contract) &&
+    all(native_authority$policy_schema_version ==
+          compatibility_policy$schema_version) &&
+    all(native_authority$authority_package_version ==
+          compatibility_policy$source_package_version) &&
+    all(native_authority$current_package_version ==
+          execution_package_version) &&
+    all(native_authority$gate_mode %in% c("exact", "distributional")),
+  posterior_draw_alignment =
+    setequal(names(alignment_counts), fit_plan$job_id) &&
+    setequal(names(pairing_counts), fit_plan$job_id) &&
+    identical(
+      as.integer(alignment_counts[fit_plan$job_id]),
+      as.integer(pairing_counts[fit_plan$job_id])
+    ) &&
+    all(posterior_alignment$selected_position ==
+          posterior_alignment$native_position) &&
+    all(vapply(split(
+      posterior_alignment$posterior_original_draw_index,
+      posterior_alignment$fit_job_id
+    ), function(x) !anyNA(x) && !anyDuplicated(x), logical(1L))),
   innovation_pairing = nrow(primary_pairing) == nrow(fit_plan) &&
     !anyDuplicated(primary_pairing$fit_job_id) &&
     setequal(primary_pairing$fit_job_id, fit_plan$job_id) &&

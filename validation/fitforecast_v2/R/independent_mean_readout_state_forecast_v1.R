@@ -11,6 +11,8 @@ imrs_v1_estimator <-
 imrs_v1_recursion_mode <- "posterior_predictive_mean_readout_state"
 imrs_v1_native_mode <- "posterior_predictive"
 imrs_v1_tolerance <- 1e-6
+imrs_v1_historical_compatibility_schema <-
+  "historical_native_authority_compatibility_v1"
 
 imrs_v1_vb_sources <- sprintf(
   "imi_v1_source_%03d",
@@ -372,6 +374,39 @@ imrs_v1_balance_posteriors <- function(posteriors) {
   )
 }
 
+imrs_v1_validate_native_posterior_alignment <- function(
+    native_draws, posterior, selected_positions) {
+  selected_positions <- as.integer(selected_positions)
+  n_posterior <- if (is.matrix(posterior$beta)) nrow(posterior$beta) else 0L
+  native_positions <- as.integer(native_draws$source_draw_index %||% integer())
+  original_indices <- as.integer(
+    posterior$source_draw_index %||% seq_len(n_posterior)
+  )
+  checks <- c(
+    posterior_rows = n_posterior > 1L,
+    native_rows = nrow(native_draws) == n_posterior,
+    native_position_schema = length(native_positions) == n_posterior &&
+      identical(native_positions, seq_len(n_posterior)),
+    original_index_schema = length(original_indices) == n_posterior &&
+      !anyNA(original_indices) && !anyDuplicated(original_indices),
+    selected_position_schema = length(selected_positions) > 1L &&
+      !anyNA(selected_positions) && !anyDuplicated(selected_positions) &&
+      all(selected_positions >= 1L & selected_positions <= n_posterior)
+  )
+  if (!all(checks)) {
+    stop(
+      "Native metric rows and posterior capsule violate positional alignment: ",
+      paste(names(checks)[!checks], collapse = ", "), call. = FALSE
+    )
+  }
+  data.frame(
+    selected_position = selected_positions,
+    native_position = native_positions[selected_positions],
+    posterior_original_draw_index = original_indices[selected_positions],
+    stringsAsFactors = FALSE
+  )
+}
+
 imrs_v1_apply_scale <- function(x, scale_spec) {
   x * as.numeric(scale_spec$scale %||% 1) +
     as.numeric(scale_spec$center %||% 0)
@@ -556,40 +591,251 @@ imrs_v1_native_artifact_parity <- function(draw_metrics, interval_summary,
   do.call(rbind, rows)
 }
 
-imrs_v1_native_authority_parity <- function(observed_draws, authority_draws,
-                                            tolerance = imrs_v1_tolerance) {
-  observed <- imrs_v1_interval_summary(
-    observed_draws, "reconstructed_native_posterior_predictive"
+imrs_v1_historical_compatibility_policy <- function(policy) {
+  required <- c(
+    "schema_version", "source_package_version", "fit_jobs",
+    "metrics_per_fit", "familywise_alpha", "exact_summary_tolerance",
+    "mean_relative_tolerance", "interval_endpoint_width_tolerance",
+    "interval_overlap_min", "absolute_floor"
   )
-  authority <- imrs_v1_interval_summary(
-    authority_draws, "frozen_native_posterior_predictive"
+  if (!is.list(policy) || any(!required %in% names(policy))) {
+    stop("Historical-authority compatibility policy is incomplete.",
+         call. = FALSE)
+  }
+  out <- list(
+    schema_version = as.character(policy$schema_version)[[1L]],
+    source_package_version = as.character(policy$source_package_version)[[1L]],
+    fit_jobs = as.integer(policy$fit_jobs)[[1L]],
+    metrics_per_fit = as.integer(policy$metrics_per_fit)[[1L]],
+    familywise_alpha = as.numeric(policy$familywise_alpha)[[1L]],
+    exact_summary_tolerance =
+      as.numeric(policy$exact_summary_tolerance)[[1L]],
+    mean_relative_tolerance =
+      as.numeric(policy$mean_relative_tolerance)[[1L]],
+    interval_endpoint_width_tolerance =
+      as.numeric(policy$interval_endpoint_width_tolerance)[[1L]],
+    interval_overlap_min = as.numeric(policy$interval_overlap_min)[[1L]],
+    absolute_floor = as.numeric(policy$absolute_floor)[[1L]]
   )
-  fields <- c(
+  if (!identical(out$schema_version, imrs_v1_historical_compatibility_schema) ||
+      out$fit_jobs < 1L || out$metrics_per_fit < 1L ||
+      !is.finite(out$familywise_alpha) || out$familywise_alpha <= 0 ||
+      out$familywise_alpha >= 1 ||
+      any(!is.finite(unlist(out[c(
+        "exact_summary_tolerance", "mean_relative_tolerance",
+        "interval_endpoint_width_tolerance", "interval_overlap_min",
+        "absolute_floor"
+      )]))) || out$exact_summary_tolerance < 0 ||
+      out$mean_relative_tolerance < 0 ||
+      out$interval_endpoint_width_tolerance < 0 ||
+      out$interval_overlap_min < 0 || out$interval_overlap_min > 1 ||
+      out$absolute_floor <= 0) {
+    stop("Historical-authority compatibility policy is invalid.",
+         call. = FALSE)
+  }
+  out$familywise_comparisons <- out$fit_jobs * out$metrics_per_fit
+  out$per_comparison_alpha <-
+    out$familywise_alpha / out$familywise_comparisons
+  out$mean_z_critical <- stats::qnorm(1 - out$per_comparison_alpha / 2)
+  out$ks_constant <- sqrt(-0.5 * log(out$per_comparison_alpha / 2))
+  out
+}
+
+imrs_v1_effective_size <- function(x) {
+  x <- as.numeric(x)
+  if (length(x) < 3L || any(!is.finite(x))) return(NA_real_)
+  if (stats::sd(x) <= sqrt(.Machine$double.eps)) return(as.numeric(length(x)))
+  value <- tryCatch(
+    as.numeric(coda::effectiveSize(coda::mcmc(x))),
+    error = function(...) NA_real_
+  )
+  if (length(value) != 1L || !is.finite(value) || value <= 0) return(NA_real_)
+  min(as.numeric(length(x)), value)
+}
+
+imrs_v1_two_sample_ks <- function(x, y) {
+  x <- sort(as.numeric(x))
+  y <- sort(as.numeric(y))
+  if (!length(x) || !length(y) || any(!is.finite(c(x, y)))) return(NA_real_)
+  grid <- sort(unique(c(x, y)))
+  max(abs(findInterval(grid, x) / length(x) -
+            findInterval(grid, y) / length(y)))
+}
+
+imrs_v1_native_authority_compatibility <- function(
+    observed_draws, authority_draws, policy) {
+  policy <- imrs_v1_historical_compatibility_policy(policy)
+  metrics <- c("forecast_mae", "forecast_check_loss")
+  summary_fields <- c(
     "posterior_mean", "posterior_sd", "cri_lower", "posterior_median",
     "cri_upper"
   )
-  rows <- lapply(observed$metric, function(metric) {
-    left <- observed[observed$metric == metric, , drop = FALSE]
-    right <- authority[authority$metric == metric, , drop = FALSE]
-    delta <- if (nrow(left) == 1L && nrow(right) == 1L) {
-      abs(
-        as.numeric(unlist(left[1L, fields, drop = FALSE], use.names = FALSE)) -
-          as.numeric(unlist(right[1L, fields, drop = FALSE], use.names = FALSE))
-      )
-    } else Inf
-    max_delta <- max(delta)
+  schema_ok <- all(metrics %in% names(observed_draws)) &&
+    all(metrics %in% names(authority_draws))
+  row_count_pass <- nrow(observed_draws) == nrow(authority_draws) &&
+    nrow(observed_draws) > 1L
+
+  rows <- lapply(metrics, function(metric) {
+    x <- if (schema_ok) as.numeric(observed_draws[[metric]]) else numeric()
+    y <- if (schema_ok) as.numeric(authority_draws[[metric]]) else numeric()
+    finite_contract <- schema_ok && length(x) > 1L && length(y) > 1L &&
+      all(is.finite(x)) && all(is.finite(y))
+    if (!finite_contract) {
+      return(data.frame(
+        policy_schema_version = policy$schema_version,
+        metric = metric, observed_draws = length(x), authority_draws = length(y),
+        row_count_pass = row_count_pass, finite_contract = FALSE,
+        exact_draw_max_abs_difference = Inf,
+        exact_summary_max_abs_difference = Inf,
+        exact_summary_tolerance = policy$exact_summary_tolerance,
+        exact_pass = FALSE,
+        observed_mean = NA_real_, authority_mean = NA_real_,
+        mean_difference = NA_real_, relative_mean_difference = Inf,
+        observed_ess = NA_real_, authority_ess = NA_real_,
+        combined_mcse = NA_real_, familywise_z_critical = policy$mean_z_critical,
+        mean_tolerance = NA_real_, mean_pass = FALSE,
+        ks_distance = Inf, familywise_ks_threshold = NA_real_, ks_pass = FALSE,
+        observed_q025 = NA_real_, authority_q025 = NA_real_,
+        observed_q50 = NA_real_, authority_q50 = NA_real_,
+        observed_q975 = NA_real_, authority_q975 = NA_real_,
+        max_interval_endpoint_difference = Inf,
+        authority_interval_width = NA_real_, endpoint_width_ratio = Inf,
+        endpoint_width_tolerance = policy$interval_endpoint_width_tolerance,
+        endpoint_pass = FALSE, interval_overlap_fraction = 0,
+        interval_overlap_min = policy$interval_overlap_min,
+        overlap_pass = FALSE, compatibility_pass = FALSE,
+        gate_mode = "failed_contract", pass = FALSE,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    observed_summary <- imrs_v1_interval_summary(
+      observed_draws, "reconstructed_native_posterior_predictive"
+    )
+    authority_summary <- imrs_v1_interval_summary(
+      authority_draws, "frozen_native_posterior_predictive"
+    )
+    left <- observed_summary[observed_summary$metric == metric, , drop = FALSE]
+    right <- authority_summary[authority_summary$metric == metric, , drop = FALSE]
+    summary_delta <- abs(
+      as.numeric(unlist(left[1L, summary_fields, drop = FALSE], use.names = FALSE)) -
+        as.numeric(unlist(right[1L, summary_fields, drop = FALSE], use.names = FALSE))
+    )
+    draw_delta <- if (row_count_pass) abs(x - y) else Inf
+    exact_draw_max <- max(draw_delta)
+    exact_max <- max(summary_delta)
+    exact_pass <- row_count_pass && all(is.finite(c(draw_delta, summary_delta))) &&
+      exact_draw_max <= policy$exact_summary_tolerance &&
+      exact_max <= policy$exact_summary_tolerance
+
+    observed_mean <- mean(x)
+    authority_mean <- mean(y)
+    mean_difference <- abs(observed_mean - authority_mean)
+    relative_mean_difference <- mean_difference /
+      max(abs(authority_mean), policy$absolute_floor)
+    observed_ess <- imrs_v1_effective_size(x)
+    authority_ess <- imrs_v1_effective_size(y)
+    combined_mcse <- if (all(is.finite(c(observed_ess, authority_ess)))) {
+      sqrt(stats::var(x) / observed_ess + stats::var(y) / authority_ess)
+    } else NA_real_
+    mean_tolerance <- max(
+      policy$absolute_floor,
+      policy$mean_relative_tolerance * abs(authority_mean),
+      policy$mean_z_critical * combined_mcse,
+      na.rm = TRUE
+    )
+    mean_pass <- is.finite(mean_tolerance) && mean_difference <= mean_tolerance
+
+    ks_distance <- imrs_v1_two_sample_ks(x, y)
+    effective_n <- c(observed_ess, authority_ess)
+    ks_threshold <- if (all(is.finite(effective_n)) && all(effective_n > 0)) {
+      min(1, policy$ks_constant * sqrt(sum(effective_n) / prod(effective_n)))
+    } else NA_real_
+    ks_pass <- is.finite(ks_distance) && is.finite(ks_threshold) &&
+      ks_distance <= ks_threshold
+
+    observed_q <- stats::quantile(
+      x, c(0.025, 0.5, 0.975), names = FALSE, type = 8
+    )
+    authority_q <- stats::quantile(
+      y, c(0.025, 0.5, 0.975), names = FALSE, type = 8
+    )
+    endpoint_difference <- max(abs(observed_q[c(1L, 3L)] -
+      authority_q[c(1L, 3L)]))
+    authority_width <- authority_q[[3L]] - authority_q[[1L]]
+    observed_width <- observed_q[[3L]] - observed_q[[1L]]
+    endpoint_ratio <- endpoint_difference /
+      max(authority_width, policy$absolute_floor)
+    endpoint_pass <- is.finite(endpoint_ratio) &&
+      endpoint_ratio <= policy$interval_endpoint_width_tolerance
+    overlap_width <- max(
+      0, min(observed_q[[3L]], authority_q[[3L]]) -
+        max(observed_q[[1L]], authority_q[[1L]])
+    )
+    narrower_width <- min(observed_width, authority_width)
+    overlap_fraction <- if (narrower_width <= policy$absolute_floor) {
+      as.numeric(endpoint_difference <= policy$absolute_floor)
+    } else min(1, overlap_width / narrower_width)
+    overlap_pass <- is.finite(overlap_fraction) &&
+      overlap_fraction >= policy$interval_overlap_min
+    compatibility_pass <- row_count_pass && finite_contract && mean_pass &&
+      ks_pass && endpoint_pass && overlap_pass
+    final_pass <- exact_pass || compatibility_pass
     data.frame(
-      metric = metric,
-      observed_draws = nrow(observed_draws),
-      authority_draws = nrow(authority_draws),
-      max_abs_difference = max_delta,
-      tolerance = tolerance,
-      pass = nrow(observed_draws) == nrow(authority_draws) &&
-        all(is.finite(delta)) && max_delta <= tolerance,
+      policy_schema_version = policy$schema_version,
+      metric = metric, observed_draws = length(x), authority_draws = length(y),
+      row_count_pass = row_count_pass, finite_contract = finite_contract,
+      exact_draw_max_abs_difference = exact_draw_max,
+      exact_summary_max_abs_difference = exact_max,
+      exact_summary_tolerance = policy$exact_summary_tolerance,
+      exact_pass = exact_pass,
+      observed_mean = observed_mean, authority_mean = authority_mean,
+      mean_difference = mean_difference,
+      relative_mean_difference = relative_mean_difference,
+      observed_ess = observed_ess, authority_ess = authority_ess,
+      combined_mcse = combined_mcse,
+      familywise_z_critical = policy$mean_z_critical,
+      mean_tolerance = mean_tolerance, mean_pass = mean_pass,
+      ks_distance = ks_distance, familywise_ks_threshold = ks_threshold,
+      ks_pass = ks_pass,
+      observed_q025 = observed_q[[1L]], authority_q025 = authority_q[[1L]],
+      observed_q50 = observed_q[[2L]], authority_q50 = authority_q[[2L]],
+      observed_q975 = observed_q[[3L]], authority_q975 = authority_q[[3L]],
+      max_interval_endpoint_difference = endpoint_difference,
+      authority_interval_width = authority_width,
+      endpoint_width_ratio = endpoint_ratio,
+      endpoint_width_tolerance = policy$interval_endpoint_width_tolerance,
+      endpoint_pass = endpoint_pass,
+      interval_overlap_fraction = overlap_fraction,
+      interval_overlap_min = policy$interval_overlap_min,
+      overlap_pass = overlap_pass, compatibility_pass = compatibility_pass,
+      gate_mode = if (exact_pass) "exact" else if (compatibility_pass) {
+        "distributional"
+      } else "failed_compatibility",
+      pass = final_pass,
       stringsAsFactors = FALSE
     )
   })
   do.call(rbind, rows)
+}
+
+# Retained as a narrow compatibility wrapper for downstream callers. New
+# campaign code must pass the complete, multiplicity-controlled policy.
+imrs_v1_native_authority_parity <- function(observed_draws, authority_draws,
+                                            tolerance = imrs_v1_tolerance) {
+  policy <- list(
+    schema_version = imrs_v1_historical_compatibility_schema,
+    source_package_version = "legacy_test_fixture",
+    fit_jobs = 1L, metrics_per_fit = 2L, familywise_alpha = 0.01,
+    exact_summary_tolerance = tolerance, mean_relative_tolerance = 0,
+    interval_endpoint_width_tolerance = 0,
+    interval_overlap_min = 1, absolute_floor = tolerance
+  )
+  out <- imrs_v1_native_authority_compatibility(
+    observed_draws, authority_draws, policy
+  )
+  out$pass <- out$exact_pass
+  out
 }
 
 imrs_v1_score_native_paths <- function(path_blocks, tau) {

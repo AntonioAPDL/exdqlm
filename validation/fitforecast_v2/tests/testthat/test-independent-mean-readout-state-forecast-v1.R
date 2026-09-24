@@ -31,6 +31,39 @@ testthat::test_that("posterior balancing preserves equal chain weight and basis 
   )
 })
 
+testthat::test_that("native metrics align by retained position, not sampler index", {
+  native <- data.frame(
+    source_draw_index = 1:5,
+    forecast_mae = seq_len(5), forecast_check_loss = seq_len(5) / 10
+  )
+  posterior <- list(
+    beta = matrix(seq_len(15L), nrow = 5L),
+    source_draw_index = c(5619L, 6540L, 7090L, 10264L, 17219L)
+  )
+  alignment <- imrs_v1_validate_native_posterior_alignment(
+    native, posterior, c(1L, 3L, 5L)
+  )
+  testthat::expect_equal(alignment$native_position, c(1L, 3L, 5L))
+  testthat::expect_equal(
+    alignment$posterior_original_draw_index, c(5619L, 7090L, 17219L)
+  )
+
+  malformed <- native
+  malformed$source_draw_index <- rev(malformed$source_draw_index)
+  testthat::expect_error(
+    imrs_v1_validate_native_posterior_alignment(
+      malformed, posterior, c(1L, 3L, 5L)
+    ),
+    "native_position_schema"
+  )
+  testthat::expect_error(
+    imrs_v1_validate_native_posterior_alignment(
+      native[-1L, ], posterior, c(1L, 3L)
+    ),
+    "native_rows"
+  )
+})
+
 testthat::test_that("paired innovations reproduce full and tail pipeline streams", {
   draws <- list(
     beta = matrix(seq_len(15L), nrow = 5L),
@@ -151,18 +184,104 @@ testthat::test_that("native artifacts are internally verified without a duplicat
   testthat::expect_equal(scored$point_metrics$forecast_mae, 1)
 })
 
-testthat::test_that("reconstructed native scores must reproduce frozen authority", {
+imrs_v1_test_compatibility_policy <- function() list(
+  schema_version = imrs_v1_historical_compatibility_schema,
+  source_package_version = "1.0.0",
+  fit_jobs = 96L, metrics_per_fit = 2L, familywise_alpha = 0.01,
+  exact_summary_tolerance = 1e-6, mean_relative_tolerance = 0.05,
+  interval_endpoint_width_tolerance = 0.10,
+  interval_overlap_min = 0.90, absolute_floor = 1e-6
+)
+
+testthat::test_that("historical authority identity and compatibility are distinct", {
+  set.seed(44)
   authority <- data.frame(
-    forecast_mae = seq(1, 2, length.out = 20L),
-    forecast_check_loss = seq(0.2, 0.4, length.out = 20L),
+    forecast_mae = 3 + stats::rnorm(1000L, sd = 0.3),
+    forecast_check_loss = 0.8 + stats::rnorm(1000L, sd = 0.07),
     chain_id = 1L
   )
-  observed <- authority
-  parity <- imrs_v1_native_authority_parity(observed, authority)
-  testthat::expect_true(all(parity$pass))
-  observed$forecast_mae <- observed$forecast_mae + 2e-6
-  parity <- imrs_v1_native_authority_parity(observed, authority)
-  testthat::expect_false(parity$pass[parity$metric == "forecast_mae"])
+  exact <- imrs_v1_native_authority_compatibility(
+    authority, authority, imrs_v1_test_compatibility_policy()
+  )
+  testthat::expect_true(all(exact$exact_pass))
+  testthat::expect_true(all(exact$pass))
+  testthat::expect_true(all(exact$gate_mode == "exact"))
+
+  permuted <- authority[rev(seq_len(nrow(authority))), , drop = FALSE]
+  compatible <- imrs_v1_native_authority_compatibility(
+    permuted, authority, imrs_v1_test_compatibility_policy()
+  )
+  testthat::expect_false(any(compatible$exact_pass))
+  testthat::expect_true(all(compatible$compatibility_pass))
+  testthat::expect_true(all(compatible$pass))
+  testthat::expect_true(all(compatible$gate_mode == "distributional"))
+})
+
+testthat::test_that("independent stochastic replays use familywise compatibility", {
+  set.seed(101)
+  authority <- data.frame(
+    forecast_mae = 4 + stats::rnorm(5000L, sd = 0.35),
+    forecast_check_loss = 1 + stats::rnorm(5000L, sd = 0.08),
+    chain_id = 1L
+  )
+  set.seed(202)
+  observed <- data.frame(
+    forecast_mae = 4 + stats::rnorm(5000L, sd = 0.35),
+    forecast_check_loss = 1 + stats::rnorm(5000L, sd = 0.08),
+    chain_id = 1L
+  )
+  compatible <- imrs_v1_native_authority_compatibility(
+    observed, authority, imrs_v1_test_compatibility_policy()
+  )
+  testthat::expect_false(any(compatible$exact_pass))
+  testthat::expect_true(all(compatible$pass))
+  testthat::expect_true(all(compatible$mean_pass))
+  testthat::expect_true(all(compatible$ks_pass))
+  testthat::expect_true(all(compatible$endpoint_pass))
+  testthat::expect_true(all(compatible$overlap_pass))
+
+  shifted <- observed
+  shifted$forecast_mae <- shifted$forecast_mae + 1
+  shifted$forecast_check_loss <- shifted$forecast_check_loss + 0.25
+  rejected <- imrs_v1_native_authority_compatibility(
+    shifted, authority, imrs_v1_test_compatibility_policy()
+  )
+  testthat::expect_false(any(rejected$pass))
+  testthat::expect_true(any(
+    !rejected$mean_pass | !rejected$ks_pass | !rejected$endpoint_pass |
+      !rejected$overlap_pass
+  ))
+})
+
+testthat::test_that("historical compatibility rejects malformed draw contracts", {
+  authority <- data.frame(
+    forecast_mae = seq(1, 2, length.out = 100L),
+    forecast_check_loss = seq(0.2, 0.4, length.out = 100L)
+  )
+  mismatched <- imrs_v1_native_authority_compatibility(
+    authority[-1L, ], authority, imrs_v1_test_compatibility_policy()
+  )
+  testthat::expect_false(any(mismatched$pass))
+  testthat::expect_false(any(mismatched$row_count_pass))
+
+  nonfinite <- authority
+  nonfinite$forecast_mae[[1L]] <- Inf
+  nonfinite$forecast_check_loss[[2L]] <- NA_real_
+  rejected <- imrs_v1_native_authority_compatibility(
+    nonfinite, authority, imrs_v1_test_compatibility_policy()
+  )
+  testthat::expect_false(any(rejected$pass))
+  testthat::expect_false(any(rejected$finite_contract))
+})
+
+testthat::test_that("historical compatibility policy controls all 192 metrics", {
+  policy <- imrs_v1_historical_compatibility_policy(
+    imrs_v1_test_compatibility_policy()
+  )
+  testthat::expect_equal(policy$familywise_comparisons, 192L)
+  testthat::expect_equal(policy$per_comparison_alpha, 0.01 / 192)
+  testthat::expect_gt(policy$mean_z_critical, 3.9)
+  testthat::expect_gt(policy$ks_constant, 2)
 })
 
 testthat::test_that("scheduler status labels preserve an empty job set", {
@@ -197,6 +316,46 @@ testthat::test_that("campaign scripts preserve eight-core lane ownership", {
   testthat::expect_match(
     text, "native_artifact_consistency_tolerance", fixed = TRUE
   )
-  testthat::expect_match(text, "historical_native_authority", fixed = TRUE)
+  testthat::expect_match(
+    text, "historical_native_authority_compatibility", fixed = TRUE
+  )
+  testthat::expect_false(grepl(
+    "historical_native_authority_parity[.]csv", text
+  ))
+  testthat::expect_match(
+    text, "native_posterior_alignment_ledger", fixed = TRUE
+  )
   testthat::expect_match(text, "innovation_pairing_ledger", fixed = TRUE)
+})
+
+testthat::test_that("materialization freezes authority versions and policy", {
+  package_root <- normalizePath(
+    file.path(harness_root, "..", ".."), winslash = "/", mustWork = TRUE
+  )
+  defaults <- yaml::read_yaml(file.path(
+    package_root, "config", "validation",
+    "independent_mean_readout_state_forecast_v1", "campaign_defaults.yaml"
+  ))
+  policy <- imrs_v1_historical_compatibility_policy(
+    defaults$historical_authority_compatibility
+  )
+  testthat::expect_identical(policy$source_package_version, "1.0.0")
+  testthat::expect_match(
+    defaults$historical_authority_compatibility$imi_source_git_commit,
+    "^[0-9a-f]{40}$"
+  )
+  testthat::expect_match(
+    defaults$historical_authority_compatibility$idolp_source_git_commit,
+    "^[0-9a-f]{40}$"
+  )
+  materializer <- paste(readLines(file.path(
+    harness_root, "scripts",
+    "materialize_independent_mean_readout_state_forecast_v1.R"
+  ), warn = FALSE), collapse = "\n")
+  testthat::expect_match(
+    materializer, "git_description_version", fixed = TRUE
+  )
+  testthat::expect_match(
+    materializer, "historical_authority_compatibility", fixed = TRUE
+  )
 })

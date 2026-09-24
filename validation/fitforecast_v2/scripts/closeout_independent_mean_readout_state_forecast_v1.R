@@ -20,6 +20,15 @@ defaults <- yaml::read_yaml(file.path(
   repo_root, "config", "validation",
   "independent_mean_readout_state_forecast_v1", "campaign_defaults.yaml"
 ))
+compatibility_policy <- imrs_v1_historical_compatibility_policy(
+  defaults$historical_authority_compatibility
+)
+materialization <- ffv2_read_json(file.path(
+  state_root, "manifests", "materialization_manifest.json"
+))
+execution_package_version <- as.character(
+  materialization$execution_package_version
+)
 fit_plan <- ffv2_read_csv(file.path(state_root, "manifests", "fit_plan.csv"))
 forecast_plan <- ffv2_read_csv(
   file.path(state_root, "manifests", "forecast_plan.csv")
@@ -46,24 +55,61 @@ if (!all(fit_complete) || !all(forecast_complete)) {
 fit_statuses <- lapply(fit_plan$job_id, function(id) {
   imrs_v1_read_json(imrs_v1_status_path(state_root, "fit", id))
 })
-native_authority_ledger <- do.call(rbind, Map(function(status, id) {
+native_authority_compatibility <- do.call(rbind, Map(function(status, id) {
   path <- normalizePath(
-    status$native_authority_parity_path, winslash = "/", mustWork = TRUE
+    status$native_authority_compatibility_path,
+    winslash = "/", mustWork = TRUE
   )
   if (!identical(ffv2_file_sha256(path),
-                 as.character(status$native_authority_parity_sha256))) {
-    stop("Historical native-authority parity hash mismatch: ", id,
+                 as.character(status$native_authority_compatibility_sha256))) {
+    stop("Historical native-authority compatibility hash mismatch: ", id,
          call. = FALSE)
   }
   out <- ffv2_read_csv(path)
   out$fit_job_id <- id
   out
 }, fit_statuses, fit_plan$job_id))
-if (nrow(native_authority_ledger) != 2L * nrow(fit_plan) ||
-    !all(native_authority_ledger$pass)) {
-  stop("At least one fit failed historical native-authority reproduction.",
+compatibility_fields <- c(
+  "policy_schema_version", "row_count_pass", "finite_contract", "exact_pass",
+  "mean_pass", "ks_pass", "endpoint_pass", "overlap_pass",
+  "compatibility_pass", "gate_mode", "pass",
+  "current_package_version", "authority_package_version",
+  "authority_git_commit"
+)
+if (nrow(native_authority_compatibility) !=
+      compatibility_policy$metrics_per_fit * nrow(fit_plan) ||
+    any(!compatibility_fields %in% names(native_authority_compatibility)) ||
+    !all(native_authority_compatibility$pass) ||
+    !all(native_authority_compatibility$row_count_pass) ||
+    !all(native_authority_compatibility$finite_contract) ||
+    !all(native_authority_compatibility$policy_schema_version ==
+           compatibility_policy$schema_version) ||
+    !all(native_authority_compatibility$authority_package_version ==
+           compatibility_policy$source_package_version) ||
+    !all(native_authority_compatibility$current_package_version ==
+           execution_package_version)) {
+  stop("At least one fit failed historical native-authority compatibility.",
        call. = FALSE)
 }
+authority_exact_count <- sum(
+  native_authority_compatibility$gate_mode == "exact"
+)
+authority_distributional_count <- sum(
+  native_authority_compatibility$gate_mode == "distributional"
+)
+authority_max_relative_mean_difference <- max(
+  native_authority_compatibility$relative_mean_difference
+)
+authority_max_ks_ratio <- max(
+  native_authority_compatibility$ks_distance /
+    native_authority_compatibility$familywise_ks_threshold
+)
+authority_max_endpoint_ratio <- max(
+  native_authority_compatibility$endpoint_width_ratio
+)
+authority_min_overlap <- min(
+  native_authority_compatibility$interval_overlap_fraction
+)
 
 read_forecast_output <- function(i) {
   row <- forecast_plan[i, , drop = FALSE]
@@ -99,6 +145,7 @@ read_forecast_output <- function(i) {
     dispersion = read_artifact("dispersion"),
     stability = read_artifact("stability"),
     parity = read_artifact("parity"),
+    posterior_alignment = read_artifact("posterior_alignment"),
     innovation_pairing = read_artifact("innovation_pairing")
   )
 }
@@ -253,6 +300,26 @@ innovation_pairing_ledger <- do.call(rbind, lapply(
 primary_pairing <- innovation_pairing_ledger[
   innovation_pairing_ledger$stream == "primary", , drop = FALSE
 ]
+posterior_alignment_ledger <- do.call(rbind, lapply(
+  forecast_outputs, function(x) x$posterior_alignment
+))
+alignment_counts <- table(posterior_alignment_ledger$fit_job_id)
+pairing_counts <- stats::setNames(
+  as.integer(primary_pairing$selected_draw_count), primary_pairing$fit_job_id
+)
+alignment_gate <-
+  setequal(names(alignment_counts), fit_plan$job_id) &&
+  setequal(names(pairing_counts), fit_plan$job_id) &&
+  identical(
+    as.integer(alignment_counts[fit_plan$job_id]),
+    as.integer(pairing_counts[fit_plan$job_id])
+  ) &&
+  all(posterior_alignment_ledger$selected_position ==
+        posterior_alignment_ledger$native_position) &&
+  all(vapply(split(
+    posterior_alignment_ledger$posterior_original_draw_index,
+    posterior_alignment_ledger$fit_job_id
+  ), function(x) !anyNA(x) && !anyDuplicated(x), logical(1L)))
 pairing_gate <- nrow(primary_pairing) == nrow(fit_plan) &&
   !anyDuplicated(primary_pairing$fit_job_id) &&
   setequal(primary_pairing$fit_job_id, fit_plan$job_id) &&
@@ -294,8 +361,11 @@ decision_checks <- c(
   finite_scores = finite_gate,
   native_artifact_consistency = all(parity_ledger$pass) &&
     max(parity_ledger$max_abs_difference) <= imrs_v1_tolerance,
-  historical_native_authority = all(native_authority_ledger$pass) &&
-    max(native_authority_ledger$max_abs_difference) <= imrs_v1_tolerance,
+  historical_native_authority_compatibility =
+    nrow(native_authority_compatibility) ==
+      compatibility_policy$familywise_comparisons &&
+    all(native_authority_compatibility$pass),
+  posterior_draw_alignment = isTRUE(alignment_gate),
   innovation_pairing = isTRUE(pairing_gate),
   median_width = median_width_ratio <=
     as.numeric(rules$median_interval_width_ratio_max),
@@ -310,7 +380,8 @@ decision_checks <- c(
 )
 decision <- if (!all(decision_checks[c(
   "full_surface", "finite_scores", "native_artifact_consistency",
-  "historical_native_authority", "innovation_pairing", "stability_evidence"
+  "historical_native_authority_compatibility", "posterior_draw_alignment",
+  "innovation_pairing", "stability_evidence"
 )])) {
   "BLOCKED_PROVENANCE_OR_IMPLEMENTATION_FAILURE"
 } else if (all(decision_checks)) {
@@ -341,9 +412,13 @@ paths <- list(
     innovation_pairing_ledger,
     file.path(closeout_root, "innovation_pairing_ledger.csv")
   ),
-  historical_native_authority = imrs_v1_atomic_write_csv(
-    native_authority_ledger,
-    file.path(closeout_root, "historical_native_authority_parity.csv")
+  posterior_alignment = imrs_v1_atomic_write_csv(
+    posterior_alignment_ledger,
+    file.path(closeout_root, "native_posterior_alignment_ledger.csv")
+  ),
+  historical_native_authority_compatibility = imrs_v1_atomic_write_csv(
+    native_authority_compatibility,
+    file.path(closeout_root, "historical_native_authority_compatibility.csv")
   ),
   stability = imrs_v1_atomic_write_csv(
     stability_ledger, file.path(closeout_root, "integration_stability.csv")
@@ -480,10 +555,21 @@ decision_payload <- list(
     primary_innovation_pairing_records = nrow(primary_pairing),
     expected_primary_innovation_pairing_records = nrow(fit_plan),
     innovation_pairing_gate = isTRUE(pairing_gate),
+    posterior_draw_alignment_gate = isTRUE(alignment_gate),
+    posterior_draw_alignment_rows = nrow(posterior_alignment_ledger),
     native_artifact_consistency_max_abs_difference =
       max(parity_ledger$max_abs_difference),
-    historical_native_authority_max_abs_difference =
-      max(native_authority_ledger$max_abs_difference)
+    historical_native_authority_exact_metrics = authority_exact_count,
+    historical_native_authority_distributional_metrics =
+      authority_distributional_count,
+    historical_native_authority_max_relative_mean_difference =
+      authority_max_relative_mean_difference,
+    historical_native_authority_max_familywise_ks_ratio =
+      authority_max_ks_ratio,
+    historical_native_authority_max_endpoint_width_ratio =
+      authority_max_endpoint_ratio,
+    historical_native_authority_min_interval_overlap = authority_min_overlap,
+    execution_package_version = execution_package_version
   ),
   generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
   git_commit = system("git rev-parse HEAD", intern = TRUE)
@@ -500,8 +586,11 @@ closeout_md <- c(
   "",
   "The campaign held every fitted Q-DESN winner fixed and changed only the",
   "recursive forecast estimator. Each fit produced the native authority once;",
-  "its hash-verified draw and path artifacts passed an internal-summary",
+  "its hash-verified draw and path artifacts passed the exact same-run",
   "consistency check at the predeclared absolute tolerance of `1e-6`.",
+  "Historical 1.0.0 score draws were used only as a stochastic compatibility",
+  "gate under the predeclared familywise-controlled policy; they were not",
+  "required to be numerically identical to a fresh 1.1.2 refit.",
   "",
   "| Quantity | Result |",
   "|---|---:|",
@@ -518,10 +607,24 @@ closeout_md <- c(
           nrow(primary_pairing), nrow(fit_plan)),
   sprintf("| Innovation-pairing gate | %s |",
           if (isTRUE(pairing_gate)) "PASS" else "FAIL"),
+  sprintf("| Posterior draw-alignment gate | %s |",
+          if (isTRUE(alignment_gate)) "PASS" else "FAIL"),
+  sprintf("| Posterior draw-alignment rows | %d |",
+          nrow(posterior_alignment_ledger)),
   sprintf("| Native-artifact maximum consistency difference | %.3e |",
           max(parity_ledger$max_abs_difference)),
-  sprintf("| Historical native-authority maximum difference | %.3e |",
-          max(native_authority_ledger$max_abs_difference)),
+  sprintf("| Historical exact-summary metrics | %d/%d |",
+          authority_exact_count, nrow(native_authority_compatibility)),
+  sprintf("| Historical distributional-compatibility metrics | %d/%d |",
+          authority_distributional_count, nrow(native_authority_compatibility)),
+  sprintf("| Maximum historical relative mean difference | %.4f |",
+          authority_max_relative_mean_difference),
+  sprintf("| Maximum historical familywise KS ratio | %.4f |",
+          authority_max_ks_ratio),
+  sprintf("| Maximum historical endpoint/width ratio | %.4f |",
+          authority_max_endpoint_ratio),
+  sprintf("| Minimum historical interval overlap | %.4f |",
+          authority_min_overlap),
   "",
   "A decision of `ACCEPT_MEAN_READOUT_STATE_FOR_FULL_QDESN_SURFACE` creates a",
   "candidate article replacement packet. A retain decision leaves the current",

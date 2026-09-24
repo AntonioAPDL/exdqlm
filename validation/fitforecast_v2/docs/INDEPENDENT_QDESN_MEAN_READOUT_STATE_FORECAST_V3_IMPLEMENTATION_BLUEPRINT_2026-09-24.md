@@ -1,5 +1,12 @@
 # Independent Q-DESN mean-readout-state forecast v3 implementation blueprint
 
+> **Recovery amendment.** Sections that require a fresh stochastic refit to
+> equal historical 1.0.0 score draws at `1e-6` are superseded by
+> `INDEPENDENT_QDESN_MEAN_READOUT_STATE_FORECAST_V1_PARITY_RECOVERY_2026-09-24.md`.
+> Historical evidence now uses a frozen familywise compatibility contract;
+> exact `1e-6` checking is retained for same-run native artifacts used in the
+> paired estimator comparison.
+
 Status: audited and ready for implementation, but implementation and scientific
 execution are not authorized by this document. No fit, forecast replay, smoke,
 or production job has been launched.
