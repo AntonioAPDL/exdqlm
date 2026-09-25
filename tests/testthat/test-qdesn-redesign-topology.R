@@ -33,6 +33,54 @@ test_that("exact-fan-in reservoirs honor row degree and input normalization", {
   expect_true(all(fit$reservoir$Q_is_identity))
 })
 
+test_that("spectral normalization preserves the failed 300-unit fan-in case", {
+  y <- sin(seq_len(90) / 7) + cos(seq_len(90) / 19)
+  fit <- qdesn_fit_vb(
+    y = y, p0 = 0.5, D = 2L, n = c(150L, 300L), n_tilde = 150L,
+    m = 15L, standardize_inputs = TRUE,
+    input_center_scale = "mean_sd", input_bound = "tanh",
+    input_bound_divisor = 3, win_scale_global = 1,
+    alpha = 0.470584459965098,
+    rho = rep(0.969479367788519, 2L),
+    pi_w = 0.1, pi_in = 0.1,
+    topology = list(
+      mode = "exact_fanin", recurrent_indegree = rep(20L, 2L),
+      input_fanin = rep(16L, 2L), interlayer_fanin = rep(25L, 2L),
+      row_normalize_inputs = TRUE
+    ),
+    w_dist = function(n) runif(n, -1, 1),
+    in_dist = function(n) runif(n, -1, 1),
+    washout = 20L, add_bias = TRUE, seed = 97278416L,
+    fit_readout = FALSE
+  )
+
+  expect_true(all(rowSums(fit$reservoir$W[[1L]] != 0) == 20L))
+  expect_true(all(rowSums(fit$reservoir$W[[2L]] != 0) == 20L))
+  expect_equal(
+    fit$reservoir$spectral_diagnostics$achieved_rho,
+    rep(0.969479367788519, 2L), tolerance = 1e-8
+  )
+  expect_true(all(fit$reservoir$spectral_diagnostics$leaky_radius < 1))
+  expect_true(all(
+    fit$reservoir$spectral_diagnostics$achieved_method ==
+      "dense_exact_scaled_eigenvalues"
+  ))
+})
+
+test_that("large approximate spectral radii require a verified eigenpair", {
+  set.seed(97278416L)
+  A <- matrix(rnorm(520L^2), 520L, 520L)
+  details <- .qdesn_spectral_radius_details(A, dense_threshold = 32L)
+  expect_true(is.finite(details$radius))
+  expect_true(details$method %in% c(
+    "rspectra_residual_verified", "dense_fallback_residual",
+    "dense_fallback_solver_failure"
+  ))
+  if (identical(details$method, "rspectra_residual_verified")) {
+    expect_lte(details$approximate_residual, 1e-7)
+  }
+})
+
 test_that("Normal recursive forecasts accept an explicit teacher-forced origin state", {
   set.seed(12)
   y <- 10 + 0.02 * seq_len(100) + sin(seq_len(100) / 7) +

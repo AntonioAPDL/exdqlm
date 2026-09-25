@@ -473,6 +473,106 @@
   )
 }
 
+.qdesn_spectral_radius_details <- function(A, dense_threshold = 512L,
+                                           residual_tolerance = 1e-7) {
+  A <- as.matrix(A)
+  nr <- nrow(A)
+  nc <- ncol(A)
+  if (nr != nc || nr < 1L || any(!is.finite(A))) {
+    stop("Spectral-radius input must be a finite nonempty square matrix.",
+         call. = FALSE)
+  }
+
+  dense_result <- function(method, approximate_residual = NA_real_) {
+    values <- eigen(A, only.values = TRUE)$values
+    radius <- max(Mod(values))
+    if (!is.finite(radius)) {
+      stop("Dense spectral-radius calculation returned a nonfinite value.",
+           call. = FALSE)
+    }
+    list(radius = radius, method = method,
+         approximate_residual = approximate_residual,
+         eigenvalues = values)
+  }
+
+  if (nr <= as.integer(dense_threshold) ||
+      !requireNamespace("RSpectra", quietly = TRUE)) {
+    return(dense_result("dense_exact"))
+  }
+
+  approx <- suppressWarnings(try(
+    RSpectra::eigs(A, k = 1L, which = "LM"), silent = TRUE
+  ))
+  if (inherits(approx, "try-error") || !length(approx$values) ||
+      is.null(approx$vectors)) {
+    return(dense_result("dense_fallback_solver_failure"))
+  }
+  lambda <- approx$values[[1L]]
+  vector <- approx$vectors[, 1L]
+  vector_norm <- sqrt(sum(Mod(vector)^2))
+  denominator <- max(norm(A, type = "F") * vector_norm,
+                     .Machine$double.xmin)
+  residual <- sqrt(sum(Mod(A %*% vector - lambda * vector)^2)) /
+    denominator
+  if (!is.finite(lambda) || !is.finite(residual) ||
+      residual > residual_tolerance) {
+    return(dense_result("dense_fallback_residual", residual))
+  }
+  list(radius = Mod(lambda), method = "rspectra_residual_verified",
+       approximate_residual = residual, eigenvalues = NULL)
+}
+
+.qdesn_stabilize_leaky_weights <- function(W, alpha,
+                                            maximum_radius = 1 - 1e-8) {
+  alpha <- as.numeric(alpha)[[1L]]
+  if (!is.finite(alpha) || alpha <= 0 || alpha >= 1) {
+    stop("Leaky-map alpha must lie strictly between zero and one.",
+         call. = FALSE)
+  }
+  support <- W != 0
+  leaky_details <- function(scale) {
+    n <- nrow(W)
+    .qdesn_spectral_radius_details(
+      (1 - alpha) * diag(n) + alpha * scale * W
+    )
+  }
+  initial <- leaky_details(1)
+  if (initial$radius < maximum_radius) {
+    return(list(
+      W = W, scale = 1, radius = initial$radius,
+      method = initial$method,
+      approximate_residual = initial$approximate_residual
+    ))
+  }
+
+  if (leaky_details(0)$radius >= maximum_radius) {
+    stop("The leaky map cannot be stabilized by support-preserving scaling.",
+         call. = FALSE)
+  }
+  lower <- 0
+  upper <- 1
+  for (i in seq_len(60L)) {
+    midpoint <- (lower + upper) / 2
+    if (leaky_details(midpoint)$radius < maximum_radius) {
+      lower <- midpoint
+    } else {
+      upper <- midpoint
+    }
+  }
+  stabilized <- lower * W
+  final <- leaky_details(lower)
+  if (!identical(stabilized != 0, support) ||
+      !is.finite(final$radius) || final$radius >= maximum_radius) {
+    stop("Support-preserving leaky-map stabilization failed.",
+         call. = FALSE)
+  }
+  list(
+    W = stabilized, scale = lower, radius = final$radius,
+    method = paste0("support_preserving_bisection_", final$method),
+    approximate_residual = final$approximate_residual
+  )
+}
+
 #' Q-DESN (Quantile Deep Echo State Network) via exAL-LDVB Readout
 #'
 #' Implements the model in your LaTeX: a deep, leaky reservoir with spectral
@@ -740,18 +840,6 @@ qdesn_fit_vb <- function(
   k_act <- get_act(act_k)
 
   ## ---- helpers ----
-  spectral_radius <- function(A) {
-    # robust: try RSpectra for large, else dense eigen
-    nr <- nrow(A); nc <- ncol(A)
-    if (nr != nc) stop("spectral_radius requires square matrix.")
-    if (nr >= 256 && requireNamespace("RSpectra", quietly = TRUE)) {
-      # largest magnitude eigenvalue via eigs
-      ev <- try(RSpectra::eigs(A, k = 1, which = "LM")$values, silent = TRUE)
-      if (!inherits(ev, "try-error") && length(ev)) return(max(Mod(ev)))
-    }
-    max(Mod(eigen(A, only.values = TRUE)$values))
-  }
-
   bern_mask <- function(nr, nc, prob) {
     M <- matrix(runif(nr * nc) < prob, nrow = nr, ncol = nc)
     storage.mode(M) <- "double"
@@ -823,22 +911,6 @@ qdesn_fit_vb <- function(
     Q / rs
   }
 
-  enforce_leaky_radius <- function(Wd, alpha) {
-    # Largest eigenvalue magnitude of J = (1-alpha)I + alpha*Wd
-    # For large matrices, use RSpectra if available.
-    nr <- nrow(Wd)
-    if (nr >= 256 && requireNamespace("RSpectra", quietly = TRUE)) {
-      ev <- RSpectra::eigs((1-alpha)*diag(nr) + alpha*Wd, k = 1, which = "LM")$values
-      rJ <- max(Mod(ev))
-    } else {
-      rJ <- max(Mod(eigen((1-alpha)*diag(nr) + alpha*Wd, only.values=TRUE)$values))
-    }
-    if (rJ < 1 - 1e-6) return(Wd)
-    # Rescale Wd so that rho(J) = 0.99
-    s <- 0.99 / rJ
-    (1/alpha) * ( s*((1-alpha)*diag(nr) + alpha*Wd) - (1-alpha)*diag(nr) )
-  }
-
   ## ---- build reservoir ----
   Win <- vector("list", D)
   W   <- vector("list", D)
@@ -882,13 +954,77 @@ qdesn_fit_vb <- function(
     }
   }
 
-  # Spectral normalization per layer
+  # Spectral normalization per layer. The support-preserving guard is
+  # deliberately scalar: exact-fan-in topology must never be changed while
+  # enforcing a stable leaky map.
+  spectral_diagnostics <- vector("list", D)
   for (d in 1:D) {
-    sr <- suppressWarnings(try(spectral_radius(W[[d]]), silent = TRUE))
-    if (inherits(sr, "try-error") || !is.finite(sr) || sr <= 0) sr <- 1
-    W[[d]] <- (rho[d] / sr) * W[[d]]
-    # extra safety for the leaky map (use layerwise alpha)
-    W[[d]] <- enforce_leaky_radius(W[[d]], alpha_vec[d])
+    support <- W[[d]] != 0
+    raw <- .qdesn_spectral_radius_details(W[[d]])
+    if (!is.finite(raw$radius) || raw$radius <= 0) {
+      if (identical(topology_mode, "exact_fanin")) {
+        stop("Exact-fan-in reservoir layer has a nonpositive spectral radius.",
+             call. = FALSE)
+      }
+      # Preserve the historical Bernoulli-topology behavior for zero-radius
+      # (often nilpotent) sparse matrices. Such a matrix cannot be normalized
+      # to a positive target radius, but its leaky map is still stable.
+      W[[d]] <- rho[d] * W[[d]]
+      stabilized <- .qdesn_stabilize_leaky_weights(W[[d]], alpha_vec[d])
+      W[[d]] <- stabilized$W
+      achieved <- .qdesn_spectral_radius_details(W[[d]])
+      spectral_diagnostics[[d]] <- data.frame(
+        layer = d, target_rho = rho[d],
+        achieved_rho = achieved$radius,
+        leaky_radius = stabilized$radius,
+        support_scale = stabilized$scale,
+        raw_method = paste0(raw$method, "_zero_radius_legacy"),
+        achieved_method = achieved$method,
+        leaky_method = stabilized$method,
+        stringsAsFactors = FALSE
+      )
+      next
+    }
+    W[[d]] <- (rho[d] / raw$radius) * W[[d]]
+    if (length(raw$eigenvalues)) {
+      scaled_values <- raw$eigenvalues * (rho[d] / raw$radius)
+      achieved_radius <- max(Mod(scaled_values))
+      leaky_radius <- max(Mod(
+        (1 - alpha_vec[d]) + alpha_vec[d] * scaled_values
+      ))
+      if (leaky_radius < 1 - 1e-8) {
+        stabilized <- list(
+          W = W[[d]], scale = 1, radius = leaky_radius,
+          method = "dense_exact_eigenvalue_transform",
+          approximate_residual = NA_real_
+        )
+        achieved <- list(
+          radius = achieved_radius,
+          method = "dense_exact_scaled_eigenvalues"
+        )
+      } else {
+        stabilized <- .qdesn_stabilize_leaky_weights(W[[d]], alpha_vec[d])
+        achieved <- .qdesn_spectral_radius_details(stabilized$W)
+      }
+    } else {
+      stabilized <- .qdesn_stabilize_leaky_weights(W[[d]], alpha_vec[d])
+      achieved <- .qdesn_spectral_radius_details(stabilized$W)
+    }
+    W[[d]] <- stabilized$W
+    if (!identical(W[[d]] != 0, support)) {
+      stop("Spectral normalization changed recurrent topology in layer ", d,
+           ".", call. = FALSE)
+    }
+    spectral_diagnostics[[d]] <- data.frame(
+      layer = d, target_rho = rho[d],
+      achieved_rho = achieved$radius,
+      leaky_radius = stabilized$radius,
+      support_scale = stabilized$scale,
+      raw_method = raw$method,
+      achieved_method = achieved$method,
+      leaky_method = stabilized$method,
+      stringsAsFactors = FALSE
+    )
   }
 
   reservoir <- list(
@@ -903,6 +1039,7 @@ qdesn_fit_vb <- function(
       interlayer_fanin = if (identical(topology_mode, "exact_fanin")) interlayer_fanin else NULL,
       row_normalize_inputs = row_normalize_inputs
     ),
+    spectral_diagnostics = do.call(rbind, spectral_diagnostics),
     seed = seed
   )
 

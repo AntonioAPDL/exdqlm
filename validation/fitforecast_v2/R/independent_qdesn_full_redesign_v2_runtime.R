@@ -119,6 +119,22 @@ iqfr_v2_assert_design <- function(object, candidate, expected_rows) {
   if (z$D > 1L && !all(object$reservoir$Q_is_identity)) {
     failures <- c(failures, "identity_projection")
   }
+  spectral <- object$reservoir$spectral_diagnostics
+  if (!is.data.frame(spectral) || nrow(spectral) != z$D ||
+      any(!is.finite(spectral$achieved_rho)) ||
+      any(!is.finite(spectral$leaky_radius)) ||
+      any(spectral$leaky_radius >= 1) ||
+      any(spectral$achieved_rho > spectral$target_rho + 1e-6) ||
+      any(spectral$support_scale <= 0 | spectral$support_scale > 1)) {
+    failures <- c(failures, "spectral_contract")
+  }
+  if (is.data.frame(spectral)) {
+    unchanged <- abs(spectral$support_scale - 1) <= 1e-12
+    if (any(unchanged &
+            abs(spectral$achieved_rho - spectral$target_rho) > 1e-6)) {
+      failures <- c(failures, "spectral_target")
+    }
+  }
   for (d in seq_len(z$D)) {
     expected_recurrent <- min(z$recurrent_indegree, z$n[[d]])
     if (any(rowSums(object$reservoir$W[[d]] != 0) != expected_recurrent)) {
@@ -253,6 +269,9 @@ iqfr_v2_normal_job <- function(config_path) {
       family = as.character(iqfr_v2_scalar(candidate$family)),
       candidate_id = as.character(iqfr_v2_scalar(candidate$candidate_id)),
       candidate_signature = as.character(iqfr_v2_scalar(candidate$candidate_signature)),
+      structure_id = as.character(iqfr_v2_scalar(candidate$structure_id)),
+      structure_signature = as.character(iqfr_v2_scalar(candidate$structure_signature)),
+      tau_arm = as.character(iqfr_v2_scalar(candidate$tau_arm)),
       source_sha256 = expected_source_hash,
       matrix_seed = iqfr_v2_integer(candidate$matrix_seed),
       D = iqfr_v2_integer(candidate$D), n = as.character(iqfr_v2_scalar(candidate$n)),
@@ -268,6 +287,16 @@ iqfr_v2_normal_job <- function(config_path) {
       recurrent_indegree = iqfr_v2_integer(candidate$recurrent_indegree),
       input_fanin = iqfr_v2_integer(candidate$input_fanin),
       interlayer_fanin = iqfr_v2_integer(candidate$interlayer_fanin),
+      maximum_spectral_radius_error = max(abs(
+        fit$reservoir$spectral_diagnostics$achieved_rho -
+          fit$reservoir$spectral_diagnostics$target_rho
+      )),
+      maximum_leaky_radius = max(
+        fit$reservoir$spectral_diagnostics$leaky_radius
+      ),
+      minimum_spectral_support_scale = min(
+        fit$reservoir$spectral_diagnostics$support_scale
+      ),
       fit_oracle_location_rmse = sqrt(mean((fit_prediction - fit_oracle)^2)),
       fit_oracle_location_mae = mean(abs(fit_prediction - fit_oracle)),
       forecast_oracle_location_mae = mean(abs(fc$prediction - oracle)),
@@ -384,8 +413,80 @@ iqfr_v2_rank_normal <- function(results) {
   out
 }
 
+iqfr_v2_validate_normal_stage <- function(results, candidates) {
+  required <- c(
+    "candidate_id", "structure_id", "rhs_tau0",
+    "maximum_spectral_radius_error", "maximum_leaky_radius",
+    "minimum_spectral_support_scale", "finite_contract"
+  )
+  if (!all(required %in% names(results)) ||
+      !setequal(results$candidate_id, candidates$candidate_id) ||
+      anyDuplicated(results$candidate_id) ||
+      any(results$structure_id != candidates$structure_id[
+        match(results$candidate_id, candidates$candidate_id)
+      ]) ||
+      any(!is.finite(results$maximum_spectral_radius_error)) ||
+      any(results$maximum_spectral_radius_error > 1e-6) ||
+      any(!is.finite(results$maximum_leaky_radius)) ||
+      any(results$maximum_leaky_radius >= 1) ||
+      any(!is.finite(results$minimum_spectral_support_scale)) ||
+      any(results$minimum_spectral_support_scale <= 0) ||
+      any(!as.logical(results$finite_contract))) {
+    stop("Normal stage failed identity, spectral, or finite-result validation.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+iqfr_v2_tau_response_audit <- function(ranked, candidates, stage) {
+  joined <- merge(
+    ranked[, c("family", "candidate_id", "family_rank",
+               "forecast_oracle_location_mae", "fit_oracle_location_rmse")],
+    candidates[, c("family", "candidate_id", "structure_id", "rhs_tau0")],
+    by = c("family", "candidate_id"), all.x = TRUE, sort = FALSE
+  )
+  if (anyNA(joined$structure_id) || anyNA(joined$rhs_tau0)) {
+    stop("Tau-response audit could not resolve candidate identities.",
+         call. = FALSE)
+  }
+  rows <- list()
+  k <- 0L
+  for (family in iqfr_v2_families) {
+    x <- joined[joined$family == family, , drop = FALSE]
+    x <- x[order(x$forecast_oracle_location_mae,
+                 x$fit_oracle_location_rmse), , drop = FALSE]
+    best_by_structure <- x[!duplicated(x$structure_id), , drop = FALSE]
+    top <- x[seq_len(min(25L, nrow(x))), , drop = FALSE]
+    for (tau0 in sort(unique(x$rhs_tau0))) {
+      k <- k + 1L
+      rows[[k]] <- data.frame(
+        stage = stage, family = family, rhs_tau0 = tau0,
+        candidates = sum(abs(x$rhs_tau0 - tau0) < 1e-12),
+        within_structure_wins = sum(abs(best_by_structure$rhs_tau0 - tau0) <
+                                      1e-12),
+        top25_count = sum(abs(top$rhs_tau0 - tau0) < 1e-12),
+        best_forecast_mae = min(
+          x$forecast_oracle_location_mae[abs(x$rhs_tau0 - tau0) < 1e-12]
+        ),
+        best_fit_rmse = min(
+          x$fit_oracle_location_rmse[abs(x$rhs_tau0 - tau0) < 1e-12]
+        ),
+        is_lower_boundary = abs(tau0 - min(x$rhs_tau0)) < 1e-12,
+        is_upper_boundary = abs(tau0 - max(x$rhs_tau0)) < 1e-12,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
 iqfr_v2_select_diverse_normal <- function(ranked, candidates, k = 50L) {
   k <- as.integer(k)
+  maximum_tau_arms <- as.integer(
+    iqfr_v2_read_protocol()$search$maximum_tau_arms_per_full_structure
+  )
   rows <- lapply(iqfr_v2_families, function(family) {
     r <- ranked[ranked$family == family, , drop = FALSE]
     cands <- candidates[candidates$family == family, , drop = FALSE]
@@ -401,13 +502,19 @@ iqfr_v2_select_diverse_normal <- function(ranked, candidates, k = 50L) {
     selected <- integer()
     for (cap in c(1L, 2L, 4L, k)) {
       counts <- table(r$diversity_key[selected])
+      structure_counts <- table(r$structure_id[selected])
       for (i in seq_len(nrow(r))) {
         if (i %in% selected) next
         key <- r$diversity_key[[i]]
         used <- if (key %in% names(counts)) as.integer(counts[[key]]) else 0L
-        if (used < cap) {
+        structure <- r$structure_id[[i]]
+        structure_used <- if (structure %in% names(structure_counts)) {
+          as.integer(structure_counts[[structure]])
+        } else 0L
+        if (used < cap && structure_used < maximum_tau_arms) {
           selected <- c(selected, i)
           counts <- table(r$diversity_key[selected])
+          structure_counts <- table(r$structure_id[selected])
         }
         if (length(selected) >= k) break
       }
@@ -416,6 +523,10 @@ iqfr_v2_select_diverse_normal <- function(ranked, candidates, k = 50L) {
     selected <- selected[seq_len(min(k, length(selected)))]
     out <- r[selected, names(cands), drop = FALSE]
     out$normal_selection_rank <- seq_len(nrow(out))
+    if (any(table(out$structure_id) > maximum_tau_arms)) {
+      stop("Full-budget selection exceeded the per-structure tau-arm cap.",
+           call. = FALSE)
+    }
     out
   })
   out <- do.call(rbind, rows)
@@ -613,6 +724,9 @@ iqfr_v2_quantile_vb_job <- function(config_path) {
           family = as.character(iqfr_v2_scalar(candidate$family)),
           candidate_id = as.character(iqfr_v2_scalar(candidate$candidate_id)),
           candidate_signature = as.character(iqfr_v2_scalar(candidate$candidate_signature)),
+          structure_id = as.character(iqfr_v2_scalar(candidate$structure_id)),
+          structure_signature = as.character(iqfr_v2_scalar(candidate$structure_signature)),
+          tau_arm = as.character(iqfr_v2_scalar(candidate$tau_arm)),
           likelihood_family = likelihood_family,
           model_variant = if (likelihood_family == "al") {
             "qdesn_al_rhs"
@@ -923,6 +1037,9 @@ iqfr_v2_mcmc_job <- function(config_path) {
         family = as.character(iqfr_v2_scalar(candidate$family)),
         candidate_id = as.character(iqfr_v2_scalar(candidate$candidate_id)),
         candidate_signature = as.character(iqfr_v2_scalar(candidate$candidate_signature)),
+        structure_id = as.character(iqfr_v2_scalar(candidate$structure_id)),
+        structure_signature = as.character(iqfr_v2_scalar(candidate$structure_signature)),
+        tau_arm = as.character(iqfr_v2_scalar(candidate$tau_arm)),
         likelihood_family = likelihood,
         model_variant = if (likelihood == "al") {
           "qdesn_al_rhs"
@@ -950,6 +1067,8 @@ iqfr_v2_mcmc_job <- function(config_path) {
       metric_draws[[j]] <- data.frame(
         job_id = cfg$job_id,
         candidate_id = as.character(iqfr_v2_scalar(candidate$candidate_id)),
+        structure_id = as.character(iqfr_v2_scalar(candidate$structure_id)),
+        tau_arm = as.character(iqfr_v2_scalar(candidate$tau_arm)),
         family = as.character(iqfr_v2_scalar(candidate$family)),
         likelihood_family = likelihood, tau = tau,
         chain_id = iqfr_v2_integer(cfg$chain_id, 1L),
@@ -969,6 +1088,8 @@ iqfr_v2_mcmc_job <- function(config_path) {
       granular[[j]] <- cbind(data.frame(
         job_id = cfg$job_id,
         candidate_id = as.character(iqfr_v2_scalar(candidate$candidate_id)),
+        structure_id = as.character(iqfr_v2_scalar(candidate$structure_id)),
+        tau_arm = as.character(iqfr_v2_scalar(candidate$tau_arm)),
         family = as.character(iqfr_v2_scalar(candidate$family)),
         likelihood_family = likelihood, tau = tau,
         chain_id = iqfr_v2_integer(cfg$chain_id, 1L),

@@ -114,6 +114,49 @@ d4_args$normal_args <- NULL
 d4_design <- do.call(qdesn_fit_vb, d4_args)
 iqfr_v2_assert_design(d4_design, d4, 300L)
 
+# Exact replay of the v2 candidate whose unverified RSpectra eigenpair caused
+# the old leaky-map guard to add diagonal edges to layer 2.
+spectral_canary <- small
+spectral_canary$family <- "gausmix"
+spectral_canary$D <- 2L
+spectral_canary$n <- "150;300"
+spectral_canary$n_tilde <- "150"
+spectral_canary$layer_shape <- "expand"
+spectral_canary$total_states <- 450L
+spectral_canary$readout_dimension <- 451L
+spectral_canary$m <- 15L
+spectral_canary$alpha <- 0.470584459965098
+spectral_canary$rho <- 0.969479367788519
+spectral_canary$rhs_tau0 <- 0.03
+spectral_canary$tau0_base <- 0.03
+spectral_canary$input_gain <- 1
+spectral_canary$recurrent_indegree <- 20L
+spectral_canary$input_fanin_fraction <- 1
+spectral_canary$input_fanin <- 16L
+spectral_canary$interlayer_fanin <- 25L
+spectral_canary$matrix_seed <- 97278416L
+spectral_canary <- iqfr_v2_rekey_candidate(
+  spectral_canary, "preflight_spectral_canary", 1L, protocol
+)
+# The matrix seed is part of the frozen failed-case contract rather than the
+# generated signature for this synthetic preflight row.
+spectral_canary$matrix_seed <- 97278416L
+spectral_args <- iqfr_v2_design_args(
+  y = x$y[x$t <= 8800L], candidate = spectral_canary,
+  preprocess = preprocess, p0 = 0.5, fit_readout = FALSE
+)
+spectral_args$normal_args <- NULL
+spectral_design <- do.call(qdesn_fit_vb, spectral_args)
+iqfr_v2_assert_design(spectral_design, spectral_canary, 300L)
+spectral_diagnostics <- spectral_design$reservoir$spectral_diagnostics
+if (any(rowSums(spectral_design$reservoir$W[[2L]] != 0) != 20L) ||
+    any(abs(spectral_diagnostics$achieved_rho -
+            spectral_diagnostics$target_rho) > 1e-6) ||
+    any(spectral_diagnostics$leaky_radius >= 1)) {
+  stop("The failed-seed spectral/topology canary did not pass.",
+       call. = FALSE)
+}
+
 family_sources <- sources[sources$family == "normal", , drop = FALSE]
 quantile_config <- list(
   schema_version = iqfr_v2_schema, protocol_id = protocol$protocol$id,
@@ -192,6 +235,16 @@ report <- list(
   common_family_oracle_location = TRUE,
   identity_projection_d4 = TRUE,
   readout_dimension_d4 = ncol(d4_design$X),
+  failed_seed_spectral_canary = list(
+    matrix_seed = 97278416L,
+    layer_widths = c(150L, 300L),
+    recurrent_fanin = 20L,
+    maximum_radius_error = max(abs(
+      spectral_diagnostics$achieved_rho - spectral_diagnostics$target_rho
+    )),
+    maximum_leaky_radius = max(spectral_diagnostics$leaky_radius),
+    topology_preserved = TRUE
+  ),
   quantile_vb_rows = nrow(quantile_result),
   mcmc_canaries = mcmc_rows,
   fitted_model_binaries = 0L

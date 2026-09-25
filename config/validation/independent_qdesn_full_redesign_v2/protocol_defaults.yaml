@@ -1,10 +1,10 @@
 protocol:
-  id: independent_qdesn_full_redesign_v2
+  id: independent_qdesn_full_redesign_v2_1
   status: ACTIVE_BACKGROUND_CAMPAIGN
   launch_enabled: true
   scientific_lane: independent_single_quantile_qdesn_dqlm_validation
-  supersedes: independent_mean_readout_state_forecast_v1
-  supersession_decision: SUPERSEDED_BY_REDESIGNED_INDEPENDENT_PROTOCOL
+  supersedes: independent_qdesn_full_redesign_v2
+  supersession_decision: STOPPED_INITIAL_STAGE_EIGENSOLVER_AND_TAU_RANGE
 
 scope:
   families: [normal, laplace, gausmix]
@@ -57,11 +57,15 @@ topology:
   reject_empty_rows: true
 
 search:
-  generator: deterministic_halton_stratified_space_filling
+  generator: deterministic_halton_paired_structure_by_tau
   full_factorial: false
-  initial_candidates_per_family: 384
-  adaptive_candidates_per_family: 128
+  initial_structures_per_family: 256
+  initial_tau0_arms: [0.03, 0.10, 0.30, 1.00, 3.00, 10.00]
+  adaptive_structures_per_family: 96
+  adaptive_tau0_multipliers: [0.3333333333333333, 1.00, 3.00]
+  adaptive_tau0_bounds: [0.01, 30.00]
   full_budget_top_k_per_family: 50
+  maximum_tau_arms_per_full_structure: 2
   depth_values: [1, 2, 3, 4]
   width_values: [20, 40, 75, 100, 150, 200, 250, 300]
   layer_shapes: [flat, taper, expand, bottleneck]
@@ -74,8 +78,7 @@ search:
   alpha_range: [0.01, 0.99]
   minimum_fraction_alpha_at_least_0p4: 0.40
   rho_range: [0.20, 0.99]
-  log10_tau0_range: [-8, -1]
-  tau0_modes: [absolute, dimension_aware]
+  tau0_mode: absolute
   screening_reservoir_seed: 910001
   finalist_reservoir_seeds: [910002, 910003]
 
@@ -131,6 +134,14 @@ execution:
   threads_per_worker: 1
   background_launch: true
   resume_by_atomic_status: true
+  expected_stage_jobs:
+    normal_initial: 4608
+    normal_adaptive: 864
+    normal_full: 150
+    quantile_vb: 150
+    mcmc_pilot: 72
+    mcmc_confirmation: 108
+    total: 5952
   resource_gate:
     max_load: 48
     minimum_available_memory_gb: 96

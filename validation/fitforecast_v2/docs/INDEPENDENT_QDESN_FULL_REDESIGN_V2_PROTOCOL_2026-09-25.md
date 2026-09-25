@@ -1,4 +1,4 @@
-# Independent Q-DESN full AL/exAL redesign v2
+# Independent Q-DESN full AL/exAL redesign v2.1
 
 ## Decision
 
@@ -6,6 +6,15 @@ The campaign restarts the independent simulation evaluation under one coherent
 protocol. It does not resume the superseded fixed-state forecast campaign and
 does not alter the article, Overleaf, shared validation, or any other
 scientific lane.
+
+The first v2 launch stopped after its initial stage with 1,151 of 1,152 jobs
+successful. One 300-unit layer received a nonconverged RSpectra eigenpair; the
+old leaky-map safeguard interpreted that estimate as instability and introduced
+diagonal edges, violating exact fan-in. The completed screen also exposed a
+separate design problem: `tau0` was assigned once per structure and truncated
+at 0.1, so structure and shrinkage effects were confounded and the strongest
+Laplace candidates accumulated at the upper boundary. That run is frozen as
+diagnostic evidence and is not eligible for scientific promotion.
 
 Four model classes are compared: DQLM-AL, Q-DESN-AL-RHS, exDQLM-exAL, and
 exQ-DESN-exAL-RHS. Only the Q-DESN classes undergo structural selection. The
@@ -42,11 +51,25 @@ matrices. Reservoir layers use tanh; the lower-state readout transformation and
 readout link are identity.
 
 The nonfactorial search covers depth 1-4, widths 20-300, memory 1-150, alpha
-0.01-0.99, rho 0.20-0.99, RHS tau0 1e-8 to 1e-1, training-only scaling,
-soft bounding, input gain, and exact fan-in topology. It uses 384 deterministic
-space-filling candidates per family plus 128 adaptive candidates, then carries
-50 family-specific Normal-RHS VB structures into independent AL and exAL
-quantile ladders. There is no global specification.
+0.01-0.99, rho 0.20-0.99, training-only scaling, soft bounding, input gain,
+and exact fan-in topology. It first generates 256 deterministic space-filling
+structures per family. Every structure is evaluated on the same six actual
+RHS scales: 0.03, 0.1, 0.3, 1, 3, and 10. The same reservoir matrix seed is
+used across those six arms, so within-structure contrasts isolate `tau0`.
+
+The adaptive stage generates 96 new structures per family around forecast-first
+parents and unexplored regions. Each receives three local arms at one-third,
+one, and three times its parent scale, clipped to 0.01-30. The full-budget stage
+retains 50 candidate pairs per family, with no more than two `tau0` arms from
+one structure. It then carries those family-specific pairs into independent AL
+and exAL quantile ladders. There is no global specification or global `tau0`.
+
+All reservoir matrices up to 512 units use dense exact eigendecomposition for
+spectral normalization. Larger matrices may use RSpectra only when the returned
+eigenpair passes a relative residual check; otherwise the calculation falls
+back to dense eigenvalues. Any extra leaky-map stabilization is scalar and
+therefore support preserving. Every job hard-checks exact fan-in, target
+spectral radius, and leaky-map stability and exports those diagnostics.
 
 The exAL ladder uses exdqlm 1.1.1 structured LDVB and exact M0 collapsed-slice
 MCMC. Pre-M0 exAL rankings are historical diagnostics rather than candidate
@@ -81,8 +104,9 @@ Muscat's default library only as host context; it is not the execution package.
 The launch uses 15 one-core workers on Muscat. Other projects and their jobs
 are neither inspected deeply nor modified.
 
-The resumable stage graph contains 1,152 initial Normal-RHS jobs, 384 adaptive
+The resumable stage graph contains 4,608 initial Normal-RHS jobs, 864 adaptive
 Normal-RHS jobs, 150 full-budget Normal-RHS jobs, 150 nested AL/exAL VB jobs,
-72 MCMC pilots, and 108 full confirmation chains. Confirmation keeps compact
-draw-specific metric ledgers so posterior metric intervals can be pooled over
-all three chains without retaining fitted-model binaries.
+72 MCMC pilots, and 108 full confirmation chains, for 5,952 jobs in total.
+Confirmation keeps compact draw-specific metric ledgers so posterior metric
+intervals can be pooled over all three chains without retaining fitted-model
+binaries.

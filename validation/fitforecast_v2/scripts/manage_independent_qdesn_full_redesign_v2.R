@@ -45,13 +45,18 @@ if (identical(action, "materialize")) {
   protocol <- iqfr_v2_read_protocol(repo_root)
   initial_plan <- file.path(run_root, "plans", "normal_initial.csv")
   initial_results <- iqfr_v2_collect_results(initial_plan, require_complete = TRUE)
-  ranked <- iqfr_v2_rank_normal(initial_results)
-  iqfr_v2_write_csv(ranked, file.path(
-    run_root, "summaries", "normal_initial_ranking.csv"
-  ))
   initial_candidates <- utils::read.csv(file.path(
     run_root, "manifests", "initial_candidates.csv"
   ), check.names = FALSE, stringsAsFactors = FALSE)
+  iqfr_v2_validate_normal_stage(initial_results, initial_candidates)
+  ranked <- iqfr_v2_rank_normal(initial_results)
+  ranking_path <- iqfr_v2_write_csv(ranked, file.path(
+    run_root, "summaries", "normal_initial_ranking.csv"
+  ))
+  tau_audit_path <- iqfr_v2_write_csv(
+    iqfr_v2_tau_response_audit(ranked, initial_candidates, "normal_initial"),
+    file.path(run_root, "summaries", "normal_initial_tau_response.csv")
+  )
   adaptive <- do.call(rbind, lapply(iqfr_v2_families, function(family) {
     iqfr_v2_generate_adaptive_candidates(
       protocol, family, ranked, initial_candidates
@@ -66,12 +71,17 @@ if (identical(action, "materialize")) {
     repo_root, run_root, protocol, adaptive, sources,
     stage = "normal_adaptive", budget = protocol$inference$normal_rhs$screen
   )
+  iqfr_v2_assert_stage_job_count(protocol, "normal_adaptive", nrow(plan))
   iqfr_v2_write_json(list(
     stage = "normal_adaptive", candidate_path = candidate_path,
     candidate_sha256 = iqfr_v2_sha256(candidate_path), jobs = nrow(plan),
-    source_initial_ranking_sha256 = iqfr_v2_sha256(file.path(
-      run_root, "summaries", "normal_initial_ranking.csv"
-    ))
+    structures = length(unique(adaptive$structure_id)),
+    tau_arms_per_structure = length(
+      protocol$search$adaptive_tau0_multipliers
+    ),
+    source_initial_ranking_sha256 = iqfr_v2_sha256(ranking_path),
+    tau_response_path = tau_audit_path,
+    tau_response_sha256 = iqfr_v2_sha256(tau_audit_path)
   ), file.path(run_root, "manifests", "normal_adaptive_materialization.json"))
   cat(sprintf("adaptive_jobs=%d\n", nrow(plan)))
 } else if (identical(action, "full")) {
@@ -82,18 +92,25 @@ if (identical(action, "materialize")) {
   adaptive <- iqfr_v2_collect_results(
     file.path(run_root, "plans", "normal_adaptive.csv"), TRUE
   )
-  ranked <- iqfr_v2_rank_normal(rbind(initial, adaptive))
-  ranking_path <- iqfr_v2_write_csv(ranked, file.path(
-    run_root, "summaries", "normal_combined_ranking.csv"
-  ))
   initial_candidates <- utils::read.csv(file.path(
     run_root, "manifests", "initial_candidates.csv"
   ), check.names = FALSE, stringsAsFactors = FALSE)
   adaptive_candidates <- utils::read.csv(file.path(
     run_root, "manifests", "adaptive_candidates.csv"
   ), check.names = FALSE, stringsAsFactors = FALSE)
+  iqfr_v2_validate_normal_stage(initial, initial_candidates)
+  iqfr_v2_validate_normal_stage(adaptive, adaptive_candidates)
+  all_candidates <- rbind(initial_candidates, adaptive_candidates)
+  ranked <- iqfr_v2_rank_normal(rbind(initial, adaptive))
+  ranking_path <- iqfr_v2_write_csv(ranked, file.path(
+    run_root, "summaries", "normal_combined_ranking.csv"
+  ))
+  tau_audit_path <- iqfr_v2_write_csv(
+    iqfr_v2_tau_response_audit(ranked, all_candidates, "normal_combined"),
+    file.path(run_root, "summaries", "normal_combined_tau_response.csv")
+  )
   selected <- iqfr_v2_select_diverse_normal(
-    ranked, rbind(initial_candidates, adaptive_candidates),
+    ranked, all_candidates,
     k = as.integer(protocol$search$full_budget_top_k_per_family)
   )
   selected_path <- iqfr_v2_write_csv(selected, file.path(
@@ -105,11 +122,17 @@ if (identical(action, "materialize")) {
     repo_root, run_root, protocol, selected, sources,
     stage = "normal_full", budget = protocol$inference$normal_rhs$full
   )
+  iqfr_v2_assert_stage_job_count(protocol, "normal_full", nrow(plan))
   iqfr_v2_write_json(list(
     stage = "normal_full", jobs = nrow(plan),
     ranking_path = ranking_path, ranking_sha256 = iqfr_v2_sha256(ranking_path),
     candidate_path = selected_path,
-    candidate_sha256 = iqfr_v2_sha256(selected_path)
+    candidate_sha256 = iqfr_v2_sha256(selected_path),
+    tau_response_path = tau_audit_path,
+    tau_response_sha256 = iqfr_v2_sha256(tau_audit_path),
+    maximum_tau_arms_per_structure = as.integer(
+      protocol$search$maximum_tau_arms_per_full_structure
+    )
   ), file.path(run_root, "manifests", "normal_full_materialization.json"))
   cat(sprintf("normal_full_jobs=%d\n", nrow(plan)))
 } else if (identical(action, "quantile")) {
@@ -166,6 +189,7 @@ if (identical(action, "materialize")) {
     )
   }
   plan <- do.call(rbind, rows)
+  iqfr_v2_assert_stage_job_count(protocol, "quantile_vb", nrow(plan))
   iqfr_v2_write_csv(plan, file.path(run_root, "plans", "quantile_vb.csv"))
   iqfr_v2_write_json(list(
     stage = "quantile_vb", jobs = nrow(plan), expected_result_rows = 6L * nrow(plan),
@@ -200,6 +224,9 @@ if (identical(action, "materialize")) {
   materialized <- iqfr_v2_materialize_mcmc_jobs(
     repo_root, run_root, protocol, selected, candidates, sources,
     stage = "mcmc_pilot"
+  )
+  iqfr_v2_assert_stage_job_count(
+    protocol, "mcmc_pilot", nrow(materialized$plan)
   )
   iqfr_v2_write_json(list(
     stage = "mcmc_pilot", jobs = nrow(materialized$plan),
@@ -243,6 +270,9 @@ if (identical(action, "materialize")) {
   materialized <- iqfr_v2_materialize_mcmc_jobs(
     repo_root, run_root, protocol, selected, candidates, sources,
     stage = "mcmc_confirmation"
+  )
+  iqfr_v2_assert_stage_job_count(
+    protocol, "mcmc_confirmation", nrow(materialized$plan)
   )
   iqfr_v2_write_json(list(
     stage = "mcmc_confirmation", jobs = nrow(materialized$plan),
@@ -289,10 +319,16 @@ if (identical(action, "materialize")) {
   plans <- list.files(file.path(run_root, "plans"), pattern = "[.]csv$",
                       full.names = TRUE)
   health <- do.call(rbind, lapply(plans, iqfr_v2_stage_health))
+  expected <- unlist(protocol$execution$expected_stage_jobs)
+  expected <- expected[names(expected) != "total"]
+  stage_count_pass <- setequal(health$stage, names(expected)) &&
+    all(health$planned[match(names(expected), health$stage)] ==
+          as.integer(expected))
   report <- list(
     protocol_checks = checks, source_hashes_pass = all(sources$hash_pass),
-    stage_health = health,
+    stage_health = health, stage_count_pass = stage_count_pass,
     verification_pass = all(checks$pass) && all(sources$hash_pass) &&
+      stage_count_pass && all(health$complete) &&
       !any(health$failed > 0L | health$invalid > 0L)
   )
   iqfr_v2_write_json(report, file.path(

@@ -25,14 +25,61 @@ testthat::test_that("redesign v2 protocol and candidate design are frozen", {
   )
 
   candidates <- iqfr_v2_generate_initial_candidates(
-    protocol, "normal", n = 384L
+    protocol, "normal", n = 256L
   )
-  testthat::expect_equal(nrow(candidates), 384L)
+  testthat::expect_equal(nrow(candidates), 1536L)
+  testthat::expect_equal(length(unique(candidates$structure_id)), 256L)
+  testthat::expect_true(all(table(candidates$structure_id) == 6L))
+  testthat::expect_equal(
+    sort(unique(candidates$rhs_tau0)),
+    c(0.03, 0.10, 0.30, 1, 3, 10)
+  )
+  testthat::expect_true(all(vapply(
+    split(candidates$matrix_seed, candidates$structure_id),
+    function(x) length(unique(x)) == 1L, logical(1L)
+  )))
   testthat::expect_setequal(unique(candidates$D), 1:4)
   testthat::expect_gte(mean(candidates$alpha >= 0.4), 0.4)
-  testthat::expect_true(min(candidates$rhs_tau0) >= 1e-8)
-  testthat::expect_true(max(candidates$rhs_tau0) <= 1e-1)
+  testthat::expect_identical(
+    iqfr_v2_assert_paired_tau_contract(
+      candidates, protocol$search$initial_tau0_arms, 256L
+    )$contract_pass,
+    TRUE
+  )
   testthat::expect_identical(anyDuplicated(candidates$candidate_signature), 0L)
+})
+
+testthat::test_that("adaptive design pairs each new structure with local tau arms", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_runtime.R"))
+  protocol <- iqfr_v2_read_protocol(repo_root)
+  initial <- iqfr_v2_generate_initial_candidates(
+    protocol, "normal", n = 40L
+  )
+  results <- initial[c("family", "candidate_id", "structure_id")]
+  results$forecast_oracle_location_mae <- seq_len(nrow(results))
+  results$fit_oracle_location_rmse <- seq_len(nrow(results)) + 0.1
+  results$forecast_oracle_location_rmse <- seq_len(nrow(results)) + 0.2
+  results$state_saturation_fraction <- 0
+  results$readout_dimension <- initial$readout_dimension
+  ranked <- iqfr_v2_rank_normal(results)
+  adaptive <- iqfr_v2_generate_adaptive_candidates(
+    protocol, "normal", ranked, initial
+  )
+  testthat::expect_equal(nrow(adaptive), 288L)
+  testthat::expect_equal(length(unique(adaptive$structure_id)), 96L)
+  testthat::expect_true(all(table(adaptive$structure_id) == 3L))
+  testthat::expect_true(all(adaptive$rhs_tau0 >= 0.01))
+  testthat::expect_true(all(adaptive$rhs_tau0 <= 30))
+  testthat::expect_false(any(
+    adaptive$structure_signature %in% initial$structure_signature
+  ))
 })
 
 testthat::test_that("multirow jobs collect with stage-specific keys", {
@@ -135,4 +182,24 @@ testthat::test_that("cellwise MCMC plans cover all cells and exact chain counts"
     confirmation$plan$candidate_id, drop = TRUE
   )
   testthat::expect_true(all(table(candidate_cells) == 3L))
+})
+
+testthat::test_that("v2.1 launcher freezes clean 15-worker background execution", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  path <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "launch_independent_qdesn_full_redesign_v2_1.sh"
+  )
+  text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  testthat::expect_equal(
+    system2("bash", c("-n", path), stdout = FALSE, stderr = FALSE), 0L
+  )
+  testthat::expect_match(text, "workers=15", fixed = TRUE)
+  testthat::expect_match(text, "threads_per_worker=1", fixed = TRUE)
+  testthat::expect_match(text, "tmux new-session -d", fixed = TRUE)
+  testthat::expect_match(text, "status --porcelain", fixed = TRUE)
+  testthat::expect_match(text, "@{upstream}", fixed = TRUE)
 })

@@ -4,7 +4,7 @@ iqfr_v2_protocol_relpath <- file.path(
   "config", "validation", "independent_qdesn_full_redesign_v2",
   "protocol_defaults.yaml"
 )
-iqfr_v2_schema <- "independent_qdesn_full_redesign_v2_v1"
+iqfr_v2_schema <- "independent_qdesn_full_redesign_v2_1_v1"
 iqfr_v2_expected_branch <-
   "validation/independent-qdesn-full-redesign-v2-20260925"
 iqfr_v2_expected_package_version <- "1.1.1"
@@ -83,7 +83,7 @@ iqfr_v2_protocol_checks <- function(protocol = iqfr_v2_read_protocol()) {
   e <- protocol$execution
   checks <- c(
     protocol_id = identical(protocol$protocol$id,
-                            "independent_qdesn_full_redesign_v2"),
+                            "independent_qdesn_full_redesign_v2_1"),
     launch_enabled = isTRUE(protocol$protocol$launch_enabled),
     families = identical(as.character(s$families), iqfr_v2_families),
     quantiles = isTRUE(all.equal(as.numeric(s$quantiles), iqfr_v2_quantiles)),
@@ -108,18 +108,27 @@ iqfr_v2_protocol_checks <- function(protocol = iqfr_v2_read_protocol()) {
                 c("intercept", "all_reservoir_layers")) &&
       !isTRUE(a$direct_response_lags_in_readout) &&
       !isTRUE(a$reservoir_lags_in_readout),
-    search_size = identical(as.integer(x$initial_candidates_per_family), 384L) &&
-      identical(as.integer(x$adaptive_candidates_per_family), 128L) &&
+    search_size = identical(as.integer(x$initial_structures_per_family), 256L) &&
+      identical(as.integer(x$adaptive_structures_per_family), 96L) &&
       identical(as.integer(x$full_budget_top_k_per_family), 50L),
     search_support = identical(as.integer(x$depth_values), 1:4) &&
       max(as.integer(x$width_values)) == 300L &&
       max(as.integer(x$response_lag_values)) == 150L &&
       max(as.numeric(x$alpha_range)) == 0.99 &&
-      min(as.numeric(x$log10_tau0_range)) == -8,
+      identical(as.numeric(unlist(x$initial_tau0_arms)),
+                c(0.03, 0.10, 0.30, 1, 3, 10)) &&
+      identical(as.numeric(unlist(x$adaptive_tau0_multipliers)),
+                c(1 / 3, 1, 3)) &&
+      identical(as.numeric(unlist(x$adaptive_tau0_bounds)), c(0.01, 30)) &&
+      identical(as.integer(x$maximum_tau_arms_per_full_structure), 2L),
     sealed = isTRUE(z$final_window_access_forbidden),
     case_specific = isTRUE(z$global_specification_forbidden),
     workers = identical(as.integer(e$workers), 15L) &&
-      identical(as.integer(e$threads_per_worker), 1L)
+      identical(as.integer(e$threads_per_worker), 1L),
+    stage_graph = identical(
+      as.integer(unlist(e$expected_stage_jobs)),
+      c(4608L, 864L, 150L, 150L, 72L, 108L, 5952L)
+    )
   )
   data.frame(check = names(checks), pass = unname(checks),
              stringsAsFactors = FALSE)
@@ -132,6 +141,16 @@ iqfr_v2_assert_protocol <- function(protocol = iqfr_v2_read_protocol()) {
          paste(checks$check[!checks$pass], collapse = ", "), call. = FALSE)
   }
   invisible(checks)
+}
+
+iqfr_v2_assert_stage_job_count <- function(protocol, stage, observed) {
+  expected <- as.integer(protocol$execution$expected_stage_jobs[[stage]])
+  observed <- as.integer(observed)
+  if (!length(expected) || !is.finite(expected) || observed != expected) {
+    stop("Stage ", stage, " materialized ", observed,
+         " jobs; expected ", expected, ".", call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 iqfr_v2_vdc <- function(index, base) {
@@ -211,8 +230,18 @@ iqfr_v2_pick_architecture <- function(catalog, u_stratum, u_row) {
 
 iqfr_v2_candidate_signature <- function(row) {
   fields <- c(
+    "structure_signature",
+    "tau0_mode", "tau0_base", "rhs_tau0", "tau_arm"
+  )
+  paste(iqfr_v2_schema,
+        paste(vapply(fields, function(nm) as.character(row[[nm]][[1L]]),
+                     character(1L)), collapse = "|"), sep = "|")
+}
+
+iqfr_v2_structure_signature <- function(row) {
+  fields <- c(
     "family", "D", "n", "n_tilde", "m", "alpha", "rho",
-    "tau0_mode", "tau0_base", "rhs_tau0", "center_scale", "input_bound",
+    "center_scale", "input_bound",
     "input_gain", "recurrent_indegree", "input_fanin_fraction",
     "input_fanin", "interlayer_fanin"
   )
@@ -226,15 +255,120 @@ iqfr_v2_matrix_signature <- function(row) {
         row$input_fanin, row$interlayer_fanin, sep = "|")
 }
 
+iqfr_v2_tau_arm_label <- function(tau0) {
+  token <- format(as.numeric(tau0), scientific = TRUE, trim = TRUE,
+                  digits = 12)
+  paste0("tau_", gsub("[^0-9a-z]+", "_", tolower(token)))
+}
+
+iqfr_v2_rekey_candidate <- function(row, generation, generation_index,
+                                    protocol, tau_arm_index = NULL) {
+  row$generation <- generation
+  row$generation_index <- as.integer(generation_index)
+  row$matrix_seed <- iqfr_v2_seed(
+    protocol$search$screening_reservoir_seed, row$family[[1L]],
+    iqfr_v2_matrix_signature(row)
+  )
+  row$structure_signature <- iqfr_v2_structure_signature(row)
+  structure_hash <- digest::digest(row$structure_signature, algo = "sha256",
+                                   serialize = FALSE)
+  row$structure_id <- sprintf("iqfr21_%s_structure_%s", row$family[[1L]],
+                              substr(structure_hash, 1L, 12L))
+  row$tau_arm <- iqfr_v2_tau_arm_label(row$rhs_tau0[[1L]])
+  if (is.null(tau_arm_index)) {
+    tau_arm_index <- if ("tau_arm_index" %in% names(row) &&
+                         length(row$tau_arm_index)) {
+      suppressWarnings(as.integer(row$tau_arm_index[[1L]]))
+    } else 1L
+  }
+  if (!length(tau_arm_index) || !is.finite(tau_arm_index)) tau_arm_index <- 1L
+  row$tau_arm_index <- as.integer(tau_arm_index)
+  row$candidate_signature <- iqfr_v2_candidate_signature(row)
+  hash <- digest::digest(row$candidate_signature, algo = "sha256",
+                         serialize = FALSE)
+  row$candidate_id <- sprintf(
+    "iqfr21_%s_%s_s%03d_t%02d_%s", row$family[[1L]],
+    substr(iqfr_v2_safe(generation), 1L, 3L),
+    as.integer(generation_index), as.integer(tau_arm_index),
+    substr(hash, 1L, 10L)
+  )
+  row
+}
+
+iqfr_v2_expand_tau_arms <- function(structures, tau_values, protocol) {
+  tau_values <- as.numeric(tau_values)
+  if (!nrow(structures) || !length(tau_values) ||
+      any(!is.finite(tau_values)) || any(tau_values <= 0)) {
+    stop("Tau-arm expansion requires structures and positive finite tau0 values.",
+         call. = FALSE)
+  }
+  rows <- vector("list", nrow(structures) * length(tau_values))
+  k <- 0L
+  for (i in seq_len(nrow(structures))) {
+    for (j in seq_along(tau_values)) {
+      row <- structures[i, , drop = FALSE]
+      row$tau0_mode <- "absolute"
+      row$tau0_base <- tau_values[[j]]
+      row$rhs_tau0 <- tau_values[[j]]
+      k <- k + 1L
+      rows[[k]] <- iqfr_v2_rekey_candidate(
+        row, row$generation[[1L]], row$generation_index[[1L]], protocol,
+        tau_arm_index = j
+      )
+    }
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  if (anyDuplicated(out$candidate_signature) ||
+      anyDuplicated(out$candidate_id)) {
+    stop("Tau-arm expansion produced duplicate candidates.", call. = FALSE)
+  }
+  out
+}
+
+iqfr_v2_assert_paired_tau_contract <- function(candidates, tau_values,
+                                                structures_per_family) {
+  required <- c("family", "structure_id", "structure_signature",
+                "candidate_id", "rhs_tau0", "matrix_seed")
+  if (!all(required %in% names(candidates))) {
+    stop("Paired-tau candidates are missing identity columns.", call. = FALSE)
+  }
+  tau_values <- sort(as.numeric(tau_values))
+  keys <- interaction(candidates$family, candidates$structure_id, drop = TRUE)
+  groups <- split(candidates, keys)
+  valid <- vapply(groups, function(x) {
+    identical(sort(as.numeric(x$rhs_tau0)), tau_values) &&
+      length(unique(x$matrix_seed)) == 1L &&
+      length(unique(x$structure_signature)) == 1L
+  }, logical(1L))
+  observed_families <- iqfr_v2_families[iqfr_v2_families %in%
+                                          unique(candidates$family)]
+  family_counts <- vapply(observed_families, function(family) {
+    length(unique(candidates$structure_id[candidates$family == family]))
+  }, integer(1L))
+  if (!all(valid) ||
+      any(family_counts != as.integer(structures_per_family))) {
+    stop("Paired structure-by-tau contract failed.", call. = FALSE)
+  }
+  data.frame(
+    family = observed_families,
+    structures = unname(family_counts),
+    tau_arms = length(tau_values),
+    candidates = unname(family_counts) * length(tau_values),
+    contract_pass = TRUE,
+    stringsAsFactors = FALSE
+  )
+}
+
 iqfr_v2_generate_initial_candidates <- function(protocol, family,
                                                  n = NULL,
                                                  start = 19L,
                                                  generation = "initial") {
   family <- match.arg(family, iqfr_v2_families)
-  n <- as.integer(n %||% protocol$search$initial_candidates_per_family)
+  n <- as.integer(n %||% protocol$search$initial_structures_per_family)
   shift_seed <- iqfr_v2_seed(protocol$protocol$id, family, generation,
                              "halton")
-  h <- iqfr_v2_halton(n, 16L, start = start, shift_seed = shift_seed)
+  h <- iqfr_v2_halton(n, 12L, start = start, shift_seed = shift_seed)
   catalog <- iqfr_v2_architecture_catalog(protocol)
   m_values <- as.integer(protocol$search$response_lag_values)
   center_values <- as.character(protocol$preprocessing$center_scale)
@@ -249,29 +383,22 @@ iqfr_v2_generate_initial_candidates <- function(protocol, family,
     m <- m_values[1L + floor(h[i, 3L] * length(m_values)) %% length(m_values)]
     alpha <- 0.01 + 0.98 * h[i, 4L]
     rho <- 0.20 + 0.79 * h[i, 5L]
-    log_tau <- -8 + 7 * h[i, 6L]
-    tau0_base <- 10^log_tau
-    tau0_mode <- if (h[i, 7L] < 0.5) "absolute" else "dimension_aware"
     p <- as.integer(arch$readout_dimension[[1L]])
-    tau0 <- if (tau0_mode == "dimension_aware") {
-      tau0_base * sqrt(500 / p)
-    } else tau0_base
-    tau0 <- min(1e-1, max(1e-8, tau0))
-    center <- center_values[1L + floor(h[i, 8L] * length(center_values)) %%
+    center <- center_values[1L + floor(h[i, 6L] * length(center_values)) %%
                               length(center_values)]
-    bound <- bound_values[1L + floor(h[i, 9L] * length(bound_values)) %%
+    bound <- bound_values[1L + floor(h[i, 7L] * length(bound_values)) %%
                             length(bound_values)]
-    gain <- gain_values[1L + floor(h[i, 10L] * length(gain_values)) %%
+    gain <- gain_values[1L + floor(h[i, 8L] * length(gain_values)) %%
                           length(gain_values)]
-    degree <- degree_values[1L + floor(h[i, 11L] * length(degree_values)) %%
+    degree <- degree_values[1L + floor(h[i, 9L] * length(degree_values)) %%
                               length(degree_values)]
     input_fraction <- input_fraction_values[
-      1L + floor(h[i, 12L] * length(input_fraction_values)) %%
+      1L + floor(h[i, 10L] * length(input_fraction_values)) %%
         length(input_fraction_values)
     ]
     input_fanin <- max(1L, min(m + 1L, as.integer(ceiling(input_fraction * (m + 1L)))))
     inter_token <- inter_values[
-      1L + floor(h[i, 13L] * length(inter_values)) %% length(inter_values)
+      1L + floor(h[i, 11L] * length(inter_values)) %% length(inter_values)
     ]
     n_vec <- iqfr_v2_unpack_integer(arch$n)
     inter_fanin <- if (inter_token == "dense") max(n_vec) else
@@ -281,7 +408,7 @@ iqfr_v2_generate_initial_candidates <- function(protocol, family,
       D = as.integer(arch$D), n = arch$n, n_tilde = arch$n_tilde,
       layer_shape = arch$layer_shape, total_states = arch$total_states,
       readout_dimension = p, m = m, alpha = alpha, rho = rho,
-      tau0_mode = tau0_mode, tau0_base = tau0_base, rhs_tau0 = tau0,
+      tau0_mode = "absolute", tau0_base = NA_real_, rhs_tau0 = NA_real_,
       center_scale = center, input_bound = bound, input_gain = gain,
       recurrent_indegree = min(degree, min(n_vec)),
       input_fanin_fraction = input_fraction, input_fanin = input_fanin,
@@ -289,25 +416,17 @@ iqfr_v2_generate_initial_candidates <- function(protocol, family,
       screen_reservoir_seed = as.integer(protocol$search$screening_reservoir_seed),
       stringsAsFactors = FALSE
     )
-    matrix_signature <- iqfr_v2_matrix_signature(row)
-    row$matrix_seed <- iqfr_v2_seed(
-      protocol$search$screening_reservoir_seed, family, matrix_signature
-    )
-    row$candidate_signature <- iqfr_v2_candidate_signature(row)
-    hash <- digest::digest(row$candidate_signature, algo = "sha256",
-                           serialize = FALSE)
-    generation_token <- substr(iqfr_v2_safe(generation), 1L, 3L)
-    row$candidate_id <- sprintf("iqfr2_%s_%s%03d_%s", family,
-                                generation_token, i,
-                                substr(hash, 1L, 10L))
     rows[[i]] <- row
   }
-  out <- do.call(rbind, rows)
+  structures <- do.call(rbind, rows)
+  out <- iqfr_v2_expand_tau_arms(
+    structures, protocol$search$initial_tau0_arms, protocol
+  )
   if (anyDuplicated(out$candidate_signature) || anyDuplicated(out$candidate_id)) {
     stop("Initial candidate generation produced duplicate signatures.",
          call. = FALSE)
   }
-  if (mean(out$alpha >= 0.4) <
+  if (mean(structures$alpha >= 0.4) <
       as.numeric(protocol$search$minimum_fraction_alpha_at_least_0p4)) {
     stop("Initial design undercovers alpha >= 0.4.", call. = FALSE)
   }
@@ -315,35 +434,18 @@ iqfr_v2_generate_initial_candidates <- function(protocol, family,
   out
 }
 
-iqfr_v2_rekey_candidate <- function(row, generation, generation_index,
-                                    protocol) {
-  row$generation <- generation
-  row$generation_index <- as.integer(generation_index)
-  row$matrix_seed <- iqfr_v2_seed(
-    protocol$search$screening_reservoir_seed, row$family[[1L]],
-    iqfr_v2_matrix_signature(row)
-  )
-  row$candidate_signature <- iqfr_v2_candidate_signature(row)
-  hash <- digest::digest(row$candidate_signature, algo = "sha256",
-                         serialize = FALSE)
-  row$candidate_id <- sprintf(
-    "iqfr2_%s_%s%03d_%s", row$family[[1L]],
-    substr(iqfr_v2_safe(generation), 1L, 3L),
-    as.integer(generation_index), substr(hash, 1L, 10L)
-  )
-  row
-}
-
 iqfr_v2_generate_adaptive_candidates <- function(protocol, family,
                                                   ranked_initial,
                                                   initial_candidates) {
   family <- match.arg(family, iqfr_v2_families)
-  target_n <- as.integer(protocol$search$adaptive_candidates_per_family)
+  target_n <- as.integer(protocol$search$adaptive_structures_per_family)
   ranked <- ranked_initial[ranked_initial$family == family, , drop = FALSE]
   candidates <- initial_candidates[initial_candidates$family == family,
                                    , drop = FALSE]
+  ranked <- ranked[order(ranked$family_rank), , drop = FALSE]
+  ranked <- ranked[!duplicated(ranked$structure_id), , drop = FALSE]
   parents <- merge(
-    ranked[order(ranked$family_rank), c("candidate_id", "family_rank")],
+    ranked[, c("candidate_id", "family_rank")],
     candidates, by = "candidate_id", all.x = TRUE, sort = FALSE
   )
   parents <- parents[order(parents$family_rank), , drop = FALSE]
@@ -370,42 +472,34 @@ iqfr_v2_generate_adaptive_candidates <- function(protocol, family,
                                 (h[i, 1L] - 0.5) * 0.36))
     row$rho <- min(0.99, max(0.20, as.numeric(row$rho) +
                               (h[i, 2L] - 0.5) * 0.30))
-    row$tau0_base <- min(1e-1, max(1e-8,
-      10^(log10(as.numeric(row$tau0_base)) + (h[i, 3L] - 0.5) * 4)
-    ))
-    p <- as.integer(row$readout_dimension)
-    row$rhs_tau0 <- if (identical(as.character(row$tau0_mode),
-                                  "dimension_aware")) {
-      row$tau0_base * sqrt(500 / p)
-    } else row$tau0_base
-    row$rhs_tau0 <- min(1e-1, max(1e-8, row$rhs_tau0))
+    row$adaptive_tau_center <- as.numeric(parent$rhs_tau0)
 
     parent_m <- match(as.integer(row$m), m_values)
-    m_shift <- floor(h[i, 4L] * 5L) - 2L
+    m_shift <- floor(h[i, 3L] * 5L) - 2L
     row$m <- m_values[min(length(m_values), max(1L, parent_m + m_shift))]
     gain_idx <- which.min(abs(gains - as.numeric(row$input_gain)))
-    gain_shift <- floor(h[i, 5L] * 3L) - 1L
+    gain_shift <- floor(h[i, 4L] * 3L) - 1L
     row$input_gain <- gains[min(length(gains), max(1L, gain_idx + gain_shift))]
     row$recurrent_indegree <- degrees[
-      1L + floor(h[i, 6L] * length(degrees)) %% length(degrees)
+      1L + floor(h[i, 5L] * length(degrees)) %% length(degrees)
     ]
     row$input_fanin_fraction <- fractions[
-      1L + floor(h[i, 7L] * length(fractions)) %% length(fractions)
+      1L + floor(h[i, 6L] * length(fractions)) %% length(fractions)
     ]
     row$input_fanin <- max(1L, min(row$m + 1L,
       as.integer(ceiling(row$input_fanin_fraction * (row$m + 1L)))))
     inter <- inter_values[
-      1L + floor(h[i, 8L] * length(inter_values)) %% length(inter_values)
+      1L + floor(h[i, 7L] * length(inter_values)) %% length(inter_values)
     ]
     n_vec <- iqfr_v2_unpack_integer(row$n)
     row$interlayer_fanin <- if (inter == "dense") max(n_vec) else
       as.integer(inter)
-    if (h[i, 9L] > 0.67) {
+    if (h[i, 8L] > 0.67) {
       row$center_scale <- if (row$center_scale == "mean_sd") {
         "median_mad"
       } else "mean_sd"
     }
-    if (h[i, 10L] > 0.67) {
+    if (h[i, 9L] > 0.67) {
       row$input_bound <- if (row$input_bound == "none") {
         "tanh_z_over_3"
       } else "none"
@@ -418,23 +512,41 @@ iqfr_v2_generate_adaptive_candidates <- function(protocol, family,
     protocol, family, n = 256L, start = 12011L,
     generation = "adaptive_explore"
   )
+  explorer <- explorer[!duplicated(explorer$structure_id), , drop = FALSE]
+  explorer$adaptive_tau_center <- as.numeric(parents$rhs_tau0[[1L]])
   pool <- rbind(do.call(rbind, rows), explorer)
-  historical <- initial_candidates$candidate_signature
-  pool <- pool[!pool$candidate_signature %in% historical, , drop = FALSE]
-  pool <- pool[!duplicated(pool$candidate_signature), , drop = FALSE]
+  historical <- unique(initial_candidates$structure_signature)
+  pool <- pool[!pool$structure_signature %in% historical, , drop = FALSE]
+  pool <- pool[!duplicated(pool$structure_signature), , drop = FALSE]
   if (nrow(pool) < target_n) {
     stop("Adaptive candidate generator could not produce enough unique rows.",
          call. = FALSE)
   }
-  out <- pool[seq_len(target_n), , drop = FALSE]
-  out$generation_index <- seq_len(nrow(out))
-  out <- do.call(rbind, lapply(seq_len(nrow(out)), function(i) {
-    iqfr_v2_rekey_candidate(out[i, , drop = FALSE], out$generation[[i]], i,
-                            protocol)
-  }))
+  structures <- pool[seq_len(target_n), , drop = FALSE]
+  structures$generation_index <- seq_len(nrow(structures))
+  multipliers <- as.numeric(protocol$search$adaptive_tau0_multipliers)
+  bounds <- as.numeric(protocol$search$adaptive_tau0_bounds)
+  expanded <- vector("list", nrow(structures) * length(multipliers))
+  k <- 0L
+  for (i in seq_len(nrow(structures))) {
+    tau_values <- pmin(bounds[[2L]], pmax(bounds[[1L]],
+      as.numeric(structures$adaptive_tau_center[[i]]) * multipliers
+    ))
+    for (j in seq_along(tau_values)) {
+      row <- structures[i, , drop = FALSE]
+      row$tau0_mode <- "absolute"
+      row$tau0_base <- tau_values[[j]]
+      row$rhs_tau0 <- tau_values[[j]]
+      k <- k + 1L
+      expanded[[k]] <- iqfr_v2_rekey_candidate(
+        row, row$generation[[1L]], i, protocol, tau_arm_index = j
+      )
+    }
+  }
+  out <- do.call(rbind, expanded)
   rownames(out) <- NULL
   if (anyDuplicated(out$candidate_signature) ||
-      any(out$candidate_signature %in% historical)) {
+      any(out$structure_signature %in% historical)) {
     stop("Adaptive candidate uniqueness contract failed.", call. = FALSE)
   }
   out
@@ -609,11 +721,20 @@ iqfr_v2_materialize_initial <- function(repo_root = iqfr_v2_repo_root(),
     iqfr_v2_generate_initial_candidates(protocol, family)
   }))
   rownames(candidates) <- NULL
+  paired_tau_audit <- iqfr_v2_assert_paired_tau_contract(
+    candidates, protocol$search$initial_tau0_arms,
+    protocol$search$initial_structures_per_family
+  )
+  paired_tau_audit_path <- iqfr_v2_write_csv(
+    paired_tau_audit,
+    file.path(run_root, "manifests", "initial_paired_tau_contract.csv")
+  )
   candidate_path <- iqfr_v2_write_csv(
     candidates, file.path(run_root, "manifests", "initial_candidates.csv")
   )
   plan <- iqfr_v2_materialize_initial_jobs(repo_root, run_root, protocol,
                                            candidates, sources)
+  iqfr_v2_assert_stage_job_count(protocol, "normal_initial", nrow(plan))
   git <- list(
     branch = system2("git", c("-C", repo_root, "branch", "--show-current"),
                      stdout = TRUE),
@@ -688,7 +809,11 @@ iqfr_v2_materialize_initial <- function(repo_root = iqfr_v2_repo_root(),
     protocol_checks = checks, git = git,
     candidate_path = candidate_path,
     candidate_sha256 = iqfr_v2_sha256(candidate_path),
+    initial_structures = length(unique(candidates$structure_id)),
+    initial_tau_arms = length(unique(candidates$rhs_tau0)),
     initial_candidates = nrow(candidates), initial_jobs = nrow(plan),
+    paired_tau_audit_path = paired_tau_audit_path,
+    paired_tau_audit_sha256 = iqfr_v2_sha256(paired_tau_audit_path),
     source_manifest_sha256 = iqfr_v2_sha256(file.path(run_root,
                                                        "source_manifest.csv")),
     environment_path = environment_path,
