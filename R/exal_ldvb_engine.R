@@ -84,10 +84,6 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
   }
   vb_control$beta_covariance <- .exal_normalize_vb_beta_covariance_cfg(vb_control$beta_covariance %||% NULL)
   use_diagonal_beta_covariance <- identical(vb_control$beta_covariance$approximation, "diagonal")
-  if (isTRUE(use_diagonal_beta_covariance) && !is_al &&
-      !identical(beta_prior_obj$type, "ridge")) {
-    .stopf("exAL diagonal beta covariance approximation is currently supported only for ridge beta priors.")
-  }
   if (isTRUE(use_diagonal_beta_covariance) &&
       !beta_prior_obj$type %in% c("ridge", "rhs", "rhs_ns")) {
     .stopf("diagonal beta covariance approximation is currently supported only for ridge and RHS-family beta priors.")
@@ -1030,6 +1026,14 @@ exal_ldvb_engine <- function(y, X, p0, gamma_bounds,
         qv_m_inv = qv$m_inv,
         qs_m = qs$m,
         chunks = row_chunks
+      )
+    } else if (isTRUE(use_diagonal_beta_covariance)) {
+      .exal_beta_data_stats_diagonal(
+        X = X,
+        y = y,
+        xis = xis,
+        qv_m_inv = qv$m_inv,
+        qs_m = qs$m
       )
     } else {
       .exal_beta_data_stats(

@@ -252,14 +252,14 @@ test_that("diagonal beta covariance supports exAL ridge full/exact scope", {
   expect_lt(max(abs(exact$misc$elbo_trace - plain$misc$elbo_trace)), 1e-6)
 })
 
-test_that("diagonal covariance stage fails early outside supported full/exact scope", {
+test_that("diagonal covariance supports exAL RHS but rejects stochastic scope", {
   dat <- make_beta_covariance_test_data(seed = 20260639L, n = 30L)
   ctrl <- make_beta_covariance_control(beta_covariance = list(approximation = "diagonal"))
   rhs_prior <- make_beta_covariance_rhs_prior("rhs")
-  expect_error(
-    fit_beta_covariance_al(dat, ctrl, prior = rhs_prior, family = "exal"),
-    "exAL diagonal beta covariance approximation is currently supported only for ridge beta priors"
-  )
+  fit <- fit_beta_covariance_al(dat, ctrl, prior = rhs_prior, family = "exal")
+  expect_identical(fit$qbeta$covariance_approximation, "diagonal")
+  expect_true(all(is.finite(fit$qbeta$m)))
+  expect_true(all(diag(fit$qbeta$V) > 0))
 
   stoch_ctrl <- make_beta_covariance_control(
     beta_covariance = list(approximation = "diagonal"),

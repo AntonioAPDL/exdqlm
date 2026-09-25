@@ -1,0 +1,139 @@
+protocol:
+  id: independent_qdesn_full_redesign_v2
+  status: ACTIVE_BACKGROUND_CAMPAIGN
+  launch_enabled: true
+  scientific_lane: independent_single_quantile_qdesn_dqlm_validation
+  supersedes: independent_mean_readout_state_forecast_v1
+  supersession_decision: SUPERSEDED_BY_REDESIGNED_INDEPENDENT_PROTOCOL
+
+scope:
+  families: [normal, laplace, gausmix]
+  quantiles: [0.05, 0.25, 0.50]
+  models: [dqlm_al, qdesn_al_rhs, exdqlm_exal, qdesn_exal_rhs]
+  structurally_tuned_models: [qdesn_al_rhs, qdesn_exal_rhs]
+  fixed_comparators: [dqlm_al, exdqlm_exal]
+  fixed_comparator_policy: frozen_authority_reference
+  common_lattice_comparator_replay_required_before_article_replacement: true
+  raw_source_start: 8111
+  fit_window: {start: 8501, end: 9000}
+  heldout_window: {start: 9001, end: 10000}
+  horizon: 30
+  final_origins: {start: 9000, end: 9970, stride: 1}
+  teacher_forced_between_origins: true
+  recursive_within_horizon: true
+  refit_per_origin: false
+
+source:
+  authority_root: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_nested_final_origin9000_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  source_template: "{family}/tau_{tau_token}/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90/series_wide.csv"
+  required_columns: [t, "y", mu, q_target, eps]
+  copy_into_run_root: true
+
+architecture:
+  reservoir_activation: tanh
+  lower_state_readout_activation: identity
+  readout_link: identity
+  readout_columns: [intercept, all_reservoir_layers]
+  direct_response_lags_in_readout: false
+  direct_exogenous_lags_in_readout: false
+  reservoir_lags_in_readout: false
+  projection: {mode: identity, require_exact_identity: true}
+  nonzero_weight_distribution: uniform_minus1_plus1
+
+preprocessing:
+  center_scale: [mean_sd, median_mad]
+  input_bound: [none, tanh_z_over_3]
+  input_gain: [0.03, 0.10, 0.30, 1.00, 3.00]
+  fit_on_training_prefix_only: true
+  target_transformed: false
+
+topology:
+  mode: exact_fanin
+  recurrent_indegree: [5, 10, 20, 40]
+  input_fanin_fraction: [0.10, 0.25, 0.50, 1.00]
+  interlayer_fanin: [5, 10, 25, 50, dense]
+  row_normalize_input_and_interlayer: true
+  recurrent_spectral_normalization: true
+  reject_empty_rows: true
+
+search:
+  generator: deterministic_halton_stratified_space_filling
+  full_factorial: false
+  initial_candidates_per_family: 384
+  adaptive_candidates_per_family: 128
+  full_budget_top_k_per_family: 50
+  depth_values: [1, 2, 3, 4]
+  width_values: [20, 40, 75, 100, 150, 200, 250, 300]
+  layer_shapes: [flat, taper, expand, bottleneck]
+  maximum_total_states: 1200
+  readout_dimension_allocation:
+    at_most_500_fraction: 0.70
+    between_501_and_800_fraction: 0.20
+    between_801_and_1201_fraction: 0.10
+  response_lag_values: [1, 2, 3, 5, 8, 12, 15, 24, 30, 45, 60, 75, 90, 120, 150]
+  alpha_range: [0.01, 0.99]
+  minimum_fraction_alpha_at_least_0p4: 0.40
+  rho_range: [0.20, 0.99]
+  log10_tau0_range: [-8, -1]
+  tau0_modes: [absolute, dimension_aware]
+  screening_reservoir_seed: 910001
+  finalist_reservoir_seeds: [910002, 910003]
+
+selection:
+  inner_fit_window: {start: 8501, end: 8800}
+  inner_validation_window: {start: 8801, end: 9000}
+  inner_horizon: 30
+  inner_origin_stride: 5
+  normal_primary_metric: forecast_oracle_location_mae
+  quantile_primary_metric: forecast_qtrue_mae
+  secondary_metrics: [forecast_check_loss, fit_qtrue_rmse]
+  top_k_policy: family_specific_pareto_then_diversity
+  global_specification_forbidden: true
+  final_window_access_forbidden: true
+  diagnostic_grade_exclusion_rule: false
+
+inference:
+  normal_rhs:
+    beta_prior_type: rhs_ns
+    screen: {max_iter: 35, min_iter: 5, tol: 0.001}
+    full: {max_iter: 250, min_iter: 10, tol: 0.000001}
+  quantile_vb:
+    order: [0.50, 0.25, 0.05]
+    max_iter: 1000
+    n_samp_xi: 500
+    tol: 0.0001
+    structured_exal_sigmagam: true
+  mcmc:
+    exal_method_id: m0_v_collapsed_support_logit
+    pilot: {burn: 1000, sample: 4000, draws: 120, finalists_per_cell: 4}
+    confirmation: {burn: 5000, sample: 20000, draws: 300, finalists_per_cell: 2, chains: 3}
+    init_from_vb: true
+
+forecast:
+  qdesn_estimators: [path_recursive, mean_readout_state_recursive]
+  comparator_estimator: state_space_recursive
+  paired_posterior_draws: true
+  paired_innovations: true
+
+reporting:
+  point_summary: posterior_mean
+  interval_probability: 0.95
+  interval_definition: equal_tailed_posterior_interval_of_draw_specific_metric
+  fit_metrics: [qtrue_rmse, qtrue_mae, check_loss]
+  forecast_metrics: [qtrue_mae, qtrue_rmse, check_loss]
+  granular_exports: [family, quantile, model, estimator, origin, lead, draw]
+  coherent_source_per_displayed_row: true
+  article_promotion_automatic: false
+  partial_results_promotable: false
+
+execution:
+  workers: 15
+  threads_per_worker: 1
+  background_launch: true
+  resume_by_atomic_status: true
+  resource_gate:
+    max_load: 48
+    minimum_available_memory_gb: 96
+    minimum_available_disk_gb: 250
+  storage_light: true
+  fitted_model_binary_retention: none_compact_metric_draw_ledgers_only

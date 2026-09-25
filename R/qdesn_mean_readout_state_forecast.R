@@ -5,7 +5,8 @@
 
   meta_keep <- c(
     "D", "m", "m_input", "add_bias", "input_mode", "input_mode_requested",
-    "lag_center", "lag_scale", "standardize_inputs", "input_bound",
+    "lag_center", "lag_scale", "standardize_inputs", "input_center_scale",
+    "input_bound", "input_bound_divisor",
     "win_scale_global", "win_scale_bias", "win_scale_lags", "p_res",
     "readout_spec", "readout_scale"
   )

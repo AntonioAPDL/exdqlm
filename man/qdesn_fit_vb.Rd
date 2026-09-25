@@ -15,7 +15,11 @@ qdesn_fit_vb(
   decomposition = NULL,
   decomposition_xreg = NULL,
   standardize_inputs = FALSE,
+  input_center_scale = c("mean_sd", "median_mad"),
   input_bound = c("none", "tanh"),
+  input_bound_divisor = 1,
+  lag_center_override = NULL,
+  lag_scale_override = NULL,
   win_scale_global = 1,
   win_scale_bias = 1,
   win_scale_lags = NULL,
@@ -25,6 +29,7 @@ qdesn_fit_vb(
   act_k = "identity",
   pi_w = 0.1,
   pi_in = 0.1,
+  topology = list(mode = "bernoulli"),
   w_dist = function(n) rnorm(n, 0, 1),
   in_dist = function(n) rnorm(n, 0, 1),
   washout = 100L,
@@ -62,6 +67,22 @@ used only by decomposition mode when regression/transfer blocks are enabled.}
 \item{act_k}{Activation applied elementwise to reduced lower-layer states in the stack (same choices).}
 
 \item{pi_w, pi_in}{Sparsity probs in (0,1) for internal and input matrices.}
+
+\item{input_center_scale}{Training-only input standardization rule. The
+default uses the mean and standard deviation; \code{"median_mad"} uses the
+median and consistent MAD with an SD-then-one fallback.}
+
+\item{input_bound_divisor}{Positive divisor used by
+\code{input_bound = "tanh"}.}
+
+\item{lag_center_override, lag_scale_override}{Optional preprocessing values
+estimated on an earlier training prefix. Supplying both freezes those values
+while states are rolled over later observed rows.}
+
+\item{topology}{Optional reservoir topology control. \code{mode =
+"bernoulli"} preserves the historical behavior. \code{mode = "exact_fanin"}
+accepts layerwise \code{recurrent_indegree}, \code{input_fanin}, and
+\code{interlayer_fanin} and can row-normalize input/interlayer matrices.}
 
 \item{w_dist, in_dist}{Functions that generate weight entries (default \code{rnorm}).}
 

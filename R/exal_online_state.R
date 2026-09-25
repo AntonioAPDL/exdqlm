@@ -769,19 +769,28 @@
   if (!is.null(prior_precision) || !is.null(prior_natural)) {
     .stopf("diagonal beta covariance approximation currently supports expected-precision priors without nonzero natural vectors or full prior-precision corrections.")
   }
-  if (!is.list(stats) || is.null(stats$S) || is.null(stats$g)) {
-    .stopf("diagonal beta solve: stats must contain S and g.")
+  if (!is.list(stats) ||
+      (is.null(stats$S) && is.null(stats$S_diag)) || is.null(stats$g)) {
+    .stopf("diagonal beta solve: stats must contain S or S_diag and g.")
   }
-  S <- as.matrix(stats$S)
   g <- as.numeric(stats$g)
-  p <- ncol(S)
-  if (!all(dim(S) == c(p, p))) .stopf("diagonal beta solve: S must be square.")
+  if (!is.null(stats$S_diag)) {
+    S_diag <- as.numeric(stats$S_diag)
+    p <- length(S_diag)
+  } else {
+    S <- as.matrix(stats$S)
+    p <- ncol(S)
+    if (!all(dim(S) == c(p, p))) {
+      .stopf("diagonal beta solve: S must be square.")
+    }
+    S_diag <- diag(S)
+  }
   if (length(g) != p) .stopf("diagonal beta solve: g length must match ncol(S).")
   prec_diag <- as.numeric(prec_diag)
   if (length(prec_diag) != p || any(!is.finite(prec_diag)) || any(prec_diag <= 0)) {
     .stopf("diagonal beta solve: prec_diag must be finite, positive, and length p.")
   }
-  P_diag <- as.numeric(diag(S) + prec_diag)
+  P_diag <- as.numeric(S_diag + prec_diag)
   if (any(!is.finite(P_diag)) || any(P_diag <= 0)) {
     .stopf("diagonal beta solve: posterior precision diagonal must be finite and > 0.")
   }
@@ -800,6 +809,19 @@
       method = "diagonal",
       jitter_eps = 0
     )
+  )
+}
+
+.exal_beta_data_stats_diagonal <- function(X, y, xis, qv_m_inv, qs_m) {
+  X <- as.matrix(X)
+  eff <- .exal_effective_barw_barm(
+    y = y, xis = xis, qv_m_inv = qv_m_inv, qs_m = qs_m
+  )
+  S_diag <- colSums(sweep(X^2, 1L, eff$barw, `*`))
+  g <- as.numeric(crossprod(X, eff$barm))
+  list(
+    barw = eff$barw, barm = eff$barm,
+    S_diag = as.numeric(S_diag), g = g
   )
 }
 

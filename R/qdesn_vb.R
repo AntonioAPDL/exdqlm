@@ -499,6 +499,17 @@
 #' @param act_f Activation for reservoir pre-activations (string or function): "tanh","relu","identity" or function.
 #' @param act_k Activation applied elementwise to reduced lower-layer states in the stack (same choices).
 #' @param pi_w,pi_in Sparsity probs in (0,1) for internal and input matrices.
+#' @param input_center_scale Training-only input standardization rule. The
+#'   default uses the mean and standard deviation; `"median_mad"` uses the
+#'   median and consistent MAD with an SD-then-one fallback.
+#' @param input_bound_divisor Positive divisor used by `input_bound = "tanh"`.
+#' @param lag_center_override,lag_scale_override Optional preprocessing values
+#'   estimated on an earlier training prefix. Supplying both freezes those
+#'   values while states are rolled over later observed rows.
+#' @param topology Optional reservoir topology control. `mode = "bernoulli"`
+#'   preserves the historical behavior. `mode = "exact_fanin"` accepts
+#'   layerwise `recurrent_indegree`, `input_fanin`, and `interlayer_fanin` and
+#'   can row-normalize input/interlayer matrices.
 #' @param w_dist,in_dist Functions that generate weight entries (default \code{rnorm}).
 #' @param washout Integer >=0; additional initial samples to drop after lag m to allow state settling.
 #' @param add_bias Logical; if TRUE, appends a constant 1 column to the readout design X.
@@ -537,7 +548,11 @@ qdesn_fit_vb <- function(
 
   # --- NEW: input preprocessing & scaling ---
   standardize_inputs = FALSE,        # z-score the lag inputs (not y target)
+  input_center_scale = c("mean_sd", "median_mad"),
   input_bound = c("none","tanh"),    # optional bounding of inputs
+  input_bound_divisor = 1.0,
+  lag_center_override = NULL,
+  lag_scale_override = NULL,
   win_scale_global = 1.0,            # global scale for inputs
   win_scale_bias   = 1.0,            # separate scale for the bias column (u_0)
   win_scale_lags   = NULL,           # optional length-m vector for per-lag scales
@@ -549,6 +564,7 @@ qdesn_fit_vb <- function(
   act_f = "tanh",
   act_k = "identity",
   pi_w = 0.1, pi_in = 0.1,
+  topology = list(mode = "bernoulli"),
   w_dist = function(n) rnorm(n, 0, 1),
   in_dist = function(n) rnorm(n, 0, 1),
   washout = 100L,
@@ -585,6 +601,11 @@ qdesn_fit_vb <- function(
   )
 
   input_bound <- match.arg(input_bound)
+  input_center_scale <- match.arg(input_center_scale)
+  input_bound_divisor <- as.numeric(input_bound_divisor)[1L]
+  if (!is.finite(input_bound_divisor) || input_bound_divisor <= 0) {
+    stop("input_bound_divisor must be finite and positive.", call. = FALSE)
+  }
   input_mode_requested <- input_mode_info$input_mode_requested
   input_mode_effective <- input_mode_info$input_mode_effective
   decomp_cfg <- input_mode_info$decomposition
@@ -613,7 +634,21 @@ qdesn_fit_vb <- function(
     stop("pi_in must be in (0,1].", call. = FALSE)
   }
 
-  if (identical(input_mode_effective, "dlm_decomp_lags")) {
+  has_preprocess_override <- !is.null(lag_center_override) ||
+    !is.null(lag_scale_override)
+  if (xor(is.null(lag_center_override), is.null(lag_scale_override))) {
+    stop("lag_center_override and lag_scale_override must be supplied together.",
+         call. = FALSE)
+  }
+  if (has_preprocess_override) {
+    lag_center <- as.numeric(lag_center_override)
+    lag_scale <- as.numeric(lag_scale_override)
+    if (any(!is.finite(lag_center)) || any(!is.finite(lag_scale)) ||
+        any(lag_scale <= 0)) {
+      stop("lag preprocessing overrides must be finite with positive scales.",
+           call. = FALSE)
+    }
+  } else if (identical(input_mode_effective, "dlm_decomp_lags")) {
     decomp_runtime <- .qdesn_prepare_decomposition_runtime(
       y = y,
       decomp_cfg = decomp_cfg,
@@ -651,8 +686,17 @@ qdesn_fit_vb <- function(
     lag_center <- 0
     lag_scale <- 1
     if (isTRUE(standardize_inputs) && m_input > 0L) {
-      lag_center <- mean(y, na.rm = TRUE)
-      lag_scale <- stats::sd(y, na.rm = TRUE)
+      if (identical(input_center_scale, "median_mad")) {
+        lag_center <- stats::median(y, na.rm = TRUE)
+        lag_scale <- stats::mad(y, center = lag_center, constant = 1.4826,
+                                na.rm = TRUE)
+        if (!is.finite(lag_scale) || lag_scale <= 1e-12) {
+          lag_scale <- stats::sd(y, na.rm = TRUE)
+        }
+      } else {
+        lag_center <- mean(y, na.rm = TRUE)
+        lag_scale <- stats::sd(y, na.rm = TRUE)
+      }
       if (!is.finite(lag_scale) || lag_scale <= 1e-12) lag_scale <- 1
     }
   }
@@ -678,7 +722,7 @@ qdesn_fit_vb <- function(
     z <- v_no_bias
     if (isTRUE(standardize_inputs)) z <- (z - lag_center) / lag_scale
     if (!is.null(win_scale_lags)) z <- z * as.numeric(win_scale_lags)
-    if (input_bound == "tanh") z <- base::tanh(z)
+    if (input_bound == "tanh") z <- base::tanh(z / input_bound_divisor)
     z
   }
 
@@ -720,6 +764,57 @@ qdesn_fit_vb <- function(
     Phi * Z
   }
 
+  normalize_fanin <- function(x, D, name) {
+    if (is.null(x) || !length(x)) return(rep(NA_integer_, D))
+    x <- as.integer(unlist(x, use.names = FALSE))
+    if (length(x) == 1L) x <- rep(x, D)
+    if (length(x) != D || any(!is.finite(x)) || any(x < 1L)) {
+      stop(name, " must contain one positive integer or one per layer.",
+           call. = FALSE)
+    }
+    x
+  }
+
+  topology <- topology %||% list(mode = "bernoulli")
+  if (!is.list(topology)) stop("topology must be a list.", call. = FALSE)
+  topology_mode <- match.arg(
+    tolower(as.character(topology$mode %||% "bernoulli")[[1L]]),
+    c("bernoulli", "exact_fanin")
+  )
+  recurrent_indegree <- normalize_fanin(topology$recurrent_indegree, D,
+                                        "topology$recurrent_indegree")
+  input_fanin <- normalize_fanin(topology$input_fanin, D,
+                                 "topology$input_fanin")
+  interlayer_fanin <- normalize_fanin(topology$interlayer_fanin, D,
+                                      "topology$interlayer_fanin")
+  row_normalize_inputs <- isTRUE(topology$row_normalize_inputs %||% FALSE)
+
+  make_exact_fanin_weights <- function(nr, nc, fanin, rfun,
+                                       row_normalize = FALSE) {
+    fanin <- min(as.integer(fanin)[1L], nc)
+    if (!is.finite(fanin) || fanin < 1L) {
+      stop("exact fan-in must be at least one.", call. = FALSE)
+    }
+    out <- matrix(0, nr, nc)
+    for (i in seq_len(nr)) {
+      cols <- if (fanin == nc) seq_len(nc) else sample.int(nc, fanin)
+      values <- as.numeric(rfun(fanin))
+      if (length(values) != fanin || any(!is.finite(values))) {
+        stop("weight generator returned invalid exact-fan-in values.",
+             call. = FALSE)
+      }
+      out[i, cols] <- values
+    }
+    if (isTRUE(row_normalize)) {
+      norms <- sqrt(rowSums(out^2))
+      if (any(!is.finite(norms)) || any(norms <= 0)) {
+        stop("exact-fan-in matrix has an invalid row norm.", call. = FALSE)
+      }
+      out <- out / norms
+    }
+    out
+  }
+
   # Random reducer Q: (tilde x n_from). Row-normalized for stability.
   make_reducer <- function(n_from, n_to) {
     if (n_to <= 0) return(matrix(0, 0, n_from))
@@ -751,13 +846,32 @@ qdesn_fit_vb <- function(
   Q_is_identity <- logical(max(0, D - 1))
 
   # Layer 1: input size m_input+1 (includes constant)
-  Win[[1]] <- make_sparse_weights(n[1], m_input + 1L, pi_in[1], in_dist)
-  W[[1]]   <- make_sparse_weights(n[1], n[1], pi_w[1],  w_dist)
+  if (identical(topology_mode, "exact_fanin")) {
+    Win[[1]] <- make_exact_fanin_weights(
+      n[1], m_input + 1L, input_fanin[1], in_dist, row_normalize_inputs
+    )
+    W[[1]] <- make_exact_fanin_weights(
+      n[1], n[1], recurrent_indegree[1], w_dist, FALSE
+    )
+  } else {
+    Win[[1]] <- make_sparse_weights(n[1], m_input + 1L, pi_in[1], in_dist)
+    W[[1]]   <- make_sparse_weights(n[1], n[1], pi_w[1],  w_dist)
+  }
 
   if (D >= 2L) {
     for (d in 2:D) {
-      Win[[d]] <- make_sparse_weights(n[d], n_tilde[d - 1], pi_in[d], in_dist)
-      W[[d]]   <- make_sparse_weights(n[d], n[d], pi_w[d],  w_dist)
+      if (identical(topology_mode, "exact_fanin")) {
+        Win[[d]] <- make_exact_fanin_weights(
+          n[d], n_tilde[d - 1], interlayer_fanin[d], in_dist,
+          row_normalize_inputs
+        )
+        W[[d]] <- make_exact_fanin_weights(
+          n[d], n[d], recurrent_indegree[d], w_dist, FALSE
+        )
+      } else {
+        Win[[d]] <- make_sparse_weights(n[d], n_tilde[d - 1], pi_in[d], in_dist)
+        W[[d]]   <- make_sparse_weights(n[d], n[d], pi_w[d],  w_dist)
+      }
       if (n_tilde[d - 1] == n[d - 1]) {
         Qred[[d - 1]] <- diag(1, n[d - 1])
         Q_is_identity[d - 1] <- TRUE
@@ -782,6 +896,13 @@ qdesn_fit_vb <- function(
     W = W, Win = Win, Q = Qred, Q_is_identity = Q_is_identity,
     act_f = act_f, act_k = act_k,
     pi_w = pi_w, pi_in = pi_in, w_dist = substitute(w_dist), in_dist = substitute(in_dist),
+    topology = list(
+      mode = topology_mode,
+      recurrent_indegree = if (identical(topology_mode, "exact_fanin")) recurrent_indegree else NULL,
+      input_fanin = if (identical(topology_mode, "exact_fanin")) input_fanin else NULL,
+      interlayer_fanin = if (identical(topology_mode, "exact_fanin")) interlayer_fanin else NULL,
+      row_normalize_inputs = row_normalize_inputs
+    ),
     seed = seed
   )
 
@@ -1044,14 +1165,17 @@ ret <- list(
 
         # Input preprocessing carried into forecasting so it reproduces training exactly
         standardize_inputs = standardize_inputs,
+        input_center_scale = input_center_scale,
         input_bound = input_bound,
+	        input_bound_divisor = input_bound_divisor,
 	        win_scale_global = win_scale_global,
 	        win_scale_bias = win_scale_bias,
 	        win_scale_lags = win_scale_lags,
 
 	        # NEW: store the z-score stats for lag inputs (only if used)
-	        lag_center = if (isTRUE(standardize_inputs)) lag_center else if (m_input > 0L) rep(0, m_input) else numeric(0),
+        lag_center = if (isTRUE(standardize_inputs)) lag_center else if (m_input > 0L) rep(0, m_input) else numeric(0),
 	        lag_scale  = if (isTRUE(standardize_inputs)) lag_scale  else if (m_input > 0L) rep(1, m_input) else numeric(0),
+	        preprocessing_frozen_from_override = isTRUE(has_preprocess_override),
 
         # Optional fit-time extras (kept for completeness)
         weights = if (!is.null(weights)) weights[keep_idx] else NULL,
@@ -1486,6 +1610,7 @@ forecast_paths.qdesn_fit <- function(
   lag_scale  <- meta$lag_scale  %||% 1
   standardize_inputs <- isTRUE(meta$standardize_inputs)
   input_bound        <- meta$input_bound %||% "none"
+  input_bound_divisor <- as.numeric(meta$input_bound_divisor %||% 1)[1L]
   win_scale_global   <- meta$win_scale_global %||% 1
   win_scale_bias     <- meta$win_scale_bias   %||% 1
   win_scale_lags     <- meta$win_scale_lags
@@ -1516,7 +1641,9 @@ forecast_paths.qdesn_fit <- function(
     } else {
       nb <- numeric(0)
     }
-    if (identical(input_bound, "tanh") && length(nb)) nb <- base::tanh(nb)
+    if (identical(input_bound, "tanh") && length(nb)) {
+      nb <- base::tanh(nb / input_bound_divisor)
+    }
     u <- c(1, nb)
     u[1] <- u[1] * win_scale_bias
     if (length(u) > 1L) u[-1] <- u[-1] * win_scale_global
@@ -1687,6 +1814,10 @@ forecast_paths.qdesn_fit <- function(
     }
     if (!input_bound %in% c("none", "tanh")) {
       cpp_note("[forecast_paths] C++ disabled: input_bound must be 'none' or 'tanh'.")
+      use_cpp <- FALSE
+    }
+    if (!isTRUE(all.equal(input_bound_divisor, 1))) {
+      cpp_note("[forecast_paths] C++ disabled: non-unit input_bound_divisor uses R recursion.")
       use_cpp <- FALSE
     }
     if (isTRUE(decomp_mode) && !identical(decomp_input_builder, "component_lags")) {
@@ -1867,7 +1998,9 @@ forecast_paths.qdesn_fit <- function(
       if (!is.null(win_scale_lags)) {
         z <- sweep(z, 2L, rep_len(as.numeric(win_scale_lags), ncol(z)), "*")
       }
-      if (identical(input_bound, "tanh")) z <- base::tanh(z)
+      if (identical(input_bound, "tanh")) {
+        z <- base::tanh(z / input_bound_divisor)
+      }
       z * as.numeric(win_scale_global)
     }
     make_u_matrix <- function(hist) {
