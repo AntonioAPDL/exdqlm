@@ -1241,9 +1241,12 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
 #'   (rows = lags 1..L, cols = reservoir feature dimension without bias).
 #' @param draws optional posterior draws list from exal_vb_posterior_draws()
 #' @param noise_draws optional list with matrices \code{s}, \code{v}, \code{z}
-#'   (each \code{H x nd}) to force deterministic R/C++ parity in recursive sampling.
+#'   (each \code{H x nd}) for deterministic paired-estimator replay.
 #' @param cpp_fallback_note logical; when \code{FALSE}, suppresses C++ fallback
 #'   informational messages (used by lattice caller to avoid per-origin spam).
+#' @param recursion_mode posterior-predictive recursion (the default) or the
+#'   mean-complete-readout-state estimator. The latter averages candidate
+#'   predictive states/features before applying posterior coefficient draws.
 #' @return list with yrep (H x nd) and mu_draws (H x nd)
 #' @export
 forecast_paths.qdesn_fit <- function(
@@ -1265,11 +1268,13 @@ forecast_paths.qdesn_fit <- function(
   res_lag_init = NULL,
   origin_index = NULL,
   noise_draws = NULL,
-  cpp_fallback_note = TRUE
+  cpp_fallback_note = TRUE,
+  recursion_mode = c("posterior_predictive", "posterior_predictive_mean_readout_state")
 ) {
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   method <- match.arg(method)
   anchor <- match.arg(anchor)
+  recursion_mode <- match.arg(recursion_mode)
   if (!identical(method, "recursive")) {
     warning("forecast_paths.qdesn_fit: 'method' is deprecated; using recursive sampling.")
   }
@@ -1664,7 +1669,8 @@ forecast_paths.qdesn_fit <- function(
     abc$C * abs(g)
   }, numeric(1))
 
-  use_cpp <- isTRUE(getOption("exdqlm.use_cpp_postpred", FALSE))
+  use_cpp <- isTRUE(getOption("exdqlm.use_cpp_postpred", FALSE)) &&
+    identical(recursion_mode, "posterior_predictive")
   use_cpp_omp <- isTRUE(getOption("exdqlm.use_cpp_postpred_omp", FALSE))
   precompute_noise <- isTRUE(getOption("exdqlm.use_cpp_postpred_precompute", FALSE)) || isTRUE(use_cpp_omp)
 
@@ -1820,6 +1826,213 @@ forecast_paths.qdesn_fit <- function(
 
   apply_scale <- !is.null(scale_info_use) && isTRUE(scale_info_use$scaled)
 
+  if (identical(recursion_mode, "posterior_predictive_mean_readout_state")) {
+    if (isTRUE(decomp_mode)) {
+      stop(
+        "mean-readout-state recursion does not yet support decomposed reservoir inputs.",
+        call. = FALSE
+      )
+    }
+    if (reservoir_lags > 0L) {
+      stop(
+        "mean-readout-state recursion does not yet support reservoir-lag readout blocks.",
+        call. = FALSE
+      )
+    }
+
+    if (is.null(s_draws_in)) {
+      s_draws_in <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+      v_draws_in <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+      z_draws_in <- matrix(NA_real_, nrow = H, ncol = nd_eff)
+      for (j in seq_len(nd_eff)) {
+        s_draws_in[, j] <- abs(rnorm(H))
+        v_draws_in[, j] <- rexp(H, rate = 1 / sdraw[j])
+        z_draws_in[, j] <- rnorm(H)
+      }
+    }
+
+    lag_matrix <- function(hist, lags) {
+      if (!length(lags)) return(matrix(numeric(0), nrow = nrow(hist), ncol = 0L))
+      if (!ncol(hist) || max(lags) > ncol(hist)) {
+        stop("mean-readout-state recursion: history is too short for requested lags.")
+      }
+      hist[, ncol(hist) - lags + 1L, drop = FALSE]
+    }
+    process_lag_matrix <- function(z) {
+      if (!ncol(z)) return(z)
+      if (isTRUE(standardize_inputs)) {
+        z <- sweep(z, 2L, rep_len(as.numeric(lag_center), ncol(z)), "-")
+        z <- sweep(z, 2L, rep_len(as.numeric(lag_scale), ncol(z)), "/")
+      }
+      if (!is.null(win_scale_lags)) {
+        z <- sweep(z, 2L, rep_len(as.numeric(win_scale_lags), ncol(z)), "*")
+      }
+      if (identical(input_bound, "tanh")) z <- base::tanh(z)
+      z * as.numeric(win_scale_global)
+    }
+    make_u_matrix <- function(hist) {
+      nb <- if (m_res_input > 0L) {
+        process_lag_matrix(lag_matrix(hist, seq_len(m_res_input)))
+      } else {
+        matrix(numeric(0), nrow = nrow(hist), ncol = 0L)
+      }
+      rbind(rep(as.numeric(win_scale_bias), nrow(hist)), t(nb))
+    }
+    forward_chunk <- function(h_prev, u_matrix) {
+      h_cand <- vector("list", D)
+      htil_cand <- if (D >= 2L) vector("list", D - 1L) else list()
+      layer_input <- u_matrix
+      for (d in seq_len(D)) {
+        recurrent <- as.numeric(res$W[[d]] %*% h_prev[[d]])
+        pre <- sweep(res$Win[[d]] %*% layer_input, 1L, recurrent, "+")
+        omega <- f_act(pre)
+        h_cand[[d]] <- sweep(
+          res$alpha[d] * omega, 1L,
+          (1 - res$alpha[d]) * as.numeric(h_prev[[d]]), "+"
+        )
+        if (d < D) {
+          htil_cand[[d]] <- if (isTRUE(Q_is_identity[d])) {
+            h_cand[[d]]
+          } else {
+            res$Q[[d]] %*% h_cand[[d]]
+          }
+          layer_input <- htil_cand[[d]]
+        }
+      }
+
+      x_res <- if (D == 1L) {
+        t(h_cand[[1L]])
+      } else {
+        lower <- do.call(rbind, lapply(seq_len(D - 1L), function(d) {
+          k_act(htil_cand[[d]])
+        }))
+        t(rbind(h_cand[[D]], lower))
+      }
+      if (isTRUE(add_bias)) x_res <- cbind(1, x_res)
+      list(h_cand = h_cand, x_res = x_res)
+    }
+
+    y_hist_matrix <- if (max_y_lag > 0L) {
+      matrix(rep(y_hist0, each = nd_eff), nrow = nd_eff, byrow = FALSE)
+    } else {
+      matrix(numeric(0), nrow = nd_eff, ncol = 0L)
+    }
+    h_common <- lapply(origin_state, as.numeric)
+    common_states <- vector("list", H)
+    mean_readout <- matrix(NA_real_, nrow = H, ncol = ncol(Bdraw))
+    state_dispersion <- matrix(NA_real_, nrow = H, ncol = D)
+    readout_dispersion <- rep(NA_real_, H)
+
+    chunk_size <- max(1L, as.integer(chunk))
+    particle_chunks <- split(
+      seq_len(nd_eff), ceiling(seq_len(nd_eff) / chunk_size)
+    )
+    for (h in seq_len(H)) {
+      h_sum <- lapply(h_common, function(x) numeric(length(x)))
+      h_sum_sq <- lapply(h_common, function(x) numeric(length(x)))
+      x_sum <- numeric(ncol(Bdraw))
+      x_sum_sq <- numeric(ncol(Bdraw))
+      particles_seen <- 0L
+
+      for (ids in particle_chunks) {
+        hist <- y_hist_matrix[ids, , drop = FALSE]
+        step <- forward_chunk(h_common, make_u_matrix(hist))
+        x_res <- step$x_res
+        if (h == 1L && particles_seen == 0L && ncol(x_res) != p_res) {
+          stop(
+            "Readout feature length mismatch: got ", ncol(x_res),
+            " but expected p_res=", p_res, "."
+          )
+        }
+
+        y_lag_mat <- lag_matrix(hist, y_lags_readout)
+        input_y_mat <- lag_matrix(hist, input_lags_y)
+        y_block <- if (isTRUE(include_input)) input_y_mat else y_lag_mat
+        x_block <- if (length(x_blocks[[h]])) {
+          matrix(rep(x_blocks[[h]], each = length(ids)), nrow = length(ids))
+        } else {
+          matrix(numeric(0), nrow = length(ids), ncol = 0L)
+        }
+        x_matrix <- cbind(x_res, y_block, x_block)
+        if (isTRUE(linear_transform$active)) {
+          raw_names <- as.character(unlist(
+            linear_transform$input_colnames, use.names = FALSE
+          ))
+          if (length(raw_names) == ncol(x_matrix)) colnames(x_matrix) <- raw_names
+          x_matrix <- readout_linear_transform_apply(x_matrix, linear_transform)
+        }
+        if (isTRUE(apply_scale)) {
+          x_matrix <- readout_scale_apply(x_matrix, scale_info_use)
+        }
+        if (ncol(x_matrix) != ncol(Bdraw)) {
+          stop(
+            "Readout length mismatch: got ", ncol(x_matrix),
+            " but beta has ", ncol(Bdraw), " columns."
+          )
+        }
+
+        for (d in seq_len(D)) {
+          h_sum[[d]] <- h_sum[[d]] + rowSums(step$h_cand[[d]])
+          h_sum_sq[[d]] <- h_sum_sq[[d]] + rowSums(step$h_cand[[d]]^2)
+        }
+        x_sum <- x_sum + colSums(x_matrix)
+        x_sum_sq <- x_sum_sq + colSums(x_matrix^2)
+        particles_seen <- particles_seen + length(ids)
+      }
+      if (particles_seen != nd_eff) {
+        stop("Mean-readout-state particle accounting mismatch.", call. = FALSE)
+      }
+
+      h_mean <- lapply(h_sum, `/`, particles_seen)
+      x_bar <- x_sum / particles_seen
+      mu_h <- as.numeric(Bdraw %*% x_bar)
+      mu_draws[h, ] <- mu_h
+      y_h <- if (!is.na(y_obs_vec[h])) {
+        rep(y_obs_vec[h], nd_eff)
+      } else {
+        mu_h + (lam_d * sdraw) * s_draws_in[h, ] +
+          A_d * v_draws_in[h, ] +
+          sqrt(B_d * sdraw * v_draws_in[h, ]) * z_draws_in[h, ]
+      }
+      yrep[h, ] <- y_h
+
+      common_states[[h]] <- h_mean
+      mean_readout[h, ] <- x_bar
+      state_dispersion[h, ] <- vapply(seq_len(D), function(d) {
+        variance_by_state <- pmax(
+          h_sum_sq[[d]] / particles_seen - h_mean[[d]]^2, 0
+        )
+        sqrt(mean(variance_by_state))
+      }, numeric(1))
+      readout_dispersion[h] <- sqrt(mean(pmax(
+        x_sum_sq / particles_seen - x_bar^2, 0
+      )))
+      h_common <- h_mean
+
+      if (max_y_lag > 0L) {
+        y_hist_matrix <- if (max_y_lag == 1L) {
+          matrix(y_h, nrow = nd_eff, ncol = 1L)
+        } else {
+          cbind(y_hist_matrix[, -1L, drop = FALSE], y_h)
+        }
+      }
+    }
+
+    colnames(state_dispersion) <- paste0("layer_", seq_len(D))
+    out <- list(
+      yrep = yrep,
+      mu_draws = mu_draws,
+      common_states_by_lead = common_states,
+      mean_readout_by_lead = mean_readout,
+      state_dispersion_by_lead = state_dispersion,
+      readout_dispersion_by_lead = readout_dispersion,
+      feature_basis_hash = .qdesn_mean_readout_state_basis_hash(object),
+      recursion_mode = recursion_mode
+    )
+    attr(out, "backend") <- "r_mean_readout_state"
+    return(out)
+  }
+
   ids_list <- split(seq_len(nd_eff), ceiling(seq_len(nd_eff) / as.integer(chunk)))
   for (ids in ids_list) {
     for (j in ids) {
@@ -1955,11 +2168,20 @@ forecast_paths.qdesn_fit <- function(
 #' @param y_obs_last last observed y index (defaults to length(y_all))
 #' @param lead_weights optional numeric vector length H (base weights by lead)
 #' @param mix_nd number of mixture draws per target (defaults to nd)
+#' @param chunk process posterior draws in bounded-memory chunks
+#' @param seed optional RNG seed
 #' @param keep_origin_draws if FALSE, drop per-origin draws after mixture
 #' @param draws optional posterior draws list from exal_vb_posterior_draws()
-#' @param recursion_mode recursive posterior-predictive histories (the default)
-#'   or a diagnostic conditional-mean plug-in history. The latter changes only
-#'   recursive future lag inputs and is not the primary forecast estimator.
+#' @param noise_draws_by_origin optional list aligned with `origins`; each entry
+#'   is a list of `s`, `v`, and `z` matrices with dimension `H x nd`. This is
+#'   intended for paired estimator replays and leaves the default RNG path
+#'   unchanged.
+#' @param build_mix logical; retain the historical target-mixture construction.
+#'   Set to `FALSE` for score replays that consume only per-origin quantile
+#'   draws and do not need the predictive mixture matrices.
+#' @param recursion_mode recursive posterior-predictive histories (the default),
+#'   a diagnostic conditional-mean plug-in history, or the mean-complete-
+#'   readout-state posterior-predictive estimator.
 #' @return list with per-origin draws (optional) and mixture draws per target
 #' @export
 forecast_lattice.qdesn_fit <- function(
@@ -1973,7 +2195,13 @@ forecast_lattice.qdesn_fit <- function(
   seed = NULL,
   keep_origin_draws = TRUE,
   draws = NULL,
-  recursion_mode = c("posterior_predictive", "conditional_mean_plugin")
+  noise_draws_by_origin = NULL,
+  build_mix = TRUE,
+  recursion_mode = c(
+    "posterior_predictive",
+    "conditional_mean_plugin",
+    "posterior_predictive_mean_readout_state"
+  )
 ) {
   `%||%` <- function(a, b) if (is.null(a)) b else a
 
@@ -2090,9 +2318,17 @@ forecast_lattice.qdesn_fit <- function(
     draws <- exal_posterior_draws(object$fit, nd = nd)
   }
   nd_eff <- nrow(draws$beta)
+  if (!is.null(noise_draws_by_origin) &&
+      length(noise_draws_by_origin) != length(origins)) {
+    stop("forecast_lattice: noise_draws_by_origin must align with origins.")
+  }
 
   yrep_list <- vector("list", length(origins))
   mu_list   <- vector("list", length(origins))
+  common_state_list <- vector("list", length(origins))
+  mean_readout_list <- vector("list", length(origins))
+  state_dispersion_list <- vector("list", length(origins))
+  readout_dispersion_list <- vector("list", length(origins))
 
   for (i in seq_along(origins)) {
     tau <- origins[i]
@@ -2152,6 +2388,8 @@ forecast_lattice.qdesn_fit <- function(
     noise_draws <- if (identical(recursion_mode, "conditional_mean_plugin")) {
       zero <- matrix(0, nrow = H, ncol = nd_eff)
       list(s = zero, v = zero, z = zero)
+    } else if (!is.null(noise_draws_by_origin)) {
+      noise_draws_by_origin[[i]]
     } else NULL
     out <- forecast_paths.qdesn_fit(
       object, H = H, nd = nd_eff,
@@ -2166,55 +2404,69 @@ forecast_lattice.qdesn_fit <- function(
       draws = draws,
       origin_index = tau,
       noise_draws = noise_draws,
-      cpp_fallback_note = (i == 1L)
+      cpp_fallback_note = (i == 1L),
+      recursion_mode = if (identical(recursion_mode, "conditional_mean_plugin")) {
+        "posterior_predictive"
+      } else {
+        recursion_mode
+      }
     )
 
     yrep_list[[i]] <- out$yrep
     mu_list[[i]]   <- out$mu_draws
+    common_state_list[[i]] <- out$common_states_by_lead %||% NULL
+    mean_readout_list[[i]] <- out$mean_readout_by_lead %||% NULL
+    state_dispersion_list[[i]] <- out$state_dispersion_by_lead %||% NULL
+    readout_dispersion_list[[i]] <- out$readout_dispersion_by_lead %||% NULL
   }
 
-  targets <- seq.int(min(origins) + 1L, max(origins) + H)
-  mix_y  <- matrix(NA_real_, nrow = length(targets), ncol = mix_nd)
-  mix_mu <- matrix(NA_real_, nrow = length(targets), ncol = mix_nd)
+  targets <- if (isTRUE(build_mix)) {
+    seq.int(min(origins) + 1L, max(origins) + H)
+  } else integer(0)
+  mix_y <- mix_mu <- matrix(numeric(0), nrow = 0L, ncol = 0L)
+  if (isTRUE(build_mix)) {
+    mix_y  <- matrix(NA_real_, nrow = length(targets), ncol = mix_nd)
+    mix_mu <- matrix(NA_real_, nrow = length(targets), ncol = mix_nd)
 
-  for (ti in seq_along(targets)) {
-    t <- targets[ti]
-    lead_vals <- t - origins
-    ok <- which(lead_vals >= 1L & lead_vals <= H)
-    if (!length(ok)) next
+    for (ti in seq_along(targets)) {
+      t <- targets[ti]
+      lead_vals <- t - origins
+      ok <- which(lead_vals >= 1L & lead_vals <= H)
+      if (!length(ok)) next
 
-    leads <- as.integer(lead_vals[ok])
-    leads <- leads[is.finite(leads) & leads >= 1L & leads <= H]
-    if (!length(leads)) next
-    w <- base_w[leads]
-    if (length(w) != length(leads)) {
-      message(sprintf(
-        "[forecast_lattice] lead weight length mismatch (leads=%d, weights=%d); using uniform weights.",
-        length(leads), length(w)
-      ))
-      w <- rep(1, length(leads))
-    }
-    if (sum(w) <= 0 || any(!is.finite(w))) {
-      stop("forecast_lattice: lead_weights must be positive for available leads.")
-    }
-    w <- w / sum(w)
+      leads <- as.integer(lead_vals[ok])
+      leads <- leads[is.finite(leads) & leads >= 1L & leads <= H]
+      if (!length(leads)) next
+      w <- base_w[leads]
+      if (length(w) != length(leads)) {
+        message(sprintf(
+          "[forecast_lattice] lead weight length mismatch (leads=%d, weights=%d); using uniform weights.",
+          length(leads), length(w)
+        ))
+        w <- rep(1, length(leads))
+      }
+      if (sum(w) <= 0 || any(!is.finite(w))) {
+        stop("forecast_lattice: lead_weights must be positive for available leads.")
+      }
+      w <- w / sum(w)
 
-    # sample.int avoids sample(x) special-case when length(leads)==1L and lead>1
-    lead_idx <- if (length(leads) == 1L) {
-      rep(1L, mix_nd)
-    } else {
-      sample.int(length(leads), size = mix_nd, replace = TRUE, prob = w)
-    }
-    lead_draw <- leads[lead_idx]
-    draw_idx  <- sample(seq_len(nd_eff), size = mix_nd, replace = TRUE)
+      # sample.int avoids sample(x) special-case when length(leads)==1L and lead>1
+      lead_idx <- if (length(leads) == 1L) {
+        rep(1L, mix_nd)
+      } else {
+        sample.int(length(leads), size = mix_nd, replace = TRUE, prob = w)
+      }
+      lead_draw <- leads[lead_idx]
+      draw_idx  <- sample(seq_len(nd_eff), size = mix_nd, replace = TRUE)
 
-    for (ell in unique(lead_draw)) {
-      idx <- which(lead_draw == ell)
-      tau <- t - ell
-      origin_idx <- match(tau, origins)
-      if (is.na(origin_idx)) next
-      mix_y[ti, idx]  <- yrep_list[[origin_idx]][ell, draw_idx[idx]]
-      mix_mu[ti, idx] <- mu_list[[origin_idx]][ell, draw_idx[idx]]
+      for (ell in unique(lead_draw)) {
+        idx <- which(lead_draw == ell)
+        tau <- t - ell
+        origin_idx <- match(tau, origins)
+        if (is.na(origin_idx)) next
+        mix_y[ti, idx]  <- yrep_list[[origin_idx]][ell, draw_idx[idx]]
+        mix_mu[ti, idx] <- mu_list[[origin_idx]][ell, draw_idx[idx]]
+      }
     }
   }
 
@@ -2229,11 +2481,20 @@ forecast_lattice.qdesn_fit <- function(
     horizon = H,
     nd_draws = nd_eff,
     mix_nd = mix_nd,
+    mix_built = isTRUE(build_mix),
     yrep_by_origin = yrep_list,
     mu_by_origin = mu_list,
+    common_states_by_origin = common_state_list,
+    mean_readout_by_origin = mean_readout_list,
+    state_dispersion_by_origin = state_dispersion_list,
+    readout_dispersion_by_origin = readout_dispersion_list,
     mix = list(y = mix_y, mu = mix_mu),
     lead_weights = base_w,
     recursion_mode = recursion_mode,
+    feature_basis_hash = if (identical(
+      recursion_mode,
+      "posterior_predictive_mean_readout_state"
+    )) .qdesn_mean_readout_state_basis_hash(object) else NULL,
     source_draw_index = as.integer(draws$source_draw_index %||% seq_len(nd_eff)),
     draw_parameters = data.frame(
       source_draw_index = as.integer(draws$source_draw_index %||% seq_len(nd_eff)),
