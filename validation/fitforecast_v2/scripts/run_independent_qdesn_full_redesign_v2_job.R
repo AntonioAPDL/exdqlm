@@ -30,6 +30,36 @@ source(file.path(
 ))
 
 cfg <- iqfr_v2_read_json(config_path)
+source_version <- as.character(read.dcf(
+  file.path(repo_root, "DESCRIPTION"), fields = "Version"
+)[[1L]])
+loaded_version <- as.character(utils::packageVersion("exdqlm"))
+if (!identical(source_version, iqfr_v2_expected_package_version) ||
+    !identical(loaded_version, iqfr_v2_expected_package_version)) {
+  stop(
+    "Worker package contract failed: source=", source_version,
+    ", loaded=", loaded_version,
+    ", expected=", iqfr_v2_expected_package_version, ".",
+    call. = FALSE
+  )
+}
+materialization <- iqfr_v2_read_json(file.path(
+  cfg$run_root, "manifests", "materialization.json"
+))
+environment <- iqfr_v2_read_json(file.path(
+  cfg$run_root, "manifests", "environment.json"
+))
+observed_head <- system2(
+  "git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE
+)
+observed_protocol_sha <- iqfr_v2_sha256(cfg$protocol_path)
+if (!identical(as.character(environment$package_version), loaded_version) ||
+    !identical(as.character(materialization$git$head), observed_head) ||
+    !identical(as.character(environment$git_head), observed_head) ||
+    !identical(as.character(cfg$protocol_sha256), observed_protocol_sha)) {
+  stop("Worker provenance contract failed for ", cfg$job_id, ".",
+       call. = FALSE)
+}
 stage <- as.character(cfg$stage)
 if (stage %in% c("normal_initial", "normal_adaptive", "normal_full")) {
   iqfr_v2_normal_job(config_path)

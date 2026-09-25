@@ -73,6 +73,11 @@ markers and are resumable. Compact score, origin, lead, diagnostic, and winner
 ledgers are retained. Nonfinal model binaries are removed only after a verified
 closeout; no article promotion is automatic.
 
+Workers load the dedicated worktree with `pkgload::load_all()` and assert both
+the 1.1.1 source/namespace version and the frozen launch commit before each
+fit. The environment manifest records any different exdqlm version found in
+Muscat's default library only as host context; it is not the execution package.
+
 The launch uses 15 one-core workers on Muscat. Other projects and their jobs
 are neither inspected deeply nor modified.
 

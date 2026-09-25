@@ -11,6 +11,15 @@ testthat::test_that("redesign v2 protocol and candidate design are frozen", {
   checks <- iqfr_v2_protocol_checks(protocol)
   testthat::expect_true(all(checks$pass))
   testthat::expect_identical(
+    as.character(read.dcf(file.path(repo_root, "DESCRIPTION"),
+                          fields = "Version")[[1L]]),
+    iqfr_v2_expected_package_version
+  )
+  testthat::expect_identical(
+    as.character(utils::packageVersion("exdqlm")),
+    iqfr_v2_expected_package_version
+  )
+  testthat::expect_identical(
     as.character(protocol$source$required_columns),
     c("t", "y", "mu", "q_target", "eps")
   )

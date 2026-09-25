@@ -7,6 +7,7 @@ iqfr_v2_protocol_relpath <- file.path(
 iqfr_v2_schema <- "independent_qdesn_full_redesign_v2_v1"
 iqfr_v2_expected_branch <-
   "validation/independent-qdesn-full-redesign-v2-20260925"
+iqfr_v2_expected_package_version <- "1.1.1"
 iqfr_v2_quantiles <- c(0.05, 0.25, 0.50)
 iqfr_v2_families <- c("normal", "laplace", "gausmix")
 
@@ -636,15 +637,31 @@ iqfr_v2_materialize_initial <- function(repo_root = iqfr_v2_repo_root(),
       "RCPP_PARALLEL_NUM_THREADS"
     ), unset = "<unset>"))
   ), session_path)
+  source_package_version <- as.character(read.dcf(
+    file.path(repo_root, "DESCRIPTION"), fields = "Version"
+  )[[1L]])
+  default_library_package_version <- tryCatch(
+    as.character(utils::packageDescription(
+      "exdqlm", lib.loc = NULL, fields = "Version"
+    )),
+    error = function(e) NA_character_
+  )
+  if (!identical(source_package_version,
+                 iqfr_v2_expected_package_version)) {
+    stop("Dedicated source package version is ", source_package_version,
+         "; expected ", iqfr_v2_expected_package_version, ".",
+         call. = FALSE)
+  }
   environment <- list(
     host = unname(Sys.info()[["nodename"]]),
     r_version = R.version.string,
-    package_version = as.character(utils::packageDescription(
-      "exdqlm", lib.loc = NULL, fields = "Version"
-    ) %||% read.dcf(file.path(repo_root, "DESCRIPTION"),
-                    fields = "Version")[[1L]]),
-    description_version = read.dcf(file.path(repo_root, "DESCRIPTION"),
-                                   fields = "Version")[[1L]],
+    package_version = source_package_version,
+    source_description_version = source_package_version,
+    default_library_package_version = default_library_package_version,
+    execution_mode = "pkgload::load_all(dedicated_worktree)",
+    worker_version_assertion = TRUE,
+    git_branch = git$branch,
+    git_head = git$head,
     rng_kind = RNGkind(),
     session_info_path = normalizePath(session_path, winslash = "/",
                                       mustWork = TRUE),

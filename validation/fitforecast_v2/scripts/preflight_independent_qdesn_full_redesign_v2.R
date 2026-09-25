@@ -32,8 +32,10 @@ source(file.path(
 
 protocol <- iqfr_v2_read_protocol(repo_root)
 checks <- iqfr_v2_assert_protocol(protocol)
-if (!identical(as.character(utils::packageVersion("exdqlm")), "1.1.1")) {
-  stop("Preflight requires exdqlm 1.1.1.", call. = FALSE)
+if (!identical(as.character(utils::packageVersion("exdqlm")),
+               iqfr_v2_expected_package_version)) {
+  stop("Preflight requires exdqlm ", iqfr_v2_expected_package_version, ".",
+       call. = FALSE)
 }
 sigmagam <- exal_make_vb_sigmagam_control()
 if (!identical(sigmagam$factorization, "structured") ||
