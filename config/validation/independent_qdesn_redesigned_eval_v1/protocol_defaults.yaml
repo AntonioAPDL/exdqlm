@@ -1,0 +1,160 @@
+protocol:
+  id: independent_qdesn_redesigned_eval_v1
+  status: PLANNED_NOT_LAUNCHED
+  launch_enabled: false
+  supersedes: independent_mean_readout_state_forecast_v1
+  supersession_decision: SUPERSEDED_BY_REDESIGNED_INDEPENDENT_PROTOCOL
+
+scope:
+  families: [normal, laplace, gausmix]
+  quantiles: [0.05, 0.25, 0.50]
+  primary_models: [dqlm_al, qdesn_al_rhs]
+  exal_extension_in_primary: false
+  fit_window:
+    start: 8501
+    end: 9000
+  heldout_window:
+    start: 9001
+    end: 10000
+  horizon: 30
+  final_origin_stride: 1
+  teacher_forced_between_origins: true
+  recursive_within_horizon: true
+  heldout_sealed_during_selection: true
+
+architecture:
+  reservoir_activation: tanh
+  lower_state_readout_activation: identity
+  readout_link: identity
+  readout_columns: [intercept, all_reservoir_layers]
+  direct_response_lags_in_readout: false
+  direct_exogenous_lags_in_readout: false
+  reservoir_lags_in_readout: false
+  projection:
+    mode: identity
+    n_tilde_rule: previous_layer_width
+    require_exact_identity: true
+
+reservoir_randomization:
+  screening_seed: 910001
+  finalist_sensitivity_seeds: [910002, 910003]
+  rng_kind: Mersenne-Twister
+  normal_kind: Inversion
+  sample_kind: Rejection
+  recurrent_topology: fixed_indegree
+  recurrent_expected_indegree: 10
+  recurrent_connectivity_rule: min(1, 10 / n_d)
+  recurrent_weight_distribution: uniform_minus1_plus1
+  recurrent_spectral_normalization: true
+  leaky_map_radius_check: true
+  input_topology: dense_row_normalized
+  input_connectivity: 1.0
+  input_weight_distribution: uniform_minus1_plus1
+  interlayer_topology: dense_row_normalized
+  interlayer_connectivity: 1.0
+  reject_zero_rows: true
+
+input_contract:
+  response_target_transformed: false
+  reservoir_response_lags:
+    center: training_median
+    scale: training_mad_consistent
+    zero_scale_fallback: training_sd_then_one
+    bound_primary: none
+    bound_canary: tanh_after_divide_by_3
+    parameters_fit_on: fit_prefix_only
+    recursive_values_transformed_with_frozen_parameters: true
+  reservoir_bias_input: true
+  current_dgp_exogenous_columns: []
+  current_dgp_exogenous_lags: [0]
+  future_exogenous_policy: known_at_origin_only
+  transformed_lag_bases_primary: [standardized_level]
+  transformed_lag_bases_deferred:
+    - standardized_level_plus_first_difference
+    - standardized_level_plus_period_90_difference
+
+search:
+  generator: reproducible_maximin_space_filling_with_discrete_strata
+  full_factorial: false
+  normal_rhs_vb_stage_a_candidates_per_family: 512
+  full_budget_top_k_per_family: 50
+  depth_values: [1, 2, 3, 4]
+  width_values: [20, 40, 75, 100, 150, 200, 250, 300]
+  layer_shapes: [flat, taper, expand, bottleneck]
+  maximum_total_states: 1200
+  readout_dimension_allocation:
+    at_most_500_fraction: 0.70
+    between_501_and_800_fraction: 0.20
+    between_801_and_1201_fraction: 0.10
+  response_lag_values: [1, 2, 3, 5, 8, 12, 15, 24, 30, 45, 60, 90, 120, 150]
+  exogenous_lag_values_current_dgp: [0]
+  shared_alpha_range: [0.01, 0.99]
+  shared_rho_range: [0.20, 0.99]
+  minimum_fraction_alpha_at_least_0p4: 0.40
+  log10_tau0_range: [-8, -1]
+  tau0_anchor_values: [0.00000001, 0.0000001, 0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1]
+  dimension_aware_tau0_anchor: true
+  fixed_during_screen:
+    - reservoir_seed
+    - activation_functions
+    - projection_matrices
+    - sparsity_rule
+    - weight_distributions
+    - input_preprocessing
+
+selection:
+  inner_fit_window:
+    start: 8501
+    end: 8800
+  inner_validation_window:
+    start: 8801
+    end: 9000
+  inner_horizon: 30
+  inner_origin_stride: 5
+  primary_metric: forecast_qtrue_mae
+  secondary_metrics: [forecast_check_loss, fit_qtrue_rmse]
+  top_k_policy: family_specific_pareto_then_diversity
+  global_specification_forbidden: true
+  final_window_access_forbidden: true
+  numerical_validity_required: true
+  diagnostic_grade_exclusion_rule: false
+
+inference:
+  structure_selection: normal_rhs_vb
+  stage_a_budget: short_fixed_budget
+  stage_b_budget: full_convergence_budget
+  nested_quantile_order: [0.50, 0.25, 0.05]
+  nested_parent: normal_rhs_vb
+  keep_family_specific_top_50_through_quantile_stage: true
+  independent_restart_for_finalists: true
+  mcmc_only_after_vb_shortlist: true
+  mcmc_confirmation_chains: 3
+
+forecast:
+  estimators:
+    - posterior_predictive
+    - posterior_predictive_mean_readout_state
+  paired_posterior_draws: true
+  paired_innovations: true
+  dqlm_uses_reservoir_estimator_factor: false
+
+reporting:
+  point_summaries: [posterior_mean]
+  interval_probability: 0.95
+  interval_definition: equal_tailed_posterior_interval_of_draw_specific_metric
+  metrics:
+    fit: [qtrue_rmse, qtrue_mae, check_loss]
+    forecast: [qtrue_mae, qtrue_rmse, check_loss]
+  granular_exports: [family, quantile, model, estimator, origin, lead, draw]
+  aggregate_weighting: equal_origin_lead_pairs
+  lead_balanced_sensitivity: true
+  article_promotion_requires_complete_surface: true
+  old_and_new_protocol_rows_may_be_mixed: false
+
+execution:
+  default_workers: 8
+  threads_per_worker: 1
+  background_launch: true
+  resume_by_atomic_status: true
+  fitted_model_binary_retention: finalists_only_until_compaction
+  launch_requires_explicit_user_instruction: true
