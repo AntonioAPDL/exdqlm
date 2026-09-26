@@ -28,6 +28,10 @@ source(file.path(
   repo_root, "validation", "fitforecast_v2", "R",
   "independent_qdesn_full_redesign_v2_runtime.R"
 ))
+source(file.path(
+  repo_root, "validation", "fitforecast_v2", "R",
+  "independent_qdesn_full_redesign_v2_resume.R"
+))
 
 cfg <- iqfr_v2_read_json(config_path)
 source_version <- as.character(read.dcf(
@@ -53,20 +57,35 @@ observed_head <- system2(
   "git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE
 )
 observed_protocol_sha <- iqfr_v2_sha256(cfg$protocol_path)
+head_contract <- iqfr_v2_worker_head_contract(
+  materialization, environment, observed_head, cfg$run_root
+)
 if (!identical(as.character(environment$package_version), loaded_version) ||
-    !identical(as.character(materialization$git$head), observed_head) ||
-    !identical(as.character(environment$git_head), observed_head) ||
+    !isTRUE(head_contract$pass) ||
     !identical(as.character(cfg$protocol_sha256), observed_protocol_sha)) {
   stop("Worker provenance contract failed for ", cfg$job_id, ".",
        call. = FALSE)
 }
-stage <- as.character(cfg$stage)
-if (stage %in% c("normal_initial", "normal_adaptive", "normal_full")) {
-  iqfr_v2_normal_job(config_path)
-} else if (identical(stage, "quantile_vb")) {
-  iqfr_v2_quantile_vb_job(config_path)
-} else if (stage %in% c("mcmc_pilot", "mcmc_confirmation")) {
-  iqfr_v2_mcmc_job(config_path)
-} else {
-  stop("Unsupported redesigned-validation job stage: ", stage, call. = FALSE)
+append_execution_provenance <- function() {
+  if (file.exists(cfg$status_path)) {
+    status <- iqfr_v2_read_json(cfg$status_path)
+    status$execution_git_head <- observed_head
+    status$execution_provenance_mode <- head_contract$mode
+    status$resume_authorization_sha256 <-
+      head_contract$authorization_sha256
+    iqfr_v2_write_json(status, cfg$status_path)
+  }
 }
+stage <- as.character(cfg$stage)
+tryCatch({
+  if (stage %in% c("normal_initial", "normal_adaptive", "normal_full")) {
+    iqfr_v2_normal_job(config_path)
+  } else if (identical(stage, "quantile_vb")) {
+    iqfr_v2_quantile_vb_job(config_path)
+  } else if (stage %in% c("mcmc_pilot", "mcmc_confirmation")) {
+    iqfr_v2_mcmc_job(config_path)
+  } else {
+    stop("Unsupported redesigned-validation job stage: ", stage,
+         call. = FALSE)
+  }
+}, finally = append_execution_provenance())

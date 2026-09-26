@@ -82,6 +82,90 @@ testthat::test_that("adaptive design pairs each new structure with local tau arm
   ))
 })
 
+testthat::test_that("initial and adaptive candidate ledgers bind fail-closed", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_runtime.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_resume.R"))
+  initial <- data.frame(
+    family = "normal", candidate_id = "initial",
+    structure_id = "structure_initial", rhs_tau0 = 1
+  )
+  adaptive <- data.frame(
+    family = "normal", candidate_id = "adaptive",
+    structure_id = "structure_adaptive", rhs_tau0 = 3,
+    adaptive_tau_center = 1
+  )
+  combined <- iqfr_v2_bind_candidate_ledgers(initial, adaptive)
+  testthat::expect_equal(nrow(combined), 2L)
+  testthat::expect_true(is.na(combined$adaptive_tau_center[[1L]]))
+  testthat::expect_equal(combined$adaptive_tau_center[[2L]], 1)
+
+  drifted <- adaptive
+  drifted$unexpected <- TRUE
+  testthat::expect_error(
+    iqfr_v2_bind_candidate_ledgers(initial, drifted),
+    "core schemas differ"
+  )
+  duplicated <- adaptive
+  duplicated$candidate_id <- "initial"
+  testthat::expect_error(
+    iqfr_v2_bind_candidate_ledgers(initial, duplicated),
+    "duplicate identities"
+  )
+})
+
+testthat::test_that("worker HEAD changes require a valid resume authorization", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_runtime.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_resume.R"))
+  root <- tempfile("iqfr21-resume-")
+  dir.create(file.path(root, "manifests"), recursive = TRUE)
+  on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+  materialization <- list(git = list(head = "base"))
+  environment <- list(git_head = "base")
+
+  frozen <- iqfr_v2_worker_head_contract(
+    materialization, environment, "base", root
+  )
+  testthat::expect_true(frozen$pass)
+  testthat::expect_identical(frozen$mode, "frozen_launch_head")
+  missing <- iqfr_v2_worker_head_contract(
+    materialization, environment, "repair", root
+  )
+  testthat::expect_false(missing$pass)
+
+  artifact <- iqfr_v2_write_csv(
+    data.frame(relative_path = "result.csv", bytes = 1, sha256 = "hash"),
+    iqfr_v2_resume_artifact_path(root)
+  )
+  iqfr_v2_write_json(list(
+    schema_version = iqfr_v2_resume_schema,
+    authorization_pass = TRUE, base_head = "base", resume_head = "repair",
+    completed_jobs = 5472L,
+    completed_artifact_manifest_path = artifact,
+    completed_artifact_manifest_sha256 = iqfr_v2_sha256(artifact)
+  ), iqfr_v2_resume_manifest_path(root))
+  resumed <- iqfr_v2_worker_head_contract(
+    materialization, environment, "repair", root
+  )
+  testthat::expect_true(resumed$pass)
+  testthat::expect_identical(resumed$mode, "authorized_checkpoint_resume")
+})
+
 testthat::test_that("multirow jobs collect with stage-specific keys", {
   repo_root <- normalizePath(
     system("git rev-parse --show-toplevel", intern = TRUE),
@@ -202,4 +286,16 @@ testthat::test_that("v2.1 launcher freezes clean 15-worker background execution"
   testthat::expect_match(text, "tmux new-session -d", fixed = TRUE)
   testthat::expect_match(text, "status --porcelain", fixed = TRUE)
   testthat::expect_match(text, "@{upstream}", fixed = TRUE)
+
+  resume_path <- file.path(
+    repo_root, "validation", "fitforecast_v2", "scripts",
+    "resume_independent_qdesn_full_redesign_v2_1.sh"
+  )
+  resume_text <- paste(readLines(resume_path, warn = FALSE), collapse = "\n")
+  testthat::expect_equal(
+    system2("bash", c("-n", resume_path), stdout = FALSE, stderr = FALSE), 0L
+  )
+  testthat::expect_match(resume_text, "authorize_resume", fixed = TRUE)
+  testthat::expect_match(resume_text, "workers=15", fixed = TRUE)
+  testthat::expect_match(resume_text, "threads_per_worker=1", fixed = TRUE)
 })

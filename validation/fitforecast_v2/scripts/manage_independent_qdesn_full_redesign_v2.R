@@ -12,7 +12,8 @@ run_root <- value_after("--run-root")
 if (is.null(action) || is.null(run_root)) {
   stop(paste0(
     "Usage: --action <materialize|adaptive|full|quantile|mcmc_pilot|",
-    "mcmc_confirmation|pending|health|verify|closeout> --run-root <path>"
+    "mcmc_confirmation|authorize_resume|pending|health|verify|closeout> ",
+    "--run-root <path>"
   ),
        call. = FALSE)
 }
@@ -28,6 +29,10 @@ source(file.path(
 source(file.path(
   repo_root, "validation", "fitforecast_v2", "R",
   "independent_qdesn_full_redesign_v2_runtime.R"
+))
+source(file.path(
+  repo_root, "validation", "fitforecast_v2", "R",
+  "independent_qdesn_full_redesign_v2_resume.R"
 ))
 
 if (identical(action, "materialize")) {
@@ -100,7 +105,9 @@ if (identical(action, "materialize")) {
   ), check.names = FALSE, stringsAsFactors = FALSE)
   iqfr_v2_validate_normal_stage(initial, initial_candidates)
   iqfr_v2_validate_normal_stage(adaptive, adaptive_candidates)
-  all_candidates <- rbind(initial_candidates, adaptive_candidates)
+  all_candidates <- iqfr_v2_bind_candidate_ledgers(
+    initial_candidates, adaptive_candidates
+  )
   ranked <- iqfr_v2_rank_normal(rbind(initial, adaptive))
   ranking_path <- iqfr_v2_write_csv(ranked, file.path(
     run_root, "summaries", "normal_combined_ranking.csv"
@@ -293,6 +300,14 @@ if (identical(action, "materialize")) {
   cat(sprintf("mcmc_confirmation_jobs=%d cells=18 chains=%d\n",
               nrow(materialized$plan),
               as.integer(protocol$inference$mcmc$confirmation$chains)))
+} else if (identical(action, "authorize_resume")) {
+  out <- iqfr_v2_authorize_checkpoint_resume(repo_root, run_root)
+  cat(sprintf(
+    "resume_authorized base=%s head=%s completed=%d remaining=%d manifest=%s\n",
+    out$authorization$base_head, out$authorization$resume_head,
+    out$authorization$completed_jobs, out$authorization$remaining_jobs,
+    out$path
+  ))
 } else if (identical(action, "pending")) {
   stage <- value_after("--stage")
   if (is.null(stage) || !nzchar(stage)) {

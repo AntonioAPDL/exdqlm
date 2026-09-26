@@ -114,3 +114,35 @@ receipt, and one uniquely named tmux controller. The controller enforces 15
 workers, one thread per worker, branch/upstream synchronization, package
 version 1.1.1, load/memory/disk gates, preflight, stage completeness, and
 fail-closed downstream materialization.
+
+## Checkpoint recovery after the adaptive stage
+
+The launched v2.1 campaign completed all 4,608 initial and 864 adaptive
+Normal-RHS jobs with no worker failure. It then stopped before full-budget
+materialization because the adaptive candidate ledger contains the additional
+provenance field `adaptive_tau_center`, while the initial ledger does not.
+Base `rbind()` rejected the 30-column and 31-column metadata frames. Result
+schemas, model fits, source data, topology checks, and numerical outputs were
+unaffected.
+
+Recovery must not rerun the 5,472 completed jobs or silently weaken the frozen
+HEAD assertion. The repair therefore aligns only the declared optional field,
+fails on every other schema difference, and requires an explicit checkpoint
+authorization before a different committed HEAD can execute workers. The
+authorization hashes every completed config, result, status, log, source,
+plan, summary, and manifest; records the base and repair commits and their
+exact diff; requires a clean synchronized branch; and rejects scientific or
+protocol file changes. New job statuses record their execution HEAD and
+whether they used the authorized checkpoint path.
+
+The only supported recovery entry point is:
+
+```bash
+validation/fitforecast_v2/scripts/resume_independent_qdesn_full_redesign_v2_1.sh \
+  --run-root <existing-v2.1-run-root>
+```
+
+It rechecks the two completed stages, writes the ignored authorization packet,
+and resumes the same atomic stage graph with 15 one-thread workers. The
+original materialization and environment manifests remain immutable, so the
+mixed-HEAD transition is explicit rather than overwritten.
