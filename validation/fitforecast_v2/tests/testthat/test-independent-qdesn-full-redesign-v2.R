@@ -164,6 +164,58 @@ testthat::test_that("worker HEAD changes require a valid resume authorization", 
   )
   testthat::expect_true(resumed$pass)
   testthat::expect_identical(resumed$mode, "authorized_checkpoint_resume")
+
+  authorization_path <- iqfr_v2_resume_manifest_path(root)
+  authorization <- iqfr_v2_read_json(authorization_path)
+  authorization$completed_jobs <- 5622L
+  iqfr_v2_write_json(authorization, authorization_path)
+  continued <- iqfr_v2_worker_head_contract(
+    materialization, environment, "repair", root
+  )
+  testthat::expect_true(continued$pass)
+
+  authorization$completed_jobs <- 5471L
+  iqfr_v2_write_json(authorization, authorization_path)
+  too_early <- iqfr_v2_worker_head_contract(
+    materialization, environment, "repair", root
+  )
+  testthat::expect_false(too_early$pass)
+
+  authorization$completed_jobs <- 5953L
+  iqfr_v2_write_json(authorization, authorization_path)
+  too_late <- iqfr_v2_worker_head_contract(
+    materialization, environment, "repair", root
+  )
+  testthat::expect_false(too_late$pass)
+})
+
+testthat::test_that("worker protocol paths resolve canonically for every stage", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_runtime.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_resume.R"))
+  canonical <- normalizePath(
+    file.path(repo_root, iqfr_v2_protocol_relpath), winslash = "/"
+  )
+  testthat::expect_identical(
+    iqfr_v2_resolve_protocol_path(list(), repo_root), canonical
+  )
+  testthat::expect_identical(
+    iqfr_v2_resolve_protocol_path(list(protocol_path = canonical), repo_root),
+    canonical
+  )
+  testthat::expect_error(
+    iqfr_v2_resolve_protocol_path(
+      list(protocol_path = file.path(repo_root, "DESCRIPTION")), repo_root
+    ),
+    "noncanonical protocol path"
+  )
 })
 
 testthat::test_that("multirow jobs collect with stage-specific keys", {

@@ -146,3 +146,14 @@ It rechecks the two completed stages, writes the ignored authorization packet,
 and resumes the same atomic stage graph with 15 one-thread workers. The
 original materialization and environment manifests remain immutable, so the
 mixed-HEAD transition is explicit rather than overwritten.
+
+The first authorized resume completed all 150 full-budget Normal-RHS refits.
+At the quantile-VB boundary, the generic worker then rejected every job before
+status creation because quantile and MCMC configs retain the protocol hash but
+do not duplicate the canonical `protocol_path` field used by Normal-stage
+configs. This was another provenance-wiring defect, not an inference failure.
+The corrected worker resolves an omitted path only to the repository's frozen
+canonical protocol location and still requires the config's SHA-256 to match;
+an explicit noncanonical path remains a hard error. Reauthorization supports
+only contiguous, wholly completed stage checkpoints, archives the preceding
+authorization, and rejects partial or failed scientific stages.

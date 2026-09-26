@@ -4,8 +4,13 @@ iqfr_v2_resume_manifest_path <- function(run_root) {
   file.path(run_root, "manifests", "checkpoint_resume_authorization.json")
 }
 
-iqfr_v2_resume_artifact_path <- function(run_root) {
-  file.path(run_root, "manifests", "checkpoint_resume_artifacts.csv")
+iqfr_v2_resume_artifact_path <- function(run_root, head = NULL) {
+  suffix <- if (is.null(head) || !length(head)) "" else {
+    paste0("_", substr(as.character(head[[1L]]), 1L, 9L))
+  }
+  file.path(
+    run_root, "manifests", paste0("checkpoint_resume_artifacts", suffix, ".csv")
+  )
 }
 
 iqfr_v2_resume_allowed_files <- c(
@@ -61,11 +66,28 @@ iqfr_v2_git_output <- function(repo_root, args) {
   out
 }
 
-iqfr_v2_checkpoint_artifacts <- function(run_root) {
+iqfr_v2_resolve_protocol_path <- function(config, repo_root) {
+  canonical <- normalizePath(
+    file.path(repo_root, iqfr_v2_protocol_relpath),
+    winslash = "/", mustWork = TRUE
+  )
+  configured <- config$protocol_path %||% canonical
+  configured <- normalizePath(
+    as.character(configured), winslash = "/", mustWork = TRUE
+  )
+  if (!identical(configured, canonical)) {
+    stop("Worker config points to a noncanonical protocol path.",
+         call. = FALSE)
+  }
+  canonical
+}
+
+iqfr_v2_checkpoint_artifacts <- function(run_root, completed_stages,
+                                         planned_stages) {
   stage_dirs <- unlist(lapply(
     c("configs", "results", "status", "logs"),
     function(kind) file.path(
-      run_root, kind, c("normal_initial", "normal_adaptive")
+      run_root, kind, completed_stages
     )
   ), use.names = FALSE)
   paths <- unlist(lapply(stage_dirs, function(path) {
@@ -74,18 +96,20 @@ iqfr_v2_checkpoint_artifacts <- function(run_root) {
   }), use.names = FALSE)
   paths <- c(
     paths,
+    unlist(lapply(planned_stages, function(stage) {
+      path <- file.path(run_root, "configs", stage)
+      if (!dir.exists(path)) return(character())
+      list.files(path, recursive = TRUE, full.names = TRUE)
+    }), use.names = FALSE),
     list.files(file.path(run_root, "sources"), full.names = TRUE),
     file.path(run_root, "source_manifest.csv"),
-    file.path(run_root, "plans", c(
-      "normal_initial.csv", "normal_adaptive.csv"
-    )),
+    file.path(run_root, "plans", paste0(planned_stages, ".csv")),
     list.files(file.path(run_root, "summaries"), full.names = TRUE),
     list.files(file.path(run_root, "manifests"), full.names = TRUE)
   )
   paths <- paths[file.exists(paths) & !dir.exists(paths)]
-  paths <- paths[!basename(paths) %in% c(
-    basename(iqfr_v2_resume_manifest_path(run_root)),
-    basename(iqfr_v2_resume_artifact_path(run_root))
+  paths <- paths[!grepl(
+    "^checkpoint_resume_(authorization|artifacts)", basename(paths)
   )]
   sort(unique(normalizePath(paths, winslash = "/", mustWork = TRUE)))
 }
@@ -156,14 +180,58 @@ iqfr_v2_authorize_checkpoint_resume <- function(repo_root, run_root) {
          paste(setdiff(changed, iqfr_v2_resume_allowed_files), collapse = ", "),
          call. = FALSE)
   }
-  plan_paths <- file.path(run_root, "plans", c(
-    "normal_initial.csv", "normal_adaptive.csv"
-  ))
+  stage_order <- c(
+    "normal_initial", "normal_adaptive", "normal_full", "quantile_vb",
+    "mcmc_pilot", "mcmc_confirmation"
+  )
+  plan_paths <- list.files(
+    file.path(run_root, "plans"), pattern = "[.]csv$", full.names = TRUE
+  )
+  if (!length(plan_paths)) {
+    stop("Checkpoint has no scientific stage plans.", call. = FALSE)
+  }
   health <- do.call(rbind, lapply(plan_paths, iqfr_v2_stage_health))
-  if (!all(health$complete) || any(health$failed > 0L) ||
-      !identical(as.integer(sum(health$success)), 5472L) ||
-      file.exists(file.path(run_root, "plans", "normal_full.csv"))) {
-    stop("Run root is not at the approved 5,472-job checkpoint.",
+  unknown_stages <- setdiff(health$stage, stage_order)
+  if (length(unknown_stages)) {
+    stop(
+      "Checkpoint contains unknown stage plans: ",
+      paste(unknown_stages, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  planned_stages <- stage_order[stage_order %in% health$stage]
+  if (!length(planned_stages)) {
+    stop("Checkpoint has no recognized scientific stage plans.",
+         call. = FALSE)
+  }
+  planned_prefix <- stage_order[
+    seq_len(max(match(planned_stages, stage_order)))
+  ]
+  if (!identical(planned_stages, planned_prefix)) {
+    stop("Checkpoint stage plans are not a contiguous protocol prefix.",
+         call. = FALSE)
+  }
+  health <- health[match(planned_stages, health$stage), , drop = FALSE]
+  expected <- unlist(
+    iqfr_v2_read_protocol(repo_root)$execution$expected_stage_jobs
+  )
+  total_jobs <- as.integer(expected[["total"]])
+  expected <- expected[names(expected) != "total"]
+  if (any(health$planned != as.integer(expected[health$stage]))) {
+    stop("Checkpoint stage counts differ from the frozen protocol.",
+         call. = FALSE)
+  }
+  incomplete <- !health$complete
+  if (any(health$failed > 0L | health$invalid > 0L | health$running > 0L) ||
+      any(incomplete & health$success > 0L)) {
+    stop("Checkpoint has failed, running, invalid, or partial stages.",
+         call. = FALSE)
+  }
+  completed_stages <- health$stage[health$complete]
+  if (!length(completed_stages) || !setequal(
+      completed_stages, stage_order[seq_along(completed_stages)]
+  )) {
+    stop("Completed stages are not a contiguous protocol prefix.",
          call. = FALSE)
   }
   binary_payloads <- list.files(
@@ -174,7 +242,9 @@ iqfr_v2_authorize_checkpoint_resume <- function(repo_root, run_root) {
     stop("Unexpected fitted-model payloads exist at the checkpoint.",
          call. = FALSE)
   }
-  artifacts <- iqfr_v2_checkpoint_artifacts(run_root)
+  artifacts <- iqfr_v2_checkpoint_artifacts(
+    run_root, completed_stages, planned_stages
+  )
   info <- file.info(artifacts)
   artifact_ledger <- data.frame(
     relative_path = substring(artifacts, nchar(run_root) + 2L),
@@ -183,12 +253,13 @@ iqfr_v2_authorize_checkpoint_resume <- function(repo_root, run_root) {
     stringsAsFactors = FALSE
   )
   artifact_path <- iqfr_v2_write_csv(
-    artifact_ledger, iqfr_v2_resume_artifact_path(run_root)
+    artifact_ledger, iqfr_v2_resume_artifact_path(run_root, current_head)
   )
   diff_text <- iqfr_v2_git_output(
     repo_root, c("diff", "--binary", paste0(base_head, "..", current_head),
                  "--", changed)
   )
+  completed_jobs <- as.integer(sum(health$success))
   authorization <- list(
     schema_version = iqfr_v2_resume_schema,
     status = "AUTHORIZED_ORCHESTRATION_ONLY_RESUME",
@@ -207,16 +278,31 @@ iqfr_v2_authorize_checkpoint_resume <- function(repo_root, run_root) {
     scientific_protocol_unchanged = TRUE,
     source_trajectories_unchanged = TRUE,
     completed_stage_health = health,
-    completed_jobs = as.integer(sum(health$success)),
+    completed_jobs = completed_jobs,
     completed_artifact_rows = nrow(artifact_ledger),
     completed_artifact_bytes = sum(artifact_ledger$bytes),
     completed_artifact_manifest_path = artifact_path,
     completed_artifact_manifest_sha256 = iqfr_v2_sha256(artifact_path),
     fitted_model_binaries = 0L,
-    remaining_jobs = 480L
+    remaining_jobs = total_jobs - completed_jobs
   )
+  current_authorization <- iqfr_v2_resume_manifest_path(run_root)
+  if (file.exists(current_authorization)) {
+    prior <- iqfr_v2_read_json(current_authorization)
+    prior_head <- as.character(prior$resume_head %||% "unknown")
+    archive <- file.path(
+      dirname(current_authorization),
+      paste0("checkpoint_resume_authorization_",
+             substr(prior_head, 1L, 9L), ".json")
+    )
+    if (!file.exists(archive) &&
+        !file.copy(current_authorization, archive, overwrite = FALSE)) {
+      stop("Could not archive the previous resume authorization.",
+           call. = FALSE)
+    }
+  }
   path <- iqfr_v2_write_json(
-    authorization, iqfr_v2_resume_manifest_path(run_root)
+    authorization, current_authorization
   )
   list(path = path, authorization = authorization)
 }
@@ -252,7 +338,9 @@ iqfr_v2_worker_head_contract <- function(materialization, environment,
     isTRUE(authorization$authorization_pass) &&
     identical(as.character(authorization$base_head), base_head) &&
     identical(as.character(authorization$resume_head), observed_head) &&
-    identical(as.integer(authorization$completed_jobs), 5472L) &&
+    is.finite(as.integer(authorization$completed_jobs)) &&
+    as.integer(authorization$completed_jobs) >= 5472L &&
+    as.integer(authorization$completed_jobs) <= 5952L &&
     file.exists(artifact_path) &&
     identical(iqfr_v2_sha256(artifact_path), as.character(
       authorization$completed_artifact_manifest_sha256

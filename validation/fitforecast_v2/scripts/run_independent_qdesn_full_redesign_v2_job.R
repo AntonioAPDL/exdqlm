@@ -56,7 +56,8 @@ environment <- iqfr_v2_read_json(file.path(
 observed_head <- system2(
   "git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE
 )
-observed_protocol_sha <- iqfr_v2_sha256(cfg$protocol_path)
+protocol_path <- iqfr_v2_resolve_protocol_path(cfg, repo_root)
+observed_protocol_sha <- iqfr_v2_sha256(protocol_path)
 head_contract <- iqfr_v2_worker_head_contract(
   materialization, environment, observed_head, cfg$run_root
 )
