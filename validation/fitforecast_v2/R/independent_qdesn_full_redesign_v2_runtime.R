@@ -1346,6 +1346,92 @@ iqfr_v2_pool_confirmation_metrics <- function(draws) {
   out
 }
 
+iqfr_v2_fixed_comparator_authority_paths <- function(repo_root) {
+  c(
+    qdesn_v11 = file.path(
+      repo_root, "validation", "fitforecast_v2", "promotions",
+      "qdesn_dqlm_500obs_trainonly_article_v11_location_orthogonalized_20260827",
+      "qdesn_dqlm_500obs_trainonly_article_v11_location_orthogonalized_20260827_interface.csv"
+    ),
+    exdqlm_rolling_fix = file.path(
+      repo_root, "validation", "fitforecast_v2", "promotions",
+      "independent_exdqlm_mcmc_rolling_state_fix_v1_20260829",
+      "scientific", "candidate_point_exdqlm_mcmc_rows.csv"
+    )
+  )
+}
+
+iqfr_v2_select_estimator_winners <- function(pooled, estimator) {
+  required <- c(
+    "family", "tau", "likelihood_family", "candidate_id", "estimator",
+    "forecast_qtrue_mae_mean", "forecast_check_loss_mean",
+    "fit_qtrue_rmse_mean"
+  )
+  missing <- setdiff(required, names(pooled))
+  if (length(missing)) {
+    stop("Pooled confirmation summary is missing winner fields: ",
+         paste(missing, collapse = ", "), call. = FALSE)
+  }
+  selected <- pooled[pooled$estimator == estimator, , drop = FALSE]
+  if (!nrow(selected)) {
+    stop("No confirmation rows found for estimator ", estimator,
+         call. = FALSE)
+  }
+  cell <- interaction(
+    selected$family, selected$tau, selected$likelihood_family, drop = TRUE
+  )
+  winners <- do.call(rbind, lapply(split(selected, cell), function(x) {
+    x <- x[order(
+      x$forecast_qtrue_mae_mean,
+      x$forecast_check_loss_mean,
+      x$fit_qtrue_rmse_mean,
+      x$candidate_id
+    ), , drop = FALSE]
+    x[1L, , drop = FALSE]
+  }))
+  rownames(winners) <- NULL
+  winners
+}
+
+iqfr_v2_compare_forecast_estimators <- function(pooled) {
+  key_fields <- c("family", "tau", "likelihood_family", "candidate_id")
+  metric_fields <- c(
+    "forecast_qtrue_mae_mean", "forecast_qtrue_rmse_mean",
+    "forecast_check_loss_mean"
+  )
+  required <- c(key_fields, "estimator", metric_fields)
+  missing <- setdiff(required, names(pooled))
+  if (length(missing)) {
+    stop("Pooled confirmation summary is missing estimator fields: ",
+         paste(missing, collapse = ", "), call. = FALSE)
+  }
+  path <- pooled[
+    pooled$estimator == "path_recursive", c(key_fields, metric_fields),
+    drop = FALSE
+  ]
+  mean_state <- pooled[
+    pooled$estimator == "mean_readout_state_recursive",
+    c(key_fields, metric_fields), drop = FALSE
+  ]
+  names(path)[match(metric_fields, names(path))] <-
+    paste0(metric_fields, "_path_recursive")
+  names(mean_state)[match(metric_fields, names(mean_state))] <-
+    paste0(metric_fields, "_mean_readout_state_recursive")
+  out <- merge(path, mean_state, by = key_fields, all = FALSE, sort = TRUE)
+  if (nrow(out) != nrow(path) || nrow(out) != nrow(mean_state)) {
+    stop("Forecast estimator pairing is incomplete.", call. = FALSE)
+  }
+  for (metric in metric_fields) {
+    path_field <- paste0(metric, "_path_recursive")
+    mean_field <- paste0(metric, "_mean_readout_state_recursive")
+    out[[paste0(metric, "_mean_minus_path")]] <-
+      out[[mean_field]] - out[[path_field]]
+    out[[paste0(metric, "_mean_improves")]] <-
+      out[[mean_field]] < out[[path_field]]
+  }
+  out
+}
+
 iqfr_v2_closeout <- function(repo_root, run_root) {
   protocol <- iqfr_v2_read_protocol(repo_root)
   plan_path <- file.path(run_root, "plans", "mcmc_confirmation.csv")
@@ -1380,16 +1466,7 @@ iqfr_v2_closeout <- function(repo_root, run_root) {
     pooled, file.path(run_root, "summaries",
                       "mcmc_confirmation_candidate_metrics.csv")
   )
-  primary <- pooled[pooled$estimator == "path_recursive", , drop = FALSE]
-  cell <- interaction(primary$family, primary$tau,
-                      primary$likelihood_family, drop = TRUE)
-  winners <- do.call(rbind, lapply(split(primary, cell), function(x) {
-    x <- x[order(x$forecast_qtrue_mae_mean,
-                 x$forecast_check_loss_mean,
-                 x$fit_qtrue_rmse_mean), , drop = FALSE]
-    x[1L, , drop = FALSE]
-  }))
-  rownames(winners) <- NULL
+  winners <- iqfr_v2_select_estimator_winners(pooled, "path_recursive")
   if (nrow(winners) != 18L) {
     stop("Closeout did not select exactly 18 case-specific winners.",
          call. = FALSE)
@@ -1411,18 +1488,50 @@ iqfr_v2_closeout <- function(repo_root, run_root) {
     file.path(run_root, "summaries", "mcmc_selected_winner_metrics.csv")
   )
 
-  authority_paths <- c(
-    qdesn_v11 = file.path(
-      repo_root, "validation", "fitforecast_v2", "promotions",
-      "qdesn_dqlm_500obs_trainonly_article_v11_location_orthogonalized_20260827",
-      "qdesn_dqlm_500obs_trainonly_article_v11_location_orthogonalized_20260827_interface.csv"
-    ),
-    exdqlm_rolling_fix = file.path(
-      repo_root, "validation", "fitforecast_v2", "promotions",
-      "independent_exdqlm_mcmc_rolling_state_fix_v1_20260829",
-      "candidate_point_exdqlm_mcmc_rows.csv"
-    )
+  estimator_winners <- do.call(rbind, lapply(
+    c("path_recursive", "mean_readout_state_recursive"),
+    function(estimator) iqfr_v2_select_estimator_winners(pooled, estimator)
+  ))
+  rownames(estimator_winners) <- NULL
+  if (nrow(estimator_winners) != 36L) {
+    stop("Estimator-specific closeout did not select 36 winners.",
+         call. = FALSE)
+  }
+  estimator_winner_path <- iqfr_v2_write_csv(
+    estimator_winners,
+    file.path(run_root, "summaries", "mcmc_estimator_specific_winners.csv")
   )
+  estimator_comparison <- iqfr_v2_compare_forecast_estimators(pooled)
+  if (nrow(estimator_comparison) != 36L) {
+    stop("Estimator comparison did not pair all 36 candidates.",
+         call. = FALSE)
+  }
+  estimator_comparison_path <- iqfr_v2_write_csv(
+    estimator_comparison,
+    file.path(run_root, "summaries", "mcmc_forecast_estimator_comparison.csv")
+  )
+  mae_improvements <- estimator_comparison$forecast_qtrue_mae_mean_mean_improves
+  estimator_decision <- list(
+    frozen_selection_estimator = "path_recursive",
+    recommended_primary_reporting_estimator =
+      "mean_readout_state_recursive",
+    recommendation_basis = paste(
+      "The mean-readout-state estimator has lower pooled forecast MAE for",
+      sprintf("%d of %d paired confirmation candidates; preserve path-recursive",
+              sum(mae_improvements), length(mae_improvements)),
+      "results as the predeclared selection and sensitivity surface."
+    ),
+    paired_candidates = nrow(estimator_comparison),
+    mean_state_mae_improvements = sum(mae_improvements),
+    path_mae_improvements = sum(!mae_improvements),
+    article_write_performed = FALSE
+  )
+  estimator_decision_path <- iqfr_v2_write_json(
+    estimator_decision,
+    file.path(run_root, "manifests", "forecast_estimator_decision.json")
+  )
+
+  authority_paths <- iqfr_v2_fixed_comparator_authority_paths(repo_root)
   if (any(!file.exists(authority_paths))) {
     stop("A declared fixed-comparator authority is missing.", call. = FALSE)
   }
@@ -1462,6 +1571,9 @@ iqfr_v2_closeout <- function(repo_root, run_root) {
       chain_results = chain_path, pooled_metric_draws = draw_path,
       pooled_candidate_metrics = pooled_path, cell_winners = winner_path,
       selected_winner_metrics = selected_path,
+      estimator_specific_winners = estimator_winner_path,
+      forecast_estimator_comparison = estimator_comparison_path,
+      forecast_estimator_decision = estimator_decision_path,
       fixed_comparator_authorities = authority_path,
       artifact_manifest = artifact_path
     )

@@ -10,8 +10,39 @@ testthat::test_that("draw-wise metric estimands match hand calculations", {
   )
   testthat::expect_equal(out$fit_rmse, c(1, 2))
   testthat::expect_equal(out$forecast_mae, c(1, 1))
+  testthat::expect_equal(out$fit_mae, c(1, 2))
+  testthat::expect_equal(out$forecast_rmse, c(1, 1))
   testthat::expect_equal(out$forecast_check_loss, c(1.25, 0.75))
   testthat::expect_identical(out$chain_id, rep(3L, 2L))
+})
+
+testthat::test_that("metric interval row contracts support dense rolling grids", {
+  cfg <- ffv2_metric_interval_cfg(list(metric_intervals = list(
+    enabled = TRUE, draws = 300L, fit_rows = 500L, forecast_rows = 29130L
+  )))
+  testthat::expect_identical(cfg$draws, 300L)
+  testthat::expect_identical(cfg$fit_rows, 500L)
+  testthat::expect_identical(cfg$forecast_rows, 29130L)
+  testthat::expect_identical(
+    ffv2_metric_interval_cfg(list())$forecast_rows, 1000L
+  )
+})
+
+testthat::test_that("six-metric interval summaries remain backward compatible", {
+  draws <- data.frame(
+    chain_id = rep(1:3, each = 10L),
+    fit_rmse = seq(1, 2, length.out = 30L),
+    fit_mae = seq(0.8, 1.8, length.out = 30L),
+    fit_check_loss = seq(0.2, 0.4, length.out = 30L),
+    forecast_mae = seq(2, 3, length.out = 30L),
+    forecast_rmse = seq(2.5, 3.5, length.out = 30L),
+    forecast_check_loss = seq(0.5, 0.8, length.out = 30L)
+  )
+  out <- ffv2_metric_interval_summary(draws, inference = "mcmc")
+  testthat::expect_identical(out$metric, c(
+    "fit_rmse", "fit_mae", "fit_check_loss", "forecast_mae",
+    "forecast_rmse", "forecast_check_loss"
+  ))
 })
 
 testthat::test_that("summaries are ordered and inference labels are explicit", {

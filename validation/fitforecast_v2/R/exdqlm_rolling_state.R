@@ -284,15 +284,26 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
     forecast_block_end_source_index = as.integer(config$forecast_end_source_index)[1L],
     hmax = hmax,
     origin_stride = origin_stride,
-    forecast_protocol = "rolling_origin_no_refit_state_update"
+    forecast_protocol = "rolling_origin_no_refit_state_update",
+    require_full_horizon = ffv2_truthy(config$require_full_horizon %||% FALSE)
   )
   ffv2_validate_rolling_grid(grid, require_complete_targets = identical(origin_stride, hmax))
+  expected_forecast_rows <- nrow(grid)
   origins <- sort(unique(as.integer(grid$forecast_origin_source_index)))
   n_draws <- as.integer(n_draws %||% 2000L)[1L]
   if (!is.finite(n_draws) || n_draws < 1L) n_draws <- 2000L
   interval_cfg <- ffv2_metric_interval_cfg(config)
+  if (isTRUE(interval_cfg$enabled) &&
+      interval_cfg$forecast_rows != expected_forecast_rows) {
+    stop(sprintf(
+      paste0("Metric interval forecast-row contract declares %d rows, ",
+             "but the rolling grid contains %d."),
+      interval_cfg$forecast_rows, expected_forecast_rows
+    ), call. = FALSE)
+  }
   coupling_cfg <- ffv2_metric_coupling_cfg(config)
   interval_abs_error <- if (isTRUE(interval_cfg$enabled)) numeric(interval_cfg$draws) else NULL
+  interval_squared_error <- if (isTRUE(interval_cfg$enabled)) numeric(interval_cfg$draws) else NULL
   interval_check_loss <- if (isTRUE(interval_cfg$enabled)) numeric(interval_cfg$draws) else NULL
   common_abs_error <- if (isTRUE(coupling_cfg$enabled)) numeric(interval_cfg$draws) else NULL
   common_check_loss <- if (isTRUE(coupling_cfg$enabled)) numeric(interval_cfg$draws) else NULL
@@ -359,6 +370,8 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
         latent_row <- as.numeric(latent_quantile_draws[lead, ])
         interval_abs_error <- interval_abs_error +
           abs(latent_row - as.numeric(target_row$q_true[[1L]]))
+        interval_squared_error <- interval_squared_error +
+          (latent_row - as.numeric(target_row$q_true[[1L]]))^2
         interval_check_loss <- interval_check_loss + ffv2_check_loss(
           as.numeric(target_row$y[[1L]]), latent_row, as.numeric(config$tau)
         )
@@ -420,13 +433,14 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
   out <- ffv2_bind_rows(rows)
   out <- out[order(as.integer(out$forecast_origin_source_index), as.integer(out$forecast_lead)), , drop = FALSE]
   if (isTRUE(interval_cfg$enabled)) {
-    if (interval_rows != 1000L) {
-      stop(sprintf("Rolling metric interval contract requires 1000 rows; found %d.",
-                   interval_rows), call. = FALSE)
+    if (interval_rows != expected_forecast_rows) {
+      stop(sprintf("Rolling metric interval contract requires %d rows; found %d.",
+                   expected_forecast_rows, interval_rows), call. = FALSE)
     }
     attr(out, "metric_interval_forecast") <- data.frame(
       draw_id = seq_len(interval_cfg$draws),
       forecast_mae = interval_abs_error / interval_rows,
+      forecast_rmse = sqrt(interval_squared_error / interval_rows),
       forecast_check_loss = interval_check_loss / interval_rows,
       draw_source = "latent_state_quantile_ff_fQ",
       stringsAsFactors = FALSE

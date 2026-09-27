@@ -3,7 +3,8 @@ ffv2_rolling_grid <- function(initial_origin_source_index = 9000L,
                               forecast_block_end_source_index = 10000L,
                               hmax = 30L,
                               origin_stride = hmax,
-                              forecast_protocol = "rolling_origin_no_refit_state_update") {
+                              forecast_protocol = "rolling_origin_no_refit_state_update",
+                              require_full_horizon = FALSE) {
   scalar_int <- function(x, nm) {
     x <- suppressWarnings(as.integer(x)[1L])
     if (!is.finite(x) || is.na(x)) stop(sprintf("%s must be a finite integer.", nm), call. = FALSE)
@@ -31,7 +32,10 @@ ffv2_rolling_grid <- function(initial_origin_source_index = 9000L,
     stop("hmax must be <= forecast block size.", call. = FALSE)
   }
 
-  origins <- seq.int(initial_origin_source_index, forecast_block_end_source_index - 1L, by = origin_stride)
+  final_origin <- if (isTRUE(require_full_horizon)) {
+    forecast_block_end_source_index - hmax
+  } else forecast_block_end_source_index - 1L
+  origins <- seq.int(initial_origin_source_index, final_origin, by = origin_stride)
   leads <- seq_len(hmax)
   grid <- expand.grid(
     forecast_origin_source_index = origins,
@@ -73,7 +77,8 @@ ffv2_rolling_grid <- function(initial_origin_source_index = 9000L,
 ffv2_rolling_grid_from_defaults <- function(defaults,
                                             hmax = 30L,
                                             origin_stride = hmax,
-                                            forecast_protocol = "rolling_origin_no_refit_state_update") {
+                                            forecast_protocol = "rolling_origin_no_refit_state_update",
+                                            require_full_horizon = FALSE) {
   source <- defaults$source %||% defaults
   ffv2_rolling_grid(
     initial_origin_source_index = source$forecast_origin_source_index,
@@ -81,7 +86,8 @@ ffv2_rolling_grid_from_defaults <- function(defaults,
     forecast_block_end_source_index = source$forecast_end_source_index,
     hmax = hmax,
     origin_stride = origin_stride,
-    forecast_protocol = forecast_protocol
+    forecast_protocol = forecast_protocol,
+    require_full_horizon = require_full_horizon
   )
 }
 

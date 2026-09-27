@@ -351,3 +351,60 @@ testthat::test_that("v2.1 launcher freezes clean 15-worker background execution"
   testthat::expect_match(resume_text, "workers=15", fixed = TRUE)
   testthat::expect_match(resume_text, "threads_per_worker=1", fixed = TRUE)
 })
+
+testthat::test_that("closeout resolves both fixed-comparator authorities", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_runtime.R"))
+  paths <- iqfr_v2_fixed_comparator_authority_paths(repo_root)
+  testthat::expect_named(paths, c("qdesn_v11", "exdqlm_rolling_fix"))
+  testthat::expect_true(all(file.exists(paths)))
+  testthat::expect_match(
+    paths[["exdqlm_rolling_fix"]],
+    "/scientific/candidate_point_exdqlm_mcmc_rows.csv$"
+  )
+})
+
+testthat::test_that("closeout preserves paired estimator-specific winners", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_runtime.R"))
+  cells <- expand.grid(
+    family = c("normal", "laplace", "gausmix"),
+    tau = c(0.05, 0.25, 0.50),
+    likelihood_family = c("al", "exal"),
+    candidate_id = c("candidate_a", "candidate_b"),
+    estimator = c("path_recursive", "mean_readout_state_recursive"),
+    KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE
+  )
+  cells$forecast_qtrue_mae_mean <-
+    ifelse(cells$candidate_id == "candidate_a", 2, 3) +
+    ifelse(cells$estimator == "mean_readout_state_recursive", -0.1, 0)
+  cells$forecast_qtrue_rmse_mean <- cells$forecast_qtrue_mae_mean + 1
+  cells$forecast_check_loss_mean <- cells$forecast_qtrue_mae_mean + 2
+  cells$fit_qtrue_rmse_mean <- cells$forecast_qtrue_mae_mean + 3
+
+  path <- iqfr_v2_select_estimator_winners(cells, "path_recursive")
+  mean_state <- iqfr_v2_select_estimator_winners(
+    cells, "mean_readout_state_recursive"
+  )
+  comparison <- iqfr_v2_compare_forecast_estimators(cells)
+  testthat::expect_equal(nrow(path), 18L)
+  testthat::expect_equal(nrow(mean_state), 18L)
+  testthat::expect_true(all(path$candidate_id == "candidate_a"))
+  testthat::expect_true(all(mean_state$candidate_id == "candidate_a"))
+  testthat::expect_equal(nrow(comparison), 36L)
+  testthat::expect_true(all(
+    comparison$forecast_qtrue_mae_mean_mean_improves
+  ))
+})
