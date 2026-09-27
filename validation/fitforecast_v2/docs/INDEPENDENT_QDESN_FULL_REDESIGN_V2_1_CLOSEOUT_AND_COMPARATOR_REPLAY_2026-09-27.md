@@ -73,6 +73,11 @@ the fixed comparators; it does not launch another Q-DESN screen.
 - **Exact lattice:** origins 9000--9970, 971 origins, leads 1--30, and 29,130
   origin-lead pairs per chain. The 29 truncated late-origin forecasts emitted
   by the legacy generic grid are explicitly excluded.
+- **Separate window and horizon contracts:** the loader retains all 1,000
+  observations at source indices 9001--10000 through
+  `forecast_window_rows = 1000`, while `forecast_horizon_max = 30` controls
+  the maximum lead from each origin. This prevents the legacy fixed-origin
+  horizon field from truncating or rejecting the rolling-origin block.
 - **Metric intervals:** fit oracle-path RMSE, fit oracle-path MAE, fit check
   loss, forecast oracle-path MAE, forecast oracle-path RMSE, and forecast check
   loss, each summarized over 900 pooled draws per model-family-level cell.

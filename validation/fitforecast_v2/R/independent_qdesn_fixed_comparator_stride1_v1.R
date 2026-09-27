@@ -311,6 +311,9 @@ iqfc_v1_remap_config <- function(source, repo_root, run_root, registry_row,
   config$require_full_horizon <- TRUE
   config$max_lead_configured <- 30L
   config$forecast_horizon_max <- 30L
+  config$forecast_window_rows <-
+    as.integer(config$forecast_end_source_index) -
+    as.integer(config$forecast_start_source_index) + 1L
   config$forecast_protocol <- "rolling_origin_no_refit_state_update"
   config$state_update_method <-
     ffv2_exdqlm_mcmc_predictive_state_update_method()
@@ -368,7 +371,7 @@ iqfc_v1_config_audit <- function(source, target) {
   allowed <- unique(c(
     generated_paths, "run_tag", "run_root", "repo_root", "harness_root",
     "defaults_path", "status", "origin_stride", "require_full_horizon",
-    "forecast_horizon_max", "state_update_method",
+    "forecast_horizon_max", "forecast_window_rows", "state_update_method",
     "package_runtime_mode", "package_contract", "screen_stage",
     "candidate_notes", "source_config_sha256", "source_authority",
     "source_job_id", "budget", "metric_intervals", "runtime", "handoff",

@@ -39,10 +39,46 @@ testthat::test_that("stride-one replay changes only predeclared protocol fields"
   testthat::expect_true(all(audit$invariant))
   testthat::expect_identical(target$origin_stride, 1L)
   testthat::expect_true(target$require_full_horizon)
+  testthat::expect_identical(target$forecast_horizon_max, 30L)
+  testthat::expect_identical(target$forecast_window_rows, 1000L)
   testthat::expect_identical(target$metric_intervals$forecast_rows, 29130L)
   testthat::expect_identical(target$metric_intervals$draws, 300L)
   testthat::expect_identical(target$package_runtime_mode, "installed_namespace")
   testthat::expect_identical(target$budget$mcmc, source$budget$mcmc)
+})
+
+testthat::test_that("forecast-block length is independent of maximum lead", {
+  root <- tempfile("iqfc_data_")
+  dir.create(root, recursive = TRUE)
+  series_path <- file.path(root, "series.csv")
+  truth_path <- file.path(root, "truth.csv")
+  utils::write.csv(
+    data.frame(source_index = 1:10, y = seq_len(10)),
+    series_path, row.names = FALSE
+  )
+  utils::write.csv(
+    data.frame(source_index = 1:10, tau = 0.5, q_true = seq_len(10) / 2),
+    truth_path, row.names = FALSE
+  )
+  config <- list(
+    series_wide_path = series_path,
+    true_quantile_grid_path = truth_path,
+    tau = 0.5,
+    fit_size = 3L,
+    train_start_source_index = 1L,
+    train_end_source_index = 3L,
+    forecast_start_source_index = 4L,
+    forecast_end_source_index = 10L,
+    forecast_window_rows = 7L,
+    forecast_horizon_max = 2L
+  )
+
+  data <- ffv2_load_row_data(config)
+  testthat::expect_equal(nrow(data$train), 3L)
+  testthat::expect_equal(nrow(data$forecast), 7L)
+  testthat::expect_identical(ffv2_forecast_window_rows(config), 7L)
+  config$forecast_window_rows <- NULL
+  testthat::expect_identical(ffv2_forecast_window_rows(config), 7L)
 })
 
 testthat::test_that("stride-one grid is the exact common comparison lattice", {
