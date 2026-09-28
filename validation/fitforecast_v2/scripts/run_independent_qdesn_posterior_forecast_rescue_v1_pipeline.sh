@@ -85,15 +85,54 @@ run_stage() {
   printf 'stage=%s planned=%s pending=%s\n' "$stage" \
     "$(awk 'END {print NR-1}' "$plan")" "${#pending[@]}"
   if [[ "$stage" == "posterior_screen" && ${#pending[@]} -gt 0 ]]; then
-    mapfile -t canaries < <("$rscript" --vanilla - "$plan" <<'RS'
+    pending_file="$run_root/status/${stage}_pending_before_canary.txt"
+    printf '%s\n' "${pending[@]}" > "$pending_file"
+    mapfile -t canaries < <("$rscript" --vanilla - "$plan" "$pending_file" <<'RS'
 args <- commandArgs(trailingOnly = TRUE)
 x <- read.csv(args[[1]], stringsAsFactors = FALSE)
-i <- c(which(x$likelihood_family == "al")[[1]],
-       which(x$likelihood_family == "exal")[[1]])
+pending <- readLines(args[[2]], warn = FALSE)
+x <- x[x$config_path %in% pending, , drop = FALSE]
+likelihoods <- intersect(c("al", "exal"), unique(x$likelihood_family))
+i <- vapply(likelihoods, function(likelihood) {
+  which(x$likelihood_family == likelihood)[[1L]]
+}, integer(1L))
 cat(paste0(x$config_path[unique(i)], "\n"), sep = "")
 RS
     )
     run_configs "$stage" "${canaries[@]}"
+    "$rscript" --vanilla - "${canaries[@]}" <<'RS'
+args <- commandArgs(trailingOnly = TRUE)
+stopifnot(length(args) >= 1L, length(args) <= 2L)
+for (config_path in args) {
+  cfg <- jsonlite::read_json(config_path, simplifyVector = TRUE)
+  status <- jsonlite::read_json(cfg$status_path, simplifyVector = TRUE)
+  stopifnot(identical(status$status, "SUCCESS"), file.exists(cfg$result_path))
+  observed_hash <- digest::digest(
+    file = cfg$result_path, algo = "sha256", serialize = FALSE
+  )
+  stopifnot(identical(observed_hash, status$result_sha256))
+  result <- read.csv(cfg$result_path, stringsAsFactors = FALSE,
+                     check.names = FALSE)
+  metric_fields <- grep(
+    "^(fit|forecast)_(qtrue|check).+_(mean|lower|upper)$",
+    names(result), value = TRUE
+  )
+  stopifnot(
+    nrow(result) == 1L,
+    identical(result$estimator, "mean_readout_state_recursive"),
+    result$forecast_origins == 171L,
+    result$forecast_pairs == 5130L,
+    length(metric_fields) == 18L,
+    all(is.finite(as.numeric(result[1L, metric_fields])))
+  )
+  if (identical(result$likelihood_family, "exal")) {
+    stopifnot(identical(
+      result$core_update_mode, "m0_v_collapsed_support_logit"
+    ))
+  }
+}
+cat("CANARY_CONTRACT_PASS\n")
+RS
     mapfile -t pending < <(
       "$rscript" --vanilla "$manager" --action pending \
         --run-root "$run_root" --stage "$stage"

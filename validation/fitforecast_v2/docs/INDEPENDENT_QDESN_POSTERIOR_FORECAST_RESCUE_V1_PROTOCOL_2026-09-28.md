@@ -99,7 +99,10 @@ The protocol pins the completed redesign and comparator ledgers by SHA-256.
 Materialization copies and rehashes the nine source trajectories. Every config
 records candidate, source, protocol, package, Git, and seed provenance.
 Workers are process parallel and single threaded. Status files are atomic and
-the pipeline is resumable. Fitted model binaries are never retained.
+the pipeline is resumable. Before bulk release, one AL and one exAL production
+canary must return finite summaries on the exact validation lattice, verified
+result hashes, and the required exAL M0 method identifier. Fitted model
+binaries are never retained.
 
 The campaign uses 15 one-core workers. It owns only its dedicated branch,
 worktree, and ignored run root. Article-v2, Overleaf, shared validation, joint
