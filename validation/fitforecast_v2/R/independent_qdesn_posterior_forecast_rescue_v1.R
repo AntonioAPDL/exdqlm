@@ -224,27 +224,48 @@ iqpfr_v1_novel_candidates <- function(repo_root, protocol, family,
   proposal$parent_distance <- iqpfr_v1_min_distance(
     scaled$target, scaled$reference
   )
-  proposal <- proposal[order(proposal$structure_id,
-                             proposal$parent_distance,
-                             proposal$candidate_id), , drop = FALSE]
-  proposal <- proposal[!duplicated(proposal$structure_id), , drop = FALSE]
-
   exploitation_n <- as.integer(
     protocol$candidate_pool$exploitation_candidates
   )
-  exploitation <- head(
-    proposal[order(proposal$parent_distance, proposal$candidate_id), ,
-             drop = FALSE], exploitation_n
+  remaining <- proposal
+  selected <- proposal[0L, , drop = FALSE]
+  for (i in seq_len(exploitation_n)) {
+    pick <- remaining[
+      order(remaining$parent_distance, remaining$candidate_id),
+      , drop = FALSE
+    ][1L, , drop = FALSE]
+    selected <- rbind(selected, pick)
+    remaining <- remaining[
+      remaining$structure_id != pick$structure_id, , drop = FALSE
+    ]
+  }
+  low_tau0 <- as.numeric(
+    protocol$candidate_pool$exploration_tau0_low_max
   )
-  remaining <- proposal[
-    !proposal$structure_id %in% exploitation$structure_id, , drop = FALSE
-  ]
-  selected <- exploitation
+  high_tau0 <- as.numeric(
+    protocol$candidate_pool$exploration_tau0_high_min
+  )
   targets <- list(
-    function(x) x$alpha <= 0.30,
-    function(x) x$alpha >= 0.80,
-    function(x) x$rho <= 0.40,
-    function(x) x$rho >= 0.80
+    function(x) {
+      x$alpha <= as.numeric(
+        protocol$candidate_pool$exploration_alpha_low_max
+      ) & x$rhs_tau0 <= low_tau0
+    },
+    function(x) {
+      x$alpha >= as.numeric(
+        protocol$candidate_pool$exploration_alpha_high_min
+      ) & x$rhs_tau0 <= low_tau0
+    },
+    function(x) {
+      x$rho <= as.numeric(
+        protocol$candidate_pool$exploration_rho_low_max
+      ) & x$rhs_tau0 >= high_tau0
+    },
+    function(x) {
+      x$rho >= as.numeric(
+        protocol$candidate_pool$exploration_rho_high_min
+      ) & x$rhs_tau0 >= high_tau0
+    }
   )
   exploration_n <- as.integer(
     protocol$candidate_pool$exploration_candidates
@@ -267,6 +288,13 @@ iqpfr_v1_novel_candidates <- function(repo_root, protocol, family,
   if (nrow(selected) != expected) {
     stop("Novel candidate selection produced ", nrow(selected), " rows for ",
          family, "; expected ", expected, ".", call. = FALSE)
+  }
+  exploration <- selected[seq.int(exploitation_n + 1L, nrow(selected)),
+                          , drop = FALSE]
+  if (!any(exploration$rhs_tau0 <= low_tau0) ||
+      !any(exploration$rhs_tau0 >= high_tau0)) {
+    stop("Novel tau0 exploration contract failed for ", family,
+         call. = FALSE)
   }
   selected$generation <- "posterior_rescue_v1"
   selected$generation_index <- seq_len(nrow(selected))

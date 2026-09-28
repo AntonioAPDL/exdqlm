@@ -31,6 +31,12 @@ plan <- utils::read.csv(
 )
 candidate_counts <- table(candidates$family)
 novel <- candidates[grepl("^novel_", candidates$candidate_origin), , drop = FALSE]
+novel_tau0_coverage <- vapply(split(novel, novel$family), function(x) {
+  min(x$rhs_tau0) <=
+    as.numeric(protocol$candidate_pool$exploration_tau0_low_max) &&
+    max(x$rhs_tau0) >=
+      as.numeric(protocol$candidate_pool$exploration_tau0_high_min)
+}, logical(1L))
 cell_counts <- table(plan$family, plan$tau, plan$likelihood_family)
 config_hash_pass <- vapply(plan$config_path, iqfr_v2_sha256, character(1L)) ==
   plan$config_sha256
@@ -56,7 +62,8 @@ preflight <- list(
     novel = nrow(novel) == 30L &&
       all(table(novel$family) == 10L) &&
       min(novel$alpha) <= 0.30 && max(novel$alpha) >= 0.80 &&
-      min(novel$rho) <= 0.40 && max(novel$rho) >= 0.80,
+      min(novel$rho) <= 0.40 && max(novel$rho) >= 0.80 &&
+      all(novel_tau0_coverage),
     sources = nrow(sources) == 9L && all(source_hash_pass),
     plan = nrow(plan) == 1020L && length(which(cell_counts == 60L)) == 17L &&
       sum(cell_counts) == 1020L,

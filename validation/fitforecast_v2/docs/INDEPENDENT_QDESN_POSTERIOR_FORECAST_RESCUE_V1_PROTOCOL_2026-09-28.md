@@ -46,7 +46,9 @@ Each family receives 60 candidates:
    seeds and `tau0` values;
 2. six deterministic exploitation candidates close to the best historical
    mean-state MCMC neighborhoods;
-3. four deterministic maximin candidates in previously uncovered regions.
+3. four deterministic maximin candidates in previously uncovered regions,
+   with each family forced to retain both low-`tau0` (at most 0.03) and
+   high-`tau0` (at least 10) designs jointly with low/high `alpha` or `rho`.
 
 Novel proposals use the original broad design support: depth 1--4, widths up
 to 300 per layer, total state dimension up to 800 for this rescue, response

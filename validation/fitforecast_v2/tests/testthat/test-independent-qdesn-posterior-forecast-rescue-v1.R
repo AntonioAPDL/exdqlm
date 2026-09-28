@@ -48,6 +48,10 @@ testthat::test_that("candidate mining is nonduplicated and broadly supported", {
   testthat::expect_gte(max(novel$alpha), 0.80)
   testthat::expect_lte(min(novel$rho), 0.40)
   testthat::expect_gte(max(novel$rho), 0.80)
+  for (x in split(novel, novel$family)) {
+    testthat::expect_lte(min(x$rhs_tau0), 0.03)
+    testthat::expect_gte(max(x$rhs_tau0), 10)
+  }
 })
 
 testthat::test_that("screen ranking is forecast-first and cell specific", {
