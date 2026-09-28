@@ -820,14 +820,16 @@ iqfr_v2_metric_summary <- function(x, prefix) {
   out
 }
 
-iqfr_v2_draw_metric_accumulator <- function(lattice, origins_local, x, tau) {
+iqfr_v2_draw_metric_accumulator <- function(lattice, origins_local, x, tau,
+                                             source_offset = 8110L) {
+  source_offset <- as.integer(source_offset)
   nd <- ncol(lattice$mu_by_origin[[1L]])
   abs_sum <- sq_sum <- check_sum <- numeric(nd)
   point_rows <- vector("list", length(origins_local))
   count <- 0L
   for (i in seq_along(origins_local)) {
     q <- as.matrix(lattice$mu_by_origin[[i]])
-    source_targets <- origins_local[[i]] + seq_len(nrow(q)) + 8110L
+    source_targets <- origins_local[[i]] + seq_len(nrow(q)) + source_offset
     idx <- match(source_targets, x$t)
     if (anyNA(idx)) stop("MCMC forecast target alignment failed.", call. = FALSE)
     truth <- x$q_target[idx]
@@ -840,7 +842,7 @@ iqfr_v2_draw_metric_accumulator <- function(lattice, origins_local, x, tau) {
     ))
     count <- count + nrow(q)
     point_rows[[i]] <- data.frame(
-      source_origin = origins_local[[i]] + 8110L,
+      source_origin = origins_local[[i]] + source_offset,
       lead = seq_len(nrow(q)), source_target = source_targets,
       qtrue = truth, observed = observed,
       posterior_mean_quantile = rowMeans(q),
@@ -931,8 +933,48 @@ iqfr_v2_mcmc_job <- function(config_path) {
     tau <- iqfr_v2_number(cfg$tau)
     likelihood <- as.character(cfg$likelihood_family)
     is_confirmation <- identical(as.character(cfg$stage), "mcmc_confirmation")
-    train_end <- if (is_confirmation) 9000L else 8800L
-    rollout_end <- if (is_confirmation) 10000L else 9000L
+    forecast_contract <- cfg$forecast_contract %||% list()
+    source_offset <- iqfr_v2_integer(forecast_contract$source_offset, 8110L)
+    train_end <- iqfr_v2_integer(
+      forecast_contract$train_end,
+      if (is_confirmation) 9000L else 8800L
+    )
+    rollout_end <- iqfr_v2_integer(
+      forecast_contract$rollout_end,
+      if (is_confirmation) 10000L else 9000L
+    )
+    origin_start <- iqfr_v2_integer(
+      forecast_contract$origin_start,
+      if (is_confirmation) 9000L else 8800L
+    )
+    origin_end <- iqfr_v2_integer(
+      forecast_contract$origin_end,
+      if (is_confirmation) 9970L else 8970L
+    )
+    origin_stride <- iqfr_v2_integer(
+      forecast_contract$origin_stride,
+      if (is_confirmation) 1L else 5L
+    )
+    horizon <- iqfr_v2_integer(forecast_contract$horizon, 30L)
+    estimator_ids <- as.character(
+      forecast_contract$estimators %||%
+        c("posterior_predictive", "posterior_predictive_mean_readout_state")
+    )
+    allowed_estimators <- c(
+      "posterior_predictive", "posterior_predictive_mean_readout_state"
+    )
+    if (!length(estimator_ids) ||
+        any(!estimator_ids %in% allowed_estimators) ||
+        anyDuplicated(estimator_ids)) {
+      stop("Invalid MCMC forecast-estimator contract.", call. = FALSE)
+    }
+    export_origin_lead <- isTRUE(forecast_contract$export_origin_lead %||% TRUE)
+    if (train_end < 8501L || rollout_end < train_end ||
+        origin_start < train_end || origin_end < origin_start ||
+        origin_stride < 1L || horizon < 1L ||
+        origin_end + horizon > rollout_end) {
+      stop("Invalid MCMC forecast-window contract.", call. = FALSE)
+    }
     fit_rows <- x$t >= 8501L & x$t <= train_end
     train_rows <- x$t <= train_end
     rollout_rows <- x$t <= rollout_end
@@ -1001,11 +1043,9 @@ iqfr_v2_mcmc_job <- function(config_path) {
       mean(iqfr_v2_check_loss(fit_observed, fit_q[, j], tau))
     }, numeric(1L))
 
-    origins_source <- if (is_confirmation) 9000:9970 else
-      seq.int(8800L, 8970L, by = 5L)
-    origins_local <- origins_source - 8110L
-    estimators <- c("posterior_predictive",
-                    "posterior_predictive_mean_readout_state")
+    origins_source <- seq.int(origin_start, origin_end, by = origin_stride)
+    origins_local <- origins_source - source_offset
+    estimators <- estimator_ids
     rows <- vector("list", length(estimators))
     granular <- vector("list", length(estimators))
     metric_draws <- vector("list", length(estimators))
@@ -1013,12 +1053,12 @@ iqfr_v2_mcmc_job <- function(config_path) {
       estimator <- estimators[[j]]
       lattice <- forecast_lattice.qdesn_fit(
         rollout, y_all = x$y[rollout_rows], origins = origins_local,
-        H = 30L, nd = nd, draws = draws, keep_origin_draws = TRUE,
+        H = horizon, nd = nd, draws = draws, keep_origin_draws = TRUE,
         build_mix = FALSE, seed = iqfr_v2_seed(seed, estimator),
         recursion_mode = estimator
       )
       metrics <- iqfr_v2_draw_metric_accumulator(
-        lattice, origins_local, x, tau
+        lattice, origins_local, x, tau, source_offset = source_offset
       )
       summary <- c(
         iqfr_v2_metric_summary(fit_rmse, "fit_qtrue_rmse"),
@@ -1085,26 +1125,33 @@ iqfr_v2_mcmc_job <- function(config_path) {
         forecast_check_loss = metrics$forecast_check_loss,
         stringsAsFactors = FALSE
       )
-      granular[[j]] <- cbind(data.frame(
-        job_id = cfg$job_id,
-        candidate_id = as.character(iqfr_v2_scalar(candidate$candidate_id)),
-        structure_id = as.character(iqfr_v2_scalar(candidate$structure_id)),
-        tau_arm = as.character(iqfr_v2_scalar(candidate$tau_arm)),
-        family = as.character(iqfr_v2_scalar(candidate$family)),
-        likelihood_family = likelihood, tau = tau,
-        chain_id = iqfr_v2_integer(cfg$chain_id, 1L),
-        estimator = rows[[j]]$estimator[[1L]], stringsAsFactors = FALSE
-      ), metrics$point)
+      if (export_origin_lead) {
+        granular[[j]] <- cbind(data.frame(
+          job_id = cfg$job_id,
+          candidate_id = as.character(iqfr_v2_scalar(candidate$candidate_id)),
+          structure_id = as.character(iqfr_v2_scalar(candidate$structure_id)),
+          tau_arm = as.character(iqfr_v2_scalar(candidate$tau_arm)),
+          family = as.character(iqfr_v2_scalar(candidate$family)),
+          likelihood_family = likelihood, tau = tau,
+          chain_id = iqfr_v2_integer(cfg$chain_id, 1L),
+          estimator = rows[[j]]$estimator[[1L]], stringsAsFactors = FALSE
+        ), metrics$point)
+      }
       rm(lattice, metrics)
       gc(verbose = FALSE)
     }
     result <- do.call(rbind, rows)
-    granular_path <- sub("[.]csv$", "__origin_lead.csv.gz", result_path)
-    iqfr_v2_write_csv_gz(do.call(rbind, granular), granular_path)
+    granular_path <- NA_character_
+    granular_sha256 <- NA_character_
+    if (export_origin_lead) {
+      granular_path <- sub("[.]csv$", "__origin_lead.csv.gz", result_path)
+      iqfr_v2_write_csv_gz(do.call(rbind, granular), granular_path)
+      granular_sha256 <- iqfr_v2_sha256(granular_path)
+    }
     metric_draw_path <- sub("[.]csv$", "__metric_draws.csv.gz", result_path)
     iqfr_v2_write_csv_gz(do.call(rbind, metric_draws), metric_draw_path)
     result$origin_lead_path <- granular_path
-    result$origin_lead_sha256 <- iqfr_v2_sha256(granular_path)
+    result$origin_lead_sha256 <- granular_sha256
     result$metric_draw_path <- metric_draw_path
     result$metric_draw_sha256 <- iqfr_v2_sha256(metric_draw_path)
     result$runtime_seconds_job <- as.numeric(difftime(Sys.time(), started,
@@ -1116,8 +1163,8 @@ iqfr_v2_mcmc_job <- function(config_path) {
       runtime_seconds = as.numeric(difftime(finished, started, units = "secs")),
       rows = nrow(result), result_path = result_path,
       result_sha256 = iqfr_v2_sha256(result_path),
-      origin_lead_path = granular_path,
-      origin_lead_sha256 = iqfr_v2_sha256(granular_path),
+      origin_lead_path = if (is.na(granular_path)) NULL else granular_path,
+      origin_lead_sha256 = if (is.na(granular_sha256)) NULL else granular_sha256,
       metric_draw_path = metric_draw_path,
       metric_draw_sha256 = iqfr_v2_sha256(metric_draw_path),
       fitted_model_binaries = 0L

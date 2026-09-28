@@ -1,0 +1,141 @@
+protocol:
+  id: independent_qdesn_posterior_forecast_rescue_v1
+  status: ACTIVE_BACKGROUND_CAMPAIGN
+  scientific_lane: independent_single_quantile_qdesn_dqlm_validation
+  base_commit: e7b1a206a4a4aa8541bc9359933ce45af719ee42
+  article_write_permitted: false
+  shared_validation_merge_permitted: false
+  overleaf_write_permitted: false
+
+authorities:
+  redesign_root: /data/jaguir26/local/src/exdqlm__wt__independent_qdesn_full_redesign_v2_20260925/validation/fitforecast_v2/local_trackers/independent_qdesn_full_redesign_v2_1_20260925_162713__git-384496d94
+  comparator_root: /data/jaguir26/local/src/exdqlm__wt__independent_qdesn_full_redesign_v2_20260925/validation/fitforecast_v2/local_trackers/independent_qdesn_fixed_comparator_forecast_recovery_v1_20260927_233650__git-c8263a617
+  files:
+    historical_candidates:
+      relative_path: manifests/normal_full_candidates.csv
+      sha256: f0e4894f313511337b28c45ff7541600c7dc19e0fe90bb4812235170379c6539
+    initial_candidates:
+      relative_path: manifests/initial_candidates.csv
+      sha256: b7c3c4a900ed3611d94f0e7bdd71c912778e2d7cad158a57bf06958dbdc66165
+    adaptive_candidates:
+      relative_path: manifests/adaptive_candidates.csv
+      sha256: 3c6987826ccea39622088833519878a4a41d36e9d5e1d5fb2d6499e6df68d9a1
+    historical_mcmc_pilots:
+      relative_path: summaries/mcmc_pilot_results.csv
+      sha256: ccfd85d0f3a99c112a266bad57655b46319143ed49a91dee8beb85e1066a3796
+    historical_vb_ranking:
+      relative_path: summaries/quantile_vb_ranking.csv
+      sha256: 905f9a9b36971ece51202511d19e2ee883dc331d01d91947e896a5dc13481049
+    source_manifest:
+      relative_path: source_manifest.csv
+      sha256: 5c0eeaf54847cc36abe7654c35a963352d64f3e9672f9c32616158f4c50dbfbe
+    redesign_closeout:
+      relative_path: manifests/closeout.json
+      sha256: ba5b99c538c00564149d49246f9cee26268973ee10464f0e2082788de632aa72
+    comparator_intervals:
+      relative_path: closeout/unified_four_model_intervals.csv
+      sha256: 804a4a6b45084e9e3fecf2397d66aaec239682932408789ab0ab74079993bd94
+    comparator_comparison:
+      relative_path: closeout/likelihood_matched_comparison.csv
+      sha256: 8c93a1cb10f042cb3ded97716eee42a234252c66bdc7ce483f64720b9e53337b
+    comparator_verification:
+      relative_path: manifests/post_closeout_verification.json
+      sha256: 433a798e9f66ac73e8182e313fc9b2c68a9154eb7e4106addaa4ddcb8fa2a864
+
+scope:
+  families: [normal, laplace, gausmix]
+  quantiles: [0.05, 0.25, 0.50]
+  likelihoods: [al, exal]
+  excluded_success_cells:
+    - {family: laplace, quantile: 0.05, likelihood: al}
+  tuned_models: [qdesn_al_rhs, qdesn_exal_rhs]
+  fixed_comparators: [dqlm_al, exdqlm_exal]
+  package_version: 1.1.1
+  exal_method_id: m0_v_collapsed_support_logit
+
+candidate_pool:
+  historical_per_family: 50
+  novel_per_family: 10
+  total_per_family: 60
+  proposal_structures_per_family: 96
+  proposal_start_index: 2001
+  proposal_tau0_arms: [0.01, 0.03, 0.10, 0.30, 1.00, 3.00, 10.00, 30.00]
+  exploitation_candidates: 6
+  exploration_candidates: 4
+  maximum_novel_total_states: 800
+  reservoir_seed_policy: deterministic_design_signature
+  duplicate_policy: reject_against_all_5472_historical_candidates
+
+selection:
+  fit_window: {start: 8501, end: 8800}
+  validation_window: {start: 8801, end: 9000}
+  validation_origins: {start: 8800, end: 8970, stride: 1}
+  horizon: 30
+  expected_validation_origins: 171
+  expected_validation_pairs: 5130
+  primary_estimator: mean_readout_state_recursive
+  sensitivity_estimator: path_recursive
+  primary_metric: forecast_qtrue_mae_mean
+  secondary_metric: forecast_check_loss_mean
+  uncertainty_monitor: forecast_qtrue_mae_interval_width
+  tertiary_metric: fit_qtrue_rmse_mean
+  ranking: lexicographic_forecast_first
+  sealed_window_access_before_finalist_freeze: false
+  global_specification_forbidden: true
+  diagnostic_grade_exclusion_rule: false
+
+inference:
+  pilot:
+    burn: 1000
+    sample: 4000
+    draws: 120
+    chains: 1
+    candidates_per_cell: 60
+    export_origin_lead: false
+  replication:
+    burn: 1000
+    sample: 4000
+    draws: 120
+    finalists_per_cell: 3
+    added_chains: [2, 3]
+    export_origin_lead: false
+  confirmation:
+    burn: 5000
+    sample: 20000
+    draws: 300
+    finalists_per_cell: 1
+    chains: [1, 2, 3]
+    export_origin_lead: true
+    train_end: 9000
+    rollout_end: 10000
+    origins: {start: 9000, end: 9970, stride: 1}
+    expected_origins: 971
+    expected_pairs: 29130
+  init_from_vb: true
+  beta_prior_type: rhs_ns
+  beta_prior_s2: 1.0
+  shrink_intercept: false
+
+promotion:
+  automatic_article_write: false
+  compare_against_fixed_comparator: true
+  compare_against_prior_qdesn_authority: true
+  strict_finite_forecast_improvement_eligible: true
+  partial_surface_promotable: false
+  require_three_confirmation_chains: true
+
+execution:
+  workers: 15
+  threads_per_worker: 1
+  background_launch: true
+  expected_jobs:
+    pilot: 1020
+    replication: 102
+    confirmation: 51
+    total: 1173
+  resource_gate:
+    max_load: 48
+    minimum_available_memory_gb: 96
+    minimum_available_disk_gb: 240
+  storage_light: true
+  fitted_model_binary_retention: none
