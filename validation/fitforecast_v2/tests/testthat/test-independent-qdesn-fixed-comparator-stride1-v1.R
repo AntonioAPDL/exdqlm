@@ -117,3 +117,33 @@ testthat::test_that("row runner supports exact installed-package execution", {
   testthat::expect_match(text, "Installed exdqlm version mismatch", fixed = TRUE)
   testthat::expect_match(text, "worktree_load_all", fixed = TRUE)
 })
+
+testthat::test_that("health classification recognizes concrete failed statuses", {
+  root <- tempfile("iqfc_health_")
+  dir.create(file.path(root, "manifests"), recursive = TRUE)
+  status_root <- file.path(root, "status")
+  dir.create(status_root)
+  paths <- file.path(status_root, sprintf("job_%02d.csv", 1:4))
+  states <- c("done", "failed_runtime", "running", "pending")
+  for (i in seq_along(paths)) {
+    utils::write.csv(
+      data.frame(status = states[[i]]), paths[[i]], row.names = FALSE
+    )
+  }
+  utils::write.csv(
+    data.frame(
+      job_id = sprintf("job_%02d", 1:4),
+      model_variant = c("dqlm", "dqlm", "exdqlm", "exdqlm"),
+      row_status_path = paths,
+      stringsAsFactors = FALSE
+    ),
+    file.path(root, "manifests", "job_manifest.csv"),
+    row.names = FALSE
+  )
+
+  health <- iqfc_v1_health(root)
+  testthat::expect_identical(health$done, 1L)
+  testthat::expect_identical(health$failed, 1L)
+  testthat::expect_identical(health$running, 1L)
+  testthat::expect_identical(health$remaining, 1L)
+})

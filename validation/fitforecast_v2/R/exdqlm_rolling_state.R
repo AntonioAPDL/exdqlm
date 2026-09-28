@@ -1,5 +1,34 @@
 ffv2_pkg_internal <- function(name) {
-  get(name, envir = asNamespace("exdqlm"), inherits = FALSE)
+  fun <- get0(
+    as.character(name)[1L],
+    envir = asNamespace("exdqlm"),
+    mode = "function",
+    inherits = FALSE
+  )
+  if (!is.function(fun)) {
+    stop(sprintf(
+      "Required exdqlm namespace helper is unavailable: %s",
+      as.character(name)[1L]
+    ), call. = FALSE)
+  }
+  fun
+}
+
+ffv2_required_pkg_internals <- function() {
+  c(
+    "make_df_mat", ".exdqlm_regularize_cov", ".exdqlm_regularize_var",
+    "p.fn", "A.fn", "B.fn", "C.fn"
+  )
+}
+
+ffv2_assert_pkg_internals <- function() {
+  helpers <- ffv2_required_pkg_internals()
+  invisible(lapply(helpers, ffv2_pkg_internal))
+  helpers
+}
+
+ffv2_make_df_mat <- function(df, dim_df, p) {
+  ffv2_pkg_internal("make_df_mat")(df, dim_df, p)
 }
 
 ffv2_regularize_cov <- function(x, context = "ffv2") {
@@ -192,7 +221,7 @@ ffv2_extend_theta_filtered_state <- function(fit, y_new, method = ffv2_exdqlm_pl
   model <- ffv2_extend_dynamic_model_arrays(fit$model, n_extra)
   GG <- array(model$GG, dim = c(p, p, total_n))
   FF <- matrix(model$FF, nrow = p, ncol = total_n)
-  df_mat <- make_df_mat(fit$df, fit$dim.df, p)
+  df_mat <- ffv2_make_df_mat(fit$df, fit$dim.df, p)
   pseudo <- ffv2_fit_plugin_pseudo_params(fit, n_extra, method = method)
 
   fm <- matrix(NA_real_, nrow = p, ncol = total_n)
@@ -268,6 +297,44 @@ ffv2_extend_fit_to_source_origin <- function(fit, config, data, origin_source_in
   ffv2_extend_theta_filtered_state(fit, future_rows$y, method = method)
 }
 
+ffv2_advance_fit_between_source_origins <- function(fit,
+                                                    config,
+                                                    data,
+                                                    from_origin_source_index,
+                                                    to_origin_source_index) {
+  from_origin_source_index <- as.integer(from_origin_source_index)[1L]
+  to_origin_source_index <- as.integer(to_origin_source_index)[1L]
+  train_end <- as.integer(config$train_end_source_index)[1L]
+  if (!is.finite(from_origin_source_index) ||
+      !is.finite(to_origin_source_index) ||
+      from_origin_source_index < train_end ||
+      to_origin_source_index < from_origin_source_index) {
+    stop(
+      "State-advance origins must be finite, ordered, and no earlier than the training end.",
+      call. = FALSE
+    )
+  }
+  if (to_origin_source_index == from_origin_source_index) return(fit)
+  observed_rows <- data$forecast[
+    as.integer(data$forecast$source_index) > from_origin_source_index &
+      as.integer(data$forecast$source_index) <= to_origin_source_index,
+    ,
+    drop = FALSE
+  ]
+  expected_n <- to_origin_source_index - from_origin_source_index
+  if (nrow(observed_rows) != expected_n) {
+    stop(sprintf(
+      "Need %d newly observed rows between origins %d and %d; found %d.",
+      expected_n, from_origin_source_index, to_origin_source_index,
+      nrow(observed_rows)
+    ), call. = FALSE)
+  }
+  method <- as.character(
+    config$state_update_method %||% ffv2_exdqlm_plugin_state_update_method()
+  )[1L]
+  ffv2_extend_theta_filtered_state(fit, observed_rows$y, method = method)
+}
+
 ffv2_rolling_exdqlm_forecast_summary <- function(fit,
                                                  config,
                                                  data,
@@ -311,13 +378,35 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
   state_update_method <- as.character(
     config$state_update_method %||% ffv2_exdqlm_plugin_state_update_method()
   )[1L]
+  state_update_strategy <- as.character(
+    config$state_update_strategy %||% "recompute_from_training_fit"
+  )[1L]
+  supported_strategies <- c(
+    "recompute_from_training_fit",
+    "incremental_teacher_forced"
+  )
+  if (!(state_update_strategy %in% supported_strategies)) {
+    stop(sprintf(
+      "Unsupported rolling state-update strategy: %s",
+      state_update_strategy
+    ), call. = FALSE)
+  }
   rows <- list()
   row_i <- 0L
+  fit_origin <- fit
+  previous_origin <- as.integer(config$train_end_source_index)[1L]
   for (origin_idx in seq_along(origins)) {
     origin <- origins[[origin_idx]]
     origin_grid <- grid[as.integer(grid$forecast_origin_source_index) == origin, , drop = FALSE]
     k <- max(as.integer(origin_grid$forecast_lead))
-    fit_origin <- ffv2_extend_fit_to_source_origin(fit, config, data, origin)
+    if (identical(state_update_strategy, "incremental_teacher_forced")) {
+      fit_origin <- ffv2_advance_fit_between_source_origins(
+        fit_origin, config, data, previous_origin, origin
+      )
+    } else {
+      fit_origin <- ffv2_extend_fit_to_source_origin(fit, config, data, origin)
+    }
+    previous_origin <- origin
     future <- ffv2_make_future_model_arrays(fit_origin$model, k)
     ffv2_record_progress(
       config,
@@ -402,6 +491,7 @@ ffv2_rolling_exdqlm_forecast_summary <- function(fit,
           horizon = lead,
           forecast_protocol = "rolling_origin_no_refit_state_update",
           state_update_method = state_update_method,
+          state_update_strategy = state_update_strategy,
           refit_per_origin = FALSE,
           forecast_origin_source_index = origin,
           forecast_lead = lead,

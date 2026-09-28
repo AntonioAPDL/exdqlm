@@ -533,14 +533,17 @@ iqfc_v1_health <- function(run_root) {
     by = manifest[c("model_variant", "current_status")], FUN = sum
   )
   names(summary)[[3L]] <- "jobs"
+  failed <- grepl("^failed", manifest$current_status)
+  running <- manifest$current_status == "running"
+  done <- manifest$current_status == "done"
   list(
     jobs = manifest,
     summary = summary,
     total = nrow(manifest),
-    done = sum(manifest$current_status == "done"),
-    failed = sum(manifest$current_status == "failed"),
-    running = sum(manifest$current_status == "running"),
-    remaining = sum(!manifest$current_status %in% c("done", "failed"))
+    done = sum(done),
+    failed = sum(failed),
+    running = sum(running),
+    remaining = sum(!(done | failed | running))
   )
 }
 
