@@ -81,8 +81,9 @@ for (family in c("normal", "laplace", "gausmix")) {
   p <- ggplot2::ggplot(
     x, ggplot2::aes(x = posterior_mean, y = model, colour = model)
   ) +
-    ggplot2::geom_errorbarh(
-      ggplot2::aes(xmin = cri_lower, xmax = cri_upper), height = 0.16,
+    ggplot2::geom_errorbar(
+      ggplot2::aes(xmin = cri_lower, xmax = cri_upper), orientation = "y",
+      width = 0.16,
       linewidth = 0.45
     ) +
     ggplot2::geom_point(shape = 4, stroke = 0.8, size = 2.2) +

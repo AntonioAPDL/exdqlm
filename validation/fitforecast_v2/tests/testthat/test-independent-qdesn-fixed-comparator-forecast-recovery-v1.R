@@ -97,3 +97,20 @@ testthat::test_that("rolling-state code has no bare make_df_mat call", {
   testthat::expect_false(grepl("make_df_mat\\s*\\(", stripped, perl = TRUE))
   testthat::expect_match(text, 'ffv2_pkg_internal("make_df_mat")', fixed = TRUE)
 })
+
+testthat::test_that("storage audit ignores only isolated package metadata", {
+  root <- tempfile("iqfcr_storage_")
+  package_meta <- file.path(root, "runtime", "Rlib", "exdqlm", "Meta")
+  job_payload <- file.path(root, "jobs", "job_01", "fit.rds")
+  dir.create(package_meta, recursive = TRUE)
+  saveRDS(list(package = "metadata"), file.path(package_meta, "package.rds"))
+
+  testthat::expect_length(iqfc_v1_scientific_binary_payloads(root), 0L)
+
+  dir.create(dirname(job_payload), recursive = TRUE)
+  saveRDS(list(scientific = "payload"), job_payload)
+  testthat::expect_identical(
+    iqfc_v1_scientific_binary_payloads(root),
+    normalizePath(job_payload, winslash = "/", mustWork = TRUE)
+  )
+})

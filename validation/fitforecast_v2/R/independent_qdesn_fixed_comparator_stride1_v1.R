@@ -88,6 +88,19 @@ iqfc_v1_write_csv_gz <- function(x, path) {
   ffv2_write_csv_gz(x, path)
 }
 
+iqfc_v1_scientific_binary_payloads <- function(run_root) {
+  payloads <- list.files(
+    run_root, recursive = TRUE, full.names = TRUE,
+    pattern = "[.](rds|rda|RData|ffv2handoff)$", ignore.case = TRUE
+  )
+  if (!length(payloads)) return(character())
+  runtime_library <- normalizePath(
+    file.path(run_root, "runtime", "Rlib"), winslash = "/", mustWork = FALSE
+  )
+  normalized <- normalizePath(payloads, winslash = "/", mustWork = TRUE)
+  normalized[!startsWith(normalized, paste0(runtime_library, "/"))]
+}
+
 iqfc_v1_package_preflight <- function(tarball_path) {
   desc <- utils::packageDescription("exdqlm")
   mcmc_default <- eval(formals(exdqlm::exdqlmMCMC)$mh.proposal)[[1L]]
@@ -846,8 +859,7 @@ iqfc_v1_closeout <- function(repo_root, run_root) {
       origin_lead, file.path(output_root, "forecast_origin_lead_profiles.csv.gz")
     )
   )
-  heavy <- list.files(run_root, recursive = TRUE, full.names = TRUE,
-                      pattern = "[.](rds|rda|RData)$", ignore.case = TRUE)
+  heavy <- iqfc_v1_scientific_binary_payloads(run_root)
   decision <- list(
     schema_version = iqfc_v1_schema,
     generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),

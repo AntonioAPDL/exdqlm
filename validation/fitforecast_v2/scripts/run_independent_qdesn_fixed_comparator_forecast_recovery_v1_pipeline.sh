@@ -160,7 +160,8 @@ record diagnostics STARTED "ignored four-model review PDF"
   --run-root "$run_root"
 record diagnostics PASS "review packet complete"
 
-find "$run_root" -type f \( -iname '*.rds' -o -iname '*.rda' -o -iname '*.rdata' \
+find "$run_root" -path "$run_root/runtime/Rlib" -prune -o -type f \
+  \( -iname '*.rds' -o -iname '*.rda' -o -iname '*.rdata' \
   -o -iname '*.ffv2handoff' \) -printf '%s\t%p\n' | sort -nr \
   > "${state_root}/heavy_binary_audit.tsv"
 [[ ! -s "${state_root}/heavy_binary_audit.tsv" ]] || {
