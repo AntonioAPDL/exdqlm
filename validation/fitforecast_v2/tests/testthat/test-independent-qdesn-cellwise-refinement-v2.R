@@ -175,6 +175,8 @@ test_that("pipeline pins one worker to each allocated CPU", {
   script <- paste(readLines(path, warn = FALSE), collapse = "\n")
   expect_match(script, "--process-slot-var=IQCR_SLOT", fixed = TRUE)
   expect_match(script, "taskset -c \"$cpu\"", fixed = TRUE)
+  expect_match(script, "getconf _NPROCESSORS_ONLN", fixed = TRUE)
+  expect_false(grepl("cpu < $(nproc)", script, fixed = TRUE))
   expect_match(script, "run_stage rhs_refinement", fixed = TRUE)
   expect_match(script, "run_stage quantile_refinement", fixed = TRUE)
   expect_match(script, "--action verify --complete true", fixed = TRUE)

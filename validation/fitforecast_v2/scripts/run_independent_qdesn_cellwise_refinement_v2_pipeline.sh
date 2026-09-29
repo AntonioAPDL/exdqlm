@@ -30,9 +30,10 @@ IFS=',' read -r -a cpus <<< "$cpu_list"
   fail "CPU_LIST has ${#cpus[@]} entries; WORKERS=$workers"
 [[ $(printf '%s\n' "${cpus[@]}" | sort -nu | wc -l) -eq "$workers" ]] ||
   fail "CPU_LIST must contain $workers unique CPUs"
+host_cpus=$(getconf _NPROCESSORS_ONLN)
 for cpu in "${cpus[@]}"; do
   [[ "$cpu" =~ ^[0-9]+$ ]] || fail "invalid CPU token: $cpu"
-  ((cpu >= 0 && cpu < $(nproc))) || fail "CPU outside host range: $cpu"
+  ((cpu >= 0 && cpu < host_cpus)) || fail "CPU outside host range: $cpu"
 done
 
 load_one=$(cut -d' ' -f1 /proc/loadavg)
