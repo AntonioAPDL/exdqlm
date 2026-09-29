@@ -181,3 +181,13 @@ test_that("pipeline pins one worker to each allocated CPU", {
   expect_match(script, "run_stage quantile_refinement", fixed = TRUE)
   expect_match(script, "--action verify --complete true", fixed = TRUE)
 })
+
+test_that("materialization accepts only launcher-owned bootstrap artifacts", {
+  iqcr_v2_load_test_code()
+  body_text <- paste(deparse(body(iqcr_v2_materialize)), collapse = "\n")
+  expect_match(body_text, "launch_environment.txt", fixed = TRUE)
+  expect_match(body_text, ".pipeline_lock", fixed = TRUE)
+  expect_match(body_text, "pipeline.stdout.log", fixed = TRUE)
+  expect_match(body_text, "Refusing to overwrite nonempty run root",
+               fixed = TRUE)
+})

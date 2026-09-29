@@ -587,7 +587,9 @@ iqcr_v2_materialize <- function(repo_root, run_root) {
   }
   if (dir.exists(run_root)) {
     existing <- list.files(run_root, all.files = TRUE, no.. = TRUE)
-    unexpected <- setdiff(existing, c(".pipeline_lock", "pipeline.stdout.log"))
+    unexpected <- setdiff(existing, c(
+      ".pipeline_lock", "pipeline.stdout.log", "launch_environment.txt"
+    ))
     if (length(unexpected)) {
       stop("Refusing to overwrite nonempty run root: ", run_root,
            call. = FALSE)
