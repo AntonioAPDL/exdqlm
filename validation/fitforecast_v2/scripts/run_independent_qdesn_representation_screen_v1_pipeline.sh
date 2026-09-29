@@ -9,12 +9,14 @@ rscript=${RSCRIPT:-$(command -v Rscript)}
 manager="$repo_root/validation/fitforecast_v2/scripts/manage_independent_qdesn_representation_screen_v1.R"
 worker="$repo_root/validation/fitforecast_v2/scripts/run_independent_qdesn_representation_screen_v1_job.R"
 preflight="$repo_root/validation/fitforecast_v2/scripts/preflight_independent_qdesn_representation_screen_v1.R"
+closeout="$repo_root/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/stage1_closeout.json"
 
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 export VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1
 export RCPP_PARALLEL_NUM_THREADS=1
 
 fail() { printf 'FATAL: %s\n' "$*" >&2; exit 1; }
+[[ ! -f "$closeout" ]] || fail "campaign is frozen by $closeout"
 branch=$(git -C "$repo_root" branch --show-current)
 [[ "$branch" == "validation/independent-qdesn-representation-screen-v1-20260929" ]] ||
   fail "wrong branch: $branch"

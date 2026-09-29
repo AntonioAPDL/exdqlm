@@ -1,0 +1,43 @@
+{
+  "schema_version": "independent_qdesn_representation_screen_v1_stage1_closeout_v1",
+  "status": "STAGE1_COMPLETE_SUPERSEDED_BY_CELLWISE_REFINEMENT_V2",
+  "completed_at": "2026-09-29T17:09:31-0400",
+  "branch": "validation/independent-qdesn-representation-screen-v1-20260929",
+  "git_head_at_closeout": "c882546c2e08fcbc9bd52fd57e9560ce616ba39d",
+  "run_root": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_representation_screen_v1_20260929/validation/fitforecast_v2/local_trackers/independent_qdesn_representation_screen_v1_20260929_042138__git-c882546c2e",
+  "ridge_jobs_planned": 960,
+  "ridge_jobs_successful": 960,
+  "ridge_jobs_failed": 0,
+  "ridge_internal_fits": 11520,
+  "downstream_jobs_intentionally_not_launched": 816,
+  "fitted_model_binaries": 0,
+  "active_campaign_processes": 0,
+  "article_promotion_authorized": false,
+  "supersession_reason": "Stage 1 is valid, but family-level Normal/VB transfer is insufficient for a defensible cellwise MCMC funnel; v2 imports this evidence and adds family-targeted capacity plus cell-specific quantile/MCMC selection.",
+  "artifacts": {
+    "integrity": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_representation_screen_v1_20260929/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/ridge_result_integrity.csv",
+      "sha256": "af07f6f6c2eb1818cecf651d5b55aef1737a00099d7e1bdab2575a553693a07f"
+    },
+    "ranking": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_representation_screen_v1_20260929/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/ridge_robust_ranking.csv",
+      "sha256": "e43bd3b583250fd2e100017c937b4fcf4d2bbef1b01d77e80fd3b472ba24aaa8"
+    },
+    "best": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_representation_screen_v1_20260929/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/ridge_best_scale_per_structure.csv",
+      "sha256": "995197a884270b0d5b9138fad7150e2f326a1ef53819b4826ceadab6975b780c"
+    },
+    "shortlist": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_representation_screen_v1_20260929/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/ridge_shortlist.csv",
+      "sha256": "3c2051cd248e260c532a41c6854a69c4479c6f02deb0932f00587edb5713934b"
+    },
+    "champions": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_representation_screen_v1_20260929/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/ridge_family_champions.csv",
+      "sha256": "39936db6029ce5886fc3ba99e0a9820c5f2b41ef71a809cbad162ee8ba48ea9c"
+    },
+    "patterns": {
+      "path": "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_representation_screen_v1_20260929/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/ridge_pattern_summary.csv",
+      "sha256": "4b9c6591cbaef94762743a893117f29bd54bd4666ef20e73d8cd695a63b74bf1"
+    }
+  }
+}

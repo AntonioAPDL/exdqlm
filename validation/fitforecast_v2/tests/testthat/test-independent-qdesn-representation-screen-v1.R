@@ -107,3 +107,55 @@ test_that("robust selectors remain family and scale specific", {
                c(20L, 20L, 20L))
   expect_equal(length(unique(selected$prior_scale)), 1L)
 })
+
+test_that("representation collector accepts valid multirow stage outputs", {
+  repo_root <- normalizePath(
+    system("git rev-parse --show-toplevel", intern = TRUE),
+    winslash = "/", mustWork = TRUE
+  )
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_full_redesign_v2_runtime.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_representation_screen_v1.R"))
+  source(file.path(repo_root, "validation", "fitforecast_v2", "R",
+                   "independent_qdesn_representation_screen_v1_runtime.R"))
+  root <- tempfile("iqrs1-collect-")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+  result_path <- file.path(root, "result.csv")
+  status_path <- file.path(root, "status.json")
+  plan_path <- file.path(root, "plan.csv")
+  result <- expand.grid(
+    job_id = "job_1", fold_id = c("fold_a", "fold_b"),
+    prior_scale = c(0.01, 0.1), stringsAsFactors = FALSE
+  )
+  result$stage <- "ridge_screen"
+  iqfr_v2_write_csv(result, result_path)
+  iqfr_v2_write_json(list(status = "SUCCESS"), status_path)
+  iqfr_v2_write_csv(data.frame(
+    stage = "ridge_screen", job_id = "job_1",
+    result_path = result_path, status_path = status_path
+  ), plan_path)
+  collected <- iqrs_v1_collect_results(plan_path, require_complete = TRUE)
+  expect_equal(nrow(collected), 4L)
+
+  duplicated_result <- rbind(result, result[1L, , drop = FALSE])
+  iqfr_v2_write_csv(duplicated_result, result_path)
+  expect_error(
+    iqrs_v1_collect_results(plan_path, require_complete = TRUE),
+    "Duplicate stage-specific result rows"
+  )
+})
+
+test_that("representation collector keys quantile and MCMC rows correctly", {
+  expect_identical(
+    iqrs_v1_result_key_columns("quantile_vb"),
+    c("job_id", "fold_id", "likelihood_family", "tau")
+  )
+  expect_identical(
+    iqrs_v1_result_key_columns("confirmation"),
+    c("job_id", "estimator")
+  )
+})

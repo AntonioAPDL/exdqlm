@@ -2,6 +2,11 @@
 set -euo pipefail
 
 repo_root=$(git rev-parse --show-toplevel)
+closeout="$repo_root/validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/stage1_closeout.json"
+[[ ! -f "$closeout" ]] || {
+  printf 'FATAL: campaign is frozen by %s\n' "$closeout" >&2
+  exit 1
+}
 branch=$(git -C "$repo_root" branch --show-current)
 [[ "$branch" == "validation/independent-qdesn-representation-screen-v1-20260929" ]] || {
   printf 'FATAL: wrong branch: %s\n' "$branch" >&2

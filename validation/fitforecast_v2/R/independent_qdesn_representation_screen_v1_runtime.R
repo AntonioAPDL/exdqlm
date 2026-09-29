@@ -208,16 +208,59 @@ iqrs_v1_pending_configs <- function(plan_path) {
   iqfr_v2_pending_configs(plan_path)
 }
 
+iqrs_v1_result_key_columns <- function(stage) {
+  switch(
+    as.character(stage),
+    ridge_screen =,
+    rhs_screen = c("job_id", "fold_id", "prior_scale"),
+    quantile_vb = c("job_id", "fold_id", "likelihood_family", "tau"),
+    quantile_refinement = c(
+      "job_id", "fold_id", "likelihood_family", "tau"
+    ),
+    mcmc_pilot =,
+    replication =,
+    confirmation = c("job_id", "estimator"),
+    stop("Unsupported result-key stage: ", stage, call. = FALSE)
+  )
+}
+
 iqrs_v1_collect_results <- function(plan_path, require_complete = TRUE) {
-  iqfr_v2_collect_results(plan_path, require_complete)
+  plan <- utils::read.csv(plan_path, check.names = FALSE,
+                          stringsAsFactors = FALSE)
+  health <- iqrs_v1_stage_health(plan_path)
+  if (isTRUE(require_complete) && !isTRUE(health$complete[[1L]])) {
+    stop("Stage is not completely successful: ", basename(plan_path),
+         call. = FALSE)
+  }
+  paths <- plan$result_path[file.exists(plan$result_path)]
+  if (!length(paths)) return(data.frame())
+  out <- do.call(rbind, lapply(paths, utils::read.csv,
+                              check.names = FALSE, stringsAsFactors = FALSE))
+  plan_stage <- unique(as.character(plan$stage))
+  if (length(plan_stage) != 1L) {
+    stop("A result plan must contain exactly one stage.", call. = FALSE)
+  }
+  key_columns <- iqrs_v1_result_key_columns(plan_stage)
+  if (!all(key_columns %in% names(out))) {
+    stop("Result ledger is missing its stage-specific key columns: ",
+         paste(setdiff(key_columns, names(out)), collapse = ", "),
+         call. = FALSE)
+  }
+  keys <- do.call(paste, c(out[key_columns], sep = "|"))
+  if (anyDuplicated(keys)) {
+    stop("Duplicate stage-specific result rows.", call. = FALSE)
+  }
+  rownames(out) <- NULL
+  out
 }
 
 iqrs_v1_pareto_flag <- function(x, fields) {
   values <- as.matrix(x[fields])
   vapply(seq_len(nrow(values)), function(i) {
-    !any(vapply(setdiff(seq_len(nrow(values)), i), function(j) {
-      all(values[j, ] <= values[i, ]) && any(values[j, ] < values[i, ])
-    }, logical(1L)))
+    delta <- sweep(values, 2L, values[i, ], FUN = "-")
+    dominated <- rowSums(delta <= 0) == ncol(values) &
+      rowSums(delta < 0) > 0
+    !any(dominated)
   }, logical(1L))
 }
 
