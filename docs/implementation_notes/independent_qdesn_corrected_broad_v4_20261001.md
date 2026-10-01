@@ -107,8 +107,12 @@ design and tau for every quantile VB fit.
 
 1. The exact completed-v3 decision, ranking, candidate manifest, source
    manifest, and predecessor RHS ranking must pass pinned SHA-256 checks.
-2. Six operator-smoke jobs must finish with finite metrics and exact identity
-   projections before downstream compute can start.
+2. Six operator-smoke jobs use the smallest predeclared reference-scale
+   structure in each family/likelihood cell (at most 100 states). They must
+   finish with finite metrics and exact identity projections before downstream
+   compute can start. Smoke selection is intentionally independent of the
+   scientific rank so a large winner cannot turn a mechanical gate into a
+   production fit.
 3. Eighteen matched DQLM/exDQLM controls must finish with finite metrics, 250
    fit rows, 45 origins, 1,350 origin/lead pairs, and no retained fit binary.
    Their frozen sources must exactly equal the v4 source rows and oracle paths.

@@ -161,6 +161,15 @@ test_that("pipeline orders all three gated stages", {
   expect_match(script, "disk_gb", fixed = TRUE)
 })
 
+test_that("operator smoke is selected by compactness rather than rank", {
+  iqcb_v4_load_test_code()
+  body <- paste(deparse(body(iqcb_v4_materialize)), collapse = "\n")
+  expect_match(body, "cell\\$total_states")
+  expect_match(body, "smoke_candidates\\$total_states")
+  expect_match(body, "100L", fixed = TRUE)
+  expect_false(grepl("structure_rank == 1L", body, fixed = TRUE))
+})
+
 test_that("adaptive budget is exactly 96 under the predeclared allocation", {
   root <- iqcb_v4_load_test_code()
   protocol <- iqcb_v4_read_protocol(root)

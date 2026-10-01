@@ -942,13 +942,27 @@ iqcb_v4_materialize <- function(repo_root, run_root, v3_run_root,
     )
   }
   broad_plan <- do.call(rbind, broad_rows)
-  smoke_candidates <- candidates[
+  smoke_pool <- candidates[
     abs(candidates$probability - 0.25) < 1e-12 &
-      candidates$structure_rank == 1L & candidates$tau0_multiplier == 1,
+      candidates$tau0_multiplier == 1, , drop = FALSE
+  ]
+  smoke_candidates <- do.call(rbind, lapply(
+    split(smoke_pool, smoke_pool$cell_id),
+    function(cell) {
+      cell <- cell[order(cell$total_states, cell$m, cell$D,
+                         cell$candidate_id), , drop = FALSE]
+      cell[1L, , drop = FALSE]
+    }
+  ))
+  smoke_candidates <- smoke_candidates[
+    order(smoke_candidates$family, smoke_candidates$likelihood_family),
     , drop = FALSE
   ]
-  if (nrow(smoke_candidates) != 6L) stop("Operator-smoke lookup failed.",
-                                         call. = FALSE)
+  if (nrow(smoke_candidates) != 6L ||
+      any(smoke_candidates$total_states > 100L)) {
+    stop("Operator smoke did not resolve to six compact sentinels.",
+         call. = FALSE)
+  }
   smoke_rows <- vector("list", nrow(smoke_candidates))
   for (i in seq_len(nrow(smoke_candidates))) {
     candidate <- smoke_candidates[i, , drop = FALSE]
