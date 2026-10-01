@@ -446,7 +446,8 @@ iqcf_v3_materialize <- function(repo_root, run_root, predecessor_run_root,
 
 iqcf_v3_status_write <- function(cfg, status, started, extra = list()) {
   iqfr_v2_write_json(c(list(
-    schema_version = iqcf_v3_schema, stage = cfg$stage, job_id = cfg$job_id,
+    schema_version = as.character(cfg$schema_version %||% iqcf_v3_schema),
+    stage = cfg$stage, job_id = cfg$job_id,
     status = status, config_path = cfg$config_path,
     config_sha256 = iqfr_v2_sha256(cfg$config_path),
     pid = Sys.getpid(), host = unname(Sys.info()[["nodename"]]),
@@ -596,7 +597,8 @@ iqcf_v3_run_job <- function(config_path) {
       sort = FALSE
     )
     identifiers <- data.frame(
-      schema_version = iqcf_v3_schema, stage = cfg$stage,
+      schema_version = as.character(cfg$schema_version %||% iqcf_v3_schema),
+      stage = cfg$stage,
       job_id = cfg$job_id,
       family = as.character(iqfr_v2_scalar(candidate$family)),
       likelihood_family = likelihood,

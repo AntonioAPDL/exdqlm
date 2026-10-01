@@ -1,0 +1,147 @@
+protocol:
+  id: independent_qdesn_corrected_broad_v4
+  status: IMPLEMENTED_GATED_BROAD_SCREEN
+  scientific_lane: independent_single_quantile_qdesn_dqlm_validation
+  predecessor: independent_qdesn_corrected_forecast_v3
+  article_write_permitted: false
+  shared_validation_merge_permitted: false
+  overleaf_write_permitted: false
+
+scope:
+  families: [normal, laplace, gausmix]
+  quantiles: [0.05, 0.25, 0.50]
+  likelihoods: [al, exal]
+  tuned_models: [qdesn_al_rhs, qdesn_exal_rhs]
+  development_comparators:
+    - dqlm_al_vb
+    - exdqlm_exal_vb
+    - training_empirical_quantile_constant
+  expected_development_comparator_jobs: 18
+  fit_window: {start: 8501, end: 8750}
+  development_window: {start: 8751, end: 9000}
+  sealed_compatibility_window: {start: 9001, end: 10000}
+
+forecast:
+  horizon: 30
+  origin_start: 8750
+  origin_end: 8970
+  broad_stride: 5
+  finalist_stride: 1
+  teacher_forced_between_origins: true
+  recursive_within_origin: true
+  future_observations_within_origin: false
+  refit_per_origin: false
+  outer_draws: 16
+  inner_paths: 128
+  finalist_inner_paths: 512
+  primary_estimator: mean_conditional_location
+  predictive_estimator: posterior_predictive_quantile_pooled
+  primary_metric: forecast_qtrue_mae
+  secondary_metric: forecast_check_loss
+  tertiary_metric: forecast_qtrue_rmse
+  fit_metric_role: diagnostic_only
+
+response_transport:
+  enabled: true
+  fitted_on: internal_fitting_rows_only
+  center: arithmetic_mean
+  scale: sample_standard_deviation
+  inverse_transform_before_scoring: true
+
+search:
+  structures_per_cell: 8
+  tau_arms_per_structure: 2
+  expected_cells: 18
+  expected_broad_jobs: 288
+  projection: identity
+  dimensionality_reduction_forbidden: true
+  mx: 0
+  readout_columns: [intercept, all_reservoir_layers]
+  direct_response_lags_in_readout: false
+  direct_exogenous_lags_in_readout: false
+  reservoir_lags_in_readout: false
+  fixed_matrix_seed: 920001
+  reservoir_activation: tanh
+  lower_state_readout_activation: identity
+  nonzero_weight_distribution: uniform_minus1_plus1
+  candidate_sources:
+    - corrected_v3_cell_winner
+    - current_article_authority
+    - ridge_forecast_shortlist
+    - rhs_forecast_ranking
+    - deterministic_unseen_design
+  structure_deduplication: canonical_design_fields
+  case_specific_selection: true
+  global_specification_forbidden: true
+
+shrinkage:
+  prior: regularized_horseshoe_no_intercept_shrinkage
+  slab_s2: 1.0
+  parameterization_scale: standardized_response
+  target_nonzero_fraction: 0.05
+  reference_formula: p0_over_p_minus_p0_times_sigma_over_sqrt_neff
+  broad_tau_multipliers: [1.0, 3.5]
+  broad_tau_labels: [reference_1x, bridge_3p5x]
+  cold_rhs_state_across_tau0: true
+  nested_quantile_initialization: normal_rhs_same_design_same_tau
+
+adaptive:
+  enabled_after_broad_pass_only: true
+  maximum_jobs: 96
+  structures_per_cell: 2
+  lower_quantile_multipliers: [0.35, 1.75, 7.0]
+  median_multipliers: [0.50, 7.0]
+  priority_quantiles: [0.05, 0.25, 0.50]
+  deduplicate_against_broad: true
+
+inference:
+  quantile_vb:
+    max_iter: 750
+    n_samp_xi: 400
+    tol: 0.0001
+    structured_exal_sigmagam: true
+  mcmc:
+    exal_method_id: m0_v_collapsed_support_logit
+    al_method_id: sigma_then_gamma
+    short: {burn: 1000, sample: 4000, posterior_draws: 120}
+    confirmation: {burn: 5000, sample: 20000, posterior_draws: 300, chains: [1, 2, 3]}
+    maximum_candidates_per_cell: 3
+    maximum_confirmation_candidates_per_cell: 1
+    launch_before_completed_vb_selection: false
+
+gates:
+  required_v3_decision: PASS_READY_FOR_CORRECTED_BROAD_SCREEN_DESIGN
+  broad_requires_all_jobs_terminal: true
+  broad_requires_all_finite: true
+  broad_requires_exact_identity_projection: true
+  broad_requires_comparator_decision: PASS_MATCHED_COMPARATORS_COMPLETE
+  adaptive_requires_broad_decision: PASS_READY_FOR_ADAPTIVE_REFINEMENT
+  mcmc_requires_completed_adaptive_or_explicit_broad_closeout: true
+  diagnostic_status_vetoes_finite_gain: false
+  hard_failures:
+    - leakage
+    - nonfinite_metric
+    - corrupted_artifact
+    - violated_forecast_contract
+    - invalid_model_object
+
+execution:
+  workers: 15
+  threads_per_worker: 1
+  background_launch: true
+  automatic_adaptive_launch: false
+  automatic_mcmc_launch: false
+  resource_gate:
+    maximum_load: 56
+    minimum_available_memory_gb: 72
+    minimum_available_disk_gb: 200
+  storage_light: true
+  fitted_model_binary_retention: none
+
+tracked_authorities:
+  ridge_shortlist:
+    path: validation/fitforecast_v2/promotions/independent_qdesn_representation_screen_v1_stage1_closeout_20260929/ridge_shortlist.csv
+    sha256: 3c2051cd248e260c532a41c6854a69c4479c6f02deb0932f00587edb5713934b
+  current_authority:
+    path: config/validation/independent_qdesn_cellwise_refinement_v2/current_authority_comparison_v11p1.csv
+    sha256: 855bbb7a6ce4d481d4f0c41e147f1b115ac503b4dadc7221f60a59ed07fc0b33
