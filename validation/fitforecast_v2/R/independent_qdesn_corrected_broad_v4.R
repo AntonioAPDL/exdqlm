@@ -908,8 +908,8 @@ iqcb_v4_materialize <- function(repo_root, run_root, v3_run_root,
   evidence <- iqcb_v4_verify_predecessors(
     repo_root, v3_run_root, predecessor_run_root, protocol
   )
-  stages <- c("operator_smoke", "broad_screen", "adaptive_refinement",
-              "finalist_rescore")
+  stages <- c("operator_smoke", "development_comparator", "broad_screen",
+              "adaptive_refinement", "finalist_rescore")
   for (stage in stages) {
     for (prefix in c("configs", "results", "status", "logs")) {
       dir.create(file.path(run_root, prefix, stage), recursive = TRUE,

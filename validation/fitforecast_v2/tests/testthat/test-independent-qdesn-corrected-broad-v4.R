@@ -90,6 +90,7 @@ test_that("stage launcher enforces one thread, resume hashes, and gates", {
   expect_match(script, "PASS_MATCHED_COMPARATORS_COMPLETE", fixed = TRUE)
   expect_match(script, "PASS_READY_FOR_ADAPTIVE_REFINEMENT", fixed = TRUE)
   expect_match(script, "artifact_sha256", fixed = TRUE)
+  expect_match(script, 'mkdir -p "$run_root/logs/$stage"', fixed = TRUE)
   expect_false(grepl("origin/main", script, fixed = TRUE))
 })
 
@@ -164,6 +165,7 @@ test_that("pipeline orders all three gated stages", {
 test_that("operator smoke is selected by compactness rather than rank", {
   iqcb_v4_load_test_code()
   body <- paste(deparse(body(iqcb_v4_materialize)), collapse = "\n")
+  expect_match(body, '"development_comparator"', fixed = TRUE)
   expect_match(body, "cell\\$total_states")
   expect_match(body, "smoke_candidates\\$total_states")
   expect_match(body, "100L", fixed = TRUE)

@@ -62,6 +62,7 @@ esac
 
 [[ -f "$plan" ]] || { printf 'Missing plan: %s\n' "$plan" >&2; exit 1; }
 [[ ! -e "$lock" ]] || { printf 'Stage lock already exists: %s\n' "$lock" >&2; exit 1; }
+mkdir -p "$run_root/logs/$stage"
 mkdir -p "$lock"
 printf '%s\n' "$$" > "$lock/pid"
 cleanup() { rm -rf "$lock"; }

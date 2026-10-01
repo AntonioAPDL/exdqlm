@@ -136,6 +136,18 @@ Diagnostic warnings are retained but do not veto finite metric gains unless
 they reveal leakage, nonfinite output, corruption, an invalid model object, or
 a violated forecast contract.
 
+## Launch recovery record
+
+Two pre-scientific launch attempts were superseded without promoting results.
+The first selected a large rank-one scientific candidate as an operator smoke;
+the smoke rule was corrected to use compact predeclared sentinels without
+changing the 288-job broad design. The second completed all six compact smoke
+jobs, then stopped before any comparator fit because the materializer had not
+created the comparator log directory. The materializer now creates all four
+stage directory surfaces, and the stage launcher independently ensures its log
+directory exists before starting workers. Regression tests cover both launch
+conditions. Neither superseded root contains broad-screen evidence.
+
 ## Reproducibility and storage
 
 Production materialization requires a clean committed dedicated branch. Each
