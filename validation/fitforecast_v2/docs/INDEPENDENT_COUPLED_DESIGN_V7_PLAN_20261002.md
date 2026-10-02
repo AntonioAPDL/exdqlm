@@ -141,7 +141,9 @@ signals only its own timeout processes if interrupted. A job failure stops
 new scheduling while already active jobs finish. Cost jobs have 30-minute
 timeouts; production jobs have six-hour timeouts. Source, native library,
 input, config, initializer, test and smoke hashes plus the exact committed
-HEAD must match before each worker starts. Persist terminal status before
+HEAD must match before each worker starts. Materialization validates the
+scientific contract after JSON round-trip as well as before serialization;
+integer-valued cost budgets use canonical integer types. Persist terminal status before
 writing the final artifact manifest. Hash-valid completed jobs can be reused.
 
 ## Decisions and bounded continuation

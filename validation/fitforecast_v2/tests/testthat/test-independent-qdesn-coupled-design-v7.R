@@ -48,6 +48,14 @@ test_that("engineering jobs have a separate fixed budget and never become rankin
   expect_equal(cfg$inner_path_grid, 32L)
   expect_equal(cfg$budget$max_iter, 8L)
   expect_error(iqdr_v7_expected_contract(f$reference, "other"))
+  roundtrip <- function(x) jsonlite::fromJSON(jsonlite::toJSON(x, auto_unbox = TRUE,
+    digits = NA, null = "null"), simplifyVector = TRUE)
+  original <- roundtrip(f$original); reference <- roundtrip(f$reference)
+  cost <- iqdr_v7_expected_contract(roundtrip(f$cfg), "engineering_cost_smoke")
+  cost$stage <- "engineering_cost_smoke"
+  expect_true(iqdr_v7_science_check(original, reference, roundtrip(cost)))
+  cost$budget$max_iter <- 9L
+  expect_false(iqdr_v7_science_check(original, reference, roundtrip(cost)))
   text <- paste(deparse(iqdr_v7_audit), collapse = "\n")
   expect_match(text, 'stage == "design_replay"', fixed = TRUE)
 })

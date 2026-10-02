@@ -14,7 +14,7 @@ iqdr_v7_case <- function(cfg) paste(cfg$candidate$family, cfg$likelihood_family,
 
 iqdr_v7_expected_contract <- function(reference, stage) {
   if (stage == "engineering_cost_smoke") {
-    reference$budget <- list(max_iter = 8L, tol = 0, n_samp_xi = 64L)
+    reference$budget <- list(max_iter = 8L, tol = 0L, n_samp_xi = 64L)
     reference$outer_draws <- 4L
     reference$inner_path_grid <- 32L
     reference$origins <- list(start = 8750L, end = 8755L, stride = 5L)
@@ -131,6 +131,8 @@ iqdr_v7_materialize <- function(repo, baseline_run, run) {
   }
   rows <- lapply(configs, function(cfg) {
     iqfr_v2_write_json(cfg, cfg$config_path)
+    stopifnot(iqdr_v7_science_check(iqfr_v2_read_json(cfg$baseline_config_path),
+      iqfr_v2_read_json(cfg$reference_config_path), iqfr_v2_read_json(cfg$config_path)))
     data.frame(job_id = cfg$job_id, stage = cfg$stage, case_id = cfg$case_id,
       source_design_id = cfg$source_design_id, candidate_id = cfg$candidate$candidate_id,
       tau0 = cfg$candidate$rhs_tau0, columns = cfg$candidate$readout_dimension,
