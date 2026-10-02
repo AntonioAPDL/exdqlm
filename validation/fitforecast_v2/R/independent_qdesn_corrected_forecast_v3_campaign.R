@@ -500,25 +500,32 @@ iqcf_v3_run_job <- function(config_path) {
     preprocess <- iqfr_v2_training_preprocess(
       model_source$y[fit_rows], iqfr_v2_scalar(candidate$center_scale)
     )
-    normal_args <- list(
-      beta_prior_type = "rhs_ns",
-      rhs = list(tau0 = iqfr_v2_number(candidate$rhs_tau0), s2 = rhs_s2,
-                 shrink_intercept = FALSE, n_inner = 2L),
-      control = list(max_iter = 200L, min_iter = 10L, tol = 1e-5,
-                     covariance = "woodbury_diagonal", verbose = FALSE)
-    )
-    normal_fit <- do.call(qdesn_fit_normal, iqfr_v2_design_args(
-      y = model_source$y[train_rows], candidate = candidate,
-      preprocess = preprocess, p0 = probability, fit_readout = TRUE,
-      normal_args = normal_args
-    ))
-    iqfr_v2_assert_design(normal_fit, candidate, fit_end - 8500L)
-    if (isTRUE(cfg$collect_solver_diagnostics)) iqbs_v5_progress(cfg, "NORMAL_INITIALIZATION_COMPLETE")
+    initialization_artifacts <- character()
+    if (!is.null(cfg$frozen_initializer_path)) {
+      frozen <- iqct_v6_load_initializer(cfg)
+      init <- frozen$init
+      initialization_artifacts <- frozen$artifact
+    } else {
+      normal_args <- list(
+        beta_prior_type = "rhs_ns",
+        rhs = list(tau0 = iqfr_v2_number(candidate$rhs_tau0), s2 = rhs_s2,
+                   shrink_intercept = FALSE, n_inner = 2L),
+        control = list(max_iter = 200L, min_iter = 10L, tol = 1e-5,
+                       covariance = "woodbury_diagonal", verbose = FALSE)
+      )
+      normal_fit <- do.call(qdesn_fit_normal, iqfr_v2_design_args(
+        y = model_source$y[train_rows], candidate = candidate,
+        preprocess = preprocess, p0 = probability, fit_readout = TRUE,
+        normal_args = normal_args
+      ))
+      iqfr_v2_assert_design(normal_fit, candidate, fit_end - 8500L)
+      if (isTRUE(cfg$collect_solver_diagnostics)) iqbs_v5_progress(cfg, "NORMAL_INITIALIZATION_COMPLETE")
+      init <- qdesn_normal_to_vb_init(
+        normal_fit, likelihood_family = as.character(cfg$likelihood_family),
+        beta_prior_type = "rhs_ns", p0 = probability
+      )
+    }
     likelihood <- as.character(cfg$likelihood_family)
-    init <- qdesn_normal_to_vb_init(
-      normal_fit, likelihood_family = likelihood,
-      beta_prior_type = "rhs_ns", p0 = probability
-    )
     budget <- cfg$budget
     vb_args <- list(
       likelihood_family = likelihood,
@@ -547,6 +554,9 @@ iqcf_v3_run_job <- function(config_path) {
     fit <- do.call(qdesn_fit_vb, fit_args)
     if (isTRUE(cfg$collect_solver_diagnostics)) iqbs_v5_progress(cfg, "QUANTILE_VB_COMPLETE")
     iqfr_v2_assert_design(fit, candidate, fit_end - 8500L)
+    if (!is.null(cfg$frozen_initializer_path)) {
+      iqct_v6_assert_initial_design(cfg, fit$X)
+    }
 
     rollout_args <- iqfr_v2_design_args(
       y = model_source$y[rollout_rows], candidate = candidate,
@@ -567,11 +577,11 @@ iqcf_v3_run_job <- function(config_path) {
     fit_metrics <- iqcf_v3_fit_metric_draws(
       fit, draws, source, fit_rows, probability, response_transport
     )
-    solver_artifacts <- character()
+    solver_artifacts <- initialization_artifacts
     if (isTRUE(cfg$collect_solver_diagnostics)) {
-      solver_artifacts <- iqbs_v5_capture_fit(
+      solver_artifacts <- c(solver_artifacts, iqbs_v5_capture_fit(
         cfg, fit, draws, source, fit_rows, response_transport
-      )
+      ))
     }
     origins_source <- seq.int(
       iqfr_v2_integer(cfg$origins$start), iqfr_v2_integer(cfg$origins$end),
