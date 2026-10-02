@@ -513,6 +513,7 @@ iqcf_v3_run_job <- function(config_path) {
       normal_args = normal_args
     ))
     iqfr_v2_assert_design(normal_fit, candidate, fit_end - 8500L)
+    if (isTRUE(cfg$collect_solver_diagnostics)) iqbs_v5_progress(cfg, "NORMAL_INITIALIZATION_COMPLETE")
     likelihood <- as.character(cfg$likelihood_family)
     init <- qdesn_normal_to_vb_init(
       normal_fit, likelihood_family = likelihood,
@@ -531,7 +532,9 @@ iqcf_v3_run_job <- function(config_path) {
       n_samp_xi = iqfr_v2_integer(budget$n_samp_xi, 400L),
       verbose = FALSE, init = init,
       sigmagam = exal_make_vb_sigmagam_control(),
-      beta_covariance = list(approximation = "diagonal",
+      beta_covariance = list(approximation = match.arg(
+        as.character(cfg$beta_covariance_approximation %||% "diagonal"),
+        c("diagonal", "full")),
                              label_uncertainty = TRUE)
     )
     fit_args <- iqfr_v2_design_args(
@@ -540,7 +543,9 @@ iqcf_v3_run_job <- function(config_path) {
     )
     fit_args$normal_args <- NULL
     fit_args$vb_args <- vb_args
+    if (isTRUE(cfg$collect_solver_diagnostics)) iqbs_v5_progress(cfg, "QUANTILE_VB_RUNNING")
     fit <- do.call(qdesn_fit_vb, fit_args)
+    if (isTRUE(cfg$collect_solver_diagnostics)) iqbs_v5_progress(cfg, "QUANTILE_VB_COMPLETE")
     iqfr_v2_assert_design(fit, candidate, fit_end - 8500L)
 
     rollout_args <- iqfr_v2_design_args(
@@ -562,10 +567,17 @@ iqcf_v3_run_job <- function(config_path) {
     fit_metrics <- iqcf_v3_fit_metric_draws(
       fit, draws, source, fit_rows, probability, response_transport
     )
+    solver_artifacts <- character()
+    if (isTRUE(cfg$collect_solver_diagnostics)) {
+      solver_artifacts <- iqbs_v5_capture_fit(
+        cfg, fit, draws, source, fit_rows, response_transport
+      )
+    }
     origins_source <- seq.int(
       iqfr_v2_integer(cfg$origins$start), iqfr_v2_integer(cfg$origins$end),
       by = iqfr_v2_integer(cfg$origins$stride)
     )
+    if (isTRUE(cfg$collect_solver_diagnostics)) iqbs_v5_progress(cfg, "FORECAST_RUNNING")
     origins_local <- origins_source - 8110L
     k_grid <- sort(unique(as.integer(cfg$inner_path_grid)))
     bank <- iqcf_v3_make_noise_bank(
@@ -697,7 +709,8 @@ iqcf_v3_run_job <- function(config_path) {
       result = cfg$result_path, metric_draws = cfg$metric_draw_path,
       origin_lead = cfg$origin_lead_path, lead_profile = cfg$lead_profile_path,
       origin_profile = cfg$origin_profile_path,
-      origin_blocks = cfg$origin_block_path
+      origin_blocks = cfg$origin_block_path,
+      solver_artifacts
     )
     hashes <- lapply(artifacts, iqfr_v2_sha256)
     finished <- Sys.time()
