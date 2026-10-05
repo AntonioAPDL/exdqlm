@@ -748,7 +748,8 @@ qdesn_fit_vb <- function(
       stop("lag preprocessing overrides must be finite with positive scales.",
            call. = FALSE)
     }
-  } else if (identical(input_mode_effective, "dlm_decomp_lags")) {
+  }
+  if (identical(input_mode_effective, "dlm_decomp_lags")) {
     decomp_runtime <- .qdesn_prepare_decomposition_runtime(
       y = y,
       decomp_cfg = decomp_cfg,
@@ -779,10 +780,10 @@ qdesn_fit_vb <- function(
   }
 
   # --- optional standardization stats for reservoir-input lags ---
-  if (identical(input_mode_effective, "dlm_decomp_lags")) {
+  if (!has_preprocess_override && identical(input_mode_effective, "dlm_decomp_lags")) {
     lag_center <- as.numeric(decomp_runtime$lag_center)
     lag_scale <- as.numeric(decomp_runtime$lag_scale)
-  } else {
+  } else if (!has_preprocess_override) {
     lag_center <- 0
     lag_scale <- 1
     if (isTRUE(standardize_inputs) && m_input > 0L) {
