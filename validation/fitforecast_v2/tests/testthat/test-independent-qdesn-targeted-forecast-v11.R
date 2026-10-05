@@ -155,8 +155,8 @@ test_that("conditional planning freezes validated stage transitions and retains 
           source_origin = rep(c(8750L, 8755L, 8760L), each = 2), lead = rep(1:2, 3),
           point_prediction = score, q_target = 0, absolute_oracle_error = score,
           check_loss = score, posterior_sd = .1), file.path(evidence, "origin_lead.csv.gz")))
-      if (cfg$stage == "cost") paths <- c(paths, iqfr_v2_write_json(list(fit_seconds = 1,
-        forecast_seconds = 1, cost_mcmc_seconds = 1, vb_max_iter = 80,
+      if (cfg$stage %in% c("cost", "pilot")) paths <- c(paths, iqfr_v2_write_json(list(fit_seconds = 1,
+        forecast_seconds = if (cfg$stage == "cost") 4 else 1, cost_mcmc_seconds = 1, vb_max_iter = 80,
         origins = 2, outer = 4, inner = 8, mcmc_iterations = 200), file.path(evidence, "timing.json")))
     }
     iqtf_v11_hash(cfg$config_path, file.path(evidence, "input_hashes.csv"))
@@ -182,6 +182,10 @@ test_that("conditional planning freezes validated stage transitions and retains 
   plan <- read.csv(file.path(root, "plans/confirmation.csv"))
   cfg <- lapply(plan$config_path, iqfr_v2_read_json)
   expect_true(all(vapply(cfg, function(c) c$mcmc_burn == 5000 && c$mcmc_retained == 20000, TRUE)))
+  expect_true(all(vapply(cfg, function(c) c$worker_timeout_seconds == 172800L, TRUE)))
+  expect_true(all(read.csv(file.path(root, "cost_gate.csv"))$estimated_confirmation_seconds > 43200))
+  expect_true(all(read.csv(file.path(root, "selected_confirmation_cost_gate.csv"))$
+    estimated_confirmation_seconds < 172800))
   for (case in names(refs)) for (chain in 1:3) {
     pairs <- Filter(function(c) c$case_id == case && c$chain_index == chain, cfg)
     expect_equal(pairs[[1]]$seed, pairs[[2]]$seed)

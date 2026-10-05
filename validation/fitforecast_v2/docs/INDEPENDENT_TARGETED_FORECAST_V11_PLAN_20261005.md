@@ -110,8 +110,10 @@ negative results are not valid exclusions.
 
 Cost workers: 80 VB iterations, two origins, H30, four outer/eight inner
 paths; real MCMC 40 burn/160 retained. Estimated discovery per largest
-design must be under six hours; confirmation under twelve hours. Failure
-stops expansion, not silently simplifying models.
+design must be under six hours. Full confirmation estimates are recorded,
+not used to block affordable discovery. After pilot selection, measured
+costs for the actual nominees and anchors must fit the 48-hour confirmation
+limit. A blocked budget is not a scientific failure or a mixing exclusion.
 
 Normal VB: 200 iterations, Woodbury diagonal covariance only as an initializer.
 Quantile VB: 750 iterations maximum, tolerance 1e-4, 400 xi samples, full
@@ -154,7 +156,8 @@ only after these contrasts; do not hide it inside forecasting.
 At most six idle physical cores on muscat, initially CPUs 25:30; one
 computational thread per model, no interference with other scientific lanes.
 Resource checks require unique physical cores and >=90% idle sibling threads.
-Wait at most one hour; per-worker timeout twelve hours. Lock attempts,
+Wait at most one hour; discovery/pilot timeout twelve hours and selected
+confirmation timeout 48 hours. Lock attempts,
 refuse overwrites, reap all completed peers before replacements, stop new
 dispatch on failure, drain active workers and record truthful exit states.
 
@@ -187,3 +190,21 @@ Only the coordinator integrates shared validation, Article-v2 and Overleaf.
 While active: NOT_READY_FOR_INTEGRATION. Frozen handoff must give full
 branch/upstream/HEAD, exact files, dependencies, tests, counts, hashes,
 storage exclusions, risks and remaining active jobs.
+
+## Measured cost correction
+
+The first attempt at commit aed8e93f completed both 501-column cost workers
+successfully. Discovery estimates were 1,426.6 and 1,533.5 seconds, while
+full uncertainty confirmation estimates were 88,774.4 and 98,725.1 seconds.
+Forecast simulation, not fitting or RAM, dominated the cost. A global
+twelve-hour confirmation gate stopped all scheduling despite affordable
+discovery. That attempt and its original source are preserved in their own
+worktree, with no reset, deletion or overwritten manifests.
+
+The corrected budgeted worktree separates discovery affordability from
+conditional confirmation affordability. Keep every design, retained chain
+length, outer draw count and inner-path count unchanged. Only selected
+confirmation is allowed a longer deadline. This can run beyond one night;
+do not promise overnight completion. It avoids rejecting large designs
+before observing whether they offer forecast gains, without automatically
+spending long compute on every screened design.

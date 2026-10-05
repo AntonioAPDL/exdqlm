@@ -73,8 +73,9 @@ for stage in cost initializers discovery pilot confirmation; do
         if [[ ${active_slots[$pid]} == "$slot" ]]; then busy=1; break; fi
       done
       if (( busy )); then continue; fi
-      item=${rows[$next]};id=${item%%$'\t'*};config=${item#*$'\t'}
-      taskset -c "${cpus[$slot]}" timeout --signal=TERM --kill-after=60s 43200s \
+      IFS=$'\t' read -r id config worker_seconds <<< "${rows[$next]}"
+      [[ "$worker_seconds" =~ ^[0-9]+$ && "$worker_seconds" -gt 0 && "$worker_seconds" -le 172800 ]]
+      taskset -c "${cpus[$slot]}" timeout --signal=TERM --kill-after=60s "${worker_seconds}s" \
         "$rscript" --vanilla "$script" "$repo" worker "$config" 9>&- > "$run/logs/$id.log" 2>&1 &
       pid=$!;active_slots[$pid]=$slot;active_ids[$pid]=$id
       next=$((next+1));started=$((started+1))

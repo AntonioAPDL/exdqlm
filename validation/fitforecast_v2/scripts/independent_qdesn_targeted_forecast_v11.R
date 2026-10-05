@@ -20,7 +20,12 @@ switch(mode,
     stopifnot(!anyDuplicated(p$job_id), !anyDuplicated(p$config_path),
       !anyDuplicated(p$status_path), all(grepl("^[A-Za-z0-9_-]+$", p$job_id)),
       !any(file.exists(p$status_path)))
-    if (nrow(p)) cat(paste(p$job_id, p$config_path, sep = "\t"), sep = "\n")
+    if (nrow(p)) {
+      limits <- vapply(p$config_path, function(path)
+        as.integer(iqfr_v2_read_json(path)$worker_timeout_seconds), 1L)
+      stopifnot(all(limits > 0L), all(limits <= 172800L))
+      cat(paste(p$job_id, p$config_path, limits, sep = "\t"), sep = "\n")
+    }
   },
   health = cat(jsonlite::toJSON(iqtf_v11_health(args[3]), pretty = TRUE, auto_unbox = TRUE), "\n"),
   closeout = iqtf_v11_closeout(args[3]),

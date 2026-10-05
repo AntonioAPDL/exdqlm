@@ -119,7 +119,7 @@ iqtf_v11_config <- function(ref, candidate, stage, run, repo, chain = 1L) {
     mcmc_burn = 1000L, mcmc_retained = 4000L,
     inference = if (stage %in% c("pilot", "confirmation")) "mcmc" else "vb",
     scientific_role = "internal_training_development_not_article_replacement",
-    execution_kind = "production")
+    execution_kind = "production", worker_timeout_seconds = 43200L)
   cfg$chain_seed <- 500000000L + cfg$seed + chain * 100000L
   cfg$seed <- cfg$seed + chain * 100000L
   if (stage == "cost") {
@@ -132,6 +132,7 @@ iqtf_v11_config <- function(ref, candidate, stage, run, repo, chain = 1L) {
     cfg$outer_draws <- 120L; cfg$inner_path_grid <- 128L
   }
   if (stage == "confirmation") {
+    cfg$worker_timeout_seconds <- 172800L
     cfg$outer_draws <- 300L; cfg$inner_path_grid <- 128L
     cfg$mcmc_burn <- 5000L; cfg$mcmc_retained <- 20000L
   }
@@ -485,8 +486,7 @@ iqtf_v11_advance <- function(repo, run, stage) {
     costs <- do.call(rbind, records)
     iqfr_v2_write_csv(costs, file.path(run, "cost_gate.csv"))
     stopifnot(all(is.finite(as.matrix(costs[-1L]))),
-      all(costs$estimated_discovery_seconds < 21600),
-      all(costs$estimated_confirmation_seconds < 43200))
+      all(costs$estimated_discovery_seconds < 21600))
     for (case in names(specs)) {
       cs <- specs[[case]]; cs <- cs[!duplicated(vapply(cs, function(c) c$structure_id, ""))]
       for (c in cs) configs[[length(configs) + 1L]] <-
@@ -522,6 +522,20 @@ iqtf_v11_advance <- function(repo, run, stage) {
     iqfr_v2_write_json(list(stage = stage, selected = picks, anchors = anchors,
       thresholds = 0, diagnostic_veto = FALSE, VB_gain_gate = FALSE),
       file.path(run, paste0(stage, "_selection.json")))
+    if (stage == "pilot" && length(configs)) {
+      budgets <- lapply(unique(vapply(configs, function(c) c$candidate$candidate_id, "")), function(id) {
+        path <- rows$config_path[rows$candidate_id == id][1L]
+        old <- iqfr_v2_read_json(path)
+        t <- iqfr_v2_read_json(file.path(run, "evidence", old$job_id, "timing.json"))
+        data.frame(candidate_id = id, case_id = old$case_id,
+          estimated_confirmation_seconds = t$fit_seconds * (25000 / 5000) +
+            t$forecast_seconds * (300 / old$outer_draws) * (128 / old$inner_path_grid))
+      })
+      budgets <- do.call(rbind, budgets)
+      iqfr_v2_write_csv(budgets, file.path(run, "selected_confirmation_cost_gate.csv"))
+      stopifnot(all(is.finite(budgets$estimated_confirmation_seconds)),
+        all(budgets$estimated_confirmation_seconds < 172800))
+    }
   }
   next_stage <- iqtf_v11_stages[match(stage, iqtf_v11_stages) + 1L]
   if (!is.na(next_stage)) iqtf_v11_plan(configs, next_stage, run)

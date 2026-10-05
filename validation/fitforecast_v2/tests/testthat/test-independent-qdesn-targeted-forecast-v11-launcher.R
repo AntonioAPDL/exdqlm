@@ -12,7 +12,7 @@ iqtf_launcher_fixture <- function(mode = "success") {
     "dispatch)",
     " if [[ $MOCK_MODE == bad_plan ]]; then exit 53; fi",
     " if [[ $6 == cost ]]; then",
-    "  for i in $(seq 1 8); do printf 'job%02d\\tjob%02d\\n' \"$i\" \"$i\"; done",
+    "  for i in $(seq 1 8); do printf 'job%02d\\tjob%02d\\t43200\\n' \"$i\" \"$i\"; done",
     " fi",
     " ;;",
     "worker)",
