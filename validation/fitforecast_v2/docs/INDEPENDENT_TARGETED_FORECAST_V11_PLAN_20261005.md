@@ -187,4 +187,3 @@ Only the coordinator integrates shared validation, Article-v2 and Overleaf.
 While active: NOT_READY_FOR_INTEGRATION. Frozen handoff must give full
 branch/upstream/HEAD, exact files, dependencies, tests, counts, hashes,
 storage exclusions, risks and remaining active jobs.
-

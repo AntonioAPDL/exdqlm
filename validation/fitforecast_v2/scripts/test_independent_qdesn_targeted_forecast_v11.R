@@ -21,4 +21,3 @@ stopifnot(all(results$failed == 0), !any(results$error), all(results$warning == 
   all(results$skipped == 0))
 cat("Passed:", sum(results$passed), "failed:", sum(results$failed),
   "warnings:", sum(results$warning), "\n")
-

@@ -90,4 +90,3 @@ test_that("a duplicate launcher cannot corrupt the owning attempt", {
   expect_equal(iqtf_launcher_wait(iqtf_launcher_start(f)), 73)
   expect_equal(iqtf_launcher_wait(p), 0)
 })
-

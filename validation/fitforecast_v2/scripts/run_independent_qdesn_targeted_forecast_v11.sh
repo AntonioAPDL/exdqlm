@@ -93,4 +93,3 @@ write_status CLOSING
 "$rscript" --vanilla "$script" "$repo" closeout "$run"
 write_status COMPLETE
 terminal_state=COMPLETE
-
