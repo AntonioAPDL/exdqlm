@@ -2,6 +2,10 @@ iqt12_stages <- c("cost", "diagnosis", "size_pilot", "normal1", "normal2", "norm
   "quantile_A", "quantile_B", "bridge", "final_vb", "final_warm", "final_mcmc")
 iqt12_cell <- function(family, p, likelihood) paste(family, likelihood,
   sprintf("p%03d", as.integer(round(100 * p))), sep = "__")
+iqt12_trace_summary <- function(x) {
+  if (is.null(x) || !length(x)) return(NULL)
+  as.list(unclass(summary(as.numeric(x))))
+}
 iqt12_topology <- function(c) {
   n <- iqt12_unpack(c$n)
   c$input_fanin <- min(as.integer(c$input_fanin), as.integer(c$m) + 1L)
@@ -366,8 +370,8 @@ iqt12_worker <- function(path) {
       q <- iqt12_baseline_forecast(e, cfg, source, fit, progress)
       diag <- list(proposal = if (cfg$likelihood == "al") "gamma_fixed" else
           fit$mh.diagnostics$proposal %||% "structured_VB",
-        gamma = summary(fit$samp.gamma %||% fit$qsiggam$gamma_draws),
-        sigma = summary(fit$samp.sigma %||% fit$qsiggam$sigma_draws),
+        gamma = iqt12_trace_summary(fit$samp.gamma %||% fit$qsiggam$gamma_draws),
+        sigma = iqt12_trace_summary(fit$samp.sigma %||% fit$qsiggam$sigma_draws),
         method = if (cfg$likelihood == "al") paste0("CRAN_AL_gamma_fixed_", cfg$engine) else
           if (cfg$engine == "mcmc") "CRAN_collapsed_slice" else "CRAN_structured_LDVB")
       if (cfg$engine == "vb" && cfg$likelihood == "exal") diag$sigmagam <- list(
@@ -419,7 +423,7 @@ iqt12_worker <- function(path) {
         diag <- list(converged = fit$converged %||% NA,
           method = fit$diagnostics$core_update_mode %||% "structured_full_covariance_VB",
           diagnostics = fit$diagnostics %||% list(),
-          sigma_trace = summary(fit$samp.sigma), gamma_trace = summary(fit$samp.gamma))
+          sigma_trace = iqt12_trace_summary(fit$samp.sigma), gamma_trace = iqt12_trace_summary(fit$samp.gamma))
         diag$posterior_sigmagam_draw_contract <- draws$sigmagam_draw_contract
         if (cfg$engine == "vb") diag$sigmagam <- list(
           gamma_mean = fit$qsiggam$gamma_mean,
@@ -441,7 +445,7 @@ iqt12_worker <- function(path) {
       diag$reservoir_matrix_hash <- digest::digest(cx$object$reservoir[c("W", "Win", "Q")], algo = "sha256")
       diag$spectral_diagnostics <- cx$object$reservoir$spectral_diagnostics
       diag$achieved_fanin <- lapply(cx$object$reservoir$Win, function(w)
-        summary(as.numeric(Matrix::rowSums(w != 0))))
+        iqt12_trace_summary(as.numeric(Matrix::rowSums(w != 0))))
       diag$saturation_fraction <- mean(abs(cx$object$X[, -1, drop = FALSE]) > .99)
       center <- colMeans(cx$object$X[, -1, drop = FALSE])
       sd_features <- apply(cx$object$X[, -1, drop = FALSE], 2, sd)

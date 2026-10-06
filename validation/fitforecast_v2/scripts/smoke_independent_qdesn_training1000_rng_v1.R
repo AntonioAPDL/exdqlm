@@ -13,6 +13,8 @@ cfg <- list(baseline = baseline, window = w, p = .25, likelihood = "exal",
 fit <- iqt12_baseline_fit(e, cfg, source)
 stopifnot(fit$mh.diagnostics$proposal == "collapsed_slice")
 warm <- iqt12_baseline_fit(e, modifyList(cfg, list(engine = "vb")), source)
+vb_forecast <- iqt12_baseline_forecast(e, modifyList(cfg, list(engine = "vb")), source, warm)
+stopifnot(all(is.finite(vb_forecast)))
 payload <- list(sig.out = warm$sig.out, gammasig.out = warm$gammasig.out,
   vts.out = list(E.uts = warm$vts.out$E.uts), sts.out = list(E.sts = warm$sts.out$E.sts),
   theta.out = list(sm = unname(warm$theta.out$sm)))
@@ -28,6 +30,9 @@ cfg$likelihood <- "al"
 cfg$warm_path <- NULL; cfg$warm_sha <- NULL
 al <- iqt12_baseline_fit(e, cfg, source)
 stopifnot(is.null(al$samp.gamma) || all(al$samp.gamma == 0))
+stopifnot(all(is.finite(iqt12_baseline_forecast(e, cfg, source, al))))
+al_vb <- iqt12_baseline_fit(e, modifyList(cfg, list(engine = "vb")), source)
+stopifnot(all(is.finite(iqt12_baseline_forecast(e, modifyList(cfg, list(engine = "vb")), source, al_vb))))
 iqt12_json(list(hash = digest::digest(list(fit$samp.sigma, fit$samp.gamma,
   fit$samp.theta), algo = "sha256"), proposal = fit$mh.diagnostics$proposal,
   warm_replay_error = add, finite_forecast = TRUE, AL_gamma_fixed = TRUE,

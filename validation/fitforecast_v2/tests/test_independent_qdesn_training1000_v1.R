@@ -99,6 +99,16 @@ testthat::test_that("JSON initializers and hash manifests survive round trips", 
   testthat::expect_error(iqt12_verify(m))
 })
 
+testthat::test_that("diagnostic summaries serialize numeric and MCMC traces without S3 tables", {
+  p <- tempfile(fileext = ".json")
+  x <- list(empty = iqt12_trace_summary(NULL), trace = iqt12_trace_summary(coda::mcmc(1:40)),
+    fanin = iqt12_trace_summary(rep(8L, 12)))
+  iqt12_json(x, p); z <- iqt12_read(p)
+  testthat::expect_null(z$empty)
+  testthat::expect_equal(z$trace$Mean, 20.5)
+  testthat::expect_equal(z$fanin$Mean, 8)
+})
+
 testthat::test_that("plans are immutable and final MCMC uses declared lengths", {
   root <- tempfile(); dir.create(root)
   cell <- iqt12_cell("normal", .25, "exal")

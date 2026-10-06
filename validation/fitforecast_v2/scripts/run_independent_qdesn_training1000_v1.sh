@@ -85,6 +85,10 @@ for stage in "${stages[@]}"; do
     sleep 5
   done
   [[ -z "$hold" ]] || break
+  if [[ ${IQT12_STOP_AFTER_STAGE:-} == "$stage" ]]; then
+    printf 'WORKER_SMOKE_COMPLETE\t%s\tstage=%s\n' "$(date -u +%FT%TZ)" "$stage" > "$run/scheduler.status"
+    exit 0
+  fi
   if ! "$rscript" "$cli" advance "$repo" "$run" "$stage" >> "$run/logs/scheduler.log" 2>&1; then
     hold="stage_gate_$stage"; break
   fi

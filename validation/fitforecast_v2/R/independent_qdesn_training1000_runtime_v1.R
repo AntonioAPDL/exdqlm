@@ -66,7 +66,7 @@ iqt12_runtime <- function(repo, library) {
   e$.normal_desn_sym_solve <- function(P, h = NULL) .solve_sympd(P, h)
   environment(e$.normal_desn_sym_solve) <- e
   # Study engines are private; official dynamic functions keep their CRAN namespace.
-  study <- c("utils.R", "atomic_specs.R", "source_registry.R", "model_builders.R", "metric_intervals_v1.R",
+  study <- c("utils.R", "atomic_specs.R", "source_registry.R", "telemetry.R", "model_builders.R", "metric_intervals_v1.R",
     "exdqlm_rolling_state.R", "independent_qdesn_full_redesign_v2_runtime.R",
     "independent_qdesn_corrected_forecast_v3.R", "independent_dgp_oracle_reference_v1.R")
   for (f in study) sys.source(file.path(repo, "validation/fitforecast_v2/R", f), e)

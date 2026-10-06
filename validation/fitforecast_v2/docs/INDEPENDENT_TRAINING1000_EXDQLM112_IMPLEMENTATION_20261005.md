@@ -78,6 +78,13 @@ Corrections made during implementation:
     depth 3/4. Pass the shared fan-in as a scalar, matching the builder's
     layerwise expansion API. Add explicit depth-3/4 construction regressions
     before any candidate work is dispatched.
+13. The first eight production cost probes stopped on worker artifact/runtime
+    wiring, not scientific failure: numeric/MCMC summary classes were not JSON
+    serializable, and AL/VB rolling updates lacked the telemetry scalar helper.
+    Use plain named numeric summary lists, load the existing telemetry utilities,
+    exercise AL and exAL rolling forecasts under both engines, and require a
+    complete eight-worker artifact smoke before the replacement production run.
+    Preserve the first failed run unchanged; no broad jobs were launched from it.
 
 ## Information and Evaluation Contract
 
@@ -288,6 +295,13 @@ PREFLIGHT_PACKET`. The run path must not exist. Launch the scheduler with
 `bash validation/fitforecast_v2/scripts/run_independent_qdesn_training1000_v1.sh
 REPO RUN` in a detached tmux session. Only frozen stages are dispatched.
 No automatic retries or unrecorded replacement candidates are allowed.
+
+For a complete worker-to-artifact smoke, set `IQT12_STOP_AFTER_STAGE=cost` on
+the scheduler. It drains eight probes and exits before any stage advancement.
+After all eight verified SUCCESS manifests, restart the same frozen run without
+that environment variable. Completed probes are reused without refitting;
+normal cost/scientific gates then control the remaining pipeline. Do not reuse
+the failed first run or change its statuses.
 
 References: [official CRAN exdqlm](https://cran.r-project.org/package=exdqlm);
 [rolling-origin validation](https://otexts.com/fpp3/tscv.html).
