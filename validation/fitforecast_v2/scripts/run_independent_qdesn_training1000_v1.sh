@@ -3,7 +3,7 @@ set -euo pipefail
 repo=$(realpath "$1")
 run=$(realpath "$2")
 rscript=${RSCRIPT:-/data/jaguir26/local/opt/R/4.6.0/bin/Rscript}
-cli="$repo/validation/fitforecast_v2/scripts/independent_qdesn_training1000_v1.R"
+cli=${IQT12_CLI:-"$repo/validation/fitforecast_v2/scripts/independent_qdesn_training1000_v1.R"}
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 export BLIS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 RCPP_PARALLEL_NUM_THREADS=1
 export LC_ALL=C
@@ -16,11 +16,12 @@ printf '%s\n' "$cpus" > "$run/allocated_cpus.txt"
 printf 'RUNNING\t%s\t%s workers\n' "$(date -u +%FT%TZ)" "${#cores[@]}" > "$run/scheduler.status"
 declare -A jobs=() configs=() starts=() assigned=()
 spent=0
+cpu_budget=${IQT12_CPU_BUDGET_SECONDS:-4320000}
 if [[ -f "$run/receipts/exits.tsv" ]]; then
   spent=$(awk '{sum += $3} END {printf "%.0f", sum}' "$run/receipts/exits.tsv")
 fi
 hold=""
-stages=(cost diagnosis size_pilot normal1 normal2 normal3 quantile_A quantile_B bridge final_vb final_warm final_mcmc)
+read -r -a stages <<< "${IQT12_STAGES:-cost diagnosis size_pilot normal1 normal2 normal3 quantile_A quantile_B bridge final_vb final_warm final_mcmc}"
 for stage in "${stages[@]}"; do
   plan="$run/plans/$stage.csv"
   [[ -f "$plan" ]] || { hold="missing_frozen_stage_$stage"; break; }
@@ -58,7 +59,7 @@ for stage in "${stages[@]}"; do
     size=$(du -sk "$run" | awk '{print $1}')
     free=$(df -Pk "$run" | awk 'NR==2 {print $4}')
     (( size <= 41943040 && free >= 20971520 )) || hold="disk_budget_review_required"
-    (( spent + running_time < 4320000 )) || hold="1200_worker_hour_budget_review_required"
+    (( spent + running_time < cpu_budget )) || hold="worker_hour_budget_review_required"
     (( now - epoch < 172800 )) || hold="48h_stage_wall_budget_review_required"
     if [[ -n "$hold" ]]; then
       printf 'DRAINING\t%s\t%s\n' "$(date -u +%FT%TZ)" "$hold" > "$run/scheduler.status"
@@ -92,6 +93,7 @@ for stage in "${stages[@]}"; do
   if ! "$rscript" "$cli" advance "$repo" "$run" "$stage" >> "$run/logs/scheduler.log" 2>&1; then
     hold="stage_gate_$stage"; break
   fi
+  if [[ -f "$run/early_complete.json" ]]; then break; fi
 done
 if [[ -n "$hold" ]]; then
   printf 'PAUSED_REVIEW_REQUIRED\t%s\t%s\n' "$(date -u +%FT%TZ)" "$hold" > "$run/scheduler.status"

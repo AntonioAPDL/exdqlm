@@ -6,6 +6,30 @@ iqt12_trace_summary <- function(x) {
   if (is.null(x) || !length(x)) return(NULL)
   as.list(unclass(summary(as.numeric(x))))
 }
+iqt12_nuisance_trace <- function(sigma, gamma, intercept = NULL) {
+  sigma <- as.numeric(sigma); gamma <- as.numeric(gamma)
+  stopifnot(length(sigma) > 0L, length(gamma) == length(sigma),
+    all(is.finite(sigma)), all(sigma > 0), all(is.finite(gamma)))
+  out <- data.frame(iteration = seq_along(sigma), sigma = sigma, gamma = gamma)
+  if (!is.null(intercept)) {
+    intercept <- as.numeric(intercept)
+    stopifnot(length(intercept) == length(sigma), all(is.finite(intercept)))
+    out$intercept <- intercept
+  }
+  out
+}
+iqt12_size_gate <- function(primary) {
+  stopifnot(nrow(primary) > 0L, all(is.finite(primary$ratio_1000_over_500)),
+    !anyNA(primary$strict_gain))
+  count_pass <- mean(primary$strict_gain) >= .5
+  median_pass <- median(primary$ratio_1000_over_500) <= 1
+  failed <- c(if (!count_pass) "improvement_count_below_half",
+    if (!median_pass) "median_forecast_MAE_ratio_above_one")
+  list(pass = count_pass && median_pass, count_pass = count_pass,
+    median_pass = median_pass, reason = if (length(failed)) paste(failed, collapse = ";") else "PASS",
+    improvement_count = sum(primary$strict_gain), cases = nrow(primary),
+    median_ratio = median(primary$ratio_1000_over_500))
+}
 iqt12_topology <- function(c) {
   n <- iqt12_unpack(c$n)
   c$input_fanin <- min(as.integer(c$input_fanin), as.integer(c$m) + 1L)
@@ -384,8 +408,8 @@ iqt12_worker <- function(path) {
         sigma_ESS = unname(coda::effectiveSize(fit$samp.sigma)),
         gamma_ESS = if (cfg$likelihood == "exal") unname(coda::effectiveSize(fit$samp.gamma)) else NA_real_,
         diagnostic_exclusion_gate = FALSE)
-      if (cfg$engine == "mcmc") iqt12_csv(data.frame(iteration = seq_along(fit$samp.sigma),
-        sigma = fit$samp.sigma, gamma = fit$samp.gamma %||% rep(0, cfg$retained)),
+      if (cfg$engine == "mcmc") iqt12_csv(iqt12_nuisance_trace(
+        fit$samp.sigma, fit$samp.gamma %||% rep(0, cfg$retained)),
         file.path(cfg$evidence, "nuisance_trace.csv.gz"))
     } else {
       cx <- iqt12_design(e, cfg, source, cfg$window$end)
@@ -443,9 +467,8 @@ iqt12_worker <- function(path) {
           gamma_ESS = if (cfg$likelihood == "exal") unname(coda::effectiveSize(fit$samp.gamma)) else NA_real_,
           intercept_ESS = unname(coda::effectiveSize(fit$samp.beta[, 1])),
           diagnostic_exclusion_gate = FALSE)
-        if (cfg$engine == "mcmc") iqt12_csv(data.frame(iteration = seq_along(fit$samp.sigma),
-          sigma = fit$samp.sigma * cx$scale, gamma = fit$samp.gamma,
-          intercept = fit$samp.beta[, 1] * cx$scale),
+        if (cfg$engine == "mcmc") iqt12_csv(iqt12_nuisance_trace(
+          fit$samp.sigma * cx$scale, fit$samp.gamma, fit$samp.beta[, 1] * cx$scale),
           file.path(cfg$evidence, "nuisance_trace.csv.gz"))
       }
       diag$initialization_dependence <- cx$initialization_dependence
@@ -607,12 +630,10 @@ iqt12_advance <- function(run, finished) {
     if (finished == "size_pilot") {
       contrast <- read.csv(file.path(run, "summaries/training_size_contrast.csv"))
       primary <- contrast[contrast$model == "qdesn" & contrast$metric == "forecast_mae", ]
-      if (mean(primary$strict_gain) < .5 || median(primary$ratio_1000_over_500) > 1) {
-        iqt12_json(list(status = "PAUSED_TRAINING_SIZE_REVIEW",
-          reason = "N1000 did not improve at least half the fixed-design Q cases on fold A",
-          improvement_count = sum(primary$strict_gain), cases = nrow(primary),
-          median_ratio = median(primary$ratio_1000_over_500),
-          article_change = FALSE), file.path(run, "scientific_gate.json"))
+      gate <- iqt12_size_gate(primary)
+      if (!gate$pass) {
+        iqt12_json(c(list(status = "PAUSED_TRAINING_SIZE_REVIEW", article_change = FALSE),
+          gate), file.path(run, "scientific_gate.json"))
         stop("Training-size evidence requires investigator review before broad scheduling.")
       }
     }
