@@ -55,7 +55,7 @@ iqt12_config <- function(state, cell, c, stage, engine = "vb", N = 1000L,
   k <- match(cell, names(state$references)); ref <- state$references[[cell]]
   job <- paste(stage, cell, model, engine, N, c$id, chain, sep = "__")
   budget <- switch(stage,
-    cost = list(outer = 4L, inner = 8L, vb = 40L, burn = 20L, retained = 40L),
+    cost = list(outer = 32L, inner = 32L, vb = 40L, burn = 20L, retained = 40L),
     diagnosis = list(outer = 32L, inner = 32L, vb = 400L),
     size_pilot = list(outer = 32L, inner = 32L, vb = 400L, burn = 1000L, retained = 4000L),
     quantile_A = list(outer = 32L, inner = 32L, vb = 750L),
@@ -347,6 +347,7 @@ iqt12_worker <- function(path) {
   iqt12_json(list(status = "RUNNING", pid = Sys.getpid(), id = cfg$id,
     started = format(Sys.time(), tz = "UTC", usetz = TRUE)), cfg$status_path)
   warnings <- character()
+  seconds_forecast <- 0
   tryCatch(withCallingHandlers({
     source <- read.csv(cfg$source_path)
     # Source-index alignment is explicit, never a hardcoded local offset.
@@ -367,7 +368,9 @@ iqt12_worker <- function(path) {
         theta.out = list(sm = unname(fit$theta.out$sm)))),
         file.path(cfg$evidence, "mcmc_initializer.json"))
       seconds_fit <- proc.time()[["elapsed"]] - fitting
+      forecasting <- proc.time()[["elapsed"]]
       q <- iqt12_baseline_forecast(e, cfg, source, fit, progress)
+      seconds_forecast <- proc.time()[["elapsed"]] - forecasting
       diag <- list(proposal = if (cfg$likelihood == "al") "gamma_fixed" else
           fit$mh.diagnostics$proposal %||% "structured_VB",
         gamma = iqt12_trace_summary(fit$samp.gamma %||% fit$qsiggam$gamma_draws),
@@ -391,7 +394,9 @@ iqt12_worker <- function(path) {
         draws <- e$normal_desn_posterior_draws(object, cfg$outer, seed = cfg$seed)
         fit_draws <- cx$object$X %*% t(draws$beta) * cx$scale
         seconds_fit <- proc.time()[["elapsed"]] - fitting
+        forecasting <- proc.time()[["elapsed"]]
         q <- iqt12_normal_forecast(e, cx, cfg, object, draws)
+        seconds_forecast <- proc.time()[["elapsed"]] - forecasting
         diag <- list(converged = object$fit$converged,
           initializer = "normal_RHS_screen_not_quantile_gate")
       } else {
@@ -404,12 +409,16 @@ iqt12_worker <- function(path) {
           file.path(cfg$evidence, "mcmc_initializer.json"))
         fit_draws <- cx$object$X %*% t(draws$beta) * cx$scale
         seconds_fit <- proc.time()[["elapsed"]] - fitting
+        forecasting <- proc.time()[["elapsed"]]
         fc <- iqt12_qforecast(e, cx, cfg, fit, draws, progress)
+        seconds_forecast <- proc.time()[["elapsed"]] - forecasting
         q <- fc$primary
         if (cfg$stage %in% c("final_vb", "final_mcmc") && cfg$chain == 1L &&
             cfg$cell == iqt12_cell("normal", .25, "exal")) {
           doubled <- cfg; doubled$inner <- 256L
+          refining <- proc.time()[["elapsed"]]
           refined <- iqt12_qforecast(e, cx, doubled, fit, draws, progress)
+          seconds_forecast <- seconds_forecast + proc.time()[["elapsed"]] - refining
           low <- iqt12_scores(fit_draws, q, source, cfg$window, cfg$p)$summary
           high <- iqt12_scores(fit_draws, refined$primary, source, cfg$window, cfg$p)$summary
           audit <- merge(low, high, by = "metric", suffixes = c("_128", "_256"))
@@ -481,6 +490,11 @@ iqt12_worker <- function(path) {
     iqt12_csv(cbind(source_index = cfg$window$train, fit_draws), file.path(cfg$evidence, "fit_location_draws.csv.gz"))
     iqt12_csv(cbind(iqt12_grid(cfg$window), q), file.path(cfg$evidence, "forecast_location_draws.csv.gz"))
     diag$warnings <- warnings; diag$fit_seconds <- seconds_fit
+    diag$inference_seconds <- if (cfg$engine == "normal") seconds_fit else
+      attr(fit, "iqt12_timing")$inference_seconds
+    diag$timing_contract <- "separate_fit_inference_forecast_and_fixed_overhead_v2"
+    diag$forecast_backend <- if (cfg$model == "qdesn") "study_sparse_particle_batches_256" else
+      "official_CRAN_forecast_filtered_origin_state"
     diag$canonical_configuration_key <- digest::digest(list(
       configuration = unname(tools::sha256sum(path)),
       sources = unname(tools::sha256sum(file.path(cfg$run, "source_hashes.csv"))),
@@ -491,7 +505,8 @@ iqt12_worker <- function(path) {
     diag$warm_path <- cfg$warm_path %||% "fresh_normal_RHS_then_quantile_VB"
     diag$total_seconds <- proc.time()[["elapsed"]] - start
     diag$cpu_seconds <- sum(proc.time()[c("user.self", "sys.self")])
-    diag$forecast_seconds <- diag$total_seconds - seconds_fit
+    diag$forecast_seconds <- seconds_forecast
+    diag$fixed_overhead_seconds <- max(0, diag$total_seconds - seconds_fit - seconds_forecast)
     status_lines <- readLines("/proc/self/status")
     diag$peak_rss_kib <- as.numeric(gsub("[^0-9]", "", status_lines[grepl("^VmHWM:", status_lines)]))
     iqt12_json(diag, file.path(cfg$evidence, "diagnostics.json"))
@@ -532,6 +547,26 @@ iqt12_rank <- function(z) {
     wide$mean.fit_rmse, wide$columns, wide$candidate_id), ]
 }
 
+iqt12_cost_projection <- function(cfg, d) {
+  stopifnot(d$timing_contract == "separate_fit_inference_forecast_and_fixed_overhead_v2",
+    is.finite(d$inference_seconds), d$inference_seconds >= 0,
+    d$inference_seconds <= d$fit_seconds + 1e-6,
+    is.finite(d$forecast_seconds), d$forecast_seconds >= 0)
+  final <- iqt12_window("final")
+  # Conservative work scaling; setup, exports and warm initialization occur once.
+  work_ratio <- nrow(iqt12_grid(final)) / nrow(iqt12_grid(cfg$window)) *
+    (if (cfg$engine == "vb") 900 else 300) / cfg$outer *
+    (if (cfg$model == "qdesn") 128 / cfg$inner else 1)
+  inference_ratio <- if (cfg$engine == "mcmc") 25000 / (cfg$burn + cfg$retained) else 1000 / cfg$vb_iter
+  data.frame(model = cfg$model, engine = cfg$engine, cell = cfg$cell,
+    fit_seconds = d$fit_seconds, inference_seconds = d$inference_seconds,
+    forecast_seconds = d$forecast_seconds, fixed_overhead_seconds = d$fixed_overhead_seconds,
+    peak_rss_gib = d$peak_rss_kib / 1024^2,
+    projected_final_forecast_seconds = d$forecast_seconds * work_ratio,
+    projected_final_fit_seconds = d$fit_seconds - d$inference_seconds + d$inference_seconds * inference_ratio,
+    projected_fixed_overhead_seconds = d$fixed_overhead_seconds)
+}
+
 iqt12_advance <- function(run, finished) {
   state <- iqt12_read(file.path(run, "campaign.json"))
   results <- iqt12_results(run, finished)
@@ -543,18 +578,12 @@ iqt12_advance <- function(run, finished) {
     plans <- read.csv(file.path(run, "plans/cost.csv"))
     costs <- lapply(plans$config_path, function(p) {
       cfg <- iqt12_read(p); d <- iqt12_read(file.path(cfg$evidence, "diagnostics.json"))
-      data.frame(model = cfg$model, engine = cfg$engine, cell = cfg$cell,
-        fit_seconds = d$fit_seconds, forecast_seconds = d$forecast_seconds,
-        peak_rss_gib = d$peak_rss_kib / 1024^2,
-        projected_final_forecast_seconds = d$forecast_seconds *
-          (34 / 2) * (if (cfg$engine == "vb") 900 / 4 else 300 / 4) *
-          (if (cfg$model == "qdesn") 128 / 8 else 1),
-        projected_final_fit_seconds = d$fit_seconds *
-          (if (cfg$engine == "mcmc") 25000 / 60 else 1000 / 40))
+      iqt12_cost_projection(cfg, d)
     })
     cost <- do.call(rbind, costs); iqt12_csv(cost, file.path(run, "summaries/cost_gate.csv"))
     if (any(cost$peak_rss_gib > state$max_worker_rss_gib) ||
-        any(cost$projected_final_forecast_seconds + cost$projected_final_fit_seconds > 48 * 3600))
+        any(cost$projected_final_forecast_seconds + cost$projected_final_fit_seconds +
+          cost$projected_fixed_overhead_seconds > 48 * 3600))
       stop("Measured resource envelope exceeds authorization; cost review required.")
     for (cell in names(state$references)) for (N in c(500L, 1000L))
       for (model in c("qdesn", "baseline")) add(iqt12_config(state, cell,

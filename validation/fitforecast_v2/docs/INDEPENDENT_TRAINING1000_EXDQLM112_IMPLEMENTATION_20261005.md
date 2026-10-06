@@ -303,5 +303,44 @@ that environment variable. Completed probes are reused without refitting;
 normal cost/scientific gates then control the remaining pipeline. Do not reuse
 the failed first run or change its statuses.
 
+## Cost and Forecast Backend Audit
+
+The first materialization stopped at eight artifact-wiring failures. A second
+materialization passed all eight probes but paused at its unchanged cost gate.
+Neither attempt dispatched broad screening. Both remain intact, including
+their original source/config hashes; the corresponding Git commits reconstruct
+the source even after this worktree advances. They are operational attempts,
+not scientific failures or evidence of no gain.
+
+The second gate exposed two implementation problems. The old forecast timer
+subtracted fitting time from total worker time, incorrectly including package
+loading, manifest verification and export. The reference R fallback also ran
+each recursive particle separately and computed predictive quantiles that this
+study does not consume. It is scientifically valid but unnecessarily expensive
+for the final 900-outer by 128-inner draw budget.
+
+The study now batches at most 256 particles through the same sparse reservoir
+transition and exAL innovation formula, using the exact existing noise bank,
+outer-draw ordering, per-origin teacher-forced state and recursive lag updates.
+The primary statistic still averages conditional-location paths AFTER recursion;
+it does not substitute the mean state or replace the posterior draw estimand.
+The plugin companion uses zero innovations. Unsupported readout transforms,
+dimension reduction, exogenous inputs and raw-lag readouts are rejected. Shared
+package code and the official baseline forecasting engine are not modified.
+
+Equivalence checks compare the reference and batched primary/plugin paths at
+depths 1, 3 and 4, with bounded/unbounded lag inputs and AL/exAL innovations.
+Differences must be below 1e-6. This performance change receives a new frozen
+run, never an in-place rewrite of the preceding manifests.
+
+Cost probes now use 32 outer draws and 32 inner paths to reduce timing noise.
+Forecast time is measured directly around forecasting; inference time is
+measured around the actual VB/MCMC call. Setup, exports, reservoir construction
+and MCMC initialization are counted once, not scaled by chain length. Forecast
+projection conservatively scales scored lead pairs and draw/path budgets.
+The 48-hour per-job, 1200-worker-hour campaign, 12-GiB worker and disk guards
+remain unchanged. Projections are estimates, not promised completion times;
+runtime guards still apply to later and larger candidate designs.
+
 References: [official CRAN exdqlm](https://cran.r-project.org/package=exdqlm);
 [rolling-origin validation](https://otexts.com/fpp3/tscv.html).

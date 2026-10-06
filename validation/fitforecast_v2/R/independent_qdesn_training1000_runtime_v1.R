@@ -197,6 +197,7 @@ iqt12_normal <- function(e, cx, cfg) {
 }
 
 iqt12_quantile <- function(e, cx, cfg, init = NULL) {
+  started <- proc.time()[["elapsed"]]
   prior <- iqt12_prior(e, cfg, cx$scale)
   if (cfg$engine == "mcmc" && !is.null(cfg$warm_path)) {
     stopifnot(unname(tools::sha256sum(cfg$warm_path)) == cfg$warm_sha)
@@ -214,13 +215,17 @@ iqt12_quantile <- function(e, cx, cfg, init = NULL) {
     verbose = FALSE, sigmagam = e$exal_make_vb_sigmagam_control(),
     beta_covariance = list(approximation = "full", label_uncertainty = TRUE))
   set.seed(cfg$seed)
+  vb_started <- proc.time()[["elapsed"]]
   vb <- e$exal_ldvb_fit(cx$object$y_fit, cx$object$X, cfg$p,
     gamma_bounds = c(e$L.fn(cfg$p), e$U.fn(cfg$p)), vb_control = control,
     likelihood_family = cfg$likelihood, init = init,
     al_fixed_gamma = if (cfg$likelihood == "al") 0 else NULL,
     prior_gamma = list(mu0 = 0, s20 = 10), prior_sigma = prior$sigma,
     beta_prior_obj = prior$beta)
-  if (cfg$engine == "vb") return(vb)
+  if (cfg$engine == "vb") {
+    attr(vb, "iqt12_timing") <- list(inference_seconds = proc.time()[["elapsed"]] - vb_started)
+    return(vb)
+  }
   initial <- list(beta = as.numeric(vb$qbeta$m), sigma = vb$qsiggam$sigma_mean,
     gamma = if (cfg$likelihood == "al") 0 else vb$qsiggam$gamma_mean,
     v = vb$qv$E_v, s = vb$qs$E_s)
@@ -234,6 +239,7 @@ iqt12_quantile <- function(e, cx, cfg, init = NULL) {
   mc$rng_seed <- cfg$seed
   mc$precision_beta <- list(enabled = TRUE, symmetrize = TRUE,
     jitter_ladder = 0, eigen_fallback = FALSE, trace = TRUE)
+  sampling_started <- proc.time()[["elapsed"]]
   fit <- e$exal_mcmc_fit(cx$object$y_fit, cx$object$X, cfg$p,
     gamma_bounds = c(e$L.fn(cfg$p), e$U.fn(cfg$p)), likelihood_family = cfg$likelihood,
     al_fixed_gamma = if (cfg$likelihood == "al") 0 else NULL,
@@ -244,6 +250,8 @@ iqt12_quantile <- function(e, cx, cfg, init = NULL) {
   stopifnot(fit$diagnostics$core_update_mode == expected,
     nrow(fit$samp.beta) == cfg$retained, all(is.finite(fit$samp.beta)))
   if (cfg$likelihood == "al") stopifnot(all(fit$samp.gamma == 0))
+  attr(fit, "iqt12_timing") <- list(inference_seconds = proc.time()[["elapsed"]] - sampling_started,
+    initialization_seconds = sampling_started - started)
   fit
 }
 
@@ -295,6 +303,43 @@ iqt12_normal_forecast <- function(e, cx, cfg, object, draws) {
   do.call(rbind, out)
 }
 
+# Same recursive transition as forecast_paths.qdesn_fit, batched over particles.
+# This narrow backend intentionally rejects designs outside the frozen study.
+iqt12_particle_paths <- function(e, object, y, local, H, draws, noise) {
+  r <- object$reservoir; meta <- object$meta; spec <- meta$readout_spec
+  count <- nrow(draws$beta)
+  stopifnot(all(r$Q_is_identity), identical(r$act_f, "tanh"),
+    identical(r$act_k, "identity"), isTRUE(meta$add_bias),
+    !isTRUE(spec$include_input), length(spec$y_lags) == 0L,
+    length(spec$x_names) == 0L, (spec$reservoir_lags %||% 0L) == 0L,
+    !isTRUE(spec$linear_transform$active), !isTRUE(spec$scale_info$scaled),
+    !isTRUE(meta$readout_scale$scaled), ncol(draws$beta) == sum(r$n) + 1L,
+    all(vapply(noise, function(z) identical(dim(z), c(as.integer(H), count)), TRUE)))
+  h <- lapply(object$states$H_all, function(z) matrix(z[local, ], nrow = ncol(z), ncol = count))
+  lags <- matrix(y[local - seq_len(r$m) + 1L], nrow = r$m, ncol = count)
+  abc <- lapply(draws$gamma, function(g) e$exal_get_ABC(meta$p0 %||% object$fit$misc$p0, g))
+  A <- vapply(abc, `[[`, 0, "A"); B <- vapply(abc, `[[`, 0, "B")
+  lambda <- vapply(abc, `[[`, 0, "C") * abs(draws$gamma)
+  beta <- t(draws$beta); mu <- yrep <- matrix(0, H, count)
+  for (lead in seq_len(H)) {
+    z <- (lags - meta$lag_center) / meta$lag_scale
+    if (meta$input_bound == "tanh") z <- tanh(z / meta$input_bound_divisor)
+    u <- rbind(rep(meta$win_scale_bias, count), z * meta$win_scale_global)
+    for (d in seq_len(r$D)) {
+      input <- if (d == 1L) u else h[[d - 1L]]
+      h[[d]] <- as.matrix((1 - r$alpha[d]) * h[[d]] + r$alpha[d] *
+        tanh(r$W[[d]] %*% h[[d]] + r$Win[[d]] %*% input))
+    }
+    x <- rbind(rep(1, count), h[[r$D]], do.call(rbind, head(h, -1L)))
+    mu[lead, ] <- colSums(x * beta)
+    yrep[lead, ] <- mu[lead, ] + lambda * draws$sigma * noise$s[lead, ] +
+      A * noise$v[lead, ] + sqrt(B * draws$sigma * noise$v[lead, ]) * noise$z[lead, ]
+    lags <- rbind(yrep[lead, ], head(lags, -1L))
+  }
+  stopifnot(all(is.finite(mu)), all(is.finite(yrep)))
+  list(mu_draws = mu, yrep = yrep)
+}
+
 iqt12_qforecast <- function(e, cx, cfg, fit, draws, progress = NULL) {
   object <- cx$object; object$fit <- fit; w <- cfg$window
   out <- plugin <- list()
@@ -303,11 +348,23 @@ iqt12_qforecast <- function(e, cx, cfg, fit, draws, progress = NULL) {
     H <- min(w$horizon, w$end - o)
     bank <- e$iqcf_v3_make_noise_bank(draws, H, 1L,
       if (cfg$inner >= 128L) 256L else cfg$inner, cfg$seed + o)
-    lattice <- e$iqcf_v3_nested_lattice(object, cx$y, local, H, draws,
-      cfg$p, cfg$inner, seed = cfg$seed + o, noise_bank = bank,
-      include_mean_readout_state = FALSE)
-    out[[i]] <- lattice$oracle_location$mean_conditional_location[[1]] * cx$scale
-    plugin[[i]] <- lattice$oracle_location$conditional_location_plugin[[1]] * cx$scale
+    noise <- e$iqcf_v3_subset_noise_bank(bank, cfg$inner)[[1]]
+    outer <- nrow(draws$beta)
+    means <- plug <- matrix(0, H, outer)
+    batches <- split(seq_len(outer), ceiling(seq_len(outer) / max(1L, 256L %/% cfg$inner)))
+    for (ids in batches) {
+      subset <- e$iqcf_v3_subset_draws(draws, ids)
+      repeated <- e$iqcf_v3_repeat_draws(subset, cfg$inner)
+      columns <- unlist(lapply(ids, function(j) (j - 1L) * cfg$inner + seq_len(cfg$inner)))
+      path <- iqt12_particle_paths(e, object, cx$y, local, H, repeated,
+        lapply(noise, function(z) z[, columns, drop = FALSE]))
+      means[, ids] <- e$iqcf_v3_matrix_by_outer_draw(path$mu_draws, length(ids), cfg$inner, "mean")
+      zeros <- matrix(0, H, length(ids))
+      plug[, ids] <- iqt12_particle_paths(e, object, cx$y, local, H, subset,
+        list(s = zeros, v = zeros, z = zeros))$mu_draws
+    }
+    out[[i]] <- means * cx$scale
+    plugin[[i]] <- plug * cx$scale
     expected <- cx$all_X[local + 1L, , drop = FALSE] %*% t(draws$beta) * cx$scale
     stopifnot(max(abs(expected - out[[i]][1, , drop = FALSE])) <= 1e-6)
     if (!is.null(progress)) progress(i, length(w$origins))
@@ -316,6 +373,7 @@ iqt12_qforecast <- function(e, cx, cfg, fit, draws, progress = NULL) {
 }
 
 iqt12_baseline_fit <- function(e, cfg, source) {
+  started <- proc.time()[["elapsed"]]
   base <- cfg$baseline
   base$train_start_source_index <- min(cfg$window$train)
   base$train_end_source_index <- max(cfg$window$train)
@@ -334,13 +392,20 @@ iqt12_baseline_fit <- function(e, cfg, source) {
     stopifnot(unname(tools::sha256sum(cfg$warm_path)) == cfg$warm_sha)
     vb <- iqt12_read(cfg$warm_path)$initial
     vb$theta.out$sm <- as.matrix(vb$theta.out$sm)
-  } else vb <- exdqlm::exdqlmLDVB(y, cfg$p, model, df = df, dim.df = dimdf,
+  } else {
+    vb_started <- proc.time()[["elapsed"]]
+    vb <- exdqlm::exdqlmLDVB(y, cfg$p, model, df = df, dim.df = dimdf,
     dqlm.ind = cfg$likelihood == "al", fix.sigma = FALSE,
     n.samp = max(200L, cfg$outer), vb_control = control, verbose = FALSE)
+  }
   if (cfg$likelihood == "exal") stopifnot(
     vb$gammasig.out$factorization == "structured_qgamma_qsigma_given_gamma")
-  if (cfg$engine == "vb") return(vb)
+  if (cfg$engine == "vb") {
+    attr(vb, "iqt12_timing") <- list(inference_seconds = proc.time()[["elapsed"]] - vb_started)
+    return(vb)
+  }
   set.seed(cfg$seed)
+  sampling_started <- proc.time()[["elapsed"]]
   fit <- exdqlm::exdqlmMCMC(y, cfg$p, model, df = df, dim.df = dimdf,
     dqlm.ind = cfg$likelihood == "al", fix.sigma = FALSE,
     n.burn = cfg$burn, n.mcmc = cfg$retained, init.from.vb = TRUE,
@@ -349,6 +414,8 @@ iqt12_baseline_fit <- function(e, cfg, source) {
   if (cfg$likelihood == "exal") stopifnot(fit$mh.diagnostics$proposal == "collapsed_slice")
   stopifnot(length(fit$samp.sigma) == cfg$retained,
     dim(fit$samp.theta)[3] == cfg$retained)
+  attr(fit, "iqt12_timing") <- list(inference_seconds = proc.time()[["elapsed"]] - sampling_started,
+    initialization_seconds = sampling_started - started)
   fit
 }
 

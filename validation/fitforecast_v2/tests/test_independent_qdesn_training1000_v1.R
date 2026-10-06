@@ -143,6 +143,62 @@ testthat::test_that("ranking is per case and never filters diagnostic grades", {
   testthat::expect_equal(iqt12_rank(z)$candidate_id[1], "2")
 })
 
+testthat::test_that("cost projections never multiply fixed overhead or MCMC initialization", {
+  cfg <- list(model = "qdesn", engine = "mcmc", cell = "case", outer = 32L, inner = 32L,
+    burn = 20L, retained = 40L, vb_iter = 40L, window = iqt12_window("A"))
+  cfg$window$origins <- head(cfg$window$origins, 2L)
+  d <- list(timing_contract = "separate_fit_inference_forecast_and_fixed_overhead_v2",
+    fit_seconds = 100, inference_seconds = 1, forecast_seconds = 2,
+    fixed_overhead_seconds = 20, peak_rss_kib = 10000)
+  z <- iqt12_cost_projection(cfg, d)
+  testthat::expect_equal(z$projected_final_fit_seconds, 99 + 25000 / 60)
+  testthat::expect_equal(z$projected_final_forecast_seconds, 2 * 1000 / 60 * 300 / 32 * 128 / 32)
+  testthat::expect_equal(z$projected_fixed_overhead_seconds, 20)
+  cfg$engine <- "vb"
+  testthat::expect_equal(iqt12_cost_projection(cfg, d)$projected_final_fit_seconds, 124)
+  d$timing_contract <- "legacy_mixed_timing"
+  testthat::expect_error(iqt12_cost_projection(cfg, d), "timing_contract")
+})
+
+testthat::test_that("batched recursive AL and exAL paths reproduce the reference path backend", {
+  lib <- file.path(repo, "validation/fitforecast_v2/local_trackers/training1000_exdqlm112_runtime/Rlib")
+  testthat::skip_if_not(dir.exists(file.path(lib, "exdqlm")))
+  e <- iqt12_runtime(repo, lib)
+  set.seed(912); s <- data.frame(y = 10 + sin((1:10000) / 10) + rnorm(10000))
+  c <- list(m = 30L, alpha = .85, rho = .9, input_gain = .2,
+    center_scale = "mean_sd", input_bound = "none", recurrent_indegree = 2L,
+    input_fanin = 8L, interlayer_fanin = 2L, matrix_seed = 920001L)
+  for (widths in list(6L, c(6L, 5L, 4L), c(6L, 5L, 4L, 3L))) {
+    c$n <- paste(widths, collapse = ";")
+    for (bound in c("none", "tanh_z_over_3")) {
+      c$input_bound <- bound
+      cfg <- list(window = iqt12_window("A"), candidate = c, p = .25, seed = 445L,
+        inner = 3L)
+      cfg$window$origins <- c(8500L, 8505L); cfg$window$horizon <- 5L
+      cx <- iqt12_design(e, cfg, s, cfg$window$end)
+      fit <- list(misc = list(p0 = .25))
+      object <- cx$object; object$fit <- fit
+      set.seed(554)
+      for (gamma in list(rep(0, 5), seq(-.2, .2, length.out = 5))) {
+        draws <- list(beta = matrix(rnorm(5L * ncol(object$X), sd = .1), 5L),
+          sigma = seq(.2, .6, length.out = 5), gamma = gamma)
+        fast <- iqt12_qforecast(e, cx, cfg, fit, draws)
+        references <- lapply(cfg$window$origins, function(o) {
+          bank <- e$iqcf_v3_make_noise_bank(draws, 5L, 1L, cfg$inner, cfg$seed + o)
+          e$iqcf_v3_nested_lattice(object, cx$y, o - cx$first + 1L, 5L, draws,
+            cfg$p, cfg$inner, cfg$seed + o, noise_bank = bank)
+        })
+        reference <- do.call(rbind, lapply(references, function(z)
+          z$oracle_location$mean_conditional_location[[1]])) * cx$scale
+        plugin <- do.call(rbind, lapply(references, function(z)
+          z$oracle_location$conditional_location_plugin[[1]])) * cx$scale
+        testthat::expect_lt(max(abs(fast$primary - reference)), 1e-6)
+        testthat::expect_lt(max(abs(fast$plugin - plugin)), 1e-6)
+      }
+    }
+  }
+})
+
 testthat::test_that("shared fan-in supports deeper identity-Q layers", {
   lib <- file.path(repo, "validation/fitforecast_v2/local_trackers/training1000_exdqlm112_runtime/Rlib")
   testthat::skip_if_not(dir.exists(file.path(lib, "exdqlm")))
