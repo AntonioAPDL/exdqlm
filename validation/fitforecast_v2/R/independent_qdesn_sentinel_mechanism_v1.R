@@ -820,10 +820,14 @@ ism1_closeout <- function(run) {
     active_jobs = 0L, sentinel_strict_gain = any(q$strict_gain),
     next_action = "investigator_review_then_fresh_DGP_confirmation_if_supported"),
     file.path(run, "closeout.json"))
+  artifact_files <- function(path) {
+    files <- list.files(path, recursive = TRUE, full.names = TRUE)
+    files[file.exists(files) & !file.info(files)$isdir]
+  }
   files <- c(file.path(run, c("campaign.json", "environment.json", "candidate_bank.csv",
     "source_hashes.csv", "input_hashes.csv", "package_hashes.csv", "frozen_hashes.csv",
-    "closeout.json")), list.files(file.path(run, "selections"), full.names = TRUE),
-    list.files(file.path(run, "review"), full.names = TRUE))
+    "closeout.json")), artifact_files(file.path(run, "selections")),
+    artifact_files(file.path(run, "review")))
   iqt12_hash(files, file.path(run, "closeout_manifest.csv"))
   "COMPLETE_REVIEW_REQUIRED"
 }

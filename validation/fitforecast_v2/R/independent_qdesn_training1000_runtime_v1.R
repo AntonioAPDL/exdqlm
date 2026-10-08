@@ -17,6 +17,11 @@ iqt12_csv <- function(x, path) {
 }
 iqt12_hash <- function(paths, path) {
   paths <- sort(unique(normalizePath(paths, mustWork = TRUE)))
+  info <- file.info(paths)
+  if (any(info$isdir %in% TRUE)) {
+    stop("Hash manifests accept files only; directory supplied: ",
+      paste(paths[info$isdir %in% TRUE], collapse = ", "))
+  }
   iqt12_csv(data.frame(path = paths, bytes = file.info(paths)$size,
     sha256 = unname(tools::sha256sum(paths))), path)
 }
