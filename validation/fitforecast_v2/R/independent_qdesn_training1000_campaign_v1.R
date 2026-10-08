@@ -360,7 +360,9 @@ iqt12_materialize <- function(repo, run, library, plan_packet, broad, previous, 
 
 iqt12_worker <- function(path) {
   cfg <- iqt12_read(path); start <- proc.time()[["elapsed"]]
-  e <- iqt12_runtime(cfg$repo, cfg$library)
+  runtime_fun <- get0("iqt12_runtime_hook", mode = "function", inherits = TRUE)
+  if (is.null(runtime_fun)) runtime_fun <- iqt12_runtime
+  e <- runtime_fun(cfg$repo, cfg$library)
   iqt12_verify(file.path(cfg$run, "source_hashes.csv"))
   iqt12_verify(file.path(cfg$run, "package_hashes.csv"))
   iqt12_verify(file.path(cfg$run, "frozen_hashes.csv"))
@@ -412,14 +414,18 @@ iqt12_worker <- function(path) {
         fit$samp.sigma, fit$samp.gamma %||% rep(0, cfg$retained)),
         file.path(cfg$evidence, "nuisance_trace.csv.gz"))
     } else {
-      cx <- iqt12_design(e, cfg, source, cfg$window$end)
+      design_fun <- get0("iqt12_design_hook", mode = "function", inherits = TRUE)
+      if (is.null(design_fun)) design_fun <- iqt12_design
+      cx <- design_fun(e, cfg, source, cfg$window$end)
       if (cfg$engine == "normal") {
         object <- iqt12_normal(e, cx, cfg)
         draws <- e$normal_desn_posterior_draws(object, cfg$outer, seed = cfg$seed)
         fit_draws <- cx$object$X %*% t(draws$beta) * cx$scale
         seconds_fit <- proc.time()[["elapsed"]] - fitting
         forecasting <- proc.time()[["elapsed"]]
-        q <- iqt12_normal_forecast(e, cx, cfg, object, draws)
+        forecast_fun <- get0("iqt12_normal_forecast_hook", mode = "function", inherits = TRUE)
+        if (is.null(forecast_fun)) forecast_fun <- iqt12_normal_forecast
+        q <- forecast_fun(e, cx, cfg, object, draws)
         seconds_forecast <- proc.time()[["elapsed"]] - forecasting
         diag <- list(converged = object$fit$converged,
           initializer = "normal_RHS_screen_not_quantile_gate")
@@ -434,14 +440,16 @@ iqt12_worker <- function(path) {
         fit_draws <- cx$object$X %*% t(draws$beta) * cx$scale
         seconds_fit <- proc.time()[["elapsed"]] - fitting
         forecasting <- proc.time()[["elapsed"]]
-        fc <- iqt12_qforecast(e, cx, cfg, fit, draws, progress)
+        forecast_fun <- get0("iqt12_qforecast_hook", mode = "function", inherits = TRUE)
+        if (is.null(forecast_fun)) forecast_fun <- iqt12_qforecast
+        fc <- forecast_fun(e, cx, cfg, fit, draws, progress)
         seconds_forecast <- proc.time()[["elapsed"]] - forecasting
         q <- fc$primary
         if (cfg$stage %in% c("final_vb", "final_mcmc") && cfg$chain == 1L &&
             cfg$cell == iqt12_cell("normal", .25, "exal")) {
           doubled <- cfg; doubled$inner <- 256L
           refining <- proc.time()[["elapsed"]]
-          refined <- iqt12_qforecast(e, cx, doubled, fit, draws, progress)
+          refined <- forecast_fun(e, cx, doubled, fit, draws, progress)
           seconds_forecast <- seconds_forecast + proc.time()[["elapsed"]] - refining
           low <- iqt12_scores(fit_draws, q, source, cfg$window, cfg$p)$summary
           high <- iqt12_scores(fit_draws, refined$primary, source, cfg$window, cfg$p)$summary
@@ -492,7 +500,8 @@ iqt12_worker <- function(path) {
       }))
       iqt12_csv(origins, file.path(cfg$evidence, "origin_feature_diagnostics.csv"))
       diag$causal_contract <- list(washout = 500L, likelihood = cfg$window$N,
-        complete_buffer = 390L, identity_Q = TRUE, readout = "intercept_plus_all_layers",
+        complete_buffer = max(390L, as.integer(cfg$candidate$m)), identity_Q = TRUE,
+        readout = cfg$candidate$readout_mode %||% "intercept_plus_all_layers",
         teacher_forced_between_origins = TRUE, recursive_within_origin = TRUE,
         preprocessing_last = max(cfg$window$train), mean_estimator = "inner_average_after_recursion")
     }

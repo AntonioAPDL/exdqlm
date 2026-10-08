@@ -213,7 +213,8 @@ iqt12_quantile <- function(e, cx, cfg, init = NULL) {
   control <- e$exal_make_vb_control(max_iter = cfg$vb_iter, tol = 1e-4,
     tol_par = 1e-4, n_samp_xi = 400L, min_iter_elbo = 10L,
     verbose = FALSE, sigmagam = e$exal_make_vb_sigmagam_control(),
-    beta_covariance = list(approximation = "full", label_uncertainty = TRUE))
+    beta_covariance = list(approximation = if (ncol(cx$object$X) > 500L)
+      "diagonal" else "full", label_uncertainty = TRUE))
   set.seed(cfg$seed)
   vb_started <- proc.time()[["elapsed"]]
   vb <- e$exal_ldvb_fit(cx$object$y_fit, cx$object$X, cfg$p,
