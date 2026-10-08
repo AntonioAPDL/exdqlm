@@ -2,6 +2,34 @@ repo <- normalizePath(Sys.getenv("ISM1_REPO", "."), mustWork = TRUE)
 source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_training1000_runtime_v1.R"))
 source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_training1000_campaign_v1.R"))
 source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_sentinel_mechanism_v1.R"))
+source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_sentinel_mechanism_recovery_v1.R"))
+
+testthat::test_that("scale-aware first-step identity retains strict semantic checks", {
+  huge <- ism1_numeric_identity(1e11, 1e11 + 1e-5)
+  testthat::expect_true(huge$pass)
+  testthat::expect_lte(huge$max_relative_error, 1e-10)
+  changed <- ism1_numeric_identity(c(1, 2, 3), c(1, 2.01, 3),
+    absolute_tolerance = 1e-10, relative_tolerance = 1e-10)
+  testthat::expect_false(changed$pass)
+  nonfinite <- ism1_numeric_identity(1, Inf)
+  testthat::expect_false(nonfinite$pass)
+})
+
+testthat::test_that("recovery stage contract starts at the interrupted quantile screen", {
+  testthat::expect_identical(ism1r_source_stages,
+    c("smoke", "normal_screen", "quantile_screen"))
+  testthat::expect_identical(ism1r_run_stages,
+    c("quantile_screen", "online_pilot", "short_mcmc", "full_mcmc",
+      "controls_vb", "controls_mcmc"))
+  scheduler <- file.path(repo, "validation/fitforecast_v2/scripts",
+    "run_independent_qdesn_sentinel_mechanism_recovery_v1.sh")
+  testthat::expect_equal(system2("bash", c("-n", scheduler)), 0L)
+  text <- paste(readLines(scheduler, warn = FALSE), collapse = "\n")
+  testthat::expect_match(text,
+    "for stage in quantile_screen online_pilot short_mcmc full_mcmc controls_vb controls_mcmc",
+    fixed = TRUE)
+  testthat::expect_false(grepl("for stage in smoke normal_screen", text, fixed = TRUE))
+})
 
 ism1_test_reference <- function() list(n = "40", m = 120L, alpha = .4,
   rho = .5, center_scale = "mean_sd", input_bound = "none",

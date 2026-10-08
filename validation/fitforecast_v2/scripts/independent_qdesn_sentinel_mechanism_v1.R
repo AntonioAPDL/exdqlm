@@ -5,22 +5,34 @@ repo <- normalizePath(args[2L], mustWork = TRUE)
 source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_training1000_runtime_v1.R"))
 source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_training1000_campaign_v1.R"))
 source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_sentinel_mechanism_v1.R"))
+source(file.path(repo, "validation/fitforecast_v2/R/independent_qdesn_sentinel_mechanism_recovery_v1.R"))
 
 if (action == "materialize") {
   stopifnot(length(args) == 5L)
   ism1_materialize(repo, args[3L], args[4L], args[5L])
   cat("MATERIALIZED\n")
+} else if (action == "recovery-materialize") {
+  stopifnot(length(args) == 5L)
+  ism1r_materialize(repo, args[3L], args[4L], args[5L])
+  cat("RECOVERY_MATERIALIZED\n")
 } else if (action == "worker") {
   stopifnot(length(args) == 3L)
   iqt12_worker(args[3L])
 } else if (action == "advance") {
   stopifnot(length(args) == 4L)
+  state <- iqt12_read(file.path(args[3L], "campaign.json"))
+  if (identical(state$schema, ism1r_schema)) ism1r_verify_imports(args[3L])
   cat(ism1_advance(args[3L], args[4L]), "\n")
 } else if (action == "health") {
   stopifnot(length(args) == 3L)
   print(ism1_health(args[3L]), row.names = FALSE)
+} else if (action == "recovery-health") {
+  stopifnot(length(args) == 3L)
+  print(ism1r_health(args[3L]), row.names = FALSE)
 } else if (action == "pending") {
   stopifnot(length(args) == 4L)
+  state <- iqt12_read(file.path(args[3L], "campaign.json"))
+  if (identical(state$schema, ism1r_schema)) ism1r_verify_imports(args[3L])
   plan <- read.csv(file.path(args[3L], "plans", paste0(args[4L], ".csv")),
     stringsAsFactors = FALSE)
   status <- vapply(plan$status_path, function(p)

@@ -302,7 +302,8 @@ ism1_readout_row <- function(object, h, z) {
     })
 }
 
-ism1_particle_paths <- function(e, object, y, local, H, draws, noise) {
+ism1_particle_paths <- function(e, object, y, local, H, draws, noise,
+                                capture_first_step = FALSE) {
   r <- object$reservoir; meta <- object$meta; count <- nrow(draws$beta)
   use_states <- (meta$sentinel_readout_mode %||% "reservoir_only") != "lag_only"
   h <- if (use_states) lapply(object$states$H_all, function(z)
@@ -312,6 +313,7 @@ ism1_particle_paths <- function(e, object, y, local, H, draws, noise) {
   A <- vapply(abc, `[[`, 0, "A"); B <- vapply(abc, `[[`, 0, "B")
   lambda <- vapply(abc, `[[`, 0, "C") * abs(draws$gamma)
   beta <- t(draws$beta); mu <- yrep <- matrix(0, H, count)
+  first_step_x <- NULL
   for (lead in seq_len(H)) {
     z <- (lags - meta$lag_center) / meta$lag_scale
     if (meta$input_bound == "tanh") z <- tanh(z / meta$input_bound_divisor)
@@ -324,6 +326,7 @@ ism1_particle_paths <- function(e, object, y, local, H, draws, noise) {
       }
     }
     x <- ism1_readout_row(object, h, z)
+    if (lead == 1L && capture_first_step) first_step_x <- x
     stopifnot(nrow(x) == nrow(beta))
     mu[lead, ] <- colSums(x * beta)
     yrep[lead, ] <- mu[lead, ] + lambda * draws$sigma * noise$s[lead, ] +
@@ -331,7 +334,38 @@ ism1_particle_paths <- function(e, object, y, local, H, draws, noise) {
     lags <- rbind(yrep[lead, ], head(lags, -1L))
   }
   stopifnot(all(is.finite(mu)), all(is.finite(yrep)))
-  list(mu_draws = mu, yrep = yrep)
+  list(mu_draws = mu, yrep = yrep, first_step_x = first_step_x)
+}
+
+ism1_numeric_identity <- function(expected, observed, absolute_tolerance = 1e-10,
+                                  relative_tolerance = 1e-10) {
+  expected <- as.numeric(expected); observed <- as.numeric(observed)
+  finite <- length(expected) == length(observed) &&
+    all(is.finite(expected)) && all(is.finite(observed))
+  if (!finite) return(list(pass = FALSE, max_absolute_error = Inf,
+    max_relative_error = Inf, comparison_scale = Inf))
+  delta <- abs(expected - observed)
+  scale <- pmax(1, abs(expected), abs(observed))
+  allowed <- absolute_tolerance + relative_tolerance * scale
+  list(pass = all(delta <= allowed), max_absolute_error = max(delta),
+    max_relative_error = max(delta / scale), comparison_scale = max(scale))
+}
+
+ism1_assert_first_step <- function(expected_x, observed_x, expected_prediction,
+                                   observed_prediction) {
+  feature <- ism1_numeric_identity(expected_x, observed_x,
+    absolute_tolerance = 1e-10, relative_tolerance = 1e-10)
+  prediction <- ism1_numeric_identity(expected_prediction, observed_prediction,
+    absolute_tolerance = 1e-8, relative_tolerance = 1e-10)
+  if (!feature$pass) stop(sprintf(
+    "First-step teacher-forcing feature identity failed: abs=%g rel=%g scale=%g",
+    feature$max_absolute_error, feature$max_relative_error,
+    feature$comparison_scale), call. = FALSE)
+  if (!prediction$pass) stop(sprintf(
+    "First-step prediction identity failed: abs=%g rel=%g scale=%g",
+    prediction$max_absolute_error, prediction$max_relative_error,
+    prediction$comparison_scale), call. = FALSE)
+  list(feature = feature, prediction = prediction)
 }
 
 ism1_mvn <- function(mean, V, n, seed) {
@@ -344,6 +378,7 @@ ism1_mvn <- function(mean, V, n, seed) {
 ism1_qforecast_static <- function(e, cx, cfg, fit, draws, progress = NULL) {
   object <- cx$object; object$fit <- fit; w <- cfg$window
   out <- plugin <- vector("list", length(w$origins))
+  guards <- vector("list", length(w$origins))
   for (i in seq_along(w$origins)) {
     o <- w$origins[i]; local <- o - cx$first + 1L
     H <- min(w$horizon, w$end - o)
@@ -352,12 +387,24 @@ ism1_qforecast_static <- function(e, cx, cfg, fit, draws, progress = NULL) {
     noise <- e$iqcf_v3_subset_noise_bank(bank, cfg$inner)[[1]]
     outer <- nrow(draws$beta); means <- plug <- matrix(0, H, outer)
     batches <- split(seq_len(outer), ceiling(seq_len(outer) / max(1L, 256L %/% cfg$inner)))
+    feature_guard <- NULL
     for (ids in batches) {
       subset <- e$iqcf_v3_subset_draws(draws, ids)
       repeated <- e$iqcf_v3_repeat_draws(subset, cfg$inner)
       columns <- unlist(lapply(ids, function(j) (j - 1L) * cfg$inner + seq_len(cfg$inner)))
       path <- ism1_particle_paths(e, object, cx$y, local, H, repeated,
-        lapply(noise, function(z) z[, columns, drop = FALSE]))
+        lapply(noise, function(z) z[, columns, drop = FALSE]),
+        capture_first_step = TRUE)
+      expected_x <- matrix(cx$all_X[local + 1L, ], nrow = nrow(path$first_step_x),
+        ncol = ncol(path$first_step_x))
+      one <- ism1_numeric_identity(expected_x, path$first_step_x,
+        absolute_tolerance = 1e-10, relative_tolerance = 1e-10)
+      if (!one$pass) stop(sprintf(
+        "First-step teacher-forcing feature identity failed: abs=%g rel=%g scale=%g",
+        one$max_absolute_error, one$max_relative_error, one$comparison_scale),
+        call. = FALSE)
+      if (is.null(feature_guard) ||
+          one$max_relative_error > feature_guard$max_relative_error) feature_guard <- one
       means[, ids] <- e$iqcf_v3_matrix_by_outer_draw(path$mu_draws, length(ids), cfg$inner, "mean")
       zeros <- matrix(0, H, length(ids))
       plug[, ids] <- ism1_particle_paths(e, object, cx$y, local, H, subset,
@@ -365,10 +412,19 @@ ism1_qforecast_static <- function(e, cx, cfg, fit, draws, progress = NULL) {
     }
     out[[i]] <- means * cx$scale; plugin[[i]] <- plug * cx$scale
     expected <- cx$all_X[local + 1L, , drop = FALSE] %*% t(draws$beta) * cx$scale
-    stopifnot(max(abs(expected - out[[i]][1L, , drop = FALSE])) <= 1e-6)
+    checked <- ism1_assert_first_step(cx$all_X[local + 1L, ],
+      path$first_step_x[, 1L], expected, out[[i]][1L, , drop = FALSE])
+    guards[[i]] <- data.frame(origin = o,
+      feature_max_absolute_error = feature_guard$max_absolute_error,
+      feature_max_relative_error = feature_guard$max_relative_error,
+      prediction_max_absolute_error = checked$prediction$max_absolute_error,
+      prediction_max_relative_error = checked$prediction$max_relative_error,
+      prediction_comparison_scale = checked$prediction$comparison_scale,
+      pass = TRUE)
     if (!is.null(progress)) progress(i, length(w$origins))
   }
-  list(primary = do.call(rbind, out), plugin = do.call(rbind, plugin))
+  list(primary = do.call(rbind, out), plugin = do.call(rbind, plugin),
+    first_step_guard = do.call(rbind, guards))
 }
 
 ism1_qforecast_online <- function(e, cx, cfg, fit, draws, progress = NULL) {
@@ -382,6 +438,7 @@ ism1_qforecast_online <- function(e, cx, cfg, fit, draws, progress = NULL) {
     beta_prior_obj = prior$beta)
   object <- cx$object; object$fit <- fit; previous <- max(cfg$window$train)
   out <- plugin <- vector("list", length(cfg$window$origins))
+  guards <- vector("list", length(cfg$window$origins))
   for (i in seq_along(cfg$window$origins)) {
     o <- cfg$window$origins[i]
     if (o > previous) {
@@ -398,14 +455,29 @@ ism1_qforecast_online <- function(e, cx, cfg, fit, draws, progress = NULL) {
     bank <- e$iqcf_v3_make_noise_bank(online_draws, H, 1L, cfg$inner, cfg$seed + o)
     noise <- e$iqcf_v3_subset_noise_bank(bank, cfg$inner)[[1]]
     repeated <- e$iqcf_v3_repeat_draws(online_draws, cfg$inner)
-    path <- ism1_particle_paths(e, object, cx$y, local, H, repeated, noise)
+    path <- ism1_particle_paths(e, object, cx$y, local, H, repeated, noise,
+      capture_first_step = TRUE)
     out[[i]] <- e$iqcf_v3_matrix_by_outer_draw(path$mu_draws, cfg$outer, cfg$inner, "mean") * cx$scale
     zeros <- matrix(0, H, cfg$outer)
     plugin[[i]] <- ism1_particle_paths(e, object, cx$y, local, H,
       online_draws, list(s = zeros, v = zeros, z = zeros))$mu_draws * cx$scale
+    expected_x <- matrix(cx$all_X[local + 1L, ], nrow = nrow(path$first_step_x),
+      ncol = ncol(path$first_step_x))
+    expected_prediction <- cx$all_X[local + 1L, , drop = FALSE] %*%
+      t(online_draws$beta) * cx$scale
+    checked <- ism1_assert_first_step(expected_x, path$first_step_x,
+      expected_prediction, out[[i]][1L, , drop = FALSE])
+    guards[[i]] <- data.frame(origin = o,
+      feature_max_absolute_error = checked$feature$max_absolute_error,
+      feature_max_relative_error = checked$feature$max_relative_error,
+      prediction_max_absolute_error = checked$prediction$max_absolute_error,
+      prediction_max_relative_error = checked$prediction$max_relative_error,
+      prediction_comparison_scale = checked$prediction$comparison_scale,
+      pass = TRUE)
     if (!is.null(progress)) progress(i, length(cfg$window$origins))
   }
-  list(primary = do.call(rbind, out), plugin = do.call(rbind, plugin))
+  list(primary = do.call(rbind, out), plugin = do.call(rbind, plugin),
+    first_step_guard = do.call(rbind, guards))
 }
 
 ism1_qforecast <- function(e, cx, cfg, fit, draws, progress = NULL) {

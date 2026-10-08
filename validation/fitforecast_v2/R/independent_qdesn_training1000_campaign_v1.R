@@ -445,6 +445,12 @@ iqt12_worker <- function(path) {
         fc <- forecast_fun(e, cx, cfg, fit, draws, progress)
         seconds_forecast <- proc.time()[["elapsed"]] - forecasting
         q <- fc$primary
+        if (!is.null(fc$first_step_guard)) {
+          stopifnot(nrow(fc$first_step_guard) == length(cfg$window$origins),
+            all(fc$first_step_guard$pass))
+          iqt12_csv(fc$first_step_guard,
+            file.path(cfg$evidence, "first_step_guard.csv"))
+        }
         if (cfg$stage %in% c("final_vb", "final_mcmc") && cfg$chain == 1L &&
             cfg$cell == iqt12_cell("normal", .25, "exal")) {
           doubled <- cfg; doubled$inner <- 256L
@@ -466,6 +472,14 @@ iqt12_worker <- function(path) {
           diagnostics = fit$diagnostics %||% list(),
           sigma_trace = iqt12_trace_summary(fit$samp.sigma), gamma_trace = iqt12_trace_summary(fit$samp.gamma))
         diag$posterior_sigmagam_draw_contract <- draws$sigmagam_draw_contract
+        if (!is.null(fc$first_step_guard)) diag$first_step_guard <- list(
+          contract = "teacher_forced_feature_identity_plus_scale_aware_prediction_identity",
+          origins = nrow(fc$first_step_guard),
+          max_feature_absolute_error = max(fc$first_step_guard$feature_max_absolute_error),
+          max_feature_relative_error = max(fc$first_step_guard$feature_max_relative_error),
+          max_prediction_absolute_error = max(fc$first_step_guard$prediction_max_absolute_error),
+          max_prediction_relative_error = max(fc$first_step_guard$prediction_max_relative_error),
+          pass = all(fc$first_step_guard$pass))
         if (cfg$engine == "vb") diag$sigmagam <- list(
           gamma_mean = fit$qsiggam$gamma_mean,
           sigma_mean_source_units = fit$qsiggam$sigma_mean * cx$scale,
