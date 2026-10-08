@@ -487,6 +487,7 @@ ism1_materialize <- function(repo, run, parent, library) {
   }
   state$bank <- ism1_generate_bank(state$references[[ism1_sentinel]]$candidate)
   dir.create(run, recursive = TRUE, showWarnings = FALSE)
+  dir.create(file.path(run, "control"), recursive = TRUE, showWarnings = FALSE)
   iqt12_csv(ism1_bank_frame(state$bank), file.path(run, "candidate_bank.csv"))
   env <- list(exdqlm_version = as.character(utils::packageVersion("exdqlm", lib.loc = library)),
     package_path = find.package("exdqlm", lib.loc = library),
