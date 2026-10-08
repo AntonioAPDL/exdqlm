@@ -10,17 +10,24 @@ ism1_test_reference <- function() list(n = "40", m = 120L, alpha = .4,
   slab_source = 4, sigma_b_source = 2, omega_b_source = 4)
 
 testthat::test_that("space-filling bank covers all mechanisms without duplicate identities", {
-  bank <- ism1_generate_bank(ism1_test_reference(), 8L)
+  counts <- c(reservoir_only = 8L, hybrid_direct_lags = 8L, lag_only = 8L)
+  bank <- ism1_generate_bank(ism1_test_reference(), counts)
   z <- ism1_bank_frame(bank)
   testthat::expect_equal(nrow(z), 24L)
   testthat::expect_equal(length(unique(z$id)), 24L)
-  testthat::expect_equal(as.integer(table(z$readout_mode)), c(8L, 8L, 8L))
+  testthat::expect_equal(as.integer(table(factor(z$readout_mode,
+    levels = names(counts)))), as.integer(counts))
   testthat::expect_true(all(z$D >= 1L & z$D <= 6L))
   testthat::expect_true(all(z$total_states <= 1500L))
   testthat::expect_true(all(z$m >= 1L & z$m <= 500L))
   testthat::expect_true(all(z$readout_dimension == ifelse(z$readout_mode == "reservoir_only",
     1L + z$total_states, ifelse(z$readout_mode == "lag_only", 1L + z$m,
       1L + z$total_states + z$m))))
+  lag <- z[z$readout_mode == "lag_only", ]
+  testthat::expect_true(all(lag$n == "20"))
+  testthat::expect_true(all(lag$total_states == 20L))
+  testthat::expect_true(all(lag$alpha == .5 & lag$rho == .5))
+  testthat::expect_true(all(lag$input_gain == 1))
 })
 
 testthat::test_that("all selection folds are internal and causal", {
@@ -131,7 +138,9 @@ testthat::test_that("the complete sentinel stage graph is deterministic and clos
   }
   state <- list(schema = ism1_schema, run = root, repo = repo, library = "synthetic",
     references = references, sentinel = ism1_sentinel, controls = ism1_controls,
-    bank = ism1_generate_bank(ref, 8L), max_workers = 15L)
+    bank = ism1_generate_bank(ref,
+      c(reservoir_only = 8L, hybrid_direct_lags = 8L, lag_only = 8L)),
+    max_workers = 15L)
   iqt12_json(state, file.path(root, "campaign.json"))
   iqt12_json(list(synthetic = TRUE), file.path(root, "environment.json"))
   iqt12_csv(ism1_bank_frame(state$bank), file.path(root, "candidate_bank.csv"))

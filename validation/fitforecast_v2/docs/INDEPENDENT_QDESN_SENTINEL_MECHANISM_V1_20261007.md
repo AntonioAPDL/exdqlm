@@ -33,8 +33,13 @@ within an origin.
 
 ## Candidate surface
 
-The deterministic maximin bank contains 240 candidates: 80 structures crossed
-with reservoir-only, lag-only, and hybrid reservoir-plus-direct-lag readouts.
+The deterministic maximin bank contains 240 candidates: 96 reservoir-only, 96
+hybrid reservoir-plus-direct-lag, and 48 lag-only readouts. Reservoir-only and
+hybrid candidates receive the broader topology search. Lag-only candidates use
+a fixed minimal compatibility reservoir and vary only active lag depth,
+preprocessing, effective sparsity, and direct-lag shrinkage. Recursive lag-only
+forecasting bypasses reservoir updates, avoiding computation on inert topology
+parameters.
 It covers depth 1--6, 40--1500 reservoir states, 1--500 response lags, leakage
 0.01--0.995, spectral radius 0.40--0.999, input gain 0.02--3, broad exact
 fan-in levels, both frozen preprocessing choices, and expected active sizes

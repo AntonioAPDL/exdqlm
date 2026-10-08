@@ -80,8 +80,26 @@ ism1_candidate <- function(c, reference, readout_mode = "reservoir_only",
   c
 }
 
-ism1_generate_bank <- function(reference, count_per_mode = 80L) {
-  stopifnot(count_per_mode >= 8L)
+ism1_maximin <- function(features, count) {
+  stopifnot(is.matrix(features), count >= 1L, count <= nrow(features))
+  features <- scale(features)
+  selected <- which.min(rowSums(features^2))
+  distance <- rep(Inf, nrow(features))
+  while (length(selected) < count) {
+    last <- features[selected[length(selected)], ]
+    distance <- pmin(distance, rowSums((features - rep(last,
+      each = nrow(features)))^2))
+    distance[selected] <- -Inf
+    selected <- c(selected, which.max(distance))
+  }
+  selected
+}
+
+ism1_generate_bank <- function(reference, counts = c(reservoir_only = 96L,
+    hybrid_direct_lags = 96L, lag_only = 48L)) {
+  stopifnot(identical(sort(names(counts)),
+      sort(c("reservoir_only", "hybrid_direct_lags", "lag_only"))),
+    all(counts >= 8L), counts[["reservoir_only"]] == counts[["hybrid_direct_lags"]])
   set.seed(102071L)
   pool <- vector("list", 1200L)
   patterns <- c("equal", "tapered", "expanding", "bottleneck")
@@ -112,28 +130,55 @@ ism1_generate_bank <- function(reference, count_per_mode = 80L) {
       qlogis(c$rho), log(c$input_gain), c$input_fanin / (c$m + 1L),
       log(c$effective_p0))
   }))
-  features <- scale(features)
-  selected <- which.min(rowSums(features^2))
-  distance <- rep(Inf, nrow(features))
-  while (length(selected) < count_per_mode - 1L) {
-    last <- features[selected[length(selected)], ]
-    distance <- pmin(distance, rowSums((features - rep(last,
-      each = nrow(features)))^2))
-    distance[selected] <- -Inf
-    selected <- c(selected, which.max(distance))
-  }
+  selected <- ism1_maximin(features, counts[["reservoir_only"]] - 1L)
   bases <- c(list(reference), pool[selected])
-  modes <- c("reservoir_only", "lag_only", "hybrid_direct_lags")
   out <- list()
-  for (i in seq_along(bases)) for (mode in modes) {
-    c <- bases[[i]]
-    out[[length(out) + 1L]] <- ism1_candidate(c, reference, mode,
-      c$effective_p0 %||% 15,
-      if (mode == "reservoir_only") 1 else c$lag_precision_multiplier %||% 1,
+  for (i in seq_along(bases)) for (mode in c("reservoir_only", "hybrid_direct_lags")) {
+    candidate <- bases[[i]]
+    out[[length(out) + 1L]] <- ism1_candidate(candidate, reference, mode,
+      candidate$effective_p0 %||% 15,
+      if (mode == "reservoir_only") 1 else candidate$lag_precision_multiplier %||% 1,
       if (i == 1L) "exact_anchor_readout_ablation" else "maximin_space_filling")
   }
+
+  lag_grid <- expand.grid(m = m_grid, effective_p0 = p0_grid,
+    lag_precision_multiplier = c(.25, 1, 4),
+    center_scale = c("mean_sd", "median_mad"),
+    input_bound = c("none", "tanh_z_over_3"),
+    stringsAsFactors = FALSE)
+  lag_features <- cbind(log(lag_grid$m + 1), log(lag_grid$effective_p0),
+    log(lag_grid$lag_precision_multiplier),
+    as.integer(lag_grid$center_scale == "median_mad"),
+    as.integer(lag_grid$input_bound == "tanh_z_over_3"))
+  lag_anchor <- reference
+  lag_anchor$n <- "20"; lag_anchor$alpha <- .5; lag_anchor$rho <- .5
+  lag_anchor$input_gain <- 1; lag_anchor$input_fanin <- 1L
+  lag_anchor$recurrent_indegree <- 5L; lag_anchor$interlayer_fanin <- 1L
+  lag_anchor$effective_p0 <- 15; lag_anchor$lag_precision_multiplier <- 1
+  lag_candidates <- list(ism1_candidate(lag_anchor, reference, "lag_only", 15, 1,
+    "exact_anchor_readout_ablation"))
+  lag_order <- ism1_maximin(lag_features, nrow(lag_features))
+  for (i in lag_order) {
+    candidate <- lag_anchor
+    candidate$m <- lag_grid$m[i]
+    candidate$effective_p0 <- lag_grid$effective_p0[i]
+    candidate$lag_precision_multiplier <- lag_grid$lag_precision_multiplier[i]
+    candidate$center_scale <- lag_grid$center_scale[i]
+    candidate$input_bound <- lag_grid$input_bound[i]
+    candidate$input_fanin <- min(candidate$m + 1L, 1L)
+    candidate <- ism1_candidate(candidate, reference, "lag_only",
+      candidate$effective_p0, candidate$lag_precision_multiplier,
+      "lag_active_parameter_maximin")
+    if (!candidate$id %in% vapply(lag_candidates, `[[`, "", "id"))
+      lag_candidates[[length(lag_candidates) + 1L]] <- candidate
+    if (length(lag_candidates) == counts[["lag_only"]]) break
+  }
+  stopifnot(length(lag_candidates) == counts[["lag_only"]])
+  out <- c(out, lag_candidates)
   ids <- vapply(out, `[[`, "", "id")
-  stopifnot(length(out) == count_per_mode * 3L, !anyDuplicated(ids))
+  observed <- table(factor(vapply(out, `[[`, "", "readout_mode"),
+    levels = names(counts)))
+  stopifnot(length(out) == sum(counts), all(observed == counts), !anyDuplicated(ids))
   out
 }
 
@@ -245,18 +290,23 @@ iqt12_prior <- ism1_prior
 
 ism1_readout_row <- function(object, h, z) {
   mode <- object$meta$sentinel_readout_mode %||% "reservoir_only"
-  states <- rbind(h[[object$reservoir$D]], do.call(rbind,
-    head(h, -1L)))
   switch(mode,
-    reservoir_only = rbind(1, states),
+    reservoir_only = {
+      states <- rbind(h[[object$reservoir$D]], do.call(rbind, head(h, -1L)))
+      rbind(1, states)
+    },
     lag_only = rbind(1, z),
-    hybrid_direct_lags = rbind(1, states, z))
+    hybrid_direct_lags = {
+      states <- rbind(h[[object$reservoir$D]], do.call(rbind, head(h, -1L)))
+      rbind(1, states, z)
+    })
 }
 
 ism1_particle_paths <- function(e, object, y, local, H, draws, noise) {
   r <- object$reservoir; meta <- object$meta; count <- nrow(draws$beta)
-  h <- lapply(object$states$H_all, function(z)
-    matrix(z[local, ], nrow = ncol(z), ncol = count))
+  use_states <- (meta$sentinel_readout_mode %||% "reservoir_only") != "lag_only"
+  h <- if (use_states) lapply(object$states$H_all, function(z)
+    matrix(z[local, ], nrow = ncol(z), ncol = count)) else NULL
   lags <- matrix(y[local - seq_len(r$m) + 1L], nrow = r$m, ncol = count)
   abc <- lapply(draws$gamma, function(g) e$exal_get_ABC(meta$p0 %||% object$fit$misc$p0, g))
   A <- vapply(abc, `[[`, 0, "A"); B <- vapply(abc, `[[`, 0, "B")
@@ -265,11 +315,13 @@ ism1_particle_paths <- function(e, object, y, local, H, draws, noise) {
   for (lead in seq_len(H)) {
     z <- (lags - meta$lag_center) / meta$lag_scale
     if (meta$input_bound == "tanh") z <- tanh(z / meta$input_bound_divisor)
-    u <- rbind(rep(meta$win_scale_bias, count), z * meta$win_scale_global)
-    for (d in seq_len(r$D)) {
-      input <- if (d == 1L) u else h[[d - 1L]]
-      h[[d]] <- as.matrix((1 - r$alpha[d]) * h[[d]] + r$alpha[d] *
-        tanh(r$W[[d]] %*% h[[d]] + r$Win[[d]] %*% input))
+    if (use_states) {
+      u <- rbind(rep(meta$win_scale_bias, count), z * meta$win_scale_global)
+      for (d in seq_len(r$D)) {
+        input <- if (d == 1L) u else h[[d - 1L]]
+        h[[d]] <- as.matrix((1 - r$alpha[d]) * h[[d]] + r$alpha[d] *
+          tanh(r$W[[d]] %*% h[[d]] + r$Win[[d]] %*% input))
+      }
     }
     x <- ism1_readout_row(object, h, z)
     stopifnot(nrow(x) == nrow(beta))
@@ -364,13 +416,14 @@ iqt12_qforecast_hook <- ism1_qforecast
 
 ism1_normal_forecast <- function(e, cx, cfg, object, draws) {
   w <- cfg$window; out <- vector("list", length(w$origins))
+  use_states <- (object$meta$sentinel_readout_mode %||% "reservoir_only") != "lag_only"
   for (i in seq_along(w$origins)) {
     o <- w$origins[i]; local <- o - cx$first + 1L
     H <- min(w$horizon, w$end - o)
     index <- rep(seq_len(nrow(draws$beta)), each = cfg$inner)
     beta <- draws$beta[index, , drop = FALSE]; count <- length(index)
-    h <- lapply(object$states$H_all, function(z)
-      matrix(z[local, ], ncol = count, nrow = ncol(z)))
+    h <- if (use_states) lapply(object$states$H_all, function(z)
+      matrix(z[local, ], ncol = count, nrow = ncol(z))) else NULL
     lags <- matrix(cx$y[local - seq_len(object$reservoir$m) + 1L],
       ncol = count, nrow = object$reservoir$m)
     values <- matrix(0, H, count)
@@ -380,12 +433,14 @@ ism1_normal_forecast <- function(e, cx, cfg, object, draws) {
     for (lead in seq_len(H)) {
       z <- (lags - object$meta$lag_center) / object$meta$lag_scale
       if (object$meta$input_bound == "tanh") z <- tanh(z / object$meta$input_bound_divisor)
-      u <- rbind(rep(object$meta$win_scale_bias, count), z * object$meta$win_scale_global)
-      for (d in seq_len(object$reservoir$D)) {
-        input <- if (d == 1L) u else h[[d - 1L]]
-        h[[d]] <- as.matrix((1 - object$reservoir$alpha[d]) * h[[d]] +
-          object$reservoir$alpha[d] * tanh(object$reservoir$W[[d]] %*% h[[d]] +
-            object$reservoir$Win[[d]] %*% input))
+      if (use_states) {
+        u <- rbind(rep(object$meta$win_scale_bias, count), z * object$meta$win_scale_global)
+        for (d in seq_len(object$reservoir$D)) {
+          input <- if (d == 1L) u else h[[d - 1L]]
+          h[[d]] <- as.matrix((1 - object$reservoir$alpha[d]) * h[[d]] +
+            object$reservoir$alpha[d] * tanh(object$reservoir$W[[d]] %*% h[[d]] +
+              object$reservoir$Win[[d]] %*% input))
+        }
       }
       xx <- ism1_readout_row(object, h, z)
       mu <- colSums(xx * t(beta)); values[lead, ] <- mu
@@ -430,7 +485,7 @@ ism1_materialize <- function(repo, run, parent, library) {
     ref$source_path <- source; ref$source_sha <- unname(tools::sha256sum(source))
     state$references[[cell]] <- ref
   }
-  state$bank <- ism1_generate_bank(state$references[[ism1_sentinel]]$candidate, 80L)
+  state$bank <- ism1_generate_bank(state$references[[ism1_sentinel]]$candidate)
   dir.create(run, recursive = TRUE, showWarnings = FALSE)
   iqt12_csv(ism1_bank_frame(state$bank), file.path(run, "candidate_bank.csv"))
   env <- list(exdqlm_version = as.character(utils::packageVersion("exdqlm", lib.loc = library)),
