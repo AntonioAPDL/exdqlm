@@ -399,7 +399,7 @@ icav2_bridge_worker <- function(path) {
   iqt12_verify(file.path(cfg$run, "source_hashes.csv"))
   iqt12_verify(file.path(cfg$run, "package_hashes.csv"))
   iqt12_verify(file.path(cfg$run, "frozen_hashes.csv"))
-  iqt12_verify(file.path(cfg$run, "plans", "mcmc_bridge_hashes.csv"))
+  iqt12_verify(file.path(cfg$run, "plans", paste0(cfg$stage, "_hashes.csv")))
   stopifnot(!file.exists(cfg$status_path),
     unname(tools::sha256sum(cfg$source_path)) == cfg$source_sha)
   dir.create(cfg$evidence, recursive = TRUE, showWarnings = FALSE)
@@ -433,7 +433,7 @@ icav2_bridge_worker <- function(path) {
     add <- data.frame(id = cfg$id, cell = cfg$cell,
       candidate_id = cfg$candidate$id, model = "qdesn", engine = "mcmc",
       family = cfg$family, p = cfg$p, N = forecast_cfg$window$N,
-      fold = cfg$window$fold, chain = 1L, refit_origin = cfg$refit_origin,
+      fold = cfg$window$fold, chain = cfg$chain, refit_origin = cfg$refit_origin,
       adaptation_mode = cfg$adaptation_mode)
     iqt12_csv(cbind(add[rep(1, nrow(score$summary)), ], score$summary),
       file.path(cfg$evidence, "summary.csv"))
