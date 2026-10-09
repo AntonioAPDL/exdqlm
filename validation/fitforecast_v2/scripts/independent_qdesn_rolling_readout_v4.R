@@ -15,6 +15,10 @@ if (action == "materialize") {
   stopifnot(length(args) == 5L)
   irrv4_materialize(repo, args[3L], args[4L], args[5L])
   cat("MATERIALIZED\n")
+} else if (action == "recover") {
+  stopifnot(length(args) == 5L)
+  irrv4_recover_materialize(repo, args[3L], args[4L], args[5L])
+  cat("RECOVERED\n")
 } else if (action == "worker") {
   stopifnot(length(args) == 3L)
   irrv4_worker(args[3L])

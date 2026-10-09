@@ -93,3 +93,13 @@ seeds, and all generated summaries with SHA-256 manifests. Each worker uses one
 physical core and single-threaded numerical libraries. Up to 15 workers run in
 parallel with RAM and CPU-idleness checks. No fitted-model `.rds`, `.rda`, or
 `.RData` payloads are retained.
+
+## Recovery contract
+
+The first production screen completed all 60 fits before its transition stopped
+on a metadata-only column mismatch between imported and new summary frames. A
+recovery entry point verifies every original configuration, status, evidence
+manifest, and campaign hash; imports the 60 immutable screen results; aligns
+metadata columns by name; and resumes at the predeclared gate without rerunning
+a model. The superseded run, source commit, and zero-rerun scope are recorded in
+the recovery campaign. This repair changes neither estimates nor decision rules.

@@ -58,6 +58,17 @@ testthat::test_that("screen gate requires a new policy to beat the anchor", {
   testthat::expect_false(irrv4_better_than_anchor(worse, anchor))
 })
 
+testthat::test_that("heterogeneous imported and local summaries bind by name", {
+  old <- data.frame(metric = "forecast_mae", mean = 1, adaptation_mode = "old")
+  new <- data.frame(metric = "forecast_mae", mean = 2, policy_id = "new")
+  out <- irrv4_bind_rows(old, new)
+  testthat::expect_identical(nrow(out), 2L)
+  testthat::expect_setequal(names(out), c("metric", "mean",
+    "adaptation_mode", "policy_id"))
+  testthat::expect_true(is.na(out$policy_id[1L]))
+  testthat::expect_true(is.na(out$adaptation_mode[2L]))
+})
+
 testthat::test_that("confirmation aggregation requires three chains per cell", {
   make <- function(chain) {
     z <- expand.grid(policy_id = "rolling_500", fold = ism1_folds,

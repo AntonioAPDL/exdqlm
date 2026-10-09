@@ -1,4 +1,5 @@
 irrv4_schema <- "independent_qdesn_rolling_readout_v4"
+irrv4_recovery_schema <- "independent_qdesn_rolling_readout_v4_recovery_v1"
 irrv4_candidate_id <- "3a7a6653cb244f49813c"
 irrv4_screen_offsets <- c(50L, 125L, 200L)
 irrv4_validation_offsets <- c(25L, 75L, 150L, 220L)
@@ -19,6 +20,18 @@ irrv4_files <- function(path) {
 irrv4_status <- function(path) {
   if (!file.exists(path)) return("PENDING")
   as.character(iqt12_read(path)$status)
+}
+
+irrv4_bind_rows <- function(...) {
+  x <- list(...)
+  x <- x[vapply(x, nrow, 0L) > 0L]
+  all_names <- unique(unlist(lapply(x, names), use.names = FALSE))
+  x <- lapply(x, function(z) {
+    missing <- setdiff(all_names, names(z))
+    for (name in missing) z[[name]] <- NA
+    z[all_names]
+  })
+  do.call(rbind, x)
 }
 
 irrv4_verify_parent <- function(parent_run) {
@@ -70,6 +83,18 @@ irrv4_verify_imports <- function(run) {
       identical(unname(tools::sha256sum(x$evidence_manifest)),
         x$evidence_manifest_sha256))
     for (path in x$evidence_manifest) iqt12_verify(path)
+  }
+  screen_path <- file.path(run, "manifests", "screen_imports.csv")
+  if (file.exists(screen_path)) {
+    screen <- read.csv(screen_path, stringsAsFactors = FALSE)
+    stopifnot(nrow(screen) == 60L,
+      identical(unname(tools::sha256sum(screen$config_path)),
+        screen$config_sha256),
+      identical(unname(tools::sha256sum(screen$status_path)),
+        screen$status_sha256),
+      identical(unname(tools::sha256sum(screen$evidence_manifest)),
+        screen$evidence_manifest_sha256))
+    for (path in screen$evidence_manifest) iqt12_verify(path)
   }
   invisible(TRUE)
 }
@@ -346,6 +371,17 @@ irrv4_local_results <- function(run, stage) {
   }))
 }
 
+irrv4_imported_screen_results <- function(run) {
+  imports <- read.csv(file.path(run, "manifests", "screen_imports.csv"),
+    stringsAsFactors = FALSE)
+  do.call(rbind, lapply(seq_len(nrow(imports)), function(i) {
+    z <- read.csv(file.path(imports$evidence[i], "summary.csv"),
+      stringsAsFactors = FALSE)
+    z$config_path <- imports$config_path[i]
+    z
+  }))
+}
+
 irrv4_fixed_results <- function(run) {
   imports <- read.csv(file.path(run, "manifests", "expanding_fixed_imports.csv"),
     stringsAsFactors = FALSE)
@@ -468,8 +504,8 @@ irrv4_closeout <- function(run, decision, details) {
   "COMPLETE_REVIEW_REQUIRED"
 }
 
-irrv4_advance_screen <- function(run) {
-  results <- rbind(irrv4_fixed_results(run), irrv4_local_results(run, "screen"))
+irrv4_evaluate_screen <- function(run, local_results) {
+  results <- irrv4_bind_rows(irrv4_fixed_results(run), local_results)
   comparison <- irrv4_compare(run, results)
   rank <- irrv4_rank(comparison)
   iqt12_csv(results, file.path(run, "summaries", "screen_metrics.csv"))
@@ -491,7 +527,13 @@ irrv4_advance_screen <- function(run) {
     anchor_baseline_mae_wins = anchor$baseline_mae_wins,
     rule = "new_policy_beats_expanding_fixed_and_median_exDQLM_MAE_ratio_below_1.05_and_at_least_6_of_12_wins"),
     file.path(run, "review", "screen_gate.json"))
-  if (!gate) return(irrv4_closeout(run,
+  list(gate = gate, selected = selected, anchor = anchor)
+}
+
+irrv4_advance_screen <- function(run) {
+  decision <- irrv4_evaluate_screen(run, irrv4_local_results(run, "screen"))
+  selected <- decision$selected
+  if (!decision$gate) return(irrv4_closeout(run,
     "NO_ROLLING_READOUT_IMPROVEMENT_OVER_EXPANDING_FIXED_RETAIN_V3",
     list(screen_jobs = 60L, validation_jobs = 0L, confirmation_jobs = 0L,
       selected_policy = selected$policy_id,
@@ -499,6 +541,127 @@ irrv4_advance_screen <- function(run) {
   irrv4_make_plan(run, "validation", irrv4_validation_offsets,
     selected$policy_id, 1L)
   "validation"
+}
+
+irrv4_verify_failed_screen <- function(failed_run) {
+  stopifnot(dir.exists(failed_run),
+    !file.exists(file.path(failed_run, "closeout.json")))
+  for (name in c("source_hashes.csv", "input_hashes.csv", "package_hashes.csv",
+      "frozen_hashes.csv")) iqt12_verify(file.path(failed_run, name))
+  health <- irrv4_health(failed_run)
+  stopifnot(health$total == 60L, health$complete == 60L,
+    health$running == 0L, health$pending == 0L, health$failed == 0L)
+  scheduler <- readLines(file.path(failed_run, "scheduler.status"), warn = FALSE)
+  stopifnot(length(scheduler) == 1L,
+    grepl("^PAUSED_REVIEW_REQUIRED", scheduler),
+    grepl("unexpected_scheduler_exit_1", scheduler))
+  plan <- read.csv(file.path(failed_run, "plans", "screen.csv"),
+    stringsAsFactors = FALSE)
+  stopifnot(nrow(plan) == 60L)
+  rows <- lapply(seq_len(nrow(plan)), function(i) {
+    cfg <- iqt12_read(plan$config_path[i])
+    status <- ifbv3_verify_status_manifest(plan$status_path[i])
+    data.frame(id = cfg$id, policy_id = cfg$readout_policy$policy_id,
+      fold = cfg$window$fold, origin = cfg$refit_origin, chain = cfg$chain,
+      config_path = normalizePath(plan$config_path[i], mustWork = TRUE),
+      config_sha256 = unname(tools::sha256sum(plan$config_path[i])),
+      status_path = normalizePath(plan$status_path[i], mustWork = TRUE),
+      status_sha256 = unname(tools::sha256sum(plan$status_path[i])),
+      evidence = normalizePath(cfg$evidence, mustWork = TRUE),
+      evidence_manifest = normalizePath(status$manifest, mustWork = TRUE),
+      evidence_manifest_sha256 = unname(tools::sha256sum(status$manifest)),
+      stringsAsFactors = FALSE)
+  })
+  do.call(rbind, rows)
+}
+
+irrv4_recovery_code_files <- function(repo, e) unique(c(e$iqt12_loaded_files,
+  file.path(repo, "R/exal_online_vbld.R"),
+  file.path(repo, "validation/fitforecast_v2/R", c(
+    "independent_qdesn_training1000_runtime_v1.R",
+    "independent_qdesn_training1000_campaign_v1.R",
+    "independent_qdesn_sentinel_mechanism_v1.R",
+    "independent_qdesn_sentinel_mechanism_recovery_v1.R",
+    "independent_qdesn_causal_adaptation_v2.R",
+    "independent_qdesn_mcmc_finalist_bridge_v3.R",
+    "independent_qdesn_rolling_readout_v4.R")),
+  file.path(repo, "validation/fitforecast_v2/scripts", c(
+    "independent_qdesn_rolling_readout_v4.R",
+    "run_independent_qdesn_rolling_readout_v4.sh")),
+  file.path(repo, "validation/fitforecast_v2/docs",
+    "INDEPENDENT_QDESN_ROLLING_READOUT_V4_20261009.md"),
+  file.path(repo, "validation/fitforecast_v2/tests",
+    "test_independent_qdesn_rolling_readout_v4.R")))
+
+irrv4_recover_materialize <- function(repo, run, failed_run, library) {
+  stopifnot(!dir.exists(run), dir.exists(repo), dir.exists(failed_run),
+    dir.exists(library))
+  screen_imports <- irrv4_verify_failed_screen(failed_run)
+  failed <- iqt12_read(file.path(failed_run, "campaign.json"))
+  irrv4_verify_parent(failed$parent_run)
+  head <- system2("git", c("-C", repo, "rev-parse", "HEAD"), stdout = TRUE)
+  dir.create(run, recursive = TRUE, showWarnings = FALSE)
+  for (name in c("control", "configs", "status", "evidence", "plans",
+      "summaries", "selections", "review", "manifests"))
+    dir.create(file.path(run, name), recursive = TRUE, showWarnings = FALSE)
+  state <- failed
+  state$schema <- irrv4_recovery_schema
+  state$repo <- normalizePath(repo, mustWork = TRUE)
+  state$run <- normalizePath(run, mustWork = TRUE)
+  state$library <- normalizePath(library, mustWork = TRUE)
+  state$head <- head
+  state$superseded_run <- normalizePath(failed_run, mustWork = TRUE)
+  state$superseded_head <- failed$head
+  state$recovery_scope <- "metadata_column_alignment_only_no_model_reruns"
+  iqt12_json(state, file.path(run, "campaign.json"))
+  iqt12_csv(read.csv(file.path(failed_run, "candidate_bank.csv"),
+    stringsAsFactors = FALSE), file.path(run, "candidate_bank.csv"))
+  for (name in c("parent_imports.csv", "expanding_fixed_imports.csv"))
+    iqt12_csv(read.csv(file.path(failed_run, "manifests", name),
+      stringsAsFactors = FALSE), file.path(run, "manifests", name))
+  iqt12_csv(screen_imports, file.path(run, "manifests", "screen_imports.csv"))
+  environment <- iqt12_read(file.path(failed_run, "environment.json"))
+  environment$schema <- irrv4_recovery_schema
+  environment$source_head <- head
+  environment$recovered_from <- normalizePath(failed_run, mustWork = TRUE)
+  iqt12_json(environment, file.path(run, "environment.json"))
+  e <- ism1_runtime(repo, library)
+  iqt12_hash(irrv4_recovery_code_files(repo, e),
+    file.path(run, "source_hashes.csv"))
+  iqt12_hash(irrv4_files(file.path(library, "exdqlm")),
+    file.path(run, "package_hashes.csv"))
+  iqt12_hash(c(file.path(run, c("campaign.json", "environment.json",
+    "candidate_bank.csv", "manifests/parent_imports.csv",
+    "manifests/expanding_fixed_imports.csv", "manifests/screen_imports.csv")),
+    file.path(failed_run, c("campaign.json", "source_hashes.csv",
+      "input_hashes.csv", "package_hashes.csv", "frozen_hashes.csv",
+      "plans/screen.csv", "plans/screen_hashes.csv"))),
+    file.path(run, "input_hashes.csv"))
+  decision <- irrv4_evaluate_screen(run, irrv4_imported_screen_results(run))
+  if (decision$gate) irrv4_make_plan(run, "validation",
+    irrv4_validation_offsets, decision$selected$policy_id, 1L)
+  preflight <- list(schema = irrv4_recovery_schema,
+    status = if (decision$gate) "READY_TO_RESUME_VALIDATION" else
+      "SCREEN_GATE_STOP", imported_screen_jobs = 60L,
+    model_jobs_rerun = 0L, possible_validation_jobs = 16L,
+    possible_confirmation_jobs = 32L, sealed_block_opened = FALSE,
+    article_changed = FALSE)
+  iqt12_json(preflight, file.path(run, "preflight.json"))
+  iqt12_hash(c(file.path(run, c("campaign.json", "environment.json",
+    "candidate_bank.csv", "source_hashes.csv", "input_hashes.csv",
+    "package_hashes.csv", "preflight.json")),
+    irrv4_files(file.path(run, "manifests")),
+    list.files(file.path(run, "plans"), full.names = TRUE)),
+    file.path(run, "frozen_hashes.csv"))
+  irrv4_verify_imports(run)
+  if (!decision$gate) irrv4_closeout(run,
+    "NO_ROLLING_READOUT_IMPROVEMENT_OVER_EXPANDING_FIXED_RETAIN_V3",
+    list(screen_jobs = 60L, imported_screen_jobs = 60L,
+      validation_jobs = 0L, confirmation_jobs = 0L,
+      selected_policy = decision$selected$policy_id,
+      recovery_model_jobs_rerun = 0L,
+      next_action = "design_explicit_time_varying_readout_not_more_static_or_window_screening"))
+  invisible(preflight)
 }
 
 irrv4_advance_validation <- function(run) {

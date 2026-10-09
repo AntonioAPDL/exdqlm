@@ -50,7 +50,9 @@ cpus=$("$rscript" "$cli" resources "$repo")
 IFS=, read -r -a cores <<< "$cpus"
 (( ${#cores[@]} >= 1 && ${#cores[@]} <= 15 )) || exit 1
 printf '%s\n' "$cpus" > "$control/allocated_cpus.txt"
-for stage in screen validation confirmation; do
+stages=(screen validation confirmation)
+[[ ! -f "$run/manifests/screen_imports.csv" ]] || stages=(validation confirmation)
+for stage in "${stages[@]}"; do
   [[ -f "$run/closeout.json" ]] && break
   [[ -f "$run/plans/$stage.csv" ]] || { hold="missing_plan_$stage"; break; }
   pending="$control/pending_$stage.tsv"
