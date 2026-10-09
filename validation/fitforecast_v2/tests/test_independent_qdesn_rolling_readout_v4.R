@@ -69,6 +69,14 @@ testthat::test_that("heterogeneous imported and local summaries bind by name", {
   testthat::expect_true(is.na(out$adaptation_mode[2L]))
 })
 
+testthat::test_that("historical source verification is pinned to campaign HEAD", {
+  verifier <- paste(deparse(body(irrv4_verify_source_at_frozen_head)),
+    collapse = "\n")
+  testthat::expect_match(verifier, "campaign\\$head")
+  testthat::expect_match(verifier, "git")
+  testthat::expect_match(verifier, "sha256sum")
+})
+
 testthat::test_that("confirmation aggregation requires three chains per cell", {
   make <- function(chain) {
     z <- expand.grid(policy_id = "rolling_500", fold = ism1_folds,

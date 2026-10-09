@@ -543,11 +543,31 @@ irrv4_advance_screen <- function(run) {
   "validation"
 }
 
+irrv4_verify_source_at_frozen_head <- function(run) {
+  campaign <- iqt12_read(file.path(run, "campaign.json"))
+  manifest <- read.csv(file.path(run, "source_hashes.csv"),
+    stringsAsFactors = FALSE)
+  prefix <- paste0(normalizePath(campaign$repo, mustWork = TRUE), "/")
+  stopifnot(all(startsWith(manifest$path, prefix)))
+  observed <- vapply(manifest$path, function(path) {
+    relative <- substring(path, nchar(prefix) + 1L)
+    target <- tempfile("irrv4_frozen_source_")
+    on.exit(unlink(target), add = TRUE)
+    status <- system2("git", c("-C", campaign$repo, "show",
+      paste0(campaign$head, ":", relative)), stdout = target)
+    stopifnot(status == 0L, file.exists(target))
+    unname(tools::sha256sum(target))
+  }, "")
+  stopifnot(identical(unname(observed), manifest$sha256))
+  invisible(TRUE)
+}
+
 irrv4_verify_failed_screen <- function(failed_run) {
   stopifnot(dir.exists(failed_run),
     !file.exists(file.path(failed_run, "closeout.json")))
-  for (name in c("source_hashes.csv", "input_hashes.csv", "package_hashes.csv",
-      "frozen_hashes.csv")) iqt12_verify(file.path(failed_run, name))
+  irrv4_verify_source_at_frozen_head(failed_run)
+  for (name in c("input_hashes.csv", "package_hashes.csv", "frozen_hashes.csv"))
+    iqt12_verify(file.path(failed_run, name))
   health <- irrv4_health(failed_run)
   stopifnot(health$total == 60L, health$complete == 60L,
     health$running == 0L, health$pending == 0L, health$failed == 0L)
