@@ -30,8 +30,10 @@ if (command == "materialize") {
   if (nrow(plan)) for (i in seq_len(nrow(plan))) {
     status <- if (file.exists(plan$status_path[i]))
       iqt12_read(plan$status_path[i])$status else "PENDING"
-    if (status == "PENDING") cat(plan$id[i], plan$config_path[i],
-      plan$timeout[i], sep = "\t", fill = TRUE)
+    if (status == "PENDING") {
+      cat(paste(plan$id[i], plan$config_path[i], plan$timeout[i], sep = "\t"),
+        "\n", sep = "")
+    }
   }
 } else if (command == "advance") {
   stopifnot(length(args) == 4L)

@@ -44,4 +44,21 @@ stopifnot(nrow(score) == 2L, all(is.finite(score$composite)),
 
 topology <- itm6_resources(2L)
 stopifnot(length(topology) == 2L, !anyDuplicated(topology))
+
+pending_run <- tempfile("itm6_pending_")
+dir.create(file.path(pending_run, "plans"), recursive = TRUE)
+pending_plan <- data.frame(id = c("job_a", "job_b"),
+  config_path = c("/tmp/config_a.json", "/tmp/config_b.json"),
+  status_path = file.path(pending_run, "status", c("a.json", "b.json")),
+  timeout = c(60, 120), stringsAsFactors = FALSE)
+write.csv(pending_plan, file.path(pending_run, "plans", "smoke.csv"),
+  row.names = FALSE)
+pending_output <- system2(file.path(R.home("bin"), "Rscript"),
+  c(file.path(repo, "validation/fitforecast_v2/scripts",
+      "independent_qdesn_training_size_mechanism_v6.R"),
+    "pending", repo, pending_run, "smoke"), stdout = TRUE)
+stopifnot(length(pending_output) == 2L,
+  identical(vapply(strsplit(pending_output, "\t", fixed = TRUE), length,
+    integer(1L)), c(3L, 3L)))
+unlink(pending_run, recursive = TRUE)
 cat("independent_qdesn_training_size_mechanism_v6: PASS\n")
