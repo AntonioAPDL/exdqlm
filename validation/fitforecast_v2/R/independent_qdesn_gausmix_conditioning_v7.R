@@ -43,6 +43,20 @@ igc7_allocate_states <- function(total, D, shape) {
   as.integer(20L + add)
 }
 
+igc7_normalize_candidate <- function(candidate) {
+  candidate$n <- paste(as.integer(iqt12_unpack(candidate$n)), collapse = ";")
+  for (field in c("m", "input_fanin", "recurrent_indegree",
+      "interlayer_fanin", "matrix_seed"))
+    if (!is.null(candidate[[field]]))
+      candidate[[field]] <- as.integer(candidate[[field]])
+  for (field in c("alpha", "rho", "input_gain"))
+    candidate[[field]] <- signif(as.numeric(candidate[[field]]), 14L)
+  for (field in c("center_scale", "input_bound", "readout_mode"))
+    if (!is.null(candidate[[field]]))
+      candidate[[field]] <- as.character(candidate[[field]])
+  candidate
+}
+
 igc7_new_candidate <- function(reference, index) {
   primes <- c(2L, 3L, 5L, 7L, 11L, 13L, 17L, 19L, 23L, 29L)
   u <- vapply(primes, function(base) igc7_halton(index + 17L, base), 0)
@@ -64,14 +78,15 @@ igc7_new_candidate <- function(reference, index) {
   candidate$alpha <- alpha
   candidate$rho <- rho
   candidate$input_gain <- input_gain
-  candidate$input_fanin <- max(1L, round((m + 1L) * (0.05 + 0.25 * u[10L])))
+  candidate$input_fanin <- as.integer(max(1L,
+    round((m + 1L) * (0.05 + 0.25 * u[10L]))))
   candidate$recurrent_indegree <- min(recurrent, min(n))
   candidate$interlayer_fanin <- min(interlayer, min(n))
   candidate$center_scale <- if (u[3L] < 0.5) "mean_sd" else "median_mad"
   candidate$input_bound <- "tanh_z_over_3"
   candidate$effective_p0 <- as.integer(round(8 + 32 * u[10L]))
   candidate$layer_shape <- shape
-  itm6_candidate(candidate, reference,
+  itm6_candidate(igc7_normalize_candidate(candidate), reference,
     sprintf("halton_intermediate_%02d_%s", index, shape))
 }
 
@@ -102,7 +117,7 @@ igc7_candidate_panel <- function(reference, parent_bank, historical_ids) {
     row <- parent_bank[parent_bank$cell == igc7_cell &
       parent_bank$structure_id == structure_id, , drop = FALSE]
     stopifnot(nrow(row) == 1L)
-    candidate <- as.list(row[1L, ])
+    candidate <- igc7_normalize_candidate(as.list(row[1L, ]))
     candidate$layer_shape <- "historical"
     itm6_candidate(candidate, reference, paste0("v6_anchor_", structure_id))
   })
@@ -288,6 +303,7 @@ igc7_config <- function(state, candidate, stage, estimator, fold,
                         conditioning = "none") {
   stopifnot(stage %in% igc7_stages,
     conditioning %in% igc7_conditioning_modes)
+  candidate <- igc7_normalize_candidate(candidate)
   cfg <- itm6_config(state, igc7_cell, candidate, stage, estimator,
     igc7_N, fold, chain, tau_multiplier = tau_multiplier)
   cfg$schema <- igc7_schema

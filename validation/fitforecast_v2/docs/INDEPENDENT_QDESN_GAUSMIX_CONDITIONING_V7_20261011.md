@@ -78,5 +78,7 @@ result packets are SHA-256 manifested. Runtime outputs contain compressed CSV
 and JSON only; fitted model binaries are prohibited. The scheduler pins one R
 process to each of at most 30 physical cores, forces all numerical libraries to
 one thread, stops new scheduling below 128 GiB available memory, and supports a
-clean drain through `STOP_NEW_SCHEDULING`. This campaign cannot update article
-files or Overleaf directly.
+clean drain through `STOP_NEW_SCHEDULING`. Structure-defining floating-point
+parameters are frozen to 14 significant digits before hashing so candidate
+identities survive an exact JSON write/read transition. This campaign cannot
+update article files or Overleaf directly.

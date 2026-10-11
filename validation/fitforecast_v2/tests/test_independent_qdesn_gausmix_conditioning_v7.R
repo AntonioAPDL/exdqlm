@@ -40,6 +40,12 @@ stopifnot(first$D >= 3L, first$D <= 6L, first$total_states >= 250L,
   first$rho >= 0.97, first$rho <= 0.9995,
   first$readout_dimension == first$total_states + 1L,
   first$matrix_seed == 920001L)
+roundtrip_path <- tempfile(fileext = ".json")
+iqt12_json(list(candidate = first), roundtrip_path)
+roundtrip <- iqt12_read(roundtrip_path)$candidate
+rebuilt <- itm6_candidate(igc7_normalize_candidate(roundtrip), reference,
+  roundtrip$role)
+stopifnot(rebuilt$structure_id == first$structure_id)
 
 fake <- expand.grid(structure_id = c("a", "b"), tau_multiplier = c(0.5, 1),
   readout_conditioning = igc7_conditioning_modes, fold = c("S1", "S3"),
