@@ -48,6 +48,18 @@ After the scheduler closes, rerun with `final`. Review packets belong under an
 ignored `local_trackers` directory until the integration coordinator decides
 whether a final scientific handoff is warranted.
 
+For unattended completion, the companion watcher can wait for the frozen
+campaign closeout and invoke strict final mode automatically:
+
+```bash
+bash validation/fitforecast_v2/scripts/watch_independent_qdesn_training_size_mechanism_v6_review.sh \
+  <review-worktree> <campaign-run> <ignored-final-output-directory> 300
+```
+
+The watcher records both initial commits, requires a clean review worktree,
+blocks if either commit changes or the scheduler pauses, and otherwise sleeps
+between checks. It does not consume a model core or alter the campaign.
+
 ## Post-campaign decision
 
 - If every matched MCMC forecast-MAE ratio is at most 1.10, prepare a separate
