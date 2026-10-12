@@ -135,3 +135,10 @@ Every source, package file, parent artifact, configuration, plan, and retained
 result is SHA-256 hashed. The scheduler fails closed, supports
 `STOP_NEW_SCHEDULING`, pins one worker per physical core, and advances only
 after every job in the preceding frozen stage succeeds.
+
+If an orchestration-only defect is discovered after a stage has completed,
+recovery must verify every completed evidence manifest, preserve the original
+source and frozen manifests, record the original and recovery commits, update
+the source-hash epoch, and rerun zero scientific jobs. The dedicated
+`recover-screening-baseline` command implements that fail-closed transition
+for the S1/S3 DQLM source-stage lookup corrected during this campaign.

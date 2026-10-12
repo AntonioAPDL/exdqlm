@@ -73,6 +73,9 @@ unlink(tmp, recursive = TRUE)
 shell <- file.path(repo, "validation/fitforecast_v2/scripts",
   "run_independent_qdesn_layerwise_readout_v10.sh")
 stopifnot(file.exists(shell), system2("bash", c("-n", shell)) == 0L)
+source_files <- ilr10_source_files(repo)
+stopifnot(length(source_files) == 11L, all(file.exists(source_files)),
+  any(grepl("layerwise_readout_v10[.]R$", source_files)))
 for (path in file.path(repo, "validation/fitforecast_v2", c(
     "R/independent_qdesn_layerwise_readout_v10.R",
     "scripts/independent_qdesn_layerwise_readout_v10.R")))

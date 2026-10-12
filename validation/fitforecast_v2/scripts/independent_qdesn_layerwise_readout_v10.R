@@ -37,6 +37,9 @@ if (command == "materialize") {
 } else if (command == "advance") {
   stopifnot(length(args) == 4L)
   invisible(ilr10_advance(normalizePath(args[3L], mustWork = TRUE), args[4L]))
+} else if (command == "recover-screening-baseline") {
+  stopifnot(length(args) == 3L)
+  invisible(ilr10_recover_screening_baseline(args[3L]))
 } else if (command == "health") {
   stopifnot(length(args) == 3L)
   print(ilr10_health(normalizePath(args[3L], mustWork = TRUE)), row.names = FALSE)

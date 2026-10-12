@@ -226,6 +226,21 @@ ilr10_plan <- function(state, configs, stage) {
   plan
 }
 
+ilr10_source_files <- function(repo) {
+  file.path(repo, "validation/fitforecast_v2", c(
+    "R/independent_qdesn_training1000_runtime_v1.R",
+    "R/independent_qdesn_training1000_campaign_v1.R",
+    "R/independent_qdesn_sentinel_mechanism_v1.R",
+    "R/independent_qdesn_training_size_mechanism_v6.R",
+    "R/independent_qdesn_gausmix_conditioning_v7.R",
+    "R/independent_qdesn_forecast_uncertainty_v8.R",
+    "R/independent_qdesn_rhs_uncertainty_v9.R",
+    "R/independent_qdesn_layerwise_readout_v10.R",
+    "scripts/independent_qdesn_layerwise_readout_v10.R",
+    "scripts/run_independent_qdesn_layerwise_readout_v10.sh",
+    "docs/INDEPENDENT_QDESN_LAYERWISE_READOUT_V10_20261012.md"))
+}
+
 ilr10_materialize <- function(repo, run, library, parent = ilr10_parent_run) {
   stopifnot(!dir.exists(run), dir.exists(repo), dir.exists(library),
     dir.exists(parent), file.exists(file.path(parent, "closeout.json")))
@@ -308,18 +323,7 @@ ilr10_materialize <- function(repo, run, library, parent = ilr10_parent_run) {
   stopifnot(environment$exdqlm_version == "1.1.2",
     environment$exdqlm_repository == "CRAN")
   iqt12_json(environment, file.path(run, "environment.json"))
-  source_files <- file.path(repo, "validation/fitforecast_v2", c(
-    "R/independent_qdesn_training1000_runtime_v1.R",
-    "R/independent_qdesn_training1000_campaign_v1.R",
-    "R/independent_qdesn_sentinel_mechanism_v1.R",
-    "R/independent_qdesn_training_size_mechanism_v6.R",
-    "R/independent_qdesn_gausmix_conditioning_v7.R",
-    "R/independent_qdesn_forecast_uncertainty_v8.R",
-    "R/independent_qdesn_rhs_uncertainty_v9.R",
-    "R/independent_qdesn_layerwise_readout_v10.R",
-    "scripts/independent_qdesn_layerwise_readout_v10.R",
-    "scripts/run_independent_qdesn_layerwise_readout_v10.sh",
-    "docs/INDEPENDENT_QDESN_LAYERWISE_READOUT_V10_20261012.md"))
+  source_files <- ilr10_source_files(repo)
   iqt12_hash(source_files, file.path(run, "source_hashes.csv"))
   iqt12_hash(list.files(file.path(library, "exdqlm"), recursive = TRUE,
     full.names = TRUE), file.path(run, "package_hashes.csv"))
@@ -336,6 +340,65 @@ ilr10_materialize <- function(repo, run, library, parent = ilr10_parent_run) {
   ilr10_plan(state, list(ilr10_config(state, "smoke", "quantile_mcmc",
     "S1", anchor$layer1_scale, anchor$layer2_scale)), "smoke")
   invisible(state)
+}
+
+ilr10_recover_screening_baseline <- function(run) {
+  run <- normalizePath(run, mustWork = TRUE)
+  state <- iqt12_read(file.path(run, "campaign.json"))
+  stopifnot(state$schema == ilr10_schema,
+    !file.exists(file.path(run, "plans", "confirm_warm.csv")),
+    !file.exists(file.path(run, "closeout.json")))
+  health <- ilr10_health(run)
+  discovery <- health[health$stage == "discovery", , drop = FALSE]
+  stopifnot(nrow(discovery) == 1L, discovery$planned == 24L,
+    discovery$complete == 24L, discovery$failed == 0L,
+    discovery$running == 0L, discovery$pending == 0L)
+  plan <- read.csv(file.path(run, "plans", "discovery.csv"),
+    stringsAsFactors = FALSE)
+  for (i in seq_len(nrow(plan))) {
+    status <- iqt12_read(plan$status_path[i])
+    stopifnot(status$status == "SUCCESS")
+    iqt12_verify(status$manifest)
+  }
+  pre_source <- file.path(run, "source_hashes.pre_recovery.csv")
+  pre_frozen <- file.path(run, "frozen_hashes.pre_recovery.csv")
+  stopifnot(file.copy(file.path(run, "source_hashes.csv"), pre_source),
+    file.copy(file.path(run, "frozen_hashes.csv"), pre_frozen))
+  original_head <- state$head
+  recovery_head <- system2("git", c("-C", state$repo, "rev-parse", "HEAD"),
+    stdout = TRUE)
+  recovery <- list(schema = ilr10_schema,
+    recovery = "screening_DQLM_source_stage_lookup",
+    original_source_head = original_head, recovery_source_head = recovery_head,
+    root_cause = paste0("S1_S3_have_validation_stage_DQLM_rows;_MCMC_DQLM_",
+      "rows_are_reserved_for_S2_S4_confirmation"),
+    completed_scientific_jobs_preserved = 24L,
+    scientific_outputs_changed = FALSE, scientific_jobs_rerun = 0L,
+    next_action = "build_guarded_selection_and_confirm_warm_plan",
+    recovered_at = format(Sys.time(), tz = "UTC", usetz = TRUE))
+  recovery_path <- iqt12_json(recovery, file.path(run,
+    "orchestration_recovery.json"))
+  iqt12_hash(ilr10_source_files(state$repo), file.path(run,
+    "source_hashes.csv"))
+  completed_manifests <- vapply(plan$status_path, function(path)
+    iqt12_read(path)$manifest, "")
+  recovery_manifest <- iqt12_hash(c(pre_source, pre_frozen, recovery_path,
+    file.path(run, "source_hashes.csv"), file.path(run, "plans",
+      c("discovery.csv", "discovery_hashes.csv")), plan$status_path,
+    completed_manifests),
+    file.path(run, "orchestration_recovery_manifest.csv"))
+  frozen <- c(file.path(run, c("campaign.json", "environment.json",
+    "candidate_bank.csv", "source_hashes.csv", "package_hashes.csv",
+    "input_hashes.csv", "orchestration_recovery.json",
+    "orchestration_recovery_manifest.csv")),
+    state$references[[ilr10_cell]]$source_path,
+    list.files(file.path(run, "references"), full.names = TRUE))
+  iqt12_hash(frozen, file.path(run, "frozen_hashes.csv"))
+  iqt12_verify(file.path(run, "source_hashes.csv"))
+  iqt12_verify(recovery_manifest)
+  iqt12_verify(file.path(run, "frozen_hashes.csv"))
+  ilr10_plan_confirm_warm(state, run)
+  invisible(recovery)
 }
 
 ilr10_worker <- function(path) {
