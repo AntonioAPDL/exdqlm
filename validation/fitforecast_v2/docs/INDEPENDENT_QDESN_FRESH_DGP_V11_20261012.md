@@ -188,6 +188,12 @@ or push main, shared validation, an integration branch or Overleaf.
   30 idle physical cores on muscat; no other lane's process was stopped.
 - The diagnostic rendering fixture is 16 pages. It is synthetic software
   test data, not campaign evidence or an article asset.
+- The first unlaunched packet at source commit `92b258a7` exposed lost
+  numeric-vector names in JSON stage counts. This was caught by prelaunch
+  verification before any models ran. Stage counts now use a named list;
+  a partial-plan health regression verifies all 26 planned jobs, including
+  confirmations that are not yet materialized. The unlaunched packet is
+  retained as superseded preflight evidence, not reused for model scheduling.
 
 Exact shell/R commands are the CLI and test entry points committed alongside
 this protocol. Materialization records the final clean source HEAD; stage

@@ -176,7 +176,7 @@ ifd11_materialize <- function(repo, run, library, parent = ifd11_parent) {
     head = system2("git", c("-C", repo, "rev-parse", "HEAD"), stdout = TRUE),
     parent = normalizePath(parent), template = template,
     arms = c("dqlm", "anchor", "retained"), replicas = c("F1", "F2"),
-    sources = list(), expected_jobs = c(smoke = 2L, warm = 6L, confirmation = 18L),
+    sources = list(), expected_jobs = list(smoke = 2L, warm = 6L, confirmation = 18L),
     max_workers = 30L, frozen_before_fresh_score_inspection = TRUE,
     promotion = "none_automatic_diagnostic_pilot_only",
     native_coupling = list(qdesn = "shared_coefficients_across_origins_leads",
@@ -265,10 +265,14 @@ ifd11_plan_status <- function(run, stage) {
 
 ifd11_health <- function(run) {
   state <- iqt12_read(file.path(run, "campaign.json"))
+  expected <- unlist(state$expected_jobs)
+  if (is.null(names(expected))) names(expected) <- ifd11_stages
+  stopifnot(length(expected) == 3L, all(ifd11_stages %in% names(expected)))
   do.call(rbind, lapply(ifd11_stages, function(stage) {
     p <- ifd11_plan_status(run, stage)
-    status <- if (is.null(p)) rep("NOT_MATERIALIZED", state$expected_jobs[[stage]])
+    status <- if (is.null(p)) rep("NOT_MATERIALIZED", expected[[stage]])
       else p$status
+    stopifnot(length(status) == expected[[stage]])
     data.frame(stage = stage, planned = length(status),
       complete = sum(status == "SUCCESS"), failed = sum(grepl("^FAILED", status)),
       running = sum(status == "RUNNING"),

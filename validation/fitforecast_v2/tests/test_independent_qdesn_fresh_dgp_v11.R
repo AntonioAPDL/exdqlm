@@ -107,7 +107,7 @@ source_path <- iqt12_csv(source, file.path(fixture, "source.csv"))
 sentinel <- iqt12_json(list(synthetic_test_only = TRUE), file.path(fixture, "sentinel.json"))
 for (name in c("source", "package", "input", "frozen"))
   iqt12_hash(sentinel, file.path(fixture, paste0(name, "_hashes.csv")))
-iqt12_json(list(expected_jobs = c(smoke = 2, warm = 6, confirmation = 18)),
+iqt12_json(list(expected_jobs = list(smoke = 2L, warm = 6L, confirmation = 18L)),
   file.path(fixture, "campaign.json"))
 for (stage in ifd11_stages) {
   grid <- if (stage == "confirmation")
@@ -141,6 +141,11 @@ for (stage in ifd11_stages) {
     cfg
   })
   ifd11_plan(list(run = fixture), stage, configs)
+  if (stage == "smoke") {
+    partial <- ifd11_health(fixture)
+    stopifnot(sum(partial$planned) == 26L, sum(partial$complete) == 2L,
+      sum(partial$remaining) == 24L, partial$pending[3L] == 18L)
+  }
 }
 ifd11_closeout(fixture)
 ifd11_verify(fixture)
