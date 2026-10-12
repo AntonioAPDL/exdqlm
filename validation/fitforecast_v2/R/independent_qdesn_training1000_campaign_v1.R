@@ -358,6 +358,19 @@ iqt12_materialize <- function(repo, run, library, plan_packet, broad, previous, 
   state
 }
 
+iqt12_guard_summary <- function(guard) {
+  stopifnot(nrow(guard) > 0L, all(guard$pass))
+  measured <- setdiff(names(guard), c("origin", "pass"))
+  stopifnot(length(measured) > 0L,
+    all(vapply(guard[measured], function(x) length(x) > 0L &&
+      all(is.finite(x)), TRUE)))
+  list(contract = if ("current_prediction_max_absolute_error" %in% measured)
+      "teacher_forced_current_and_shared_state_readout_identity" else
+      "teacher_forced_feature_and_prediction_identity",
+    origins = nrow(guard), maximum_errors = lapply(guard[measured], max),
+    pass = all(guard$pass))
+}
+
 iqt12_worker <- function(path) {
   cfg <- iqt12_read(path); start <- proc.time()[["elapsed"]]
   runtime_fun <- get0("iqt12_runtime_hook", mode = "function", inherits = TRUE)
@@ -472,14 +485,8 @@ iqt12_worker <- function(path) {
           diagnostics = fit$diagnostics %||% list(),
           sigma_trace = iqt12_trace_summary(fit$samp.sigma), gamma_trace = iqt12_trace_summary(fit$samp.gamma))
         diag$posterior_sigmagam_draw_contract <- draws$sigmagam_draw_contract
-        if (!is.null(fc$first_step_guard)) diag$first_step_guard <- list(
-          contract = "teacher_forced_feature_identity_plus_scale_aware_prediction_identity",
-          origins = nrow(fc$first_step_guard),
-          max_feature_absolute_error = max(fc$first_step_guard$feature_max_absolute_error),
-          max_feature_relative_error = max(fc$first_step_guard$feature_max_relative_error),
-          max_prediction_absolute_error = max(fc$first_step_guard$prediction_max_absolute_error),
-          max_prediction_relative_error = max(fc$first_step_guard$prediction_max_relative_error),
-          pass = all(fc$first_step_guard$pass))
+        if (!is.null(fc$first_step_guard)) diag$first_step_guard <-
+          iqt12_guard_summary(fc$first_step_guard)
         if (cfg$engine == "vb") diag$sigmagam <- list(
           gamma_mean = fit$qsiggam$gamma_mean,
           sigma_mean_source_units = fit$qsiggam$sigma_mean * cx$scale,
