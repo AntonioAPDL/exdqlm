@@ -250,7 +250,7 @@ ilr10_materialize <- function(repo, run, library, parent = ilr10_parent_run) {
     stringsAsFactors = FALSE)
   parent_best <- read.csv(file.path(parent, "review",
     "confirmation_decision_table.csv"), stringsAsFactors = FALSE)[1L, ]
-  parent_plan <- parent_plan[parent_plan$prior_id == parent_best$prior_id,
+  parent_plan <- parent_plan[parent_plan$candidate_id == parent_best$prior_id,
     , drop = FALSE]
   stopifnot(nrow(parent_plan) == 6L,
     parent_best$tau_multiplier == 2,
