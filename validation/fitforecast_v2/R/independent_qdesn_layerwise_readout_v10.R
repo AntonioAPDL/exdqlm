@@ -429,7 +429,10 @@ ilr10_uncertainty_results <- function(run, stage) {
 ilr10_scale_rank <- function(run, results, uncertainty) {
   baseline <- read.csv(file.path(run, "references", "dqlm_baseline_scores.csv"),
     stringsAsFactors = FALSE)
-  baseline <- baseline[baseline$source_stage == "mcmc" &
+  # S1/S3 are screening folds, so their matched DQLM reference is the
+  # validation-stage fit. MCMC DQLM rows are deliberately reserved for the
+  # untouched S2/S4 confirmation folds.
+  baseline <- baseline[baseline$source_stage == "validation" &
     baseline$fold %in% c("S1", "S3"), ]
   baseline_mae <- baseline[baseline$metric == "forecast_mae", ]
   mae <- results[results$metric == "forecast_mae", ]

@@ -59,7 +59,7 @@ dir.create(file.path(tmp, "references"), recursive = TRUE)
 baseline <- expand.grid(fold = c("S1", "S3"),
   metric = c("forecast_mae", "forecast_check_loss"),
   stringsAsFactors = FALSE)
-baseline$source_stage <- "mcmc"
+baseline$source_stage <- "validation"
 baseline$mean <- ifelse(baseline$metric == "forecast_mae", 3, 1.5)
 write.csv(baseline, file.path(tmp, "references", "dqlm_baseline_scores.csv"),
   row.names = FALSE)
