@@ -1,0 +1,60 @@
+testthat::test_that("retention changes cannot alter quantile scientific controls", {
+  x <- list(desn = list(D = 3, n = c(100, 200, 100), alpha = .8, seed = 100),
+    inference = list(mcmc = list(n_burn = 5000, n_mcmc = 20000,
+      priors = list(tau0 = 1e-4))), sampling = list(nd_draws = 4000),
+    outputs = list(keep_draws = FALSE, save_forecast_objects = FALSE))
+  y <- fpr_q_config(x)
+  testthat::expect_identical(y$desn, x$desn)
+  testthat::expect_identical(y$inference, x$inference)
+  testthat::expect_identical(y$sampling, x$sampling)
+  testthat::expect_true(y$outputs$keep_draws)
+  testthat::expect_true(y$outputs$save_forecast_objects)
+  testthat::expect_true(y$outputs$retain_full_rds_on_failure)
+  testthat::expect_false(x$outputs$keep_draws)
+})
+testthat::test_that("relocation is path-scoped and leaves source/prior controls unchanged", {
+  x <- list(run_root = "/old/run", output = "/old/run/x.csv", data = "/data/series.csv",
+    other = "/old/run2/file.csv", nested = list(path = "/old/run/a", seed = 15, tau0 = 1e-4))
+  y <- fpr_relocate(x, "/old/run", "/new/run")
+  testthat::expect_identical(y$output, "/new/run/x.csv")
+  testthat::expect_identical(y$data, x$data)
+  testthat::expect_identical(y$other, x$other)
+  testthat::expect_identical(y$nested$seed, x$nested$seed)
+  testthat::expect_identical(y$nested$tau0, x$nested$tau0)
+})
+testthat::test_that("manifest rows survive JSON without losing hashes", {
+  p <- tempfile(fileext = ".json")
+  artifact <- tempfile()
+  writeLines("test payload", artifact)
+  on.exit(unlink(c(p, artifact)), add = TRUE)
+  m <- fpr_hashes(artifact)
+  fpr_write_json(list(files = m), p)
+  roundtrip <- fpr_table(fpr_json(p)$files)
+  testthat::expect_identical(roundtrip$path, m$path)
+  testthat::expect_identical(roundtrip$sha256, m$sha256)
+  testthat::expect_silent(fpr_assert_hashes(roundtrip))
+  writeLines("changed payload", artifact)
+  testthat::expect_error(fpr_assert_hashes(roundtrip), "changed")
+})
+testthat::test_that("protected fitted payload saves atomically and round trips", {
+  p <- tempfile(fileext = ".rds")
+  on.exit(unlink(p), add = TRUE)
+  x <- list(fit = list(beta = matrix(seq_len(12), 4)), automatic_pruning_allowed = FALSE)
+  fpr_save(x, p)
+  testthat::expect_identical(readRDS(p), x)
+  testthat::expect_false(file.exists(paste0(p, ".", Sys.getpid(), ".tmp")))
+})
+testthat::test_that("pooling reconstructed prefixes never filters by apparent improvement", {
+  grid <- fpf_grid()
+  z <- lapply(1:3, function(chain) {
+    q <- matrix(chain + seq_len(1000) / 1000, 1000, 10)
+    fpf_score_paths(q, grid, rep(0, 1000), rep(0, 1000), .25, chain = chain)
+  })
+  x <- do.call(rbind, z)
+  x <- x[x$cutoff %in% c(300, 500, 1000), ]
+  pooled <- fpf_pool(x, 8)
+  testthat::expect_equal(nrow(pooled), 6)
+  testthat::expect_true(all(pooled$n_chains == 3))
+  testthat::expect_true(all(pooled$n_draws == 30))
+  testthat::expect_true(all(is.finite(pooled$posterior_mean)))
+})
