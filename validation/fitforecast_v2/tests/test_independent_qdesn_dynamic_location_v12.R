@@ -10,6 +10,15 @@ assert <- function(condition, label) {
 }
 tmp <- tempfile("idl12_test_"); dir.create(tmp)
 idl12_compile(repo, file.path(tmp, "cpp"))
+set.seed(23)
+reference <- idl12_ffbs_cpp(c(1, 2), c(.2, .3), .1)$draw
+loaded <- parallel::mclapply(1:8, function(i) {
+  idl12_load(file.path(tmp, "cpp"))
+  set.seed(23)
+  idl12_ffbs_cpp(c(1, 2), c(.2, .3), .1)$draw
+}, mc.cores = 8L, mc.set.seed = FALSE)
+assert(all(vapply(loaded, identical, TRUE, reference)),
+  "eight concurrent read-only DLL loaders match compiled reference")
 
 # Analytic single-observation AL updates compared with direct quadrature.
 for (p in c(.05, .25, .5)) for (residual in c(-3, 0, 3)) {

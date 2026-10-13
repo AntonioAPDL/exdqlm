@@ -17,6 +17,8 @@ if (command == "materialize") {
   idl12_materialize(repo, args[3L], args[4L], args[5L])
 } else if (command == "worker") {
   stopifnot(length(args) == 3L); idl12_worker(args[3L])
+} else if (command == "import-success") {
+  stopifnot(length(args) == 4L); print(idl12_import_success(args[3L], args[4L]), row.names = FALSE)
 } else if (command == "replay") {
   stopifnot(length(args) == 5L); idl12_replay(args[3L], as.integer(args[4L]), args[5L])
 } else if (command == "pending") {

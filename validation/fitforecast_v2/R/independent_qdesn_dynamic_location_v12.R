@@ -11,6 +11,15 @@ idl12_compile <- function(repo, cache) {
     env = .GlobalEnv, cacheDir = cache, showOutput = FALSE, verbose = FALSE)
 }
 
+idl12_load <- function(cache) {
+  # sourceCpp rewrites its index even on cache hits. Workers only read the
+  # generated loader and immutable DLL, avoiding a concurrent index race.
+  loader <- list.files(cache, pattern = "[.]cpp[.]R$", recursive = TRUE, full.names = TRUE)
+  stopifnot(length(loader) == 1L)
+  sys.source(loader, envir = .GlobalEnv)
+  invisible(TRUE)
+}
+
 idl12_al_moments <- function(m, P, r, sigma, p) {
   stopifnot(length(p) == 1L, is.finite(p), p > 0, p < 1,
     all(is.finite(c(m, P, r, sigma))), all(P >= 0), all(sigma > 0))
@@ -352,9 +361,9 @@ idl12_materialize <- function(repo, run, parent, test_evidence) {
       function(key) paste(system2(file.path(R.home("bin"), "R"), c("CMD", "config", key),
         stdout = TRUE, stderr = TRUE), collapse = " "), "")),
     file.path(run, "compiler_settings.csv"))
-  binaries <- list.files(file.path(run, "control/cpp_cache"), pattern = "[.]so$",
+  binaries <- list.files(file.path(run, "control/cpp_cache"), pattern = "[.]so$|[.]cpp[.]R$",
     recursive = TRUE, full.names = TRUE)
-  stopifnot(length(binaries) == 1L)
+  stopifnot(length(binaries) == 2L)
   iqt12_hash(binaries, file.path(run, "compiled_helper_hashes.csv"))
   iqt12_hash(idl12_sources(repo, e), file.path(run, "source_hashes.csv"))
   iqt12_hash(list.files(file.path(state$library, "exdqlm"), recursive = TRUE,
@@ -380,7 +389,8 @@ idl12_save_phase <- function(cfg, fit_draws, forecast, source, shift) {
 idl12_worker <- function(path) {
   cfg <- iqt12_read(path)
   assign("iqt12_runtime_hook", ifd11_runtime, .GlobalEnv)
-  idl12_compile(cfg$repo, file.path(cfg$run, "control/cpp_cache"))
+  iqt12_verify(file.path(cfg$run, "compiled_helper_hashes.csv"))
+  idl12_load(file.path(cfg$run, "control/cpp_cache"))
   if (cfg$model == "baseline" || cfg$omega_scaled == 0 || cfg$engine == "vb") {
     # Hook the existing worker without altering its frozen fit or primary forecast.
     if (cfg$engine == "mcmc" && cfg$stage != "smoke" && cfg$model == "baseline") {
@@ -523,7 +533,8 @@ idl12_verify <- function(run) {
     for (path in p$status_path[p$status == "SUCCESS"])
       iqt12_verify(iqt12_read(path)$manifest)
   }
-  for (name in c("selection_review_hashes.csv", "confirmation_review_hashes.csv", "closeout_manifest.csv"))
+  for (name in c("selection_review_hashes.csv", "confirmation_review_hashes.csv", "closeout_manifest.csv",
+      "recovery_imports_hashes.csv"))
     if (file.exists(file.path(run, name))) iqt12_verify(file.path(run, name))
   if (file.exists(file.path(run, "fresh_extension_hashes.csv")))
     iqt12_verify(file.path(run, "fresh_extension_hashes.csv"))
@@ -831,4 +842,75 @@ idl12_replay <- function(path, inner, output) {
     file.path(output, "replay.json"))
   iqt12_hash(list.files(output, full.names = TRUE), file.path(output, "manifest.csv"))
   invisible(TRUE)
+}
+
+idl12_import_success <- function(run, previous) {
+  idl12_verify(run)
+  state <- iqt12_read(file.path(run, "campaign.json"))
+  old <- iqt12_read(file.path(previous, "campaign.json"))
+  stopifnot(old$schema == state$schema, !any(idl12_health(run)$running > 0),
+    !file.exists(file.path(run, "recovery_imports.json")))
+  archive <- file.path(previous, "control/frozen_source_f94dfe13.tar")
+  stopifnot(file.exists(archive), old$head == "f94dfe13bf09751aaa1f98e9ca9ae945fbb4b5ec")
+  extracted <- tempfile("idl12_source_archive_"); dir.create(extracted)
+  utils::untar(archive, exdir = extracted)
+  sources <- read.csv(file.path(previous, "source_hashes.csv"))
+  stopifnot(all(startsWith(sources$path, paste0(old$repo, "/"))))
+  archived <- file.path(extracted, substring(sources$path, nchar(old$repo)+2L))
+  stopifnot(identical(unname(tools::sha256sum(archived)), sources$sha256))
+  for (name in c("package", "input", "frozen", "compiled_helper"))
+    iqt12_verify(file.path(previous, paste0(name, "_hashes.csv")))
+  old_env <- new.env(parent = .GlobalEnv)
+  sys.source(file.path(extracted, "validation/fitforecast_v2/R/independent_qdesn_dynamic_location_v12.R"),
+    envir = old_env)
+  functions <- c("idl12_fit", "idl12_filter", "idl12_al_moments", "idl12_particle",
+    "idl12_forecast", "idl12_config", "idl12_window")
+  stopifnot(all(vapply(functions, function(name) identical(body(old_env[[name]]),
+    body(get(name, .GlobalEnv))), TRUE)))
+  imports <- list()
+  for (stage in c("smoke", "selection_warm")) {
+    p <- ifd11_plan_status(previous, stage)
+    iqt12_verify(file.path(previous, "plans", paste0(stage, "_hashes.csv")))
+    p <- p[p$status == "SUCCESS", ]
+    configs <- lapply(p$config_path, function(path) {
+      cfg <- iqt12_read(path)
+      idl12_config(state, cfg$arm, cfg$replica, cfg$window$fold, cfg$stage, cfg$chain)
+    })
+    if (!file.exists(file.path(run, "plans", paste0(stage, ".csv")))) {
+      if (stage == "selection_warm") idl12_advance(run, "smoke")
+    }
+    for (i in seq_len(nrow(p))) {
+      original <- iqt12_read(p$config_path[i]); cfg <- configs[[i]]
+      status <- iqt12_read(original$status_path); iqt12_verify(status$manifest)
+      original_manifest <- status$manifest
+      fresh_cfg <- iqt12_read(cfg$path)
+      fields <- c("schema", "model", "engine", "arm", "replica", "chain", "window", "seed",
+        "outer", "inner", "burn", "retained", "vb_iter", "normal_iter", "readout_conditioning",
+        "candidate", "baseline", "layer1_scale", "layer2_scale", "layer3_scale", "omega_scaled")
+      stopifnot(identical(original[fields], fresh_cfg[fields]), !file.exists(cfg$status_path))
+      dir.create(cfg$evidence, recursive = TRUE)
+      mf <- read.csv(status$manifest)
+      stopifnot(all(dirname(mf$path) == original$evidence))
+      destinations <- file.path(cfg$evidence, basename(mf$path))
+      stopifnot(all(file.copy(mf$path, destinations)),
+        identical(unname(tools::sha256sum(destinations)), mf$sha256))
+      status$imported_from <- original$status_path
+      status$import_source_head <- old$head
+      status$manifest <- iqt12_hash(destinations, file.path(cfg$evidence, "manifest.csv"))
+      iqt12_json(status, cfg$status_path)
+      imports[[length(imports)+1L]] <- list(id = cfg$id, original_config = original$path,
+        original_status = original$status_path, original_manifest = original_manifest,
+        no_refit = TRUE, archived_source_verified = TRUE, kernels_identical = functions)
+    }
+  }
+  iqt12_json(list(status = "LOADER_RACE_ROOT_FIX_SUCCESSFUL_EVIDENCE_REUSED",
+    previous = previous, old_head = old$head, new_head = state$head,
+    source_archive_sha256 = unname(tools::sha256sum(archive)), imports = imports,
+    previous_startup_failures = sum(idl12_health(previous)$failed),
+    discarded_results = 0L, refitted_successful_models = 0L), file.path(run, "recovery_imports.json"))
+  old_paths <- unlist(lapply(imports, function(z) c(z$original_config, z$original_status,
+    z$original_manifest)), use.names = FALSE)
+  iqt12_hash(c(archive, old_paths, file.path(run, "recovery_imports.json")),
+    file.path(run, "recovery_imports_hashes.csv"))
+  invisible(idl12_health(run))
 }

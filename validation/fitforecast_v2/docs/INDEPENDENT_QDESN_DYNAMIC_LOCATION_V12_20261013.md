@@ -172,6 +172,16 @@ workers. `STOP_NEW_SCHEDULING` also drains. Resume the same tranche only for
 truly pending jobs; RUNNING/FAILED states require an explicit audited recovery,
 not silent overwriting. Successful artifacts are never rerun to fix metadata.
 
+The first parallel initialization exposed an Rcpp sourceCpp cache-index
+race: six processes failed before fitting, while two warm starts and both
+smokes succeeded. The root fix compiles once during materialization; workers
+only read the hashed generated loader and DLL. An eight-process concurrent
+loader regression checks identical seeded output. The first attempt and its
+source archive remain intact. `import-success` audits the archive, identical
+scientific function bodies/configurations, and artifact hashes before reusing
+successful jobs in a new frozen run. No failed status is overwritten and no
+successful scientific model is refitted for this orchestration repair.
+
 ## Outputs and Publication
 
 Save paired coefficient/offset draws, sigma/state traces, fit/forecast
