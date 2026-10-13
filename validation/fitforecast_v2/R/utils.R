@@ -32,7 +32,19 @@ ffv2_source_all <- function(harness_root = NULL) {
   options(ffv2.harness_root = harness_root)
   r_dir <- file.path(harness_root, "R")
   files <- list.files(r_dir, pattern = "[.]R$", full.names = TRUE)
-  files <- c(file.path(r_dir, "utils.R"), setdiff(files, file.path(r_dir, "utils.R")))
+  # These modules bind predecessor constants/functions at source time, rather
+  # than only when a function is called. Load each prerequisite once, before
+  # dependent modules and before sentinel hooks capture the base runtime.
+  prerequisites <- file.path(r_dir, c(
+    "independent_qdesn_training1000_runtime_v1.R",
+    "independent_qdesn_training_size_mechanism_v6.R",
+    "independent_qdesn_gausmix_conditioning_v7.R",
+    "independent_qdesn_forecast_uncertainty_v8.R",
+    "independent_qdesn_rhs_uncertainty_v9.R",
+    "independent_qdesn_layerwise_readout_v10.R"
+  ))
+  first <- c(file.path(r_dir, "utils.R"), prerequisites[file.exists(prerequisites)])
+  files <- c(first, setdiff(files, first))
   invisible(lapply(files, source))
 }
 

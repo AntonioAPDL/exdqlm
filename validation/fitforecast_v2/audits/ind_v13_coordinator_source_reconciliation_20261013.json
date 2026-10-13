@@ -1,0 +1,33 @@
+{
+  "schema": "ind-v13-coordinator-source-reconciliation-v1",
+  "frozen_source_head": "2903bd67e51acb2a170d7338ec53777c3b62ca4a",
+  "old_shared_validation_head": "5b85bb3a3894a88968e4987f330e3ec66711f9c7",
+  "ancestry_merge_head": "9d9801b1631583d4c1e9ac4ae21e22f371998d7b",
+  "frozen_changed_file_inventory_sha256": "b75a2757fc7076902b2fd3db102cfdf676954a344bf7195351217f783fd3d9b0",
+  "frozen_changed_files": 283,
+  "coordinator_repair_surface": 4,
+  "combined_changed_files": 287,
+  "old_utils_sha256": "ee8788da075b8c917f48ea0223a5502298b5a3fb5452a3316545b73a485549fb",
+  "repair": "Order six source-time prerequisites once before alphabetical dependent modules; preserve captured base runtime/design/prior and sentinel hooks",
+  "frozen_scientific_files_changed": 0,
+  "frozen_evidence_changed": false,
+  "additional_scientific_jobs": 0,
+  "article_changes": 0,
+  "overleaf_publication": false,
+  "full_historical_suite_pass_claimed": false,
+  "preexisting_batching_assertion": "Reproduces identically on old shared-validation target; tolerance unchanged",
+  "files": [
+    {
+      "path": "validation/fitforecast_v2/R/utils.R",
+      "sha256": "3ab5731bfe05e04912005572b766e85f63f0b76db0f69b626ffd6a3a793c3420"
+    },
+    {
+      "path": "validation/fitforecast_v2/tests/testthat/test-shared-module-source-order.R",
+      "sha256": "1c39a34a7ff2ee9f1a077eaefacdaaacae9ac219d7437abf24d6ef9b9193f1eb"
+    },
+    {
+      "path": "validation/fitforecast_v2/docs/IND_V13_COORDINATOR_SHARED_SOURCE_RECONCILIATION_20261013.md",
+      "sha256": "ffed8ccdffde607a54c9c4368900abf767a6957c700d3afd9bd7265297cd7d1a"
+    }
+  ]
+}
