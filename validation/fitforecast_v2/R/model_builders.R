@@ -229,6 +229,23 @@ ffv2_make_future_model_arrays <- function(model, horizon) {
   )
 }
 
+ffv2_forecast_window_rows <- function(config) {
+  explicit <- suppressWarnings(as.integer(config$forecast_window_rows)[1L])
+  if (is.finite(explicit) && explicit > 0L) return(explicit)
+
+  start <- suppressWarnings(as.integer(config$forecast_start_source_index)[1L])
+  end <- suppressWarnings(as.integer(config$forecast_end_source_index)[1L])
+  if (is.finite(start) && is.finite(end) && end >= start) {
+    return(end - start + 1L)
+  }
+
+  fallback <- suppressWarnings(as.integer(config$forecast_horizon_max)[1L])
+  if (!is.finite(fallback) || fallback < 1L) {
+    stop("Could not determine the expected forecast-window row count.", call. = FALSE)
+  }
+  fallback
+}
+
 ffv2_load_row_data <- function(config) {
   series <- ffv2_read_csv(config$series_wide_path)
   truth <- ffv2_read_truth_for_tau(config$true_quantile_grid_path, config$tau)
@@ -252,8 +269,9 @@ ffv2_load_row_data <- function(config) {
     stop(sprintf("Training window has %d rows; expected %s.", nrow(train), config$fit_size),
          call. = FALSE)
   }
-  if (nrow(forecast) != as.integer(config$forecast_horizon_max)[1L]) {
-    stop(sprintf("Forecast window has %d rows; expected %s.", nrow(forecast), config$forecast_horizon_max),
+  forecast_window_rows <- ffv2_forecast_window_rows(config)
+  if (nrow(forecast) != forecast_window_rows) {
+    stop(sprintf("Forecast window has %d rows; expected %s.", nrow(forecast), forecast_window_rows),
          call. = FALSE)
   }
   list(

@@ -1,0 +1,8 @@
+"stage","complete","failed","running","pending","gated"
+"smoke",2,0,0,0,0
+"selection_warm",20,0,0,0,0
+"selection",20,0,0,0,0
+"confirmation_warm",0,0,0,0,6
+"confirmation",0,0,0,0,18
+"fresh_warm",0,0,0,0,12
+"fresh",0,0,0,0,36

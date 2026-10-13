@@ -1,0 +1,156 @@
+protocol:
+  id: independent_qdesn_representation_screen_v1
+  status: ACTIVE_BACKGROUND_CAMPAIGN
+  launch_enabled: true
+  scientific_lane: independent_single_quantile_qdesn_dqlm_validation
+  supersedes: independent_qdesn_posterior_forecast_rescue_v1
+  supersession_reason: all_17_rescue_cells_underperform_matched_comparator_on_fit_rmse_and_forecast_mae
+
+scope:
+  families: [normal, laplace, gausmix]
+  quantiles: [0.05, 0.25, 0.50]
+  tuned_models: [qdesn_al_rhs, qdesn_exal_rhs]
+  frozen_comparators: [dqlm_al, exdqlm_exal]
+  raw_source_start: 8111
+  fit_window: {start: 8501, end: 9000}
+  heldout_window: {start: 9001, end: 10000}
+  horizon: 30
+  teacher_forced_between_origins: true
+  recursive_within_horizon: true
+  refit_per_origin: false
+
+authorities:
+  source_root: /data/jaguir26/local/src/exdqlm__wt__shared_fitforecast_v2_1p0p0/results/qdesn_mcmc_validation/dynamic_fitforecast_v2_qdesn_sources_nested_final_origin9000_period90_m90_w300/dlm_constV_p90_m0amp_highnoise_steepertrend_v2_TTmain10000_fitforecast
+  source_template: "{family}/tau_{tau_token}/fit_input_effTT500_totalTT1890_trainEnd9000_H1000_m90_w300_period90/series_wide.csv"
+  historical_normal_ranking: /data/jaguir26/local/src/exdqlm__wt__independent_qdesn_full_redesign_v2_20260925/validation/fitforecast_v2/local_trackers/independent_qdesn_full_redesign_v2_1_20260925_162713__git-384496d94/summaries/normal_combined_ranking.csv
+  historical_candidate_ledger: /data/jaguir26/local/src/exdqlm__wt__independent_qdesn_full_redesign_v2_20260925/validation/fitforecast_v2/local_trackers/independent_qdesn_full_redesign_v2_1_20260925_162713__git-384496d94/manifests/normal_full_candidates.csv
+  rescue_candidate_ledger: /data/jaguir26/local/src/exdqlm__wt__independent_qdesn_posterior_forecast_rescue_v1_20260928/validation/fitforecast_v2/local_trackers/independent_qdesn_posterior_forecast_rescue_v1_20260928_190321__git-cd6dbc84a/manifests/candidate_pool.csv
+  rescue_comparison: /data/jaguir26/local/src/exdqlm__wt__independent_qdesn_posterior_forecast_rescue_v1_20260928/validation/fitforecast_v2/local_trackers/independent_qdesn_posterior_forecast_rescue_v1_20260928_190321__git-cd6dbc84a/summaries/authority_comparison.csv
+
+architecture:
+  reservoir_activation: tanh
+  lower_state_readout_activation: identity
+  readout_link: identity
+  readout_columns: [intercept, all_reservoir_layers]
+  direct_response_lags_in_readout: false
+  direct_exogenous_lags_in_readout: false
+  reservoir_lags_in_readout: false
+  projection:
+    mode: identity
+    require_exact_identity: true
+    dimensionality_reduction_forbidden: true
+  nonzero_weight_distribution: uniform_minus1_plus1
+
+preprocessing:
+  center_scale: [mean_sd, median_mad]
+  input_bound: [none, tanh_z_over_3]
+  input_gain: [0.01, 0.03, 0.10, 0.30, 1.00, 3.00]
+  fit_on_fold_training_prefix_only: true
+  target_transformed: false
+
+topology:
+  mode: exact_fanin
+  recurrent_indegree: [5, 10, 20, 40, 80]
+  input_fanin_fraction: [0.05, 0.10, 0.25, 0.50, 1.00]
+  interlayer_fanin: [5, 10, 25, 50, 100, dense]
+  row_normalize_input_and_interlayer: true
+  recurrent_spectral_normalization: true
+  reject_empty_rows: true
+
+search:
+  generator: deterministic_maximin_halton_with_frozen_anchors
+  new_structures_per_family: 300
+  anchor_structures_per_family: 20
+  ridge_shortlist_per_family: 120
+  rhs_shortlist_per_family: 50
+  depth_values: [1, 2, 3, 4]
+  width_values: [20, 40, 75, 100, 150, 200, 300, 400, 600]
+  layer_shapes: [flat, taper, expand, bottleneck]
+  maximum_total_states: 1800
+  response_lag_values: [15, 30, 60, 90, 120, 150, 180, 240, 300]
+  alpha_range: [0.01, 0.99]
+  rho_range: [0.20, 0.999]
+  minimum_high_memory_fraction: 0.30
+  fixed_screen_matrix_seed: 920001
+  fixed_matrix_seed_across_all_stages: true
+  reject_new_signatures_seen_in_historical_ledger: true
+
+selection:
+  blocked_folds:
+    - {fold_id: fold_8750, fit_end: 8750, origin_start: 8750, origin_end: 8840, origin_stride: 1}
+    - {fold_id: fold_8870, fit_end: 8870, origin_start: 8870, origin_end: 8970, origin_stride: 1}
+  horizon: 30
+  ridge_primary: robust_forecast_oracle_location_mae
+  rhs_primary: robust_forecast_oracle_location_mae
+  quantile_primary: robust_forecast_qtrue_mae
+  robust_summary: [median_across_folds, worst_fold]
+  lead_groups: [lead_1, leads_2_5, leads_6_15, leads_16_30]
+  pareto_metrics: [fit_rmse, forecast_mae, forecast_check_loss, worst_fold_forecast_mae]
+  family_specific: true
+  quantile_specific: true
+  likelihood_specific: true
+  global_specification_forbidden: true
+  final_window_access_forbidden_before_confirmation: true
+  diagnostic_grade_exclusion_rule: false
+
+inference:
+  normal_ridge:
+    beta_prior_type: scaled_ridge
+    beta_ridge_tau2: [0.003, 0.01, 0.03, 0.10, 0.30, 1.00]
+    intercept_var: 1000000
+  normal_rhs:
+    beta_prior_type: rhs_ns
+    tau0: [0.001, 0.003, 0.01, 0.03, 0.10, 0.30, 1.00, 3.00, 10.00, 30.00]
+    s2: 1.0
+    shrink_intercept: false
+    max_iter: 200
+    min_iter: 10
+    tol: 0.00001
+  quantile_vb:
+    order: [0.50, 0.25, 0.05]
+    max_iter: 750
+    n_samp_xi: 400
+    tol: 0.0001
+    structured_exal_sigmagam: true
+  mcmc:
+    exal_method_id: m0_v_collapsed_support_logit
+    pilot: {burn: 1000, sample: 4000, draws: 120, finalists_per_cell: 8}
+    replication: {burn: 1000, sample: 4000, draws: 120, finalists_per_cell: 3, added_chains: [2, 3]}
+    confirmation: {burn: 5000, sample: 20000, draws: 300, finalists_per_cell: 1, chains: [1, 2, 3]}
+    init_from_vb: true
+
+forecast:
+  screening_estimator: mean_readout_state_recursive
+  confirmation_estimators: [path_recursive, mean_readout_state_recursive]
+  final_origins: {start: 9000, end: 9970, stride: 1}
+  paired_posterior_draws: true
+  paired_innovations: true
+
+reporting:
+  point_summary: posterior_mean
+  interval_probability: 0.95
+  fit_metrics: [qtrue_rmse, qtrue_mae, check_loss]
+  forecast_metrics: [qtrue_mae, qtrue_rmse, check_loss]
+  article_promotion_automatic: false
+  partial_results_promotable: false
+  fitted_model_binary_retention: none
+
+execution:
+  workers: 15
+  cpu_set: "32-46"
+  threads_per_worker: 1
+  background_launch: true
+  resume_by_atomic_status: true
+  expected_jobs:
+    ridge_screen: 960
+    rhs_screen: 360
+    quantile_vb: 150
+    mcmc_pilot: 144
+    replication: 108
+    confirmation: 54
+    total: 1776
+  resource_gate:
+    max_load: 48
+    minimum_available_memory_gb: 96
+    minimum_available_disk_gb: 240
+  storage_light: true

@@ -55,6 +55,7 @@ forecast_paths.qdesn_normal_fit(
   seed = NULL,
   draws = NULL,
   y_future_obs = NULL,
+  origin_state = NULL,
   return_design = FALSE,
   ...
 )
@@ -121,7 +122,10 @@ exact Normal-inverse-gamma target. \code{"ridge"} is accepted as an alias.
 \code{control$chunking} supports exact sequential row chunking with entries
 \code{enabled}, \code{mode = "exact"}, \code{chunk_size}, \code{order =
 "sequential"}, and \code{trace}. For RHS-family readouts, \code{control}
-contains VB controls and chunking is currently forbidden.}
+contains VB controls and chunking is currently forbidden. The RHS-family
+\code{covariance = "woodbury_diagonal"} mode computes exact posterior means,
+marginal variances, and residual covariance trace through the observation-size
+Woodbury system while storing only a diagonal beta covariance.}
 \item{...}{Arguments forwarded to \code{\link{qdesn_fit_vb}} for DESN feature
 construction. The readout fit is suppressed and replaced by the Normal readout.}
 \item{p0}{Quantile-level placeholder forwarded to \code{\link{qdesn_fit_vb}}
@@ -140,6 +144,9 @@ and does not use \code{p0} in the Gaussian readout.}
 \item{y_hist}{Optional observed history through the forecast origin.}
 \item{y_future_obs}{Optional numeric vector of length \code{H}; non-missing
 values are treated as observed future values for recursive reservoir inputs.}
+\item{origin_state}{Optional list containing the reservoir state at the
+forecast origin. This permits teacher-forced rolling origins without replaying
+or incorrectly reusing the terminal state.}
 \item{return_design}{Logical; if \code{TRUE}, return per-draw forecast design
 rows when available.}
 \item{likelihood_family}{Target AL/exAL family recorded in initialization

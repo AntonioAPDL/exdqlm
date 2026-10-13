@@ -17,7 +17,14 @@ forecast_lattice.qdesn_fit(
   chunk = 256L,
   seed = NULL,
   keep_origin_draws = TRUE,
-  draws = NULL
+  draws = NULL,
+  noise_draws_by_origin = NULL,
+  build_mix = TRUE,
+  recursion_mode = c(
+    "posterior_predictive",
+    "conditional_mean_plugin",
+    "posterior_predictive_mean_readout_state"
+  )
 )
 }
 \arguments{
@@ -39,9 +46,25 @@ forecast_lattice.qdesn_fit(
 
 \item{mix_nd}{number of mixture draws per target (defaults to nd)}
 
+\item{chunk}{process posterior draws in bounded-memory chunks}
+
+\item{seed}{optional RNG seed}
+
 \item{keep_origin_draws}{if FALSE, drop per-origin draws after mixture}
 
 \item{draws}{optional posterior draws list from exal_vb_posterior_draws()}
+
+\item{noise_draws_by_origin}{optional list aligned with \code{origins}; each
+entry contains \code{s}, \code{v}, and \code{z} matrices with dimension
+\code{H x nd}. This supports paired estimator replays without changing the
+default RNG path.}
+
+\item{build_mix}{logical; retain the historical target-mixture construction.
+Set to \code{FALSE} for score replays that use only per-origin quantile draws.}
+
+\item{recursion_mode}{recursive posterior-predictive histories (the default),
+a conditional-mean plug-in diagnostic, or the mean-complete-readout-state
+posterior-predictive estimator.}
 }
 \value{
 list with per-origin draws (optional) and mixture draws per target

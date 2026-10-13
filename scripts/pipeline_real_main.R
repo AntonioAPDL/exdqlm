@@ -177,6 +177,7 @@ if (!is.null(cfg$pipeline) && !is.null(cfg$pipeline$verbose)) {
 keep_draws    <- FALSE
 thesis_subset <- FALSE
 keep_mcmc_vb_init <- FALSE
+save_mean_readout_state_capsule <- FALSE
 if (!is.null(cfg$outputs)) {
   if (!is.null(cfg$outputs$save)) {
     save_outputs <- isTRUE(cfg$outputs$save)
@@ -189,6 +190,11 @@ if (!is.null(cfg$outputs)) {
   }
   if (!is.null(cfg$outputs$keep_mcmc_vb_init)) {
     keep_mcmc_vb_init <- isTRUE(cfg$outputs$keep_mcmc_vb_init)
+  }
+  if (!is.null(cfg$outputs$save_mean_readout_state_capsule)) {
+    save_mean_readout_state_capsule <- isTRUE(
+      cfg$outputs$save_mean_readout_state_capsule
+    )
   }
 }
 
@@ -297,12 +303,13 @@ MANI   <- file.path(out_dir, "manifest");dir.create(MANI,   recursive = TRUE, sh
 pipeline_start_time <- Sys.time()
 
 log_msg(
-  "[real_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s | keep_mcmc_vb_init=%s",
+  "[real_main] out_dir=%s | save_outputs=%s | keep_draws=%s | thesis_subset=%s | keep_mcmc_vb_init=%s | mean_state_capsule=%s",
   out_dir,
   as.character(save_outputs),
   as.character(keep_draws),
   as.character(thesis_subset),
-  as.character(keep_mcmc_vb_init)
+  as.character(keep_mcmc_vb_init),
+  as.character(save_mean_readout_state_capsule)
 )
 
 # --- Theme & small plot helpers (parity with sim) -----------------------------
@@ -462,6 +469,13 @@ if (!is.null(cfg$split)) {
 
 T_use <- min(T_full, as.integer(T_use))
 idx_use <- if (use_last) seq.int(T_full - T_use + 1L, T_full) else seq_len(T_use)
+analysis_source_index <- NULL
+if (isTRUE(save_mean_readout_state_capsule)) {
+  analysis_source_index <- exdqlm:::.qdesn_resolve_analysis_source_index(
+    raw, idx_use,
+    explicit_source_index = cfg$outputs$mean_readout_state_source_index %||% NULL
+  )
+}
 
 # Split validations
 if (!is.null(train_n) && !is.null(train_prop)) {
@@ -2264,6 +2278,30 @@ fit_and_forecast_p <- function(p0) {
 
   if (forecast_mode == "mixture") {
     fore_main <- fore_full
+    if (isTRUE(save_mean_readout_state_capsule)) {
+      expected_targets <- seq.int(n_train + 1L, T_use)
+      observed_targets <- fore_main$targets[fore_main$targets <= T_use]
+      if (length(observed_targets) != H_forecast) {
+        if (is.null(yrep_by_origin_var) || is.null(mu_by_origin_var) ||
+            is.null(origins_var)) {
+          stop("Mean-readout-state reconstruction lacks tiled origin draws.")
+        }
+        fore_main$targets <- expected_targets
+        fore_main$mix$y <- exdqlm:::.qdesn_tile_origin_draws(
+          yrep_by_origin_var, origins_var, expected_targets
+        )
+        fore_main$mix$mu <- exdqlm:::.qdesn_tile_origin_draws(
+          mu_by_origin_var, origins_var, expected_targets
+        )
+        message(sprintf(
+          paste0(
+            "[forecast] mean-state reconstruction tiled %d nonoverlapping ",
+            "rolling-origin targets for the generic forecast summary."
+          ),
+          length(expected_targets)
+        ))
+      }
+    }
   } else {
     if (length(origins_lead1) < 1L) {
       stop("[forecast] origin mode requires lead-1 origins; not enough covariate coverage.")
@@ -2376,6 +2414,46 @@ fit_and_forecast_p <- function(p0) {
     )
   }
 
+  mean_readout_state_capsule <- NULL
+  if (isTRUE(save_mean_readout_state_capsule)) {
+    basis_qdesn <- fit_q
+    basis_qdesn$fit <- list(
+      misc = list(
+        p0 = as.numeric(p0),
+        readout_scale = fit_exal$misc$readout_scale %||% NULL
+      )
+    )
+    basis_qdesn$X <- matrix(
+      numeric(0),
+      nrow = 0L,
+      ncol = ncol(X_train),
+      dimnames = list(NULL, colnames(X_train))
+    )
+    mean_readout_state_capsule <- list(
+      schema_version = "qdesn_mean_readout_state_fit_capsule_v1",
+      qdesn_object = basis_qdesn,
+      posterior_draws = pred_draws,
+      y_all = as.numeric(y_full),
+      analysis_source_index = analysis_source_index,
+      xreg_all = if (length(origins_tail)) xreg_all_tail else xreg_all_full,
+      y_obs_last = as.integer(T_use),
+      origins = as.integer(forecast_full$origins),
+      horizon = as.integer(forecast_horizon),
+      lead_weights = as.numeric(lead_weights),
+      lead_export_scale = forecast_full$lead_export_scale,
+      source_draw_index = as.integer(
+        pred_draws$source_draw_index %||% seq_len(nrow(pred_draws$beta))
+      ),
+      fit_keep_index = as.integer(keep_train_abs),
+      fit_quantile_draws = mu_draws_tr,
+      inference_method = as.character(qfit_spec$method),
+      likelihood_family = as.character(qfit_spec$likelihood_family),
+      tau = as.numeric(p0)
+    )
+    mean_readout_state_capsule$feature_basis_hash <-
+      exdqlm:::.qdesn_mean_readout_state_basis_hash(basis_qdesn)
+  }
+
   list(
     fit_train   = list(
       fit = fit_exal,
@@ -2394,7 +2472,8 @@ fit_and_forecast_p <- function(p0) {
     df_mu_tr    = df_mu_tr,
     df_pred_tr  = df_pred_tr,
     param_draws = param_draws,
-    forecast_full = forecast_full
+    forecast_full = forecast_full,
+    mean_readout_state_capsule = mean_readout_state_capsule
   )
 }
 
@@ -4154,7 +4233,8 @@ if (isTRUE(save_outputs)) {
           save = save_outputs,
           keep_draws = keep_draws,
           thesis_subset = thesis_subset,
-          keep_mcmc_vb_init = keep_mcmc_vb_init
+          keep_mcmc_vb_init = keep_mcmc_vb_init,
+          save_mean_readout_state_capsule = save_mean_readout_state_capsule
         ),
         diagnostics = list(
           lead_eval  = do_lead_eval,

@@ -5,9 +5,15 @@ ffv2_metric_interval_cfg <- function(config = list()) {
   enabled <- ffv2_truthy(x$enabled %||% FALSE)
   draws <- as.integer(x$draws %||% (config$budget %||% list())$metric_draws %||% 4000L)[1L]
   if (!is.finite(draws) || draws < 2L) draws <- 4000L
+  fit_rows <- as.integer(x$fit_rows %||% 500L)[1L]
+  forecast_rows <- as.integer(x$forecast_rows %||% 1000L)[1L]
+  if (!is.finite(fit_rows) || fit_rows < 1L) fit_rows <- 500L
+  if (!is.finite(forecast_rows) || forecast_rows < 1L) forecast_rows <- 1000L
   list(
     enabled = enabled,
     draws = draws,
+    fit_rows = fit_rows,
+    forecast_rows = forecast_rows,
     required = ffv2_truthy(x$required %||% enabled),
     estimator_id = as.character(x$estimator_id %||%
       "posterior_mean_draw_metric_equal_tailed_95cri_v1")[1L],
@@ -93,7 +99,10 @@ ffv2_metric_draws_from_paths <- function(fit_draws,
                                          tau,
                                          draw_indices = NULL,
                                          chain_id = 1L,
-                                         draw_source = NA_character_) {
+                                         draw_source = NA_character_,
+                                         expected_fit_rows = 500L,
+                                         expected_forecast_rows = 1000L,
+                                         fit_y = NULL) {
   fit_q_true <- as.numeric(fit_q_true)
   forecast_q_true <- as.numeric(forecast_q_true)
   forecast_y <- as.numeric(forecast_y)
@@ -105,13 +114,16 @@ ffv2_metric_draws_from_paths <- function(fit_draws,
   if (length(forecast_y) != length(forecast_q_true)) {
     stop("forecast_y and forecast_q_true must have equal lengths.", call. = FALSE)
   }
-  if (length(fit_q_true) != 500L) {
-    stop(sprintf("Fit interval contract requires 500 rows; found %d.", length(fit_q_true)),
+  expected_fit_rows <- as.integer(expected_fit_rows)[1L]
+  expected_forecast_rows <- as.integer(expected_forecast_rows)[1L]
+  if (length(fit_q_true) != expected_fit_rows) {
+    stop(sprintf("Fit interval contract requires %d rows; found %d.",
+                 expected_fit_rows, length(fit_q_true)),
          call. = FALSE)
   }
-  if (length(forecast_q_true) != 1000L) {
-    stop(sprintf("Forecast interval contract requires 1000 rows; found %d.",
-                 length(forecast_q_true)), call. = FALSE)
+  if (length(forecast_q_true) != expected_forecast_rows) {
+    stop(sprintf("Forecast interval contract requires %d rows; found %d.",
+                 expected_forecast_rows, length(forecast_q_true)), call. = FALSE)
   }
   n_available <- min(ncol(fit_draws), ncol(forecast_draws))
   if (is.null(draw_indices)) draw_indices <- seq_len(n_available)
@@ -131,11 +143,22 @@ ffv2_metric_draws_from_paths <- function(fit_draws,
     draw_id = seq_len(ncol(fit_draws)),
     source_draw_index = draw_indices,
     fit_rmse = sqrt(colMeans(fit_err^2, na.rm = TRUE)),
+    fit_mae = colMeans(abs(fit_err), na.rm = TRUE),
     forecast_mae = colMeans(abs(forecast_err), na.rm = TRUE),
+    forecast_rmse = sqrt(colMeans(forecast_err^2, na.rm = TRUE)),
     forecast_check_loss = check,
     draw_source = as.character(draw_source),
     stringsAsFactors = FALSE
   )
+  if (!is.null(fit_y)) {
+    fit_y <- as.numeric(fit_y)
+    if (length(fit_y) != length(fit_q_true)) {
+      stop("fit_y and fit_q_true must have equal lengths.", call. = FALSE)
+    }
+    out$fit_check_loss <- vapply(seq_len(ncol(fit_draws)), function(j) {
+      mean(ffv2_check_loss(fit_y, fit_draws[, j], tau), na.rm = TRUE)
+    }, numeric(1L))
+  }
   if (any(!is.finite(as.matrix(out[c("fit_rmse", "forecast_mae", "forecast_check_loss")])))) {
     stop("Metric draw table contains non-finite values.", call. = FALSE)
   }
@@ -151,7 +174,12 @@ ffv2_metric_interval_summary <- function(metric_draws,
     stop(sprintf("Metric draw table is missing: %s", paste(missing, collapse = ", ")),
          call. = FALSE)
   }
-  rows <- lapply(required, function(metric) {
+  metrics <- c(
+    "fit_rmse", "fit_mae", "fit_check_loss", "forecast_mae",
+    "forecast_rmse", "forecast_check_loss"
+  )
+  metrics <- metrics[metrics %in% names(metric_draws)]
+  rows <- lapply(metrics, function(metric) {
     x <- as.numeric(metric_draws[[metric]])
     qs <- stats::quantile(x, probs = ffv2_metric_interval_probs, names = FALSE,
                           type = 8, na.rm = TRUE)
@@ -213,8 +241,8 @@ ffv2_write_metric_interval_artifacts <- function(config, metric_draws) {
     inference = as.character(config$inference %||% NA_character_),
     estimator_id = cfg$estimator_id,
     draw_source_contract = cfg$draw_source_contract,
-    fit_rows = 500L,
-    forecast_rows = 1000L,
+    fit_rows = cfg$fit_rows,
+    forecast_rows = cfg$forecast_rows,
     metric_draws = nrow(metric_draws),
     chain_ids = sort(unique(as.integer(metric_draws$chain_id))),
     metric_draws_path = normalizePath(draws_path, winslash = "/", mustWork = TRUE),
@@ -331,7 +359,11 @@ ffv2_write_metric_coupling_artifacts <- function(config, coupling_draws) {
 }
 
 ffv2_metric_chain_diagnostics <- function(metric_draws) {
-  metrics <- c("fit_rmse", "forecast_mae", "forecast_check_loss")
+  metrics <- c(
+    "fit_rmse", "fit_mae", "fit_check_loss", "forecast_mae",
+    "forecast_rmse", "forecast_check_loss"
+  )
+  metrics <- metrics[metrics %in% names(metric_draws)]
   chains <- sort(unique(as.integer(metric_draws$chain_id)))
   if (length(chains) < 2L) return(data.frame())
   safe_ess <- function(x) {

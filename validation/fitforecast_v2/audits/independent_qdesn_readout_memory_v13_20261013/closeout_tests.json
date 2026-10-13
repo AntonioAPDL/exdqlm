@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "checks": 19,
+  "source_hashes": [
+    {
+      "path": "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_readout_memory_v13_20261013/validation/fitforecast_v2/R/independent_qdesn_readout_memory_v13_closeout.R",
+      "sha256": "57bddf47291592a1dfaf7d4e3f493ce2c51196ee0fa7fa13b3e519206723a72c"
+    },
+    {
+      "path": "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_readout_memory_v13_20261013/validation/fitforecast_v2/scripts/close_independent_qdesn_readout_memory_v13.R",
+      "sha256": "e9068ef389e1f988729cd58c55ef69026608380b3dae72742e014ce71c69993f"
+    },
+    {
+      "path": "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_readout_memory_v13_20261013/validation/fitforecast_v2/scripts/audit_independent_qdesn_readout_memory_v13_completed.R",
+      "sha256": "543d93d64b8141c90718a55162848342741f04ba2ac8c7218d273b68792e0ab3"
+    },
+    {
+      "path": "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_readout_memory_v13_20261013/validation/fitforecast_v2/tests/test_independent_qdesn_readout_memory_v13_closeout.R",
+      "sha256": "2577aba424f0a8ce4e749ae6c1d1b66d74cb23ccb8863327e541e15b20045334"
+    }
+  ]
+}

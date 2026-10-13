@@ -1,0 +1,168 @@
+protocol:
+  id: independent_qdesn_corrected_forecast_v3
+  status: IMPLEMENTED_GATED_CANARY
+  scientific_lane: independent_single_quantile_qdesn_dqlm_validation
+  predecessor: independent_qdesn_cellwise_refinement_v2
+  predecessor_disposition: SUPERSEDED_BY_CORRECTED_FORECAST_ESTIMAND_V3
+  article_write_permitted: false
+  shared_validation_merge_permitted: false
+  overleaf_write_permitted: false
+
+design_evidence:
+  leakage_guide_title: Forecasting Without Data Leakage
+  leakage_guide_sha256: 292193f1330b66f2f88b21ca5d0bc115e27b2a2bd3f65e15a86c754434200d68
+  leakage_guide_role: methodological_design_audit_not_runtime_dependency
+
+scope:
+  families: [normal, laplace, gausmix]
+  quantiles: [0.05, 0.25, 0.50]
+  canary_quantile: 0.50
+  likelihoods: [al, exal]
+  tuned_models: [qdesn_al_rhs, qdesn_exal_rhs]
+  frozen_comparators: [dqlm_al, exdqlm_exal]
+  raw_source_start: 8111
+  fit_window: {start: 8501, end: 9000}
+  legacy_window: {start: 9001, end: 10000}
+
+forecast:
+  horizon: 30
+  teacher_forced_between_origins: true
+  recursive_within_origin: true
+  future_observations_within_origin: false
+  refit_per_origin: false
+  estimands: [oracle_location_path, marginal_predictive_quantile]
+  oracle_estimators:
+    - conditional_location_plugin
+    - mean_conditional_location
+    - mean_readout_state
+  predictive_estimator: posterior_predictive_quantile_pooled
+  predictive_draw_estimator: predictive_quantile_by_draw
+  quantile_algorithm: type_8
+  inner_path_grid: [64, 128, 256, 512]
+  canary_outer_draws: 16
+  canary_inner_paths: 128
+  finalist_inner_paths: 512
+  paired_innovations: true
+  parameter_draw_static_within_path: true
+  selection_origins: {start: 8750, end: 8970, broad_stride: 5, finalist_stride: 1}
+  primary_metric: forecast_qtrue_mae
+  secondary_metric: forecast_check_loss
+  supporting_metric: forecast_qtrue_rmse
+  posterior_interval_unit: posterior_parameter_draw
+  temporal_interval_unit: forecast_origin_block
+  dgp_interval_unit: independent_dgp_replicate
+
+response_transport:
+  enabled: true
+  fitted_on: internal_fitting_rows_only
+  center: arithmetic_mean
+  scale: sample_standard_deviation
+  positive_affine_quantile_equivariance: true
+  inverse_transform_before_scoring: true
+  future_rows_used_for_transport: false
+
+search:
+  projection: identity
+  dimensionality_reduction_forbidden: true
+  mx: 0
+  readout_columns: [intercept, all_reservoir_layers]
+  direct_response_lags_in_readout: false
+  direct_exogenous_lags_in_readout: false
+  reservoir_lags_in_readout: false
+  fixed_screen_matrix_seed: 920001
+  reservoir_activation: tanh
+  lower_state_readout_activation: identity
+  nonzero_weight_distribution: uniform_minus1_plus1
+  depth: [1, 2, 3, 4, 5]
+  layer_width: [20, 40, 75, 100, 150, 200, 300, 400, 600, 800]
+  total_states: [20, 2400]
+  response_lags: [30, 60, 90, 120, 180, 240, 300, 360]
+  alpha_range: [0.01, 0.99]
+  rho_range: [0.20, 0.999]
+  input_gain: [0.01, 0.03, 0.10, 0.30, 1.00, 3.00]
+  center_scale: [mean_sd, median_mad]
+  input_bound: [none, tanh_z_over_3]
+  recurrent_indegree: [5, 10, 20, 40, 80]
+  input_fanin_fraction: [0.05, 0.10, 0.25, 0.50, 1.00]
+  interlayer_fanin: [5, 10, 25, 50, 100, dense]
+  broad_pool_arms:
+    - ridge_discovered
+    - rhs_discovered
+    - current_authority_anchor
+    - unseen_boundary_balanced
+  case_specific_selection: true
+  global_specification_forbidden: true
+
+shrinkage:
+  prior: regularized_horseshoe_no_intercept_shrinkage
+  slab_s2: 1.0
+  parameterization_scale: standardized_response
+  target_nonzero_fraction: 0.05
+  reference_formula: p0_over_p_minus_p0_times_sigma_over_sqrt_neff
+  canary_arm_policy: [dimension_reference, source_equivalent_continuity, source_equivalent_high_100]
+  default_continuity_tau0_source_scale: 1.0
+  high_sentinel_tau0_source_scale: 100.0
+  refinement_multipliers:
+    - 0.033333333333
+    - 0.1
+    - 0.333333333333
+    - 1.0
+    - 3.0
+    - 10.0
+    - 30.0
+  source_scale_absolute_sentinels: [3.0e-9, 1.0e-6, 1.0e-4, 1.0e-2, 1.0, 100.0]
+  source_scale_bounds: [3.0e-9, 100.0]
+  cold_rhs_state_across_tau0: true
+  nested_quantile_initialization_is_controlled_arm_only: true
+
+inference:
+  quantile_vb:
+    max_iter: 750
+    n_samp_xi: 400
+    tol: 0.0001
+    structured_exal_sigmagam: true
+  mcmc:
+    exal_method_id: m0_v_collapsed_support_logit
+    al_method_id: sigma_then_gamma
+    short: {burn: 1000, sample: 4000, posterior_draws: 120}
+    confirmation: {burn: 5000, sample: 20000, posterior_draws: 300, chains: [1, 2, 3]}
+    maximum_candidates_per_unresolved_cell: 3
+    maximum_confirmation_candidates_per_cell: 1
+
+gates:
+  canary_requires_all_finite: true
+  canary_requires_contract_tests: true
+  canary_requires_k_stability: true
+  canary_forbids_catastrophic_quantile_bridge: true
+  canary_baseline: training_empirical_quantile_constant
+  maximum_catastrophic_oracle_mae_ratio: 5.0
+  operator_smoke_tau0_arm: dimension_reference
+  broad_screen_requires_canary_pass: true
+  mcmc_requires_internal_h30_forecast_evidence: true
+  article_requires_full_surface: true
+  diagnostic_status_vetoes_finite_gain: false
+  hard_failures:
+    - leakage
+    - nonfinite_metric
+    - corrupted_artifact
+    - violated_forecast_contract
+    - invalid_model_object
+
+execution:
+  workers: 15
+  threads_per_worker: 1
+  preferred_cpu_set: "32-46"
+  background_launch: true
+  automatic_broad_launch: false
+  maximum_atomic_vb_fits: 72
+  maximum_new_normal_representation_jobs: 72
+  maximum_broad_quantile_vb_fits: 288
+  maximum_refinement_vb_fits: 96
+  maximum_short_mcmc_chains: 54
+  maximum_confirmation_mcmc_chains: 54
+  resource_gate:
+    maximum_load: 56
+    minimum_available_memory_gb: 72
+    minimum_available_disk_gb: 200
+  storage_light: true
+  fitted_model_binary_retention: none

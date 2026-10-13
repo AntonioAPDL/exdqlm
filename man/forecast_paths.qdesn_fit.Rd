@@ -24,7 +24,8 @@ forecast_paths.qdesn_fit(
   res_lag_init = NULL,
   origin_index = NULL,
   noise_draws = NULL,
-  cpp_fallback_note = TRUE
+  cpp_fallback_note = TRUE,
+  recursion_mode = c("posterior_predictive", "posterior_predictive_mean_readout_state")
 )
 }
 \arguments{
@@ -64,10 +65,14 @@ include include_input, input_lags_y, input_lags_x, reservoir_lags, input_positio
 (rows = lags 1..L, cols = reservoir feature dimension without bias).}
 
 \item{noise_draws}{optional list with matrices \code{s}, \code{v}, \code{z}
-(each \code{H x nd}) to force deterministic R/C++ parity in recursive sampling.}
+(each \code{H x nd}) for deterministic paired-estimator replay.}
 
 \item{cpp_fallback_note}{logical; when \code{FALSE}, suppresses C++ fallback
 informational messages (used by lattice caller to avoid per-origin spam).}
+
+\item{recursion_mode}{posterior-predictive recursion (the default) or the
+mean-complete-readout-state estimator. The latter averages candidate
+predictive states/features before applying posterior coefficient draws.}
 }
 \value{
 list with yrep (H x nd) and mu_draws (H x nd)

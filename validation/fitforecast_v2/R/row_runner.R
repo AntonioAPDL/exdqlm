@@ -314,7 +314,29 @@ ffv2_run_row <- function(config_path,
                       validation_stage, runtime$progress_every, runtime$trace_every, runtime$heartbeat_seconds)
   )
   out <- tryCatch({
-    suppressPackageStartupMessages(pkgload::load_all(config$repo_root, quiet = TRUE))
+    package_runtime_mode <- as.character(
+      config$package_runtime_mode %||% "worktree_load_all"
+    )[1L]
+    if (identical(package_runtime_mode, "installed_namespace")) {
+      suppressPackageStartupMessages(
+        library("exdqlm", character.only = TRUE)
+      )
+      observed_version <- as.character(utils::packageVersion("exdqlm"))
+      expected_version <- as.character(
+        (config$package_contract %||% list())$version %||% observed_version
+      )[1L]
+      if (!identical(observed_version, expected_version)) {
+        stop(sprintf(
+          "Installed exdqlm version mismatch: expected %s, observed %s.",
+          expected_version, observed_version
+        ), call. = FALSE)
+      }
+    } else if (identical(package_runtime_mode, "worktree_load_all")) {
+      suppressPackageStartupMessages(pkgload::load_all(config$repo_root, quiet = TRUE))
+    } else {
+      stop(sprintf("Unsupported package_runtime_mode: %s", package_runtime_mode),
+           call. = FALSE)
+    }
     stored_draws <- as.integer((config$budget %||% list())$stored_draws %||% 2000L)
     forecast_draws_n <- as.integer((config$budget %||% list())$forecast_draws %||% 2000L)
     seed <- as.integer(config$seed %||% (100000L + as.integer(config$row_id)))[1L]
@@ -360,10 +382,17 @@ ffv2_run_row <- function(config_path,
                call. = FALSE)
         }
         err <- sweep(q_draws, 1L, as.numeric(data$train$q_true), "-")
+        fit_check <- vapply(seq_len(ncol(q_draws)), function(j) {
+          mean(ffv2_check_loss(
+            as.numeric(data$train$y), q_draws[, j], as.numeric(config$tau)
+          ), na.rm = TRUE)
+        }, numeric(1L))
         attr(out, "metric_interval_fit") <- data.frame(
           draw_id = seq_len(ncol(q_draws)),
           source_draw_index = as.integer(attr(q_draws, "source_draw_index")),
           fit_rmse = sqrt(colMeans(err^2, na.rm = TRUE)),
+          fit_mae = colMeans(abs(err), na.rm = TRUE),
+          fit_check_loss = fit_check,
           draw_source = "latent_conditional_quantile_F_theta",
           stringsAsFactors = FALSE
         )
@@ -388,7 +417,10 @@ ffv2_run_row <- function(config_path,
         draw_id = seq_len(n),
         source_draw_index = as.integer(fit_part$source_draw_index[seq_len(n)]),
         fit_rmse = as.numeric(fit_part$fit_rmse[seq_len(n)]),
+        fit_mae = as.numeric(fit_part$fit_mae[seq_len(n)]),
+        fit_check_loss = as.numeric(fit_part$fit_check_loss[seq_len(n)]),
         forecast_mae = as.numeric(forecast_part$forecast_mae[seq_len(n)]),
+        forecast_rmse = as.numeric(forecast_part$forecast_rmse[seq_len(n)]),
         forecast_check_loss = as.numeric(
           forecast_part$forecast_check_loss[seq_len(n)]
         ),

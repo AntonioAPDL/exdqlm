@@ -234,13 +234,87 @@ if (!exists("%||%", mode = "function")) {
   min_iter <- as.integer(control$min_iter %||% 5L)[1L]
   tol <- as.numeric(control$tol %||% 1e-6)[1L]
   verbose <- isTRUE(control$verbose %||% FALSE)
+  covariance <- match.arg(
+    tolower(as.character(control$covariance %||% "full")[[1L]]),
+    c("full", "woodbury_diagonal")
+  )
   if (!is.finite(max_iter) || max_iter < 1L) .normal_desn_stop("control$max_iter must be a positive integer.")
   if (!is.finite(min_iter) || min_iter < 1L) .normal_desn_stop("control$min_iter must be a positive integer.")
   if (!is.finite(tol) || tol < 0) .normal_desn_stop("control$tol must be finite and >= 0.")
   if (!is.null(control$chunking) && isTRUE(control$chunking$enabled)) {
     .normal_desn_stop("Normal DESN VB chunking is not implemented yet.")
   }
-  list(max_iter = max_iter, min_iter = min_iter, tol = tol, verbose = verbose)
+  list(
+    max_iter = max_iter, min_iter = min_iter, tol = tol,
+    verbose = verbose, covariance = covariance
+  )
+}
+
+.normal_desn_woodbury_moments <- function(X, y, precision_diag,
+                                          e_inv_sigma2) {
+  precision_diag <- as.numeric(precision_diag)
+  if (length(precision_diag) != ncol(X) ||
+      any(!is.finite(precision_diag)) || any(precision_diag <= 0)) {
+    .normal_desn_stop("Woodbury beta precision must be finite and positive.")
+  }
+  if (!is.finite(e_inv_sigma2) || e_inv_sigma2 <= 0) {
+    .normal_desn_stop("Woodbury residual precision must be finite and positive.")
+  }
+
+  if (ncol(X) < 2L || precision_diag[[1L]] > 1e-8 ||
+      any(abs(X[, 1L] - 1) > sqrt(.Machine$double.eps))) {
+    .normal_desn_stop(
+      "Woodbury diagonal mode requires an unshrunk leading intercept."
+    )
+  }
+
+  intercept_precision <- precision_diag[[1L]]
+  Z <- X[, -1L, drop = FALSE]
+  prior_var <- 1 / precision_diag[-1L]
+  ZD <- sweep(Z, 2L, prior_var, `*`)
+  B <- ZD %*% t(Z)
+  S <- B + diag(1 / e_inv_sigma2, nrow(X))
+  R <- tryCatch(chol(0.5 * (S + t(S))), error = function(e) NULL)
+  if (is.null(R)) {
+    jitter <- sqrt(.Machine$double.eps) * max(1, mean(diag(S)))
+    R <- tryCatch(chol(S + diag(jitter, nrow(S))), error = function(e) NULL)
+  }
+  if (is.null(R)) .normal_desn_stop("Woodbury system is not positive definite.")
+  solve_S <- function(h) backsolve(R, forwardsolve(t(R), h))
+
+  solved_y <- solve_S(y)
+  c_h <- prior_var * as.numeric(crossprod(Z, solved_y))
+  solved_one <- solve_S(rep(1, nrow(X)))
+  c_p <- prior_var * as.numeric(crossprod(Z, solved_one))
+  p0z <- e_inv_sigma2 * colSums(Z)
+  schur <- intercept_precision + e_inv_sigma2 * nrow(X) -
+    sum(p0z * c_p)
+  if (!is.finite(schur) || schur <= 0) {
+    .normal_desn_stop("Woodbury intercept Schur complement is not positive.")
+  }
+  intercept_mean <- (e_inv_sigma2 * sum(y) - sum(p0z * c_h)) / schur
+  slope_mean <- c_h - c_p * intercept_mean
+  m <- c(intercept_mean, slope_mean)
+
+  solved_ZD <- solve_S(ZD)
+  slope_variance_diag <- prior_var - colSums(ZD * solved_ZD) +
+    c_p^2 / schur
+  variance_diag <- c(1 / schur,
+                     pmax(slope_variance_diag, .Machine$double.eps))
+
+  solved_B <- solve_S(B)
+  trace_ZCinvZ <- sum(diag(B)) - sum(B * t(solved_B))
+  z_colsum <- colSums(Z)
+  trace_XVX <- nrow(X) / schur -
+    2 * sum(c_p * z_colsum) / schur + trace_ZCinvZ +
+    sum(as.numeric(Z %*% c_p)^2) / schur
+  trace_XVX <- max(as.numeric(trace_XVX), 0)
+
+  list(
+    mean = m,
+    variance_diag = variance_diag,
+    trace_XVX = trace_XVX
+  )
 }
 
 .normal_desn_make_rhs_prior <- function(beta_prior_type, rhs) {
@@ -275,14 +349,25 @@ if (!exists("%||%", mode = "function")) {
       .normal_desn_stop("RHS expected beta precision must be finite and positive.")
     }
 
-    Pn <- e_inv_sigma2 * stats$XtX + diag(as.numeric(prec_diag), stats$p)
-    hn <- e_inv_sigma2 * stats$Xty
-    sol <- .normal_desn_sym_solve(Pn, hn)
-    m <- sol$x
-    V <- sol$inv
+    if (identical(control$covariance, "woodbury_diagonal")) {
+      moments <- .normal_desn_woodbury_moments(
+        X = X, y = y, precision_diag = prec_diag,
+        e_inv_sigma2 = e_inv_sigma2
+      )
+      m <- moments$mean
+      V <- diag(moments$variance_diag, stats$p)
+      covariance_trace <- moments$trace_XVX
+    } else {
+      Pn <- e_inv_sigma2 * stats$XtX + diag(as.numeric(prec_diag), stats$p)
+      hn <- e_inv_sigma2 * stats$Xty
+      sol <- .normal_desn_sym_solve(Pn, hn)
+      m <- sol$x
+      V <- sol$inv
+      covariance_trace <- sum(stats$XtX * V)
+    }
 
-    Emm <- V + tcrossprod(m)
-    sse <- stats$yty - 2 * as.numeric(crossprod(m, stats$Xty)) + sum(stats$XtX * Emm)
+    residual_mean <- y - as.numeric(X %*% m)
+    sse <- as.numeric(crossprod(residual_mean)) + covariance_trace
     sse <- max(as.numeric(sse), .Machine$double.eps)
     sigma_a <- omega_prior$a + stats$n / 2
     sigma_b <- omega_prior$b + 0.5 * sse
@@ -302,8 +387,24 @@ if (!exists("%||%", mode = "function")) {
 
   list(
     type = paste0(beta_prior_type, "_vb"),
-    beta = list(mean = m, cov = V, precision = .normal_desn_sym_solve(V)$inv, df = Inf),
-    qbeta = list(m = m, V = V, covariance_approximation = "full"),
+    beta = list(
+      mean = m, cov = V,
+      precision = if (identical(control$covariance, "woodbury_diagonal")) {
+        diag(1 / diag(V), stats$p)
+      } else {
+        .normal_desn_sym_solve(V)$inv
+      },
+      df = Inf
+    ),
+    qbeta = list(
+      m = m, V = V,
+      covariance_approximation = if (identical(control$covariance,
+                                                "woodbury_diagonal")) {
+        "woodbury_exact_marginals_diagonal_storage"
+      } else {
+        "full"
+      }
+    ),
     omega2 = list(
       a = sigma_a,
       b = sigma_b,
@@ -561,6 +662,7 @@ posterior_predict.qdesn_normal_fit <- function(object, nd = 1000L, X_new = NULL,
 #' @param draws Optional result from [normal_desn_posterior_draws()].
 #' @param y_future_obs Optional numeric length `H`; non-missing values are used
 #'   as teacher-forced future observations for subsequent reservoir inputs.
+#' @param origin_state Optional list of reservoir states at the forecast origin.
 #' @param return_design Logical; if `TRUE`, return per-draw readout design rows.
 #' @param ... Reserved for future exogenous/decomposition forecast controls.
 #' @return List with `yrep`, `mu_draws`, `beta`, `omega2`, and metadata.
@@ -570,13 +672,14 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
                                             seed = NULL,
                                             draws = NULL,
                                             y_future_obs = NULL,
+                                            origin_state = NULL,
                                             return_design = FALSE,
                                             ...) {
   if (!inherits(object, "qdesn_normal_fit") || is.null(object$fit)) {
     .normal_desn_stop("forecast_paths.qdesn_normal_fit() requires a fitted qdesn_normal_fit.")
   }
   dots <- list(...)
-  unsupported <- intersect(names(dots), c("xreg_hist", "xreg_future", "origin_state", "readout_spec", "res_lag_init"))
+  unsupported <- intersect(names(dots), c("xreg_hist", "xreg_future", "readout_spec", "res_lag_init"))
   if (length(unsupported)) {
     .normal_desn_stop(
       "Normal DESN forecast paths do not yet support: %s.",
@@ -633,7 +736,9 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
   if (length(y_hist) < m_res) {
     .normal_desn_stop("Need at least %d y history values before the forecast origin.", m_res)
   }
-  h_origin <- if (!is.null(object$states$H_all)) {
+  h_origin <- if (!is.null(origin_state)) {
+    lapply(origin_state, as.numeric)
+  } else if (!is.null(object$states$H_all)) {
     lapply(seq_len(D), function(d) object$states$H_all[[d]][nrow(object$states$H_all[[d]]), ])
   } else if (!is.null(object$states$H_last) && is.list(object$states$H_last)) {
     object$states$H_last
@@ -654,6 +759,7 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
   lag_scale <- meta$lag_scale %||% 1
   standardize_inputs <- isTRUE(meta$standardize_inputs)
   input_bound <- meta$input_bound %||% "none"
+  input_bound_divisor <- as.numeric(meta$input_bound_divisor %||% 1)[1L]
   win_scale_global <- meta$win_scale_global %||% 1
   win_scale_bias <- meta$win_scale_bias %||% 1
   win_scale_lags <- meta$win_scale_lags
@@ -662,7 +768,9 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
     z <- lags_vec
     if (isTRUE(standardize_inputs)) z <- (z - lag_center) / lag_scale
     if (!is.null(win_scale_lags)) z <- z * as.numeric(win_scale_lags)
-    if (identical(input_bound, "tanh") && length(z)) z <- tanh(z)
+    if (identical(input_bound, "tanh") && length(z)) {
+      z <- tanh(z / input_bound_divisor)
+    }
     z
   }
   make_u <- function(y_vec) {

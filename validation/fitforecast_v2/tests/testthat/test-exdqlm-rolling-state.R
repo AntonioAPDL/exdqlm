@@ -199,6 +199,42 @@ test_that("state extension updates filtered span without refitting", {
   expect_equal(dim(forecast$samp.fore), c(2L, 10L))
 })
 
+test_that("incremental state advancement equals recomputation from the training fit", {
+  fixture <- ffv2_tiny_dynamic_fit(dqlm_ind = TRUE)
+  incremental <- ffv2_extend_fit_to_source_origin(
+    fixture$fit, fixture$config, fixture$data, 33L
+  )
+  for (origin in 34:36) {
+    incremental <- ffv2_advance_fit_between_source_origins(
+      incremental, fixture$config, fixture$data, origin - 1L, origin
+    )
+  }
+  recomputed <- ffv2_extend_fit_to_source_origin(
+    fixture$fit, fixture$config, fixture$data, 36L
+  )
+
+  expect_identical(incremental$y, recomputed$y)
+  expect_equal(incremental$theta.out$fm, recomputed$theta.out$fm, tolerance = 0)
+  expect_equal(incremental$theta.out$fC, recomputed$theta.out$fC, tolerance = 0)
+  expect_equal(incremental$model$FF, recomputed$model$FF, tolerance = 0)
+  expect_equal(incremental$model$GG, recomputed$model$GG, tolerance = 0)
+})
+
+test_that("installed-namespace helper access is explicit and fails closed", {
+  expect_true(is.function(ffv2_pkg_internal("make_df_mat")))
+  actual <- ffv2_make_df_mat(c(0.99, 0.95), c(1L, 1L), 2L)
+  expected <- diag(c((1 - 0.99) / 0.99, (1 - 0.95) / 0.95))
+  expect_equal(actual, expected)
+  expect_setequal(
+    ffv2_assert_pkg_internals(),
+    ffv2_required_pkg_internals()
+  )
+  expect_error(
+    ffv2_pkg_internal("definitely_not_an_exdqlm_helper"),
+    "Required exdqlm namespace helper is unavailable"
+  )
+})
+
 test_that("rolling-origin exDQLM forecast emits lead-level rows on the shared grid", {
   fixture <- ffv2_tiny_dynamic_fit(dqlm_ind = TRUE)
   summary <- ffv2_rolling_exdqlm_forecast_summary(
@@ -221,12 +257,14 @@ test_that("rolling-origin exDQLM forecast emits lead-level rows on the shared gr
   expect_equal(nrow(summary), nrow(expected_grid))
   expect_true(all(ffv2_required_path_columns() %in% names(summary)))
   expect_true(all(c(
-    "forecast_protocol", "state_update_method", "refit_per_origin",
+    "forecast_protocol", "state_update_method", "state_update_strategy",
+    "refit_per_origin",
     "forecast_origin_source_index", "forecast_lead", "target_source_index"
   ) %in% names(summary)))
   expect_equal(sort(unique(summary$target_source_index)), 31:40)
   expect_equal(sort(unique(summary$forecast_lead)), 1:3)
   expect_true(all(summary$forecast_protocol == "rolling_origin_no_refit_state_update"))
+  expect_true(all(summary$state_update_strategy == "recompute_from_training_fit"))
   expect_true(all(!as.logical(summary$refit_per_origin)))
 
   lead_metrics <- ffv2_rolling_lead_metrics(fixture$config, summary)
