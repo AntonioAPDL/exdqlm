@@ -1,0 +1,10 @@
+"test","failed","error","warning","passed"
+"paired prefix scoring matches direct target-by-draw arithmetic",0,FALSE,0,11
+"article cutoffs retain the exact partial origins",0,FALSE,0,11
+"invalid grids, draws, and cutoffs are rejected",0,FALSE,0,5
+"origin groups recover only exact whole-origin prefixes",0,FALSE,0,6
+"pooling keeps chain balance and historical quantile estimators",0,FALSE,0,9
+"forecast-only Q adapter preserves inputs and RNG without fitting",0,FALSE,0,6
+"compressed snapshots roundtrip without losing score precision",0,FALSE,0,2
+"dynamic adapter advances origins without changing its horizons or fitting",0,FALSE,0,5
+"bounded pool uses verified outputs and never refits on missing capsules",0,FALSE,0,8

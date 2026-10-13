@@ -1,0 +1,16 @@
+{
+  "status": "RECOVERY_INCOMPLETE_NO_REFITS_LAUNCHED",
+  "branch": "validation/independent-forecast-prefix-intervals-v1-20261013",
+  "launch_head": "c7b4b34b788b247f5685b95d2643f87ef1294f1e",
+  "task_sources": 132,
+  "full_window_display_rows": 72,
+  "first500_display_rows": 0,
+  "first300_display_rows": 2,
+  "missing_display_rows": 142,
+  "fit_calls": 0,
+  "forecasts_launched": 0,
+  "recovery_audit_scope": "Selected job directories, directly source-request-linked roots, configured handoffs, identified portable archive",
+  "external_undocumented_backups_audited": false,
+  "article_modified": false,
+  "complete_figure_packet_ready": false
+}

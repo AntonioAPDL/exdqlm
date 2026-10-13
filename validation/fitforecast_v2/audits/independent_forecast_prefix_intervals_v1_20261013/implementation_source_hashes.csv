@@ -1,0 +1,6 @@
+"path","sha256"
+"validation/fitforecast_v2/R/forecast_prefix_metric_intervals_v1.R","f6cd288984371759cf4a0d6715a84f9504d5c64c3365596f5e853e4209e107c2"
+"validation/fitforecast_v2/docs/INDEPENDENT_FORECAST_PREFIX_INTERVALS_V1_20261013.md","3a98c3023769072a13c78fa6082c6bef63bf8aa3b36d05b13c883f1fbd88fe37"
+"validation/fitforecast_v2/scripts/render_independent_forecast_prefix_intervals_v1.R","ee09a09ae135544471044e57bb92da2240ddfab67a2ace48739560fc8b4c6459"
+"validation/fitforecast_v2/scripts/run_independent_forecast_prefix_intervals_v1.R","5784f815730f37f2c8763f660f3b654c8729652583b1f7fbfac3bf128dfc8f46"
+"validation/fitforecast_v2/tests/testthat/test-forecast-prefix-metric-intervals-v1.R","9892154bcd0f12cc9d6c51da7af608646f632bceed6975004270ef6b46736ca4"
