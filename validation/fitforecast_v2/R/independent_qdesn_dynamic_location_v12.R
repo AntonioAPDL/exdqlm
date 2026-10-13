@@ -884,6 +884,7 @@ idl12_import_success <- function(run, previous) {
       status <- iqt12_read(original$status_path); iqt12_verify(status$manifest)
       original_manifest <- status$manifest
       fresh_cfg <- iqt12_read(cfg$path)
+      stopifnot(original$source_sha == fresh_cfg$source_sha)
       fields <- c("schema", "model", "engine", "arm", "replica", "chain", "window", "seed",
         "outer", "inner", "burn", "retained", "vb_iter", "normal_iter", "readout_conditioning",
         "candidate", "baseline", "layer1_scale", "layer2_scale", "layer3_scale", "omega_scaled")
