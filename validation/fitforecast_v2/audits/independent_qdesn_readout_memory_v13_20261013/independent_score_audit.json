@@ -1,0 +1,92 @@
+{
+  "timestamp_UTC": "2026-10-13T19:50:15Z",
+  "timestamp_Pacific": "2026-10-13 12:50:15 PDT",
+  "source_head": "5abb3db6a5b8c0559daf5ab125a654143f398ffa",
+  "health": [
+    {
+      "stage": "smoke",
+      "complete": 2,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 0
+    },
+    {
+      "stage": "selection_warm",
+      "complete": 20,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 0
+    },
+    {
+      "stage": "selection",
+      "complete": 20,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 0
+    },
+    {
+      "stage": "confirmation_warm",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 6
+    },
+    {
+      "stage": "confirmation",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 18
+    },
+    {
+      "stage": "fresh_warm",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 12
+    },
+    {
+      "stage": "fresh",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 36
+    }
+  ],
+  "verified_surfaces": 28,
+  "finite_outer_draws_per_surface": 300,
+  "independent_mean_error": 5.32907051820075e-15,
+  "independent_endpoint_error": 5.32907051820075e-15,
+  "independent_mean_path_error": 5.32907051820075e-15,
+  "first_step_guards": 192,
+  "first_step_guards_pass": 192,
+  "manifest_count": 51,
+  "manifest_rows": 968,
+  "run_size_MiB": 98.6051301956177,
+  "fitted_binary_payloads": [],
+  "selection": {
+    "status": "COMPLETE_REVIEW_REQUIRED",
+    "selected": "tau_half",
+    "strict_check_gain_over_static": false,
+    "ranking": "observed_internal_forecast_check_loss",
+    "oracle_ranking": false,
+    "all_strict_metric_gains_retained": true,
+    "diagnostic_exclusion": false,
+    "pooling": "chains_within_replica_only_not_across_DGPs",
+    "article_changed": false,
+    "next_stage": "confirmation",
+    "not_an_unbiased_joint_functional_interval_comparison": true
+  },
+  "finite_cell_metric_gains_vs_static": 20,
+  "finite_forecast_metric_gains_vs_static": 9,
+  "average_accuracy_gain_over_static": false,
+  "numerical_score_tolerance": 1e-06,
+  "observations_not_promoted": true
+}

@@ -1,0 +1,120 @@
+{
+  "schema": "independent_qdesn_readout_memory_v13_selection_closeout_v1",
+  "status": "CLOSED",
+  "scientific_decision": "NO_AVERAGE_PRIMARY_FORECAST_GAIN_RETAIN_EXISTING_ARTICLE_AUTHORITY",
+  "scientific_head": "5abb3db6a5b8c0559daf5ab125a654143f398ffa",
+  "closeout_source_head": "c91da5a053995c5299fadfdb7b0fab711d48b2c5",
+  "run": "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_readout_memory_v13_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_readout_memory_v13_20261013__git-5abb3db6",
+  "audit_directory": "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_readout_memory_v13_20261013/validation/fitforecast_v2/local_trackers/health_v13_completion_20261013",
+  "completed_at_UTC": "2026-10-13T06:57:35Z",
+  "frozen_at_UTC": "2026-10-13T20:39:20Z",
+  "family": "gausmix",
+  "likelihood": "al",
+  "prior": "RHS_NS",
+  "p": 0.05,
+  "gamma_fixed": true,
+  "completed_jobs": 42,
+  "implementation_failures": 0,
+  "active_jobs": 0,
+  "launched_jobs_remaining": 0,
+  "imported_controls": 8,
+  "conditional_jobs_declined_without_launch": 72,
+  "health": [
+    {
+      "stage": "smoke",
+      "complete": 2,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 0
+    },
+    {
+      "stage": "selection_warm",
+      "complete": 20,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 0
+    },
+    {
+      "stage": "selection",
+      "complete": 20,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 0
+    },
+    {
+      "stage": "confirmation_warm",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 6
+    },
+    {
+      "stage": "confirmation",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 18
+    },
+    {
+      "stage": "fresh_warm",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 12
+    },
+    {
+      "stage": "fresh",
+      "complete": 0,
+      "failed": 0,
+      "running": 0,
+      "pending": 0,
+      "gated": 36
+    }
+  ],
+  "selected_new_arm": "tau_half",
+  "overall_primary_winner": "static",
+  "finite_metric_cell_gains_over_static": 20,
+  "finite_forecast_metric_cell_gains_over_static": 9,
+  "diagnostic_exclusion": false,
+  "minimum_gain_threshold": 0,
+  "reproduction_tolerance": 1e-06,
+  "verification": {
+    "verified_surfaces": 28,
+    "independent_mean_error": 5.32907051820075e-15,
+    "independent_endpoint_error": 5.32907051820075e-15,
+    "independent_mean_path_error": 5.32907051820075e-15,
+    "first_step_guards": 192,
+    "first_step_guards_pass": 192,
+    "manifest_count": 51,
+    "manifest_rows": 968
+  },
+  "tests": {
+    "focused_v13_checks": 55,
+    "closeout_checks": 19,
+    "status": "PASS"
+  },
+  "process_check": {
+    "pattern": "[i]ndependent_qdesn_readout_memory_v13.R worker|[r]un_independent_qdesn_readout_memory_v13.sh",
+    "exit_status": 1,
+    "active_jobs": 0,
+    "checked_at_UTC": "2026-10-13T20:39:20Z"
+  },
+  "package_version": "1.1.2",
+  "package_repository": "CRAN",
+  "R_version": "4.6.0",
+  "article_changed": false,
+  "article_files_to_publish": [],
+  "integration_scope": "shared_validation_code_and_closeout_only_no_article_replacement",
+  "next_experiment_authorized": false,
+  "protected_runtime_paths": ["/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F1__A__dqlm__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F1__A__static__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F1__B__dqlm__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F1__B__static__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F2__A__dqlm__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F2__A__static__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F2__B__dqlm__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_dynamic_location_v12_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_dynamic_location_v12_20261013__recovered/evidence/selection__F2__B__static__c1", "/data/jaguir26/local/src/Article-Q-DESN/.worktrees/ind_qdesn_readout_memory_v13_20261013/validation/fitforecast_v2/local_trackers/independent_qdesn_readout_memory_v13_20261013__git-5abb3db6", "/data/jaguir26/local/src/exdqlm__wt__independent_qdesn_training1000_exdqlm112_v1_20261005/validation/fitforecast_v2/local_trackers/training1000_exdqlm112_runtime/Rlib"],
+  "storage_MiB_before_closeout": 98.6051301956177,
+  "fitted_model_binary_payloads": 0,
+  "uncertainty_caveat": "QDESN shared_beta and DQLM latent_marginal/product coupling differ",
+  "exclusions": ["local_trackers", "posterior draws", "source trajectories", "review PDFs", "R library", "compiled runtime cache", "logs", "future pilot and confirmation jobs"]
+}
