@@ -171,26 +171,62 @@ fpr_materialize <- function(repo, output) {
     file.path(output, "run_manifest.json"))
   invisible(plan)
 }
-fpr_q_paths <- function(summary, contract) {
+fpr_source_alignment <- function(source, grid = fpf_grid(), targets = NULL) {
+  fpf_check_grid(grid)
+  columns <- intersect(c("source_index", "t"), names(source))
+  fpf_assert(length(columns) > 0L, "Explicit source_index or t is required.")
+  indices <- lapply(columns, function(column) {
+    x <- source[[column]]
+    fpf_assert(is.numeric(x) && length(x) == nrow(source) && all(is.finite(x)) &&
+      all(x == floor(x)) && !anyDuplicated(x), "Source indices must be finite unique integers.")
+    x
+  })
+  if (length(indices) == 2L) fpf_assert(identical(as.numeric(indices[[1L]]), as.numeric(indices[[2L]])),
+    "source_index and t disagree.")
+  index <- indices[[1L]]
+  local_origin <- match(unique(grid$origin), index)
+  local_target <- match(grid$target, index)
+  fpf_assert(!anyNA(local_origin) && !anyNA(local_target), "Quantile source/origin/target alignment failed.")
+  if (!is.null(targets)) {
+    oracle_column <- intersect(c("q_target", "q_true", "mu"), names(source))[1L]
+    fpf_assert("y" %in% names(source) && !is.na(oracle_column) &&
+      nrow(targets) == nrow(grid), "Source scoring targets are incomplete.")
+    values <- c(source$y[local_target], source[[oracle_column]][local_target], targets$y, targets$q_true)
+    fpf_assert(all(is.finite(values)) &&
+      max(abs(source$y[local_target] - targets$y),
+        abs(source[[oracle_column]][local_target] - targets$q_true)) <= 1e-6,
+      "Source scoring targets changed.")
+  }
+  list(column = columns[1L], local_origin = local_origin, local_target = local_target)
+}
+fpr_q_paths <- function(summary, contract, source = NULL, helpers = NULL) {
   entry <- summary$forecast_objects$fits_fc[[1L]]
   n <- as.integer(contract$task$n_draws)
-  source <- getFromNamespace(".qdesn_validation_read_source_series", "exdqlm")(contract$root_spec)
+  if (is.null(source)) source <-
+    getFromNamespace(".qdesn_validation_read_source_series", "exdqlm")(contract$root_spec)
+  if (is.null(helpers)) helpers <- asNamespace("exdqlm")
   grid <- fpf_grid()
   origins <- unique(grid$origin)
-  local <- match(origins, source$source_index)
-  fpf_assert(!anyNA(local), "Quantile source/origin alignment failed.")
+  alignment <- fpr_source_alignment(source, grid, fpf_read(contract$task$path))
+  local <- alignment$local_origin
   fc <- entry$forecast_full
-  scale <- getFromNamespace(".qdesn_validation_lead_export_scale_spec", "exdqlm")(fc)
+  fpf_assert(length(fc$origins) > 0L && !anyDuplicated(fc$origins) &&
+    all(is.finite(fc$origins)) && length(fc$mu_by_origin) == length(fc$origins),
+    "Forecast origins are missing or duplicated.")
+  scale <- get(".qdesn_validation_lead_export_scale_spec", envir = helpers)(fc)
   count <- min(ncol(as.matrix(entry$mu_draws_tr)),
     vapply(fc$mu_by_origin, function(x) ncol(as.matrix(x)), integer(1)))
-  idx <- getFromNamespace(".qdesn_validation_even_draw_indices", "exdqlm")(count, n)
-  fpf_assert(length(idx) == n, "Reconstructed quantile draw budget differs.")
+  idx <- get(".qdesn_validation_even_draw_indices", envir = helpers)(count, n)
+  fpf_assert(length(idx) == n && n > 1L && !anyDuplicated(idx), "Reconstructed quantile draw budget differs.")
   q <- do.call(rbind, lapply(seq_along(origins), function(i) {
     j <- match(local[i], fc$origins)
     fpf_assert(!is.na(j), "Selected origin absent from quantile lattice.")
-    as.matrix(fc$mu_by_origin[[j]])[seq_len(sum(grid$origin == origins[i])), idx, drop = FALSE] *
-      scale$scale + scale$center
+    mu <- as.matrix(fc$mu_by_origin[[j]])
+    k <- sum(grid$origin == origins[i])
+    fpf_assert(nrow(mu) >= k && ncol(mu) >= max(idx), "Incomplete forecast draw block.")
+    get(".qdesn_validation_apply_lead_export_scale", envir = helpers)(mu[seq_len(k), idx, drop = FALSE], scale)
   }))
+  fpf_assert(all(is.finite(q)), "Non-finite quantile paths.")
   list(q = q, draw_index = idx)
 }
 fpr_d_paths <- function(fit, config, data, task) {
@@ -225,6 +261,64 @@ fpr_dynamic_diagnostics <- function(fit, cfg) {
   list(gamma_fixed = isTRUE(cfg$dqlm_ind), gamma = summarize(fit$samp.gamma),
     sigma = summarize(fit$samp.sigma), requested_proposal = cfg$budget$mcmc$mh_proposal,
     observed_proposal = fit$mh.diagnostics$proposal, state_update_method = cfg$state_update_method)
+}
+fpr_export_paths <- function(contract, contract_path, paths, payload, native = NULL) {
+    root <- contract$output_root
+    task <- as.data.frame(contract$task, stringsAsFactors = FALSE)
+    original_targets <- fpf_read(task$path)
+    fpf_assert(nrow(original_targets) == 1000L && fpf_sha(task$path) == task$point_path_sha256 &&
+      fpf_sha(task$metric_draws_path) == task$full_metric_draws_sha256, "Original target/draw evidence changed.")
+    scores <- fpf_score_paths(paths$q, fpf_grid(), original_targets$y, original_targets$q_true,
+      task$p, chain = task$chain_id, source_draw_index = paths$draw_index)
+    full_check <- scores[scores$cutoff == 1000L, ]
+    direct_mae <- colMeans(abs(sweep(paths$q, 1L, original_targets$q_true, "-")))
+    direct_check <- colMeans((original_targets$y - paths$q) * (task$p - (original_targets$y < paths$q)))
+    fpf_assert(max(abs(full_check$forecast_mae - direct_mae),
+      abs(full_check$forecast_check_loss - direct_check)) <= 1e-6, "Independent direct scoring check failed.")
+    native_error <- NULL
+    if (!is.null(native)) {
+      fpf_assert(identical(as.integer(native$source_draw_index), as.integer(paths$draw_index)),
+        "Native source draw indices differ.")
+      native_error <- fpf_verify_full(scores, native)
+    }
+    fpr_save(list(schema = "independent_joint_quantile_forecast_paths_v1", q = paths$q,
+      grid = fpf_grid(), y = original_targets$y, oracle = original_targets$q_true,
+      p = task$p, chain_id = task$chain_id, source_draw_index = paths$draw_index,
+      reconstruction_id = task$task_id, coupling = if (contract$engine == "qdesn")
+        "native_shared_readout_draws" else "historical_latent_gaussian_product_coupling"),
+      file.path(root, "protected_joint_forecast_paths.rds"))
+    fpf_write(scores, file.path(root, "prefix_draws.csv.gz"))
+    old <- fpf_read(task$metric_draws_path)
+    full <- scores[scores$cutoff == 1000L, ]
+    fpf_assert(nrow(old) == nrow(full) && !anyDuplicated(old$draw_id) &&
+      setequal(old$draw_id, full$draw_id), "Historical score draw IDs differ.")
+    old <- old[match(full$draw_id, old$draw_id), ]
+    comparison <- do.call(rbind, lapply(c("forecast_mae", "forecast_check_loss"), function(metric) {
+      data.frame(task_id = task$task_id, metric = metric, old_mean = mean(old[[metric]]),
+        new_mean = mean(full[[metric]]), mean_change = mean(full[[metric]]) - mean(old[[metric]]),
+        max_draw_difference = max(abs(full[[metric]] - old[[metric]])),
+        exact_score_reproduction_1e6 = max(abs(full[[metric]] - old[[metric]])) <= 1e-6)
+    }))
+    fpf_write(comparison, file.path(root, "original_score_comparison.csv"))
+    backup <- contract$source_input_backup_manifest
+    if (is.null(backup)) backup <- file.path(dirname(dirname(root)), "protected_source_input_manifest.csv")
+    capsule <- list(schema = "independent_prefix_refit_capsule_v1", task_id = task$task_id,
+      engine = contract$engine, task = contract$task, contract_path = contract_path,
+      fitted_payload_path = normalizePath(payload), fitted_payload_sha256 = fpf_sha(payload),
+      protected_joint_paths_path = file.path(root, "protected_joint_forecast_paths.rds"),
+      protected_joint_paths_sha256 = fpf_sha(file.path(root, "protected_joint_forecast_paths.rds")),
+      source_input_backup_manifest = backup,
+      package_version = contract$package_version, source_commit = contract$source_commit,
+      automatic_pruning_allowed = FALSE, old_realization_reproduced = all(comparison$exact_score_reproduction_1e6))
+    fpr_write_json(capsule, file.path(root, "protected_capsule.json"))
+    files <- c(payload, file.path(root, c("protected_joint_forecast_paths.rds", "prefix_draws.csv.gz",
+      "original_score_comparison.csv", "protected_capsule.json", "environment.json")))
+    fpf_write(fpr_hashes(files), file.path(root, "retention_manifest.csv"))
+    fpr_assert_hashes(fpr_table(contract$input_manifest))
+    list(package_version = contract$package_version, forecasts_completed = 34L,
+      native_score_max_error = native_error, old_realization_reproduced = capsule$old_realization_reproduced,
+      prefix_draws_sha256 = fpf_sha(file.path(root, "prefix_draws.csv.gz")),
+      retention_manifest_sha256 = fpf_sha(file.path(root, "retention_manifest.csv")))
 }
 fpr_worker <- function(contract_path) {
   contract <- fpr_json(contract_path)
@@ -308,68 +402,29 @@ fpr_worker <- function(contract_path) {
       paths <- fpr_d_paths(fit, cfg, data, task)
       native <- NULL
     }
-    scores <- fpf_score_paths(paths$q, fpf_grid(), original_targets$y, original_targets$q_true,
-      task$p, chain = task$chain_id, source_draw_index = paths$draw_index)
-    full_check <- scores[scores$cutoff == 1000L, ]
-    direct_mae <- colMeans(abs(sweep(paths$q, 1L, original_targets$q_true, "-")))
-    direct_check <- colMeans((original_targets$y - paths$q) * (task$p - (original_targets$y < paths$q)))
-    fpf_assert(max(abs(full_check$forecast_mae - direct_mae),
-      abs(full_check$forecast_check_loss - direct_check)) <= 1e-6, "Independent direct scoring check failed.")
-    if (!is.null(native)) {
-      native$chain_id <- task$chain_id
-      fpf_verify_full(scores, native)
-    }
-    fpr_save(list(schema = "independent_joint_quantile_forecast_paths_v1", q = paths$q,
-      grid = fpf_grid(), y = original_targets$y, oracle = original_targets$q_true,
-      p = task$p, chain_id = task$chain_id, source_draw_index = paths$draw_index,
-      reconstruction_id = task$task_id, coupling = if (contract$engine == "qdesn")
-        "native_shared_readout_draws" else "historical_latent_gaussian_product_coupling"),
-      file.path(root, "protected_joint_forecast_paths.rds"))
-    fpf_write(scores, file.path(root, "prefix_draws.csv.gz"))
-    old <- fpf_read(task$metric_draws_path)
-    full <- scores[scores$cutoff == 1000L, ]
-    comparison <- do.call(rbind, lapply(c("forecast_mae", "forecast_check_loss"), function(metric) {
-      data.frame(task_id = task$task_id, metric = metric, old_mean = mean(old[[metric]]),
-        new_mean = mean(full[[metric]]), mean_change = mean(full[[metric]]) - mean(old[[metric]]),
-        max_draw_difference = max(abs(full[[metric]] - old[[metric]])),
-        exact_score_reproduction_1e6 = max(abs(full[[metric]] - old[[metric]])) <= 1e-6)
-    }))
-    fpf_write(comparison, file.path(root, "original_score_comparison.csv"))
-    capsule <- list(schema = "independent_prefix_refit_capsule_v1", task_id = task$task_id,
-      engine = contract$engine, task = contract$task, contract_path = contract_path,
-      fitted_payload_path = normalizePath(payload), fitted_payload_sha256 = fpf_sha(payload),
-      protected_joint_paths_path = file.path(root, "protected_joint_forecast_paths.rds"),
-      protected_joint_paths_sha256 = fpf_sha(file.path(root, "protected_joint_forecast_paths.rds")),
-      source_input_backup_manifest = file.path(dirname(dirname(root)), "protected_source_input_manifest.csv"),
-      package_version = contract$package_version, source_commit = contract$source_commit,
-      automatic_pruning_allowed = FALSE, old_realization_reproduced = all(comparison$exact_score_reproduction_1e6))
-    fpr_write_json(capsule, file.path(root, "protected_capsule.json"))
-    files <- c(payload, file.path(root, c("protected_joint_forecast_paths.rds", "prefix_draws.csv.gz",
-      "original_score_comparison.csv", "protected_capsule.json", "environment.json")))
-    fpf_write(fpr_hashes(files), file.path(root, "retention_manifest.csv"))
-    fpr_assert_hashes(fpr_table(contract$input_manifest))
+    exported <- fpr_export_paths(contract, contract_path, paths, payload, native)
     c(base, list(status = "COMPLETE", fit_calls = if (is.null(contract$recovered_fit_path)) 1L else 0L,
-      forecasts_completed = 34L,
-      package_version = contract$package_version, prefix_draws_sha256 = fpf_sha(file.path(root, "prefix_draws.csv.gz")),
-      retention_manifest_sha256 = fpf_sha(file.path(root, "retention_manifest.csv")),
-      old_realization_reproduced = capsule$old_realization_reproduced,
-      elapsed_seconds = as.numeric(difftime(Sys.time(), started, units = "secs"))))
+      forecast_calls = 1L, elapsed_seconds = as.numeric(difftime(Sys.time(), started, units = "secs"))), exported)
   }, error = function(e) c(base, list(status = "FAILED_RETAIN_EVIDENCE", message = conditionMessage(e),
     elapsed_seconds = as.numeric(difftime(Sys.time(), started, units = "secs")))))
   fpr_write_json(answer, state_path)
   cat("RECONSTRUCTION_STATUS", answer$status, task$task_id, "\n")
   invisible(answer)
 }
+fpr_plan_job_root <- function(plan, i, output) {
+  if ("job_root" %in% names(plan)) plan$job_root[i] else file.path(output, "jobs", plan$task_id[i])
+}
 fpr_summarize <- function(output) {
   plan <- fpf_read(file.path(output, "task_plan.csv"))
   baseline <- fpf_read(file.path(output, "article_baseline.csv"))
-  complete <- vapply(plan$task_id, function(id) {
-    p <- file.path(output, "jobs", id, "task_status.json")
+  complete <- vapply(seq_len(nrow(plan)), function(i) {
+    p <- file.path(fpr_plan_job_root(plan, i, output), "task_status.json")
     file.exists(p) && identical(fpf_json(p)$status, "COMPLETE")
   }, logical(1))
   fpf_assert(all(complete), "Complete reconstruction required before producing comparison figures.")
-  draws <- lapply(plan$task_id, function(id) {
-    root <- file.path(output, "jobs", id)
+  draws <- lapply(seq_len(nrow(plan)), function(i) {
+    id <- plan$task_id[i]
+    root <- fpr_plan_job_root(plan, i, output)
     state <- fpf_json(file.path(root, "task_status.json"))
     fpf_assert(state$contract_sha256 == plan$contract_sha256[match(id, plan$task_id)] &&
       fpf_sha(file.path(root, "retention_manifest.csv")) == state$retention_manifest_sha256,
@@ -402,8 +457,8 @@ fpr_summarize <- function(output) {
     result[[length(result) + 1L]] <- role
   }
   fpf_write(do.call(rbind, result), file.path(output, "reconstructed_display_intervals.csv"))
-  comparisons <- do.call(rbind, lapply(plan$task_id, function(id)
-    fpf_read(file.path(output, "jobs", id, "original_score_comparison.csv"))))
+  comparisons <- do.call(rbind, lapply(seq_len(nrow(plan)), function(i)
+    fpf_read(file.path(fpr_plan_job_root(plan, i, output), "original_score_comparison.csv"))))
   fpf_write(comparisons, file.path(output, "all_original_score_comparisons.csv"))
   fpr_write_json(list(status = "COMPLETE_RECONSTRUCTION_REVIEW_ONLY", jobs = sum(complete),
     display_cells = length(result), article_changed = FALSE, automatic_promotion = FALSE),
