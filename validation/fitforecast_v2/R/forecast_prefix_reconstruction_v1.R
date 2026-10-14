@@ -143,11 +143,24 @@ fpr_materialize <- function(repo, output) {
   fpf_assert(fpf_sha(tarball) == "3f3ed643ded7602fd62357d7f62024ca9071e0096214456650ed2de79722443e",
     "Historical CRAN source hash changed.")
   fpf_assert(file.copy(tarball, file.path(output, "exdqlm_1.1.1.tar.gz")), "Cannot retain historical CRAN source.")
+  originals <- unique(evidence[!startsWith(evidence, paste0(output, "/"))])
+  backups <- lapply(originals, function(p) {
+    sha <- fpf_sha(p)
+    target <- file.path(output, "protected_source_inputs", sha, basename(p))
+    dir.create(dirname(target), recursive = TRUE, showWarnings = FALSE)
+    if (!file.exists(target)) fpf_assert(file.copy(p, target), "Cannot protect a source input.")
+    fpf_assert(fpf_sha(target) == sha, "Protected source-input copy differs.")
+    data.frame(original_path = normalizePath(p), path = normalizePath(target), sha256 = sha,
+      bytes = file.info(target)$size)
+  })
+  backup_manifest <- file.path(output, "protected_source_input_manifest.csv")
+  backups <- do.call(rbind, backups)
+  fpf_write(backups, backup_manifest)
   own_code <- file.path(repo, c("validation/fitforecast_v2/R/forecast_prefix_metric_intervals_v1.R",
     "validation/fitforecast_v2/R/forecast_prefix_reconstruction_v1.R",
     "validation/fitforecast_v2/scripts/run_forecast_prefix_reconstruction_v1.R",
     "validation/fitforecast_v2/scripts/render_forecast_prefix_reconstruction_v1.R"))
-  fpf_write(fpr_hashes(c(evidence, own_code, file.path(output, c("task_plan.csv", "article_baseline.csv",
+  fpf_write(fpr_hashes(c(evidence, backups$path, backup_manifest, own_code, file.path(output, c("task_plan.csv", "article_baseline.csv",
     "frozen_article_style.R", "exdqlm_1.1.1.tar.gz")))), file.path(output, "input_manifest.csv"))
   fpr_write_json(list(schema = fpr_schema, status = "PREPARED_NOT_LAUNCHED", jobs = 132L,
     selected_sources = 44L, pilot_jobs = 4L, workers = 15L, threads_per_worker = 1L,
@@ -327,6 +340,7 @@ fpr_worker <- function(contract_path) {
       fitted_payload_path = normalizePath(payload), fitted_payload_sha256 = fpf_sha(payload),
       protected_joint_paths_path = file.path(root, "protected_joint_forecast_paths.rds"),
       protected_joint_paths_sha256 = fpf_sha(file.path(root, "protected_joint_forecast_paths.rds")),
+      source_input_backup_manifest = file.path(dirname(dirname(root)), "protected_source_input_manifest.csv"),
       package_version = contract$package_version, source_commit = contract$source_commit,
       automatic_pruning_allowed = FALSE, old_realization_reproduced = all(comparison$exact_score_reproduction_1e6))
     fpr_write_json(capsule, file.path(root, "protected_capsule.json"))

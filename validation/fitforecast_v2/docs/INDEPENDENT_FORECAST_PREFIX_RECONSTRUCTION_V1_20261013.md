@@ -80,6 +80,10 @@ Gaussian AL p=0.05 retains 1,000 per chain and type-7 pooled intervals.
 Retain every selected-source fitted posterior, joint conditional-quantile
 forecast matrix, original target/observation vectors, draw IDs, scaling/design
 context, native source config, environment, compact prefix draws, and hashes.
+Hash-deduplicated copies of the original input data, configs, target paths, and
+baseline metric draws are protected inside the new run as well. Capsules link
+their backup manifest, so later cleanup of an old worktree cannot erase the
+inputs needed to rebuild features around the retained posterior without fitting.
 Outputs have `automatic_pruning_allowed = FALSE`. They remain ignored by Git;
 do not use legacy fit-and-prune orchestration. A small JSON capsule links to
 the protected fitted payload without duplicating it. No blanket legacy cleanup
