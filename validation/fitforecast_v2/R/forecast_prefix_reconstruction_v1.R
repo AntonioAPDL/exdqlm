@@ -175,15 +175,13 @@ fpr_source_alignment <- function(source, grid = fpf_grid(), targets = NULL) {
   fpf_check_grid(grid)
   columns <- intersect(c("source_index", "t"), names(source))
   fpf_assert(length(columns) > 0L, "Explicit source_index or t is required.")
-  indices <- lapply(columns, function(column) {
-    x <- source[[column]]
-    fpf_assert(is.numeric(x) && length(x) == nrow(source) && all(is.finite(x)) &&
-      all(x == floor(x)) && !anyDuplicated(x), "Source indices must be finite unique integers.")
-    x
-  })
-  if (length(indices) == 2L) fpf_assert(identical(as.numeric(indices[[1L]]), as.numeric(indices[[2L]])),
-    "source_index and t disagree.")
-  index <- indices[[1L]]
+  # Native scoring gives absolute source_index precedence over a local t clock.
+  index <- source[[columns[1L]]]
+  fpf_assert(is.numeric(index) && length(index) == nrow(source) && all(is.finite(index)) &&
+    all(index == floor(index)) && !anyDuplicated(index) && all(diff(index) > 0),
+    "Source indices must be increasing finite unique integers.")
+  secondary_relation <- if (length(columns) == 1L) "not_present" else if (
+    is.numeric(source$t) && identical(as.numeric(index), as.numeric(source$t))) "identical" else "secondary_t_not_used"
   local_origin <- match(unique(grid$origin), index)
   local_target <- match(grid$target, index)
   fpf_assert(!anyNA(local_origin) && !anyNA(local_target), "Quantile source/origin/target alignment failed.")
@@ -197,7 +195,8 @@ fpr_source_alignment <- function(source, grid = fpf_grid(), targets = NULL) {
         abs(source[[oracle_column]][local_target] - targets$q_true)) <= 1e-6,
       "Source scoring targets changed.")
   }
-  list(column = columns[1L], local_origin = local_origin, local_target = local_target)
+  list(column = columns[1L], secondary_time_relation = secondary_relation,
+    local_origin = local_origin, local_target = local_target)
 }
 fpr_q_paths <- function(summary, contract, source = NULL, helpers = NULL) {
   entry <- summary$forecast_objects$fits_fc[[1L]]
@@ -454,6 +453,13 @@ fpr_summarize <- function(output) {
     for (field in c("posterior_mean", "posterior_median", "cri_lower", "cri_upper", "n_draws", "n_chains"))
       role[[field]] <- x[[field]]
     role$cutoff <- n
+    role$forecast_pairs <- x$n_pairs
+    role$forecast_origins <- x$n_origins
+    role$last_target <- x$last_target
+    if ("metric_name" %in% names(role)) {
+      role$historical_metric_name <- role$metric_name
+      role$metric_name <- sub("_H1000$", paste0("_H", n), role$metric_name)
+    }
     result[[length(result) + 1L]] <- role
   }
   fpf_write(do.call(rbind, result), file.path(output, "reconstructed_display_intervals.csv"))

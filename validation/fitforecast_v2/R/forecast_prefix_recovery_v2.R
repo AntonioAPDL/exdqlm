@@ -86,7 +86,8 @@ fpr2_materialize <- function(repo, original, output) {
       if (plan$model_variant[i] == "qdesn_exal_rhs_ns") fpf_assert(
         contract$config$inference$mcmc$slice$core_update_mode == "m0_v_collapsed_support_logit", "M0 changed.")
       preflight[[length(preflight) + 1L]] <- data.frame(task_id = plan$task_id[i],
-        column = alignment$column, source_sha256 = fpf_sha(contract$root_spec$source_series_wide_path),
+        column = alignment$column, secondary_time_relation = alignment$secondary_time_relation,
+        source_sha256 = fpf_sha(contract$root_spec$source_series_wide_path),
         first_local_origin = alignment$local_origin[1L], last_local_origin = tail(alignment$local_origin, 1L),
         n_origins = length(alignment$local_origin), n_targets = length(alignment$local_target), pass = TRUE)
     } else {

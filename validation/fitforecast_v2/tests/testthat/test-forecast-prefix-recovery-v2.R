@@ -1,4 +1,4 @@
-testthat::test_that("source alignment supports both explicit schemas and rejects ambiguity", {
+testthat::test_that("source alignment follows native clock precedence and rejects invalid indices", {
   g <- fpf_grid(0, 9, 3, 3)
   s <- data.frame(t = 0:9, y = 0:9, q_target = (0:9) / 2)
   targets <- data.frame(y = 1:9, q_true = (1:9) / 2)
@@ -9,7 +9,8 @@ testthat::test_that("source alignment supports both explicit schemas and rejects
   s$source_index <- s$t
   testthat::expect_equal(fpr_source_alignment(s, g, targets)$local_target, a$local_target)
   s$t[1] <- 100
-  testthat::expect_error(fpr_source_alignment(s, g), "disagree")
+  testthat::expect_equal(fpr_source_alignment(s, g)$local_target, a$local_target)
+  testthat::expect_equal(fpr_source_alignment(s, g)$secondary_time_relation, "secondary_t_not_used")
   s$t <- NULL
   s$source_index[2] <- s$source_index[1]
   testthat::expect_error(fpr_source_alignment(s, g), "unique")
@@ -182,5 +183,9 @@ testthat::test_that("final summaries use external job roots and require every ch
   testthat::expect_true(all(result$n_chains == 3L & result$n_draws == 12L))
   testthat::expect_equal(unique(result$posterior_mean[result$metric_role == "forecast_mae"]), 2.5)
   testthat::expect_equal(unique(result$posterior_mean[result$metric_role == "forecast_check"]), 1.125)
+  testthat::expect_true(all(result$forecast_pairs == result$cutoff))
+  testthat::expect_equal(unique(result$forecast_origins[result$cutoff == 500]), 17)
+  testthat::expect_equal(unique(result$forecast_origins[result$cutoff == 300]), 10)
+  testthat::expect_true(all(result$last_target == 9000 + result$cutoff))
   testthat::expect_false(fpf_json(file.path(out, "closeout.json"))$article_changed)
 })

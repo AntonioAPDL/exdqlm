@@ -21,6 +21,11 @@ inference only for the 97 unstarted tasks. Original failed states and retained
 payloads remain unchanged. The complete input, runtime, retained-output, and
 code manifests are checked before launch. All 78 Q-DESN task inputs must pass
 explicit index/origin/target validation before any expensive work.
+Native clock precedence is preserved: use absolute `source_index` when present,
+otherwise `t`. Fifteen Q-DESN inputs have both columns, with `t` a local counter;
+these must not be rejected merely because the clocks differ. The secondary
+clock relationship is recorded in preflight metadata. Prefix summaries also
+update their pair counts, origin counts, final targets and metric-window labels.
 
 The cache-only adapter parses only four hash-pinned historical scale/draw helper
 declarations. It does not load, compile, fit, or forecast a package. It records
@@ -75,7 +80,7 @@ All numeric libraries are restricted to one thread. Each task launch requires
 failure and active jobs drain before the controller exits. Existing completed
 states are verified; other existing states prohibit implicit retries.
 
-Focused tests cover both index schemas, ambiguity and invalid indices, target
+Focused tests cover both index schemas, local/absolute clock precedence and invalid indices, target
 coverage, identity/affine transforms, missing origins and draws, zero-fit cached
 recovery, original-state preservation, native-score verification, historical
 draw-ID ordering and nonidentity disclosure, and effective-ledger ownership.
