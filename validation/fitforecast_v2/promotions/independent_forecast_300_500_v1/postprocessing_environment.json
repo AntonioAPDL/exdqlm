@@ -1,0 +1,13 @@
+{
+  "R": "R version 4.6.0 (2026-04-24)",
+  "platform": "x86_64-pc-linux-gnu",
+  "sessionInfo": ["R version 4.6.0 (2026-04-24)", "Platform: x86_64-pc-linux-gnu", "Running under: AlmaLinux 8.10 (Cerulean Leopard)", "", "Matrix products: default", "BLAS:   /data/jaguir26/local/opt/R/4.6.0/lib64/R/lib/libRblas.so ", "LAPACK: /data/jaguir26/local/opt/R/4.6.0/lib64/R/lib/libRlapack.so;  LAPACK version 3.12.1", "", "locale:", " [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       ", " [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   ", " [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          ", "[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   ", "", "time zone: America/New_York", "tzcode source: system (glibc)", "", "attached base packages:", "[1] stats     graphics  grDevices utils     datasets  methods   base     ", "", "loaded via a namespace (and not attached):", "[1] compiler_4.6.0"],
+  "configured_numerical_threads": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "phase": "Reporting postprocessing evidence capture; inference runtime remains frozen in source contracts",
+  "fit_calls": 0,
+  "forecast_calls": 0
+}
