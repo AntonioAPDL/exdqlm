@@ -1,0 +1,5 @@
+"file","tests","expectations","failed","errors","warnings","skipped"
+"test-forecast-prefix-metric-intervals-v1.R",9,63,0,0,0,0
+"test-forecast-prefix-reconstruction-v1.R",5,22,0,0,0,0
+"test-forecast-prefix-recovery-v2.R",5,47,0,0,0,0
+"test-independent-forecast-reporting-v1.R",6,36,0,0,0,0

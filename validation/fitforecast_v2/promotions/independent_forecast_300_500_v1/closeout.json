@@ -1,0 +1,21 @@
+{
+  "schema": "independent_forecast_reporting_v1",
+  "authority_id": "independent_forecast_300_primary_500_sensitivity_v1",
+  "status": "COMPLETE_COORDINATOR_REVIEW_REQUIRED",
+  "source_head": "bba23c9317a37ee1c0b6ac181c7cc37bbd4e1513",
+  "primary_cells": 72,
+  "sensitivity_cells": 72,
+  "preserved_fit_cells": 72,
+  "selected_sources": 44,
+  "chain_exports": 132,
+  "max_summary_error": 5.32907051820075e-15,
+  "vb_sources_audited": 36,
+  "vb_files_inspected": 1232,
+  "vb_forecast_status": "OMITTED_NO_AUTHENTIC_PREFIX_DRAWS",
+  "fit_calls": 0,
+  "forecast_calls": 0,
+  "retrospective_scope_change": true,
+  "deprecated_reporting_window": 1000,
+  "article_main_changed": false,
+  "overleaf_changed": false
+}
