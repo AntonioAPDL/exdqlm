@@ -45,6 +45,7 @@ Imports:
     FNN,
     LaplacesDemon,
     grDevices,
+    parallel,
     Rcpp,
     matrixStats,
     nimble,

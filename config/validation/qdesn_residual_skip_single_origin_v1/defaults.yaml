@@ -1,0 +1,73 @@
+version: 1
+study_id: qdesn_residual_skip_single_origin_v1
+description: >
+  Focused paired comparison of the current plain Q-DESN and an inter-layer
+  residual Q-DESN. The likelihood is AL, inference is VB, and the regularized
+  horseshoe global scale is fixed at tau0 = 0.1.
+
+series:
+  required_length: 1100
+
+quantiles: [0.50, 0.75, 0.95]
+
+split:
+  washout: [1, 500]
+  validation:
+    observed: [1, 900]
+    readout_fit: [501, 900]
+    origin: 900
+    targets: [901, 1000]
+    horizon: 100
+  final:
+    observed: [1, 1000]
+    readout_fit: [501, 1000]
+    origin: 1000
+    targets: [1001, 1100]
+    horizon: 100
+
+model:
+  likelihood_family: al
+  al_fixed_gamma: 0
+  inference: vb
+  beta_prior: rhs_ns
+  rhs_tau0: 0.1
+  skip_scale: 1.0
+  tune_only: [D, n, m, alpha, rho]
+
+fixed_reservoir:
+  n_tilde: equal_to_lower_layer_width
+  pi_w: 0.10
+  pi_in: 1.00
+  act_f: tanh
+  act_k: identity
+  add_bias: true
+  standardize_inputs: true
+  standardize_response: true
+  input_bound: none
+  standardize_readout: true
+
+selection:
+  candidate_file: config/validation/qdesn_residual_skip_single_origin_v1/candidates.csv
+  seed_file: config/validation/qdesn_residual_skip_single_origin_v1/seed_ledger.csv
+  screening_paths: 400
+  confirmation_paths: 1000
+  final_paths: 2000
+  confirmation_top_per_architecture: 2
+  confirmation_reuses_screening_fits: true
+  confirmation_total_seeds: 6
+  near_tie_fraction: 0.01
+  residual_retuned_min_validation_gain: 0.01
+
+primary_score:
+  name: equally_weighted_scaled_pinball
+  horizon_weights: equal
+
+final_decision:
+  minimum_median_improvement_percent: 2
+  minimum_seed_wins: 7
+  maximum_per_quantile_median_degradation_percent: 5
+  forgetting_tolerance: 1.0e-6
+
+execution:
+  workers: 1
+  resume: true

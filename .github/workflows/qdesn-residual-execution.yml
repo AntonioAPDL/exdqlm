@@ -1,0 +1,116 @@
+name: Execute residual Q-DESN ablation
+
+on:
+  push:
+    branches:
+      - feature/qdesn-interlayer-residual-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  R_KEEP_PKG_SOURCE: yes
+  QDESN_ABLATION_WORKERS: 2
+  OMP_NUM_THREADS: 1
+  OPENBLAS_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libglpk-dev
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4.1'
+          use-public-rspm: true
+
+      - name: Cache R packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-r-4.4.1-qdesn-residual-${{ hashFiles('DESCRIPTION') }}
+          restore-keys: |
+            ${{ runner.os }}-r-4.4.1-qdesn-residual-
+
+      - name: Install hard dependencies
+        shell: Rscript {0}
+        run: |
+          desc <- read.dcf('DESCRIPTION')
+          fields <- intersect(c('Depends', 'Imports', 'LinkingTo'), colnames(desc))
+          specs <- unlist(strsplit(paste(desc[1, fields], collapse = ','), ','), use.names = FALSE)
+          pkgs <- trimws(sub('\\s*\\(.*\\)$', '', specs))
+          pkgs <- unique(pkgs[nzchar(pkgs) & pkgs != 'R'])
+          pkgs <- unique(c(pkgs, 'testthat'))
+          installed <- rownames(installed.packages())
+          missing <- setdiff(pkgs, installed)
+          message('Installing: ', paste(missing, collapse = ', '))
+          if (length(missing)) install.packages(missing, Ncpus = 2L)
+
+      - name: Install development package
+        run: R CMD INSTALL --no-multiarch --no-manual --no-build-vignettes .
+
+      - name: Run focused residual tests
+        shell: Rscript {0}
+        run: |
+          library(testthat)
+          library(exdqlm)
+          test_file('tests/testthat/test-qdesn-interlayer-residual.R', reporter = 'summary')
+
+      - name: Prepare execution script
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('scripts/execute_qdesn_residual_ablation_ci.R')
+          s = p.read_text()
+          s = s.replace(
+              "on.exit({\n  graphics::par(old_par)\n  grDevices::dev.off()\n}, add = TRUE)\n",
+              ""
+          )
+          s = s.replace("on.exit(NULL, add = FALSE)\n", "")
+          p.write_text(s)
+
+      - name: Run smoke execution
+        run: >-
+          Rscript scripts/execute_qdesn_residual_ablation_ci.R
+          --quick
+          --output artifacts/qdesn_residual_smoke
+
+      - name: Run full single-origin evaluation
+        run: >-
+          Rscript scripts/execute_qdesn_residual_ablation_ci.R
+          --output artifacts/qdesn_residual_full
+
+      - name: Record repository provenance
+        if: always()
+        run: |
+          mkdir -p artifacts/provenance
+          git rev-parse HEAD > artifacts/provenance/git_sha.txt
+          git status --short > artifacts/provenance/git_status.txt
+          git log -1 --format=fuller > artifacts/provenance/git_commit.txt
+
+      - name: Upload execution outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qdesn-residual-execution-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          compression-level: 6
+          path: |
+            artifacts/provenance/**
+            artifacts/qdesn_residual_smoke/**
+            artifacts/qdesn_residual_full/**
+            !artifacts/qdesn_residual_smoke/cache/**
+            !artifacts/qdesn_residual_full/cache/**
