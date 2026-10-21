@@ -1,3 +1,12 @@
+# Development: Gaussian AutoDESN
+
+- Added finite-bank Gaussian DESN specification selection with a proper
+  independent Gaussian ridge prior and optional learned global precision.
+- Reused Q-DESN reservoir construction and Normal recursive forecasting;
+  added blocked Gibbs sampling, joint predictive draws, chain diagnostics,
+  documentation, statistical-target checks, and simulated forecast validation.
+- Existing quantile and Normal fitters retain their current behavior.
+
 # exdqlm 1.1.1
 
 ## Reproducibility fix
