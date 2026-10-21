@@ -1142,7 +1142,11 @@ qdesn_fit_vb <- function(
       c(as.numeric(H[[D]][t, ]), lower)
     }
   }
-  X_all <- t(vapply(seq_len(T), build_xrow, numeric(n[D] + if (D == 1L) 0 else sum(n_tilde))))
+  n_features <- n[D] + if (D == 1L) 0 else sum(n_tilde)
+  # vapply simplifies a scalar feature to a vector. Restore feature-by-time
+  # dimensions before transposing, including for a one-unit reservoir.
+  X_all <- t(matrix(vapply(seq_len(T), build_xrow, numeric(n_features)),
+                    nrow = n_features, ncol = T))
   if (add_bias) X_all <- cbind(1, X_all)
 
   # indices to keep: drop lag warmup and washout

@@ -69,7 +69,10 @@ test_that("Gaussian coefficient conditional uses the correct precision factor", 
   expect_equal(crossprod(cond$precision_chol), P, tolerance = 1e-12)
   draws <- replicate(10000, exdqlm:::.autodesn_beta_conditional(model, 0.7, 1.3, 10))
   expect_true(all(abs(rowMeans(draws) - expected_mean) < 5 * sqrt(diag(V) / 10000)))
-  expect_equal(unname(stats::cov(t(draws))), unname(V), tolerance = 0.025)
+  # For Gaussian draws, sample covariance has Wishart sampling variance.
+  # Entrywise Monte Carlo errors remain meaningful when a true covariance is zero.
+  covariance_mcse <- sqrt((outer(diag(V), diag(V)) + V^2) / (ncol(draws) - 1L))
+  expect_true(all(abs(stats::cov(t(draws)) - V) < 6 * covariance_mcse))
 })
 
 test_that("bank uses Q-DESN designs, common rows and prefix-only scaling", {
@@ -222,6 +225,18 @@ test_that("identity bridges, zero lag input and single draws retain forecast dim
           X_new = list(matrix(rep(0, bank$models[[1L]]$d), 1L)), seed = 88L)
   expect_identical(dim(pp$yrep), c(1L, 1L))
   expect_error(forecast_paths.autodesn_fit(fit, H = 1L, y_future_obs = 1), "additional controls")
+})
+
+test_that("a one-unit reservoir retains time rows in the shared builder", {
+  specs <- list(list(D = 1L, n = 1L, m = 1L, alpha = 0.5, rho = 0.5,
+                      pi_w = 1, pi_in = 1, washout = 2L, seed = 1L))
+  bank <- autodesn_build_bank(sin(seq_len(40)), specs, conditioning = 6L)
+  expect_identical(dim(bank$models[[1L]]$X), c(32L, 2L))
+  expect_identical(dim(bank$templates[[1L]]$states$H_all[[1L]]), c(40L, 1L))
+  fit <- autodesn_fit_bank(bank, n_burn = 5L, n_mcmc = 20L, seed = 13L)
+  fc <- forecast_paths.autodesn_fit(fit, H = 2L, nd = 3L, seed = 14L)
+  expect_identical(dim(fc$yrep), c(2L, 3L))
+  expect_true(all(is.finite(fc$yrep)))
 })
 
 test_that("validation rejects unsupported modes and malformed controls explicitly", {

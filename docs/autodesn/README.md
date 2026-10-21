@@ -5,6 +5,8 @@ specifications and averages their forecasts. It reuses `qdesn_fit_vb()` for
 reservoir construction and `forecast_paths.qdesn_normal_fit()` for recursion.
 The new inference code is additive: existing Normal and quantile fitters,
 dispatchers, priors, model-selection facades and forecast methods are unchanged.
+The shared builder also fixes a scalar-feature dimension issue so one-unit
+reservoirs retain their time rows; multi-feature designs are unchanged.
 
 ```r
 library(exdqlm)

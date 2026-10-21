@@ -68,6 +68,7 @@ test_that("spectral normalization preserves the failed 300-unit fan-in case", {
 })
 
 test_that("large approximate spectral radii require a verified eigenpair", {
+  skip_if_not_installed("RSpectra")
   set.seed(97278416L)
   A <- matrix(rnorm(520L^2), 520L, 520L)
   details <- .qdesn_spectral_radius_details(A, dense_threshold = 32L)

@@ -6,6 +6,11 @@
   added blocked Gibbs sampling, joint predictive draws, chain diagnostics,
   documentation, statistical-target checks, and simulated forecast validation.
 - Existing quantile and Normal fitters retain their current behavior.
+- Preserved time-row dimensions for one-unit reservoirs in the shared feature
+  builder, declared its existing optional matrix/spectral dependencies, and
+  enabled long Windows checkout paths for repository validation.
+- Corrected math markup and documented defaults in the simulation helper's
+  manual without changing its runtime expressions.
 
 # exdqlm 1.1.1
 
