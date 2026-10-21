@@ -1,0 +1,561 @@
+"file","context","test","nb","failed","skipped","error","warning","user","system","real","passed"
+"test-benchmark-qdesn.R","benchmark-qdesn","benchmark split plan preserves Monash and M4 contracts",8,0,FALSE,FALSE,0,0.608000000000001,0,0.607000000000001,8
+"test-benchmark-qdesn.R","benchmark-qdesn","Q-DESN synthesized benchmark runner returns scored outputs on a toy series",11,10,FALSE,FALSE,0,27.341,0.533,28.494,1
+"test-benchmark-qdesn.R","benchmark-qdesn","benchmark Q-DESN config rejects non-LD readout approximations",1,0,FALSE,FALSE,0,0.0249999999999986,0,0.0249999999999986,1
+"test-benchmark-qdesn.R","benchmark-qdesn","RHS stability state distinguishes stable, fragile, and collapsed fits",3,0,FALSE,FALSE,0,0.0339999999999989,0.004,0.0380000000000038,3
+"test-benchmark-qdesn.R","benchmark-qdesn","benchmark Q-DESN candidate grid expands into normalized candidate configs",3,0,FALSE,FALSE,0,0.103999999999999,0,0.103999999999999,3
+"test-benchmark-qdesn.R","benchmark-qdesn","Naive2 baseline returns finite point forecasts and draws",4,0,FALSE,FALSE,0,0.359000000000002,0,0.359000000000002,4
+"test-benchmark-qdesn.R","benchmark-qdesn","forecast-package baselines produce simulated draws when available",4,0,FALSE,FALSE,0,1.552,0.256,1.808,4
+"test-benchmark-qdesn.R","benchmark-qdesn","M4 comparability table computes OWA relative to Naive2",0,0,FALSE,TRUE,0,0.019999999999996,0,0.019999999999996,0
+"test-benchmark-qdesn.R","benchmark-qdesn","audit diagnostics tables are built from saved synthesis artifacts",0,0,FALSE,TRUE,0,0.0589999999999975,0,0.0590000000000046,0
+"test-benchmark-qdesn.R","benchmark-qdesn","candidate applicability and routing helpers respect fit-length regimes",5,0,FALSE,FALSE,0,0.109999999999999,0,0.108999999999995,5
+"test-benchmark-qdesn.R","benchmark-qdesn","fit config normalization recovers YAML boolean-key parsing for quoted reservoir width",1,0,FALSE,FALSE,0,0.0169999999999959,0,0.0160000000000053,1
+"test-benchmark-qdesn.R","benchmark-qdesn","series override helper pins benchmark selection ids by dataset",3,0,FALSE,FALSE,0,0.0660000000000025,0,0.0660000000000025,3
+"test-benchmark-qdesn.R","benchmark-qdesn","quantile metrics helper summarizes per-quantile pinball and coverage deviations",0,0,FALSE,TRUE,0,0.0769999999999982,0,0.0769999999999982,0
+"test-benchmark-qdesn.R","benchmark-qdesn","RHS diagnostics detect near-bound tau collapse patterns",3,0,FALSE,FALSE,0,0.0439999999999969,0,0.0439999999999969,3
+"test-benchmark-qdesn.R","benchmark-qdesn","selection guards can reject collapsing candidates",0,0,FALSE,TRUE,0,0.0210000000000008,0,0.0210000000000008,0
+"test-benchmark-qdesn.R","benchmark-qdesn","quantile summary tracks shoulder-pathology ratios separately from tails and center",0,0,FALSE,TRUE,0,0.0889999999999986,0,0.0879999999999939,0
+"test-benchmark-qdesn.R","benchmark-qdesn","selection guards veto near-bound RHS and shoulder explosions without implicit relaxation",0,0,FALSE,TRUE,0,0.122,0,0.122,0
+"test-benchmark-qdesn.R","benchmark-qdesn","failure-state writer persists partial benchmark diagnostics",7,0,FALSE,FALSE,0,0.164999999999999,0,0.164999999999999,7
+"test-benchmark-qdesn.R","benchmark-qdesn","candidate registry records RHS benchmark settings",5,0,FALSE,FALSE,0,0.163000000000004,0,0.164000000000001,5
+"test-benchmark-qdesn.R","benchmark-qdesn","Stage A RHS summary flags collapse and ranks non-collapsing candidates first",0,0,FALSE,TRUE,0,0.0289999999999964,0,0.0290000000000035,0
+"test-benchmark-qdesn.R","benchmark-qdesn","route map helper returns only series assigned to the requested route",0,0,FALSE,TRUE,0,0.027000000000001,0,0.027000000000001,0
+"test-benchmark-qdesn.R","benchmark-qdesn","internal recalibration returns transformed draws when enabled",4,0,FALSE,FALSE,0,4.89,0,4.89,4
+"test-builders-parity.R","builders-parity","polytrend builder parity (R vs C++)",6,0,FALSE,FALSE,0,0.131,0,0.131999999999998,6
+"test-builders-parity.R","builders-parity","seasonal builder parity (R vs C++)",6,0,FALSE,FALSE,0,0.227999999999994,0,0.228000000000002,6
+"test-builders-parity.R","builders-parity","composed builder parity (R vs C++)",8,0,FALSE,FALSE,0,0.259,0,0.259,8
+"test-crps-helper-regression.R","crps-helper-regression","internal CRPS helper is available and finite",3,0,FALSE,FALSE,0,0.0399999999999991,0,0.0479999999999947,3
+"test-crps-helper-regression.R","crps-helper-regression","CRPS helper uses finite integrated quantile score approximation",2,0,FALSE,FALSE,0,0.0799999999999983,0,0.080999999999996,2
+"test-crps-helper-regression.R","crps-helper-regression","CRPS helper validates probabilities and weights",5,0,FALSE,FALSE,0,0.201000000000001,0,0.201000000000001,5
+"test-diagnostics-metrics.R","diagnostics-metrics","dynamic diagnostics expose flipped KL and CRPS metrics",40,0,FALSE,FALSE,0,4.558,0,4.559,40
+"test-dlm-df-smoother-regression.R","dlm-df-smoother-regression","dlm_df smoother tolerates nearly singular predictive covariance",2,0,FALSE,FALSE,0,0.717999999999996,0,0.718000000000004,2
+"test-dqlm-reduced-paths.R","dqlm-reduced-paths","dynamic ISVB reduced DQLM path returns conjugate outputs",11,0,FALSE,FALSE,0,1.584,0,1.584,11
+"test-dqlm-reduced-paths.R","dqlm-reduced-paths","dynamic LDVB reduced DQLM path skips LD gamma-sigma block",26,0,FALSE,FALSE,0,5.631,0.0420000000000003,6.041,26
+"test-dqlm-reduced-paths.R","dqlm-reduced-paths","dynamic MCMC fits inherit from the shared exdqlmFit family",3,0,FALSE,FALSE,0,0.356000000000002,0.00100000000000033,0.357000000000006,3
+"test-dqlm-reduced-paths.R","dqlm-reduced-paths","static MCMC reduced DQLM path excludes gamma/s latent block",9,0,FALSE,FALSE,0,0.387,0.004,0.390999999999998,9
+"test-dqlm-reduced-paths.R","dqlm-reduced-paths","static LDVB reduced DQLM path returns q(beta) q(v) q(sigma)",13,0,FALSE,FALSE,0,0.777999999999999,0.00299999999999967,0.779999999999994,13
+"test-dqlm-vb-sim-smoke.R","dqlm-vb-sim-smoke","dqlm coercion is respected when gamma is fixed at zero",5,0,FALSE,FALSE,0,1.877,0.00300000000000011,1.881,5
+"test-dqlm-vb-sim-smoke.R","dqlm-vb-sim-smoke","LDVB reduced DQLM honors explicit vb_control max_iter",2,0,FALSE,FALSE,0,0.0870000000000033,0,0.0859999999999985,2
+"test-dqlm-vb-sim-smoke.R","dqlm-vb-sim-smoke","LDVB smoke on synthetic dynamic quantiles (exDQLM vs DQLM) stays finite and sensible",1,0,TRUE,FALSE,0,0.0129999999999981,0,0.0120000000000005,0
+"test-dynamic-vb-default-policy.R","dynamic-vb-default-policy","dynamic exdqlm VB entry points default to free sigma",4,0,FALSE,FALSE,0,0.0480000000000018,0,0.0470000000000113,4
+"test-dynamic-vb-default-policy.R","dynamic-vb-default-policy","dynamic exdqlm MCMC entry points keep free sigma defaults",2,0,FALSE,FALSE,0,0.0269999999999939,0.00700000000000012,0.0339999999999918,2
+"test-exal-batching-controls.R","exal-batching-controls","stochastic chunking controls normalize without changing exact controls",34,0,FALSE,FALSE,0,0.465000000000003,0.00599999999999978,0.471000000000004,34
+"test-exal-batching-controls.R","exal-batching-controls","stochastic chunking controls fail early for invalid values",6,0,FALSE,FALSE,0,0.115000000000002,0,0.114999999999995,6
+"test-exal-batching-controls.R","exal-batching-controls","batch sampler is reproducible and validates inputs",10,0,FALSE,FALSE,0,0.379000000000005,0.0089999999999999,0.387999999999991,10
+"test-exal-batching-controls.R","exal-batching-controls","learning rate follows Robbins-Monro schedule",7,0,FALSE,FALSE,0,0.180999999999997,0.0140000000000002,0.195999999999998,7
+"test-exal-batching-controls.R","exal-batching-controls","stochastic beta stats scale only data natural statistics",4,0,FALSE,FALSE,0,0.132999999999996,0.00099999999999989,0.132999999999996,4
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","beta covariance controls normalize without changing absent defaults",6,0,FALSE,FALSE,0,0.102999999999994,0,0.103000000000009,6
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal beta solve uses the documented diagonal formula",5,0,FALSE,FALSE,0,0.150999999999996,0,0.150999999999996,5
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","default full covariance is unchanged by explicit full control",5,0,FALSE,FALSE,0,0.239999999999995,0.00199999999999978,0.24199999999999,5
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal beta covariance AL ridge fit is finite and labeled approximate",9,0,FALSE,FALSE,0,0.128,0,0.128,9
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal beta covariance supports global RHS-family AL priors",22,0,FALSE,FALSE,0,1.77,0.0110000000000001,1.78100000000001,22
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal exact chunking matches diagonal unchunked AL ridge",3,0,FALSE,FALSE,0,0.518999999999991,0.00099999999999989,0.52000000000001,3
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal exact chunking matches diagonal unchunked AL RHS-family priors",10,0,FALSE,FALSE,0,2.43000000000001,0.0150000000000001,2.444,10
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal beta covariance supports exAL ridge full/exact scope",10,0,FALSE,FALSE,0,0.188999999999993,0,0.188999999999993,10
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal covariance supports exAL RHS but rejects stochastic scope",4,0,FALSE,FALSE,0,0.480000000000004,0,0.480000000000004,4
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","diagonal beta covariance keeps unsupported prior corrections forbidden",1,0,FALSE,FALSE,0,0.0450000000000017,0,0.0450000000000017,1
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","qdesn_fit_vb routes diagonal covariance controls for AL ridge",5,0,FALSE,FALSE,0,0.140999999999991,0,0.140999999999991,5
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","qdesn_fit_vb routes diagonal covariance controls for exAL ridge",6,0,FALSE,FALSE,0,2.747,0.0569999999999999,3.024,6
+"test-exal-beta-covariance-approx.R","exal-beta-covariance-approx","qdesn_fit_vb routes diagonal covariance controls for AL RHS_NS",7,0,FALSE,FALSE,0,0.272999999999996,0.004,0.277999999999992,7
+"test-exal-beta-prior-natural.R","exal-beta-prior-natural","beta solve is unchanged when no prior natural hook is supplied",3,0,FALSE,FALSE,0,0.0450000000000017,0,0.0450000000000017,3
+"test-exal-beta-prior-natural.R","exal-beta-prior-natural","gaussian_natural beta prior validates dimensions and exposes natural parameters",8,0,FALSE,FALSE,0,0.463999999999999,0.00300000000000011,0.466999999999999,8
+"test-exal-beta-prior-natural.R","exal-beta-prior-natural","nonzero gaussian_natural prior mean shifts AL beta posterior",3,0,FALSE,FALSE,0,0.206000000000003,0.00099999999999989,0.206999999999994,3
+"test-exal-beta-prior-natural.R","exal-beta-prior-natural","exact chunking matches unchunked AL with nonzero gaussian_natural prior",5,0,FALSE,FALSE,0,0.525000000000006,0.02,0.568000000000012,5
+"test-exal-exact-chunking-stats.R","exal-exact-chunking-stats","exact row chunk helper covers rows sequentially",5,0,FALSE,FALSE,0,0.116,0.00300000000000011,0.118000000000009,5
+"test-exal-exact-chunking-stats.R","exal-exact-chunking-stats","beta data-stat helpers are additive across exact chunks",11,0,FALSE,FALSE,0,0.200000000000003,0.016,0.221000000000004,11
+"test-exal-exact-chunking-stats.R","exal-exact-chunking-stats","local and sigma/gamma chunk helpers match unchunked row algebra",17,0,FALSE,FALSE,0,0.310999999999993,0.004,0.314999999999998,17
+"test-exal-exact-chunking-stats.R","exal-exact-chunking-stats","exact chunking also preserves small exAL VB fits",5,0,FALSE,FALSE,0,0.821000000000012,0.0180000000000002,0.840000000000003,5
+"test-exal-hybrid-al-vb.R","exal-hybrid-al-vb","hybrid AL full refresh every iteration recovers exact AL",10,0,FALSE,FALSE,0,0.662999999999997,0.0179999999999998,0.753999999999991,10
+"test-exal-hybrid-al-vb.R","exal-hybrid-al-vb","hybrid AL is finite and reproducible between full refreshes",15,0,FALSE,FALSE,0,2.19200000000001,0.048,2.402,15
+"test-exal-hybrid-al-vb.R","exal-hybrid-al-vb","hybrid AL keeps RHS_NS global state finite",7,0,FALSE,FALSE,0,0.948999999999998,0.0129999999999999,1.25,7
+"test-exal-hybrid-al-vb.R","exal-hybrid-al-vb","stochastic exAL remains forbidden",1,0,FALSE,FALSE,0,0.0379999999999967,0,0.0379999999999967,1
+"test-exal-hybrid-exal-vb.R","exal-hybrid-exal-vb","hybrid exAL full refresh every iteration recovers exact exAL ridge",11,0,FALSE,FALSE,0,0.733000000000004,0,0.733000000000004,11
+"test-exal-hybrid-exal-vb.R","exal-hybrid-exal-vb","hybrid exAL full refresh every iteration recovers exact exAL RHS-family priors",22,0,FALSE,FALSE,0,1.97999999999999,0,2.169,22
+"test-exal-hybrid-exal-vb.R","exal-hybrid-exal-vb","hybrid exAL ridge is finite and reproducible between refreshes",18,0,FALSE,FALSE,0,2.88800000000001,0.0220000000000002,2.94,18
+"test-exal-hybrid-exal-vb.R","exal-hybrid-exal-vb","hybrid exAL RHS-family priors are finite and keep global shrinkage traces",28,0,FALSE,FALSE,0,1.511,0.00700000000000012,1.52800000000001,28
+"test-exal-hybrid-exal-vb.R","exal-hybrid-exal-vb","unsupported exAL approximate combinations fail early",1,0,FALSE,FALSE,0,0.0579999999999927,0,0.0579999999999927,1
+"test-exal-likelihood-family-al.R","exal-likelihood-family-al","AL VB path stays finite for ridge and rhs_ns priors",10,0,FALSE,FALSE,0,0.933999999999997,0.00999999999999979,0.943999999999988,10
+"test-exal-likelihood-family-al.R","exal-likelihood-family-al","AL exact chunking matches unchunked VB updates",11,0,FALSE,FALSE,0,0.509,0.00499999999999989,0.513000000000005,11
+"test-exal-likelihood-family-al.R","exal-likelihood-family-al","AL exact chunking leaves RHS updates global",4,0,FALSE,FALSE,0,0.265000000000001,0.00100000000000033,0.269999999999996,4
+"test-exal-likelihood-family-al.R","exal-likelihood-family-al","AL MCMC path keeps gamma fixed and respects parameter domains",10,0,FALSE,FALSE,0,9.374,0.1,9.73999999999999,10
+"test-exal-mcmc-collapsed-scale-shape.R","exal-mcmc-collapsed-scale-shape","M0 GIG decomposition matches the expanded exAL scale-shape kernel",3,0,FALSE,FALSE,0,0.488,0.012,0.506,3
+"test-exal-mcmc-collapsed-scale-shape.R","exal-mcmc-collapsed-scale-shape","M0 collapsed gamma target agrees with direct numerical integration",3,0,FALSE,FALSE,0,1.483,0.0339999999999998,1.63999999999999,3
+"test-exal-mcmc-collapsed-scale-shape.R","exal-mcmc-collapsed-scale-shape","M0 uses a stable large-order GIG normalizer at validation scale",4,0,FALSE,FALSE,0,0.170000000000002,0,0.173999999999992,4
+"test-exal-mcmc-collapsed-scale-shape.R","exal-mcmc-collapsed-scale-shape","M0 transition is deterministic and remains inside gamma support",5,0,FALSE,FALSE,0,2.518,0.0510000000000002,2.81399999999999,5
+"test-exal-mcmc-collapsed-scale-shape.R","exal-mcmc-collapsed-scale-shape","M0 is opt-in, exAL-only, and leaves the legacy default unchanged",3,0,FALSE,FALSE,0,2.825,0.0350000000000001,2.873,3
+"test-exal-mcmc-collapsed-scale-shape.R","exal-mcmc-collapsed-scale-shape","a tiny M0 fit records finite method-specific telemetry",4,0,FALSE,FALSE,0,0.272999999999996,0.00099999999999989,0.27300000000001,4
+"test-exal-mcmc.R","exal-mcmc","generic exAL draw and predictive dispatch works for VB and MCMC",12,0,FALSE,FALSE,0,5.03999999999999,0.0399999999999996,5.084,12
+"test-exal-mcmc.R","exal-mcmc","MCMC supports log-sigma slice sampling when enabled",7,0,FALSE,FALSE,0,3.70399999999999,0.0300000000000002,3.79000000000001,7
+"test-exal-mcmc.R","exal-mcmc","RHS MCMC exposes healthy prior-state outputs and exact current precisions",10,0,FALSE,FALSE,0,4.905,0.00499999999999989,4.91,10
+"test-exal-mcmc.R","exal-mcmc","RHS_NS VB path runs and contributes finite ELBO traces",4,0,FALSE,FALSE,0,0.588999999999999,0,0.588000000000008,4
+"test-exal-mcmc.R","exal-mcmc","RHS_NS MCMC exposes prior-state outputs and finite precisions",10,0,FALSE,FALSE,0,2.97399999999999,0,2.974,10
+"test-exal-mcmc.R","exal-mcmc","inference config resolver supports explicit mcmc mode with backward-compatible structure",47,0,FALSE,FALSE,0,0.662999999999997,0,0.663000000000011,47
+"test-exal-mcmc.R","exal-mcmc","MCMC supports shared gamma-sigma bridge traversal mode",7,0,FALSE,FALSE,0,2.72699999999999,0.0270000000000001,2.768,7
+"test-exal-mcmc.R","exal-mcmc","MCMC supports diagonal beta-draw preconditioning with original-scale outputs",11,0,FALSE,FALSE,0,3.03700000000001,0.012,3.054,11
+"test-exal-mcmc.R","exal-mcmc","MCMC supports QR whitening beta-draw preconditioning",8,0,FALSE,FALSE,0,2.17499999999998,0.00599999999999978,2.18199999999999,8
+"test-exal-mcmc.R","exal-mcmc","RHS MCMC can freeze tau during burn-in warmup",5,0,FALSE,FALSE,0,0.314000000000021,0,0.314000000000021,5
+"test-exal-mcmc.R","exal-mcmc","VB sigmagam warmup records freeze traces and first active update",10,0,FALSE,FALSE,0,1.65600000000001,0,1.65700000000001,10
+"test-exal-mcmc.R","exal-mcmc","MCMC sigmagam warmup records freeze traces and update summaries",12,0,FALSE,FALSE,0,0.245000000000005,0,0.245000000000005,12
+"test-exal-mcmc.R","exal-mcmc","MCMC latent-v warmup records freeze, sparse-hold, and forced thaw traces",23,0,FALSE,FALSE,0,0.218999999999994,0,0.218999999999994,23
+"test-exal-mcmc.R","exal-mcmc","MCMC latent-s warmup records freeze, sparse-hold, and forced thaw traces",23,0,FALSE,FALSE,0,0.257999999999981,0,0.25800000000001,23
+"test-exal-mcmc.R","exal-mcmc","MCMC theta warmup records freeze, sparse-hold, and forced thaw traces",23,0,FALSE,FALSE,0,0.222999999999985,0,0.223000000000013,23
+"test-exal-mcmc.R","exal-mcmc","latent-v numerical failure is rethrown with structured diagnostics",22,0,FALSE,FALSE,0,0.16500000000002,0,0.164999999999992,22
+"test-exal-mcmc.R","exal-mcmc","latent-v rescue can keep a chain alive through transient invalid draws",13,0,FALSE,FALSE,0,0.150000000000006,0,0.150000000000006,13
+"test-exal-mcmc.R","exal-mcmc","RHS MCMC supports joint directional tau/c2 block updates",7,0,FALSE,FALSE,0,0.319999999999993,0,0.319999999999993,7
+"test-exal-mcmc.R","exal-mcmc","RHS MCMC supports transformed tau/c2 block updates with warmup width adaptation",8,0,FALSE,FALSE,0,0.498999999999995,0,0.498999999999995,8
+"test-exal-mcmc.R","exal-mcmc","MCMC supports core extra sigma/gamma passes and records control metadata",5,0,FALSE,FALSE,0,0.100999999999999,0,0.100999999999999,5
+"test-exal-mcmc.R","exal-mcmc","RHS MCMC multi-start pilot selection stores diagnostics and selected start",6,0,FALSE,FALSE,0,0.896000000000015,0,0.896000000000015,6
+"test-exal-mcmc.R","exal-mcmc","MCMC sampler rng_seed is accepted and stored on the fit",4,0,FALSE,FALSE,0,0.163999999999987,0,0.164000000000016,4
+"test-exal-mcmc.R","exal-mcmc","MCMC accepts and stores vb warm-start seed under init_from_vb",8,0,FALSE,FALSE,0,2.90600000000001,0,2.90700000000001,8
+"test-exal-mcmc.R","exal-mcmc","VB RHS config preserves null tau init and separate warmup freeze settings",5,0,FALSE,FALSE,0,0.101999999999975,0,0.103000000000009,5
+"test-exal-mcmc.R","exal-mcmc","VB RHS stays numerically healthy on a centered lower-tail toy regression",5,0,FALSE,FALSE,0,0.403999999999996,0,0.405000000000001,5
+"test-exal-mcmc.R","exal-mcmc","Q-DESN MCMC path reuses the existing forecast interface",7,0,FALSE,FALSE,0,2.13300000000001,0,2.13300000000001,7
+"test-exal-online-vbld.R","exal-online-vbld","online VB-LD disabled path preserves batch fit semantics",3,0,FALSE,FALSE,0,0.471000000000004,0,0.471000000000004,3
+"test-exal-online-vbld.R","exal-online-vbld","online VB-LD state serializes and resumes for a one-row update",8,0,FALSE,FALSE,0,0.769000000000005,0,0.769000000000005,8
+"test-exal-online-vbld.R","exal-online-vbld","online VB-LD one-batch wrapper records streaming metadata",7,0,FALSE,FALSE,0,1.197,0,1.197,7
+"test-exal-online-vbld.R","exal-online-vbld","online VB-LD is reproducible and order-sensitive",15,0,FALSE,FALSE,0,10.543,0,10.561,15
+"test-exal-online-vbld.R","exal-online-vbld","online VB-LD support is explicit for exAL and rejects enabled AL",3,0,FALSE,FALSE,0,0.176999999999992,0,0.175999999999988,3
+"test-exal-precision-beta-rescue.R","exal-precision-beta-rescue","precision beta jitter ladder rescues near-indefinite precision draws",5,0,FALSE,FALSE,0,0.0949999999999989,0,0.0949999999999989,5
+"test-exal-precision-beta-rescue.R","exal-precision-beta-rescue","precision beta eigen fallback rescues strongly indefinite precision draws",5,0,FALSE,FALSE,0,0.0860000000000127,0,0.0860000000000127,5
+"test-exal-precision-beta-rescue.R","exal-precision-beta-rescue","precision beta rescue surfaces structured failure payloads when unrepaired",7,0,FALSE,FALSE,0,0.276999999999987,0,0.276999999999987,7
+"test-exal-stochastic-al-vb.R","exal-stochastic-al-vb","stochastic AL VB fit is finite, reproducible, and labeled approximate",20,0,FALSE,FALSE,0,3.17500000000001,0.00100000000000033,3.38000000000002,20
+"test-exal-stochastic-al-vb.R","exal-stochastic-al-vb","stochastic AL VB is broadly close to exact AL on easy data",7,0,FALSE,FALSE,0,2.131,0.00999999999999979,2.13999999999999,7
+"test-exal-stochastic-al-vb.R","exal-stochastic-al-vb","stochastic AL VB keeps RHS updates global and finite",8,0,FALSE,FALSE,0,1.565,0.0179999999999998,1.584,8
+"test-exal-stochastic-al-vb.R","exal-stochastic-al-vb","stochastic mode is AL-only while exact exAL remains unchanged",0,0,FALSE,TRUE,0,0.0889999999999986,0,0.0889999999999986,0
+"test-exal-subset-fit.R","exal-subset-fit","subset_fit controls normalize and validate fixed row IDs",10,0,FALSE,FALSE,0,0.244,0.00100000000000033,0.244,10
+"test-exal-subset-fit.R","exal-subset-fit","stratified subset controls select reproducible time-block rows",29,0,FALSE,FALSE,0,0.512,0,0.511000000000024,29
+"test-exal-subset-fit.R","exal-subset-fit","fixed subset VB matches an explicit fit on selected rows",8,0,FALSE,FALSE,0,0.253999999999991,0,0.254999999999995,8
+"test-exal-subset-fit.R","exal-subset-fit","fixed subset exact chunking matches fixed subset unchunked",3,0,FALSE,FALSE,0,0.342999999999989,0.004,0.347000000000008,3
+"test-exal-subset-fit.R","exal-subset-fit","stratified subset VB matches explicit fit and exact chunking",12,0,FALSE,FALSE,0,0.358000000000004,0,0.356999999999999,12
+"test-exal-subset-fit.R","exal-subset-fit","equal-allocation stratified subset VB matches explicit fit and exact chunking",9,0,FALSE,FALSE,0,0.300000000000011,0,0.300000000000011,9
+"test-exal-subset-fit.R","exal-subset-fit","response and leverage stratified subset VB match explicit fit and exact chunking",22,0,FALSE,FALSE,0,0.656999999999982,0,0.657999999999987,22
+"test-exal-subset-fit.R","exal-subset-fit","fixed subset mode fails early outside AL ridge full/exact scope",3,0,FALSE,FALSE,0,0.254000000000019,0.00700000000000012,0.260999999999996,3
+"test-exal-subset-fit.R","exal-subset-fit","qdesn_fit_vb routes fixed subset controls",6,0,FALSE,FALSE,0,0.186000000000007,0,0.186000000000007,6
+"test-exal-subset-fit.R","exal-subset-fit","qdesn_fit_vb routes stratified subset controls",7,0,FALSE,FALSE,0,0.155000000000001,0.00399999999999956,0.159999999999997,7
+"test-exal-subset-fit.R","exal-subset-fit","qdesn_fit_vb routes response and leverage stratified subset controls",12,0,FALSE,FALSE,0,0.496000000000009,0.00500000000000034,0.501000000000005,12
+"test-exal-vb-substep-profiling.R","exal-vb-substep-profiling","VB control preserves opt-in substep profiling diagnostics",2,0,FALSE,FALSE,0,0.0310000000000059,0,0.0309999999999775,2
+"test-exal-vb-substep-profiling.R","exal-vb-substep-profiling","substep profiling is opt-in and preserves exact VB fitted state",12,0,FALSE,FALSE,0,0.418999999999983,0.00099999999999989,0.419000000000011,12
+"test-exal-vb-substep-profiling.R","exal-vb-substep-profiling","qdesn_fit_vb routes top-level diagnostics into the readout engine",3,0,FALSE,FALSE,0,0.448000000000008,0.004,0.453000000000003,3
+"test-exal.R","exal","exAL wrappers return numeric/finites and right shapes",6,0,FALSE,FALSE,0,0.0799999999999841,0,0.0790000000000077,6
+"test-exal.R","exal","qexal and pexal are approximately inverse in AL case",1,0,FALSE,FALSE,0,0.035000000000025,0,0.0349999999999966,1
+"test-exal.R","exal","dexal works with a valid gamma bound",1,0,FALSE,FALSE,0,0.0310000000000059,0,0.0300000000000011,1
+"test-exdqlm-forecast-horizon-inputs.R","exdqlm-forecast-horizon-inputs","exdqlmForecast accepts future evolution arrays with horizon depth",0,0,FALSE,TRUE,0,0.0169999999999959,0,0.0180000000000007,0
+"test-exdqlm-forecast-horizon-inputs.R","exdqlm-forecast-horizon-inputs","exdqlmForecast validates future evolution horizon depth",0,0,FALSE,TRUE,0,0.0200000000000102,0,0.0200000000000102,0
+"test-ffbs-indexing-parity.R","ffbs-indexing-parity","ISVB R fallback matches C++ KF on time-varying GG",4,0,FALSE,FALSE,0,1.50400000000002,0.0229999999999997,1.52700000000002,4
+"test-fit-class-families.R","fit-class-families","shared fit class predicates recognize dynamic and static families",7,0,FALSE,FALSE,0,0.152999999999992,0.00599999999999978,0.15900000000002,7
+"test-forecast-diagnostics.R","forecast-diagnostics","forecast diagnostics score one forecast object",13,0,FALSE,FALSE,0,0.177999999999997,0,0.177999999999997,13
+"test-forecast-diagnostics.R","forecast-diagnostics","forecast diagnostics compare two forecast objects",6,0,FALSE,FALSE,0,0.216000000000008,0.004,0.219999999999999,6
+"test-forecast-diagnostics.R","forecast-diagnostics","forecast diagnostics validate inputs clearly",6,0,FALSE,FALSE,0,0.0949999999999989,0,0.0949999999999989,6
+"test-gamma-bounds.R","gamma-bounds","get_gamma_bounds sane at p0=0.5",7,0,FALSE,FALSE,0,0.0660000000000025,0,0.0670000000000073,7
+"test-gamma-bounds.R","gamma-bounds","get_gamma_bounds works at extreme p0 (regression)",18,0,FALSE,FALSE,0,0.310999999999979,0,0.312000000000012,18
+"test-gamma-bounds.R","gamma-bounds","get_gamma_bounds finite and ordered on grid",606,0,FALSE,FALSE,0,8.464,0.138,8.85199999999998,606
+"test-gamma-bounds.R","gamma-bounds","get_gamma_bounds stable under repeated calls",200,0,FALSE,FALSE,0,1.887,0.04,1.96199999999999,200
+"test-gamma-bounds.R","gamma-bounds","ISVB/MCMC reach bounds path on tiny model",2,0,FALSE,FALSE,0,4.315,0.0089999999999999,4.34599999999998,2
+"test-kl-diagnostics.R","kl-diagnostics","internal KL normality helper is deterministic and direction-aware",9,0,FALSE,FALSE,0,0.194999999999993,0,0.194999999999993,9
+"test-kl-diagnostics.R","kl-diagnostics","internal KL normality helper validates k and handles duplicate distances",7,0,FALSE,FALSE,0,0.111999999999995,0,0.11099999999999,7
+"test-normal-qdesn-manuscript-plots.R","normal-qdesn-manuscript-plots","Normal/Q-DESN manuscript plotting script writes figures and manifest",4,0,FALSE,FALSE,0,0.124000000000024,0.00999999999999979,1.494,4
+"test-normal-qdesn-unified-comparison.R","normal-qdesn-unified-comparison","Normal/Q-DESN unified comparison wrapper runs on a tiny source",8,0,FALSE,FALSE,0,0.258999999999986,0.0260000000000002,169.542,8
+"test-normal-qdesn-unified-summarizer.R","normal-qdesn-unified-summarizer","Normal/Q-DESN unified summarizer produces manuscript-ready outputs",14,0,FALSE,FALSE,0,0.876999999999981,0.0209999999999999,1.48000000000002,14
+"test-package-data.R","package-data","BTflow is the observed monthly USGS streamflow series",7,0,FALSE,FALSE,0,0.204000000000008,0.00800000000000001,0.211999999999989,7
+"test-package-data.R","package-data","climateIndices exposes the manuscript climate indices",9,0,FALSE,FALSE,0,0.424000000000007,0.0169999999999999,0.442000000000007,9
+"test-package-data.R","package-data","BTprec is not shipped in the cleaned package data API",1,0,FALSE,FALSE,0,0.0600000000000023,0.00099999999999989,0.0609999999999786,1
+"test-pipeline-inference-validation.R","pipeline-inference-validation","pipeline summary collector reads the required artifact contract",7,0,FALSE,FALSE,0,1.20699999999999,0.044,1.26299999999998,7
+"test-pipeline-inference-validation.R","pipeline-inference-validation","compatibility entrypoint scripts are syntactically valid",4,0,FALSE,FALSE,0,0.187999999999988,0.044,0.232000000000028,4
+"test-print-summary-methods.R","print-summary-methods","model specification print and summary identify the object",4,0,FALSE,FALSE,0,0.161000000000001,0.00699999999999967,0.168000000000006,4
+"test-print-summary-methods.R","print-summary-methods","dynamic fit print and summary expose the shared fit family",48,0,FALSE,FALSE,0,3.99799999999999,0.073,4.34399999999999,48
+"test-print-summary-methods.R","print-summary-methods","static fit and diagnostic methods expose the shared fit family",24,0,FALSE,FALSE,0,10.578,0.13,10.877,24
+"test-progress-console-contract.R","progress-console-contract","dynamic MCMC console progress is compact and omits sigma/gamma fields",5,0,FALSE,FALSE,0,0.102000000000004,0,0.101999999999975,5
+"test-progress-console-contract.R","progress-console-contract","dynamic LDVB console progress is compact and omits sigma/gamma fields",5,0,FALSE,FALSE,0,0.495999999999981,0,0.495999999999981,5
+"test-progress-console-contract.R","progress-console-contract","static MCMC console progress is compact and omits sigma/gamma fields",5,0,FALSE,FALSE,0,3.381,0,3.47799999999995,5
+"test-progress-console-contract.R","progress-console-contract","static LDVB console progress is compact and omits sigma/gamma fields",5,0,FALSE,FALSE,0,0.0760000000000218,0,0.0760000000000218,5
+"test-qdesn-alpha-rho-cellwise-v2.R","qdesn-alpha-rho-cellwise-v2","cellwise v2 search map has frozen case-specific budgets",5,0,FALSE,FALSE,0,0.0529999999999973,0,0.0529999999999973,5
+"test-qdesn-alpha-rho-cellwise-v2.R","qdesn-alpha-rho-cellwise-v2","alpha design is broad and never repeats the parent point",28,0,FALSE,FALSE,0,0.179999999999978,0,0.180000000000007,28
+"test-qdesn-alpha-rho-cellwise-v2.R","qdesn-alpha-rho-cellwise-v2","v2 plan is deterministic, cell-specific, and bounded",9,0,FALSE,FALSE,0,1.964,0,1.96499999999997,9
+"test-qdesn-alpha-rho-cellwise-v2.R","qdesn-alpha-rho-cellwise-v2","alpha-only and alpha/rho labels match realized topology",3,0,FALSE,FALSE,0,2.97800000000001,0,2.97900000000004,3
+"test-qdesn-alpha-rho-cellwise-v2.R","qdesn-alpha-rho-cellwise-v2","objective selection stays per-cell and deduplicates winners",4,0,FALSE,FALSE,0,0.0439999999999827,0,0.0439999999999827,4
+"test-qdesn-alpha-rho-cellwise-v2.R","qdesn-alpha-rho-cellwise-v2","pipeline resource sampler and stage boundaries are explicit",5,0,FALSE,FALSE,0,0.0600000000000023,0,0.0600000000000023,5
+"test-qdesn-alpha-rho-cellwise-v2.R","qdesn-alpha-rho-cellwise-v2","materialized contract preserves counts, provenance, and non-repeat gate",11,0,FALSE,FALSE,0,0.87700000000001,0,0.87700000000001,11
+"test-qdesn-alpha-rho-confirmation-v1-promotion.R","qdesn-alpha-rho-confirmation-v1-promotion","alpha/rho confirmation promotion selects one coherent parent root",6,0,FALSE,FALSE,0,0.0749999999999886,0,0.0749999999999886,6
+"test-qdesn-alpha-rho-confirmation-v1-promotion.R","qdesn-alpha-rho-confirmation-v1-promotion","alpha/rho promotion materializer is parseable and storage-light",5,0,FALSE,FALSE,0,0.0420000000000016,0,0.04200000000003,5
+"test-qdesn-alpha-rho-confirmation-v1.R","qdesn-alpha-rho-confirmation-v1","alpha/rho confirmation v1 freezes eight explicit paired roots",69,1,FALSE,FALSE,0,0.802999999999997,0,0.802999999999997,68
+"test-qdesn-alpha-rho-confirmation-v1.R","qdesn-alpha-rho-confirmation-v1","confirmation protocol preserves source windows and rolling horizons",19,0,FALSE,FALSE,0,0.238,0.00199999999999978,0.240000000000009,19
+"test-qdesn-alpha-rho-confirmation-v1.R","qdesn-alpha-rho-confirmation-v1","confirmation lifecycle is staged, gated, and parseable",15,0,FALSE,FALSE,0,0.298999999999978,0.012,0.310999999999979,15
+"test-qdesn-alpha-rho-confirmation-v1.R","qdesn-alpha-rho-confirmation-v1","confirmation tracked evidence has no stale paths or binary payloads",2,0,FALSE,FALSE,0,0.0279999999999916,0.00600000000000023,0.035000000000025,2
+"test-qdesn-alpha-rho-seedrepair-v1.R","qdesn-alpha-rho-seedrepair-v1","dynamic screening grid separates run and reservoir seeds",7,0,FALSE,FALSE,0,0.430000000000007,0.0190000000000001,0.462999999999965,7
+"test-qdesn-alpha-rho-seedrepair-v1.R","qdesn-alpha-rho-seedrepair-v1","seed-repair plan retains only mechanically valid historical candidates",1,0,FALSE,TRUE,1,0.00999999999999091,0.0189999999999997,0.0289999999999964,0
+"test-qdesn-alpha-rho-seedrepair-v1.R","qdesn-alpha-rho-seedrepair-v1","seed contract requires profile seeds and paired sampler seeds",3,0,FALSE,FALSE,0,0.070999999999998,0.004,0.0749999999999886,3
+"test-qdesn-alpha-rho-seedrepair-v1.R","qdesn-alpha-rho-seedrepair-v1","seed-repair pipeline has explicit smoke, storage, and promotion gates",4,0,FALSE,FALSE,0,0.0300000000000011,0,0.0299999999999727,4
+"test-qdesn-alpha-rho-seedrepair-v1.R","qdesn-alpha-rho-seedrepair-v1","materialized seed-repair contract has frozen counts and seed separation",8,0,FALSE,FALSE,0,0.0929999999999893,0.00199999999999978,0.0950000000000273,8
+"test-qdesn-alpha-rho-topology-v1.R","qdesn-alpha-rho-topology-v1","alpha/rho arm design is broad, deterministic, and valid",8,0,FALSE,FALSE,0,0.156999999999982,0,0.156999999999982,8
+"test-qdesn-alpha-rho-topology-v1.R","qdesn-alpha-rho-topology-v1","plan stays case-specific and has frozen counts",8,0,FALSE,FALSE,0,3.643,0,3.64500000000004,8
+"test-qdesn-alpha-rho-topology-v1.R","qdesn-alpha-rho-topology-v1","topology repair activates W and Win on a common skeleton",4,0,FALSE,FALSE,0,3.94499999999999,0,3.94400000000002,4
+"test-qdesn-alpha-rho-topology-v1.R","qdesn-alpha-rho-topology-v1","fast D1 topology builder exactly matches package construction",2,0,FALSE,FALSE,0,4.202,0,4.25899999999996,2
+"test-qdesn-alpha-rho-topology-v1.R","qdesn-alpha-rho-topology-v1","source replicate contract is independent and complete",4,0,FALSE,FALSE,0,0.216000000000008,0,0.216000000000008,4
+"test-qdesn-alpha-rho-topology-v1.R","qdesn-alpha-rho-topology-v1","pipeline resource sampler avoids GNU awk reserved names",2,0,FALSE,FALSE,0,0.0349999999999966,0,0.035000000000025,2
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","input mode resolver keeps decomposition mode active in phase 2",13,0,FALSE,FALSE,0,0.259000000000015,0,0.259000000000015,13
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","decomposition lag mode defaults to component-only and ignores m_default",4,0,FALSE,FALSE,0,0.0320000000000107,0,0.0319999999999823,4
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","decomposition lag mode inherit_m uses m_default for missing components",4,0,FALSE,FALSE,0,0.0260000000000105,0,0.0260000000000105,4
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","seasonal auto-harmonic selection picks dominant harmonics for fixed period",5,0,FALSE,FALSE,0,0.222000000000008,0,0.22199999999998,5
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","manual seasonal harmonics can be preferred over auto selection",2,0,FALSE,FALSE,0,0.925999999999988,0,0.927000000000021,2
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","manual seasonal harmonics can include values smaller than 1",3,0,FALSE,FALSE,0,0.099000000000018,0,0.0989999999999895,3
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","qdesn_fit_vb builds decomposition runtime and input width",11,0,FALSE,FALSE,0,0.849000000000018,0,0.872000000000014,11
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","qdesn decomposition runtime supports regression and transfer components",8,0,FALSE,FALSE,0,0.596000000000004,0,0.595000000000027,8
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","decomposition regression/transfer feature engineering supports lags squares and interactions",5,0,FALSE,FALSE,0,0.468000000000018,0.0499999999999998,0.519000000000005,5
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","qdesn decomposition regression/transfer blocks require decomposition covariates",1,0,FALSE,FALSE,0,0.0229999999999961,0,0.0230000000000246,1
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","qdesn_fit_vb uses component lag policy independent of m",3,0,FALSE,FALSE,0,0.0949999999999989,0,0.0949999999999704,3
+"test-qdesn-dlm-phase2-integration.R","qdesn-dlm-phase2-integration","forecast paths/lattice run in decomposition mode with non-terminal origins",8,0,FALSE,FALSE,0,1.77200000000002,0,1.77199999999999,8
+"test-qdesn-dlm-phase3-ndlm-backend.R","qdesn-dlm-phase3-ndlm-backend","R NDLM filter matches legacy dlm_df filtered moments",11,0,FALSE,FALSE,0,0.195999999999998,0,0.196000000000026,11
+"test-qdesn-dlm-phase3-ndlm-backend.R","qdesn-dlm-phase3-ndlm-backend","CPP NDLM backend matches R backend for filter and smoother outputs",19,2,FALSE,FALSE,2,0.414000000000016,0,0.413000000000011,15
+"test-qdesn-dlm-phase3-ndlm-backend.R","qdesn-dlm-phase3-ndlm-backend","CPP extended NDLM component forecast matches R backend",8,1,FALSE,FALSE,1,1.26599999999999,0,1.26599999999996,6
+"test-qdesn-dlm-phase3-ndlm-backend.R","qdesn-dlm-phase3-ndlm-backend","CPP extended NDLM component forecast validates component indices",0,0,FALSE,TRUE,0,0.0320000000000107,0,0.0319999999999823,0
+"test-qdesn-dlm-phase3-ndlm-backend.R","qdesn-dlm-phase3-ndlm-backend","qdesn decomposition mode uses cpp backend when requested",7,3,FALSE,FALSE,0,1.69499999999999,0,1.69499999999999,4
+"test-qdesn-dlm-phase3-ndlm-backend.R","qdesn-dlm-phase3-ndlm-backend","decomposition forecast_paths cpp matches r with fixed noise draws",0,0,FALSE,TRUE,0,0.932000000000016,0.501,1.43400000000003,0
+"test-qdesn-dlm-phase3-ndlm-backend.R","qdesn-dlm-phase3-ndlm-backend","decomposition forecast_paths cpp matches r with regression and transfer components",0,0,FALSE,TRUE,0,3.43200000000002,0.215999999999999,3.65199999999999,0
+"test-qdesn-dlm-state-resid-y-builder.R","qdesn-dlm-state-resid-y-builder","state_resid_y builder is normalized and retained",6,0,FALSE,FALSE,0,0.0989999999999895,0,0.0980000000000132,6
+"test-qdesn-dlm-state-resid-y-builder.R","qdesn-dlm-state-resid-y-builder","state_resid_y lag vector ordering matches [alpha lags | residual lags | y lags]",4,0,FALSE,FALSE,0,0.288999999999987,0.00199999999999978,0.29000000000002,4
+"test-qdesn-dlm-state-resid-y-builder.R","qdesn-dlm-state-resid-y-builder","state_resid_y forecast recursion runs and uses R backend when cpp postpred is requested",2,0,FALSE,TRUE,0,0.846000000000004,0,0.846000000000004,2
+"test-qdesn-dynamic-candidate-dataset-audit.R","qdesn-dynamic-candidate-dataset-audit","candidate dataset generator and audit inventory work on a minimal temporary bundle",5,0,FALSE,FALSE,0,3.833,0.276,5.95499999999998,5
+"test-qdesn-dynamic-candidate-dataset-config.R","qdesn-dynamic-candidate-dataset-config","candidate dynamic dataset manifest loads and materialization contract is coherent",4,0,FALSE,FALSE,0,0.248000000000019,0,0.24799999999999,4
+"test-qdesn-dynamic-candidate-dataset-config.R","qdesn-dynamic-candidate-dataset-config","candidate helper builds a 6-state period-90 dynamic model cleanly",6,0,FALSE,FALSE,0,0.103999999999985,0.00499999999999989,0.10899999999998,6
+"test-qdesn-dynamic-candidate-last5000-last500-audit.R","qdesn-dynamic-candidate-last5000-last500-audit","candidate last5000/last500 audit inventory resolves the 9 family-by-tau roots",3,0,FALSE,FALSE,0,0.916000000000025,0.117000000000001,1.41000000000003,3
+"test-qdesn-dynamic-candidate-last5000-last500-audit.R","qdesn-dynamic-candidate-last5000-last500-audit","candidate last5000/last500 audit can render one PNG cleanly",2,0,FALSE,FALSE,0,1.25700000000001,0.175999999999999,1.90999999999997,2
+"test-qdesn-dynamic-failure-repair.R","qdesn-dynamic-failure-repair","GIG helper retries invalid draws and repairs the batch",0,0,FALSE,TRUE,0,0.0190000000000055,0,0.0190000000000055,0
+"test-qdesn-dynamic-failure-repair.R","qdesn-dynamic-failure-repair","GIG helper floors tiny positive b_vec values at 1e-10 before sampling",0,0,FALSE,TRUE,0,0.0190000000000055,0,0.0200000000000387,0
+"test-qdesn-dynamic-failure-repair.R","qdesn-dynamic-failure-repair","failed fit path still writes fit_summary_row for downstream aggregation",5,0,FALSE,FALSE,0,0.375,0.0190000000000001,0.439999999999998,5
+"test-qdesn-dynamic-failure-repair.R","qdesn-dynamic-failure-repair","dynamic source sim fallback reconstructs from truth grid when sim_output is absent",5,0,FALSE,FALSE,0,0.179000000000002,0.00400000000000045,0.182999999999993,5
+"test-qdesn-dynamic-fitforecast-horizon-summaries.R","qdesn-dynamic-fitforecast-horizon-summaries","forecast horizon summaries expose H100 and H1000 windows",8,0,FALSE,FALSE,0,1.13400000000001,0.0309999999999997,1.16500000000002,8
+"test-qdesn-dynamic-fitforecast-interface-schema.R","qdesn-dynamic-fitforecast-interface-schema","Q-DESN shared interface exporter writes the common schema header without completed rows",0,0,FALSE,TRUE,0,0.0229999999999961,0,0.0950000000000273,0
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","fit+forecast phase plan separates MCMC TT500 and TT5000",17,0,FALSE,FALSE,0,0.998999999999995,0.0220000000000002,1.19,17
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","Q-DESN smoke/pilot MCMC override still honors core-lane VB warm start",10,0,FALSE,TRUE,0,1.26900000000001,0.0149999999999997,1.30000000000001,10
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","Q-DESN fit+forecast dependency preflight reports missing packages explicitly",2,0,FALSE,FALSE,0,0.170999999999992,0.00199999999999978,0.173000000000002,2
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","Q-DESN fit+forecast pipeline config carries IJ switch explicitly",0,0,FALSE,TRUE,0,0.185999999999979,0.00199999999999978,0.228000000000009,0
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","dynamic grid filters are generic and composable",5,0,FALSE,FALSE,0,0.228999999999985,0.000999999999999446,0.244000000000028,5
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","Q-DESN dynamic fit+forecast atomic spec ids target one method-likelihood fit",3,0,FALSE,FALSE,0,0.266999999999996,0.0300000000000002,0.850999999999999,3
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","fit+forecast launch approval gates separate routine and TT5000 approval",7,0,FALSE,FALSE,0,0.133000000000038,0.00300000000000011,0.136000000000024,7
+"test-qdesn-dynamic-fitforecast-launcher-filters.R","qdesn-dynamic-fitforecast-launcher-filters","Q-DESN fit+forecast wrapper refuses unapproved real smoke before tmux launch",0,0,FALSE,TRUE,0,0.0310000000000059,0.00999999999999979,0.100999999999999,0
+"test-qdesn-dynamic-fitforecast-lead-export.R","qdesn-dynamic-fitforecast-lead-export","Q-DESN rolling lead export uses per-origin mu draws without synthesis",15,0,FALSE,FALSE,0,1.202,0.032,1.23599999999999,15
+"test-qdesn-dynamic-fitforecast-lead-export.R","qdesn-dynamic-fitforecast-lead-export","Q-DESN rolling origin sequence includes the final partial stride origin",6,0,FALSE,FALSE,0,0.149000000000001,0.00499999999999989,0.153999999999996,6
+"test-qdesn-dynamic-fitforecast-lead-export.R","qdesn-dynamic-fitforecast-lead-export","Q-DESN rolling lead export scores final partial origin rows",9,0,FALSE,FALSE,0,9.78899999999999,0.0100000000000007,9.827,9
+"test-qdesn-dynamic-fitforecast-lead-export.R","qdesn-dynamic-fitforecast-lead-export","Q-DESN rolling lead export back-transforms standardized model-scale draws",10,0,FALSE,FALSE,0,0.269999999999982,0,0.271000000000015,10
+"test-qdesn-dynamic-fitforecast-lead-export.R","qdesn-dynamic-fitforecast-lead-export","Q-DESN rolling lead export is failure-explicit when required",2,0,FALSE,FALSE,0,0.0400000000000205,0,0.0400000000000205,2
+"test-qdesn-dynamic-fitforecast-lead-export.R","qdesn-dynamic-fitforecast-lead-export","Q-DESN fitforecast v2 config enables primary rolling lead export",9,0,FALSE,FALSE,0,0.0920000000000414,0.00699999999999967,0.107000000000028,9
+"test-qdesn-dynamic-fitforecast-no-leakage.R","qdesn-dynamic-fitforecast-no-leakage","compact fit paths preserve fit+forecast source-index boundaries",7,0,FALSE,FALSE,0,0.398000000000025,0.0179999999999998,0.41500000000002,7
+"test-qdesn-dynamic-fitforecast-source-windows.R","qdesn-dynamic-fitforecast-source-windows","fit+forecast materialization anchors Q-DESN train and forecast source indices",21,0,FALSE,FALSE,0,1.536,0.0830000000000002,1.86799999999999,21
+"test-qdesn-dynamic-fitforecast-storage-light.R","qdesn-dynamic-fitforecast-storage-light","fit+forecast analysis retention prunes successful full forecast objects after compact summaries",8,0,FALSE,FALSE,0,0.608000000000004,0.0289999999999999,0.637999999999977,8
+"test-qdesn-dynamic-fitforecast-storage-light.R","qdesn-dynamic-fitforecast-storage-light","storage-light retention prunes when rolling-origin exports pass but legacy alignment fails",9,0,FALSE,FALSE,0,7.17599999999999,0,7.178,9
+"test-qdesn-dynamic-fitforecast-storage-light.R","qdesn-dynamic-fitforecast-storage-light","required rolling-origin export fails explicitly when global indices are unavailable",5,0,FALSE,FALSE,0,0.217000000000041,0.0120000000000005,0.230000000000018,5
+"test-qdesn-dynamic-fitforecast-vb-screening-config.R","qdesn-dynamic-fitforecast-vb-screening-config","TT500 VB screening profiles are frozen, compact, and gated",12,0,FALSE,FALSE,0,0.336999999999989,0.00200000000000067,0.370000000000005,12
+"test-qdesn-dynamic-fitforecast-vb-screening-config.R","qdesn-dynamic-fitforecast-vb-screening-config","TT500 VB screening grid expands profiles with unique root ids",10,0,FALSE,FALSE,0,1.286,0.197,3.31599999999997,10
+"test-qdesn-dynamic-fitforecast-vb-screening-config.R","qdesn-dynamic-fitforecast-vb-screening-config","TT500 VB screening profile overrides reach the fit config",12,0,FALSE,FALSE,0,0.977000000000032,0,1.125,12
+"test-qdesn-dynamic-fitforecast-vb-screening-config.R","qdesn-dynamic-fitforecast-vb-screening-config","TT500 VB screening profile parser decodes legacy and case-specific ids",9,0,FALSE,FALSE,0,0.230999999999995,0.00299999999999923,0.234000000000037,9
+"test-qdesn-dynamic-fitforecast-vb-screening-config.R","qdesn-dynamic-fitforecast-vb-screening-config","case-targeted RHS v4 wrappers use v3 evidence and v4 outputs",6,0,FALSE,FALSE,0,0.0769999999999982,0,0.0929999999999609,6
+"test-qdesn-dynamic-fitforecast-vb-screening-config.R","qdesn-dynamic-fitforecast-vb-screening-config","real pipeline preserves DESN n_tilde length D-minus-1 for screening profiles",3,0,FALSE,FALSE,0,0.0580000000000496,0,0.0649999999999977,3
+"test-qdesn-dynamic-p90-closeout-analysis.R","qdesn-dynamic-p90-closeout-analysis","p90 closeout manifest points to completed campaign inputs",0,0,FALSE,TRUE,0,0.0379999999999541,0.00200000000000067,0.0400000000000205,0
+"test-qdesn-dynamic-p90-closeout-analysis.R","qdesn-dynamic-p90-closeout-analysis","p90 closeout pairwise contrasts cover the intended axes",0,0,FALSE,TRUE,0,0.103999999999985,0.00699999999999967,0.11099999999999,0
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","p90 steepertrend defaults encode the promoted dynamic surface",13,0,FALSE,FALSE,0,0.13900000000001,0.0120000000000005,0.149999999999977,13
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","MCMC VB warm-start artifacts can be pruned without dropping metadata",6,0,FALSE,FALSE,0,1.54499999999996,0.0270000000000001,1.529,6
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","MCMC VB warm-start pruning preserves fit classes",2,0,FALSE,FALSE,0,0.323999999999955,0.00399999999999956,0.328000000000031,2
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","validation health recognizes classless saved exAL fit payloads",9,0,FALSE,FALSE,0,3.447,0.032,3.50600000000003,9
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","pipeline summary infers success from readable saved forecast objects",2,0,FALSE,FALSE,0,0.336999999999989,0.0110000000000001,0.355999999999995,2
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","p90 steepertrend full and subset grids stay coherent",32,0,FALSE,FALSE,0,0.798999999999978,0.0170000000000003,0.817000000000007,32
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","p90 steepertrend n300m50 relaunch spec encodes the larger DESN",27,0,FALSE,FALSE,0,0.369000000000028,0.00599999999999934,0.376000000000033,27
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","dynamic cross-study keeps explicit DESN seed separate from root metadata seed",0,0,FALSE,TRUE,0,0.04200000000003,0.00199999999999978,0.0449999999999591,0
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","storage-light full relaunch defaults encode the approved worker topology",3,0,FALSE,FALSE,0,0.0389999999999873,0,0.0389999999999873,3
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","n400m60 testing smoke uses a fast infrastructure-only MCMC budget",13,0,FALSE,FALSE,0,0.161000000000001,0.0080000000000009,0.168999999999983,13
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","analysis retention writes compact fit paths before pruning full forecast objects",9,0,FALSE,FALSE,0,0.300999999999988,0.0119999999999996,0.312999999999988,9
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","analysis retention keeps full forecast objects for failed fits by default",3,0,FALSE,FALSE,0,0.0679999999999836,0.0129999999999999,0.08299999999997,3
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","p90 steepertrend n300m50 closeout manifest targets one full campaign",7,0,FALSE,FALSE,0,0.110000000000014,0,0.110000000000014,7
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","p90 closeout loader supports single-campaign root summary globs",5,0,FALSE,FALSE,0,0.115999999999985,0.00600000000000023,0.122000000000014,5
+"test-qdesn-dynamic-p90-steepertrend-config.R","qdesn-dynamic-p90-steepertrend-config","p90 fit overlay data can be read from compact paths without full RDS",4,0,FALSE,FALSE,0,0.0500000000000114,0.00800000000000001,0.0579999999999927,4
+"test-qdesn-dynamic-rhs-tau0-precision.R","qdesn-dynamic-rhs-tau0-precision","dynamic Q-DESN RHS screening keeps tiny positive tau0 through root-spec plumbing",3,0,FALSE,TRUE,0,0.134000000000015,0.024,0.182999999999993,3
+"test-qdesn-dynamic-rhs-tau0-precision.R","qdesn-dynamic-rhs-tau0-precision","dynamic Q-DESN RHS screening rejects nonpositive tau0 before compute",1,0,FALSE,TRUE,0,0.0780000000000314,0,0.101999999999975,1
+"test-qdesn-dynamic-tau050-dataset-audit-config.R","qdesn-dynamic-tau050-dataset-audit-config","tau050 dataset audit manifest resolves the full 36-dataset source surface",0,0,FALSE,TRUE,0,0.0159999999999627,0.00499999999999989,0.021000000000015,0
+"test-qdesn-dynamic-tau050-dataset-audit-config.R","qdesn-dynamic-tau050-dataset-audit-config","tau050 dataset audit can render a single flat PNG cleanly",0,0,FALSE,TRUE,0,0.0279999999999632,0.00899999999999945,0.0369999999999777,0
+"test-qdesn-dynamic-tau050-failed-mcmc-relaunch.R","qdesn-dynamic-tau050-failed-mcmc-relaunch","failed-mcmc materializer reproduces the checked-in failed-only grids when source run exists",1,0,TRUE,FALSE,0,0.0110000000000241,0,0.0120000000000005,0
+"test-qdesn-dynamic-tau050-failed-mcmc-sfreeze-config.R","qdesn-dynamic-tau050-failed-mcmc-sfreeze-config","tau050 failed-mcmc sfreeze defaults encode the latent-s crash-only relaunch contract",0,0,FALSE,TRUE,0,0.0389999999999873,0,0.0400000000000205,0
+"test-qdesn-dynamic-tau050-failed-mcmc-sfreeze-config.R","qdesn-dynamic-tau050-failed-mcmc-sfreeze-config","tau050 failed-mcmc sfreeze defaults accept the audited AL and EXAL crash-only grids",6,0,FALSE,FALSE,0,0.104000000000042,0,0.104999999999961,6
+"test-qdesn-dynamic-tau050-failed-mcmc-sfreeze-postmortem.R","qdesn-dynamic-tau050-failed-mcmc-sfreeze-postmortem","sfreeze remaining-hard-fail materializer reproduces the checked-in hard-fail grids",1,0,TRUE,FALSE,0,0.00900000000001455,0,0.00900000000001455,0
+"test-qdesn-dynamic-tau050-failed-mcmc-thetafreeze-config.R","qdesn-dynamic-tau050-failed-mcmc-thetafreeze-config","tau050 failed-mcmc thetafreeze defaults encode the theta-plus-tau crash-only relaunch contract",0,0,FALSE,TRUE,0,0.0400000000000205,0,0.0399999999999636,0
+"test-qdesn-dynamic-tau050-failed-mcmc-thetafreeze-config.R","qdesn-dynamic-tau050-failed-mcmc-thetafreeze-config","tau050 failed-mcmc thetafreeze defaults accept the audited AL and EXAL crash-only grids",6,0,FALSE,FALSE,0,0.105999999999995,0.00199999999999978,0.106999999999971,6
+"test-qdesn-dynamic-tau050-final-analysis-pack-config.R","qdesn-dynamic-tau050-final-analysis-pack-config","tau050 final analysis pack is reproducible from the canonical study-facing root",0,0,FALSE,TRUE,0,0.0230000000000246,0,0.0230000000000246,0
+"test-qdesn-dynamic-tau050-fit-plot-pack-config.R","qdesn-dynamic-tau050-fit-plot-pack-config","tau050 fit plot pack manifest resolves to two complete 4-fit cases",0,0,FALSE,TRUE,0,0.0200000000000387,0,0.0760000000000218,0
+"test-qdesn-dynamic-tau050-fit-plot-pack-config.R","qdesn-dynamic-tau050-fit-plot-pack-config","fit plot pack analysis writer emits summary and manifest",2,0,FALSE,FALSE,0,0.0579999999999927,0.0180000000000007,0.0760000000000218,2
+"test-qdesn-dynamic-tau050-recovered-main-comparison-config.R","qdesn-dynamic-tau050-recovered-main-comparison-config","tau050 recovered main comparison override materializer covers the original FAIL surface",0,0,FALSE,TRUE,0,0.0169999999999959,0.00300000000000011,0.0219999999999914,0
+"test-qdesn-dynamic-tau050-recovered-study-facing-analysis-config.R","qdesn-dynamic-tau050-recovered-study-facing-analysis-config","tau050 recovered study-facing analysis pack is reproducible from the canonical recovered comparison root",0,0,FALSE,TRUE,0,0.0259999999999536,0,0.0259999999999536,0
+"test-qdesn-dynamic-tau050-refreshed-main-config.R","qdesn-dynamic-tau050-refreshed-main-config","tau050 refreshed main defaults encode the canonical dynamic-only surface",10,0,FALSE,FALSE,0,0.126000000000033,0,0.125,10
+"test-qdesn-dynamic-tau050-refreshed-main-config.R","qdesn-dynamic-tau050-refreshed-main-config","tau050 refreshed main mcmc config is slice with explicit LDVB warm start",0,0,FALSE,TRUE,0,0.0729999999999791,0,0.0730000000000359,0
+"test-qdesn-dynamic-tau050-refreshed-main-config.R","qdesn-dynamic-tau050-refreshed-main-config","tau050 refreshed main vb config enforces the stronger rhs_ns tau warmup policy",0,0,FALSE,TRUE,0,0.0349999999999682,0,0.035000000000025,0
+"test-qdesn-dynamic-tau050-refreshed-main-config.R","qdesn-dynamic-tau050-refreshed-main-config","tau050 refreshed main subset grids stay inside the canonical surface",18,0,FALSE,FALSE,0,0.557999999999993,0.00100000000000033,0.562999999999988,18
+"test-qdesn-dynamic-tau050-refreshed-main-config.R","qdesn-dynamic-tau050-refreshed-main-config","tau050 refreshed main failed-mcmc subset grids isolate the audited failed lanes",6,0,FALSE,FALSE,0,0.307000000000016,0.00900000000000034,0.317000000000007,6
+"test-qdesn-dynamic-tau050-remaining-failed-mcmc-v2-config.R","qdesn-dynamic-tau050-remaining-failed-mcmc-v2-config","tau050 remaining-failed mcmc v2 defaults encode the latent-v recovery contract",0,0,FALSE,TRUE,0,0.189999999999998,0.00199999999999978,0.191000000000031,0
+"test-qdesn-dynamic-tau050-remaining-failed-mcmc-v2-config.R","qdesn-dynamic-tau050-remaining-failed-mcmc-v2-config","tau050 remaining-failed mcmc v2 grids stay inside the remaining-failure surface",18,0,FALSE,FALSE,0,1.53199999999998,0.032,1.56399999999996,18
+"test-qdesn-dynamic-tau050-remaining-failed-mcmc-v2-config.R","qdesn-dynamic-tau050-remaining-failed-mcmc-v2-config","remaining-failed mcmc v2 materializer reproduces the checked-in v2 grids",0,0,FALSE,TRUE,0,0.0269999999999868,0.00499999999999989,0.0369999999999777,0
+"test-qdesn-dynamic-tau050-remaining-failed-mcmc-v3-matrix-config.R","qdesn-dynamic-tau050-remaining-failed-mcmc-v3-matrix-config","tau050 remaining-failed mcmc v3 rescue defaults encode the base rescue arm",0,0,FALSE,TRUE,0,0.021000000000015,0.00699999999999967,0.0279999999999632,0
+"test-qdesn-dynamic-tau050-remaining-failed-mcmc-v3-matrix-config.R","qdesn-dynamic-tau050-remaining-failed-mcmc-v3-matrix-config","tau050 remaining-failed mcmc v3 matrix arms encode distinct kernel hypotheses",0,0,FALSE,TRUE,0,0.0339999999999918,0,0.0339999999999918,0
+"test-qdesn-dynamic-tau050-remaining-failed-mcmc-v3-matrix-config.R","qdesn-dynamic-tau050-remaining-failed-mcmc-v3-matrix-config","remaining-failed mcmc v3 materializer reproduces the checked-in v3 grids",0,0,FALSE,TRUE,0,0.021000000000015,0,0.0249999999999773,0
+"test-qdesn-dynamic-tau050-remaining-precision-closeout-config.R","qdesn-dynamic-tau050-remaining-precision-closeout-config","remaining precision closeout materializer writes the promoted ladder_v2 closeout package",0,0,FALSE,TRUE,0,0.0120000000000005,0.00499999999999989,0.0189999999999486,0
+"test-qdesn-dynamic-tau050-remaining-precision-code-matrix-config.R","qdesn-dynamic-tau050-remaining-precision-code-matrix-config","remaining precision code matrix materializer writes the pair-only code-rescue experiment suite",0,0,FALSE,TRUE,0,0.0269999999999868,0,0.0299999999999727,0
+"test-qdesn-dynamic-tau050-remaining-precision-matrix-config.R","qdesn-dynamic-tau050-remaining-precision-matrix-config","remaining precision matrix materializer writes the broad root-specific experiment suite",0,0,FALSE,TRUE,0,0.0240000000000009,0,0.0269999999999868,0
+"test-qdesn-dynamic-tau050-remaining-precision-pair-config.R","qdesn-dynamic-tau050-remaining-precision-pair-config","remaining precision-pair materializer writes the exact two-root relaunch package",0,0,FALSE,TRUE,0,0.0259999999999536,0,0.0299999999999727,0
+"test-qdesn-dynamic-tau050-run-specific-remaining-fail-config.R","qdesn-dynamic-tau050-run-specific-remaining-fail-config","run-specific remaining-fail materializer writes cluster-specific grids and defaults",0,0,FALSE,TRUE,0,0.00999999999999091,0.00600000000000023,0.021000000000015,0
+"test-qdesn-dynamic-tau050-single-root-probe-config.R","qdesn-dynamic-tau050-single-root-probe-config","single-root probe materializer writes reproducible grids and defaults",0,0,FALSE,TRUE,0,0.0289999999999964,0,0.0319999999999823,0
+"test-qdesn-fit-mcmc-precision-beta-api.R","qdesn-fit-mcmc-precision-beta-api","qdesn_fit_mcmc accepts precision-beta presets and forwards normalized control",5,0,FALSE,FALSE,0,0.173000000000002,0.00399999999999956,0.177999999999997,5
+"test-qdesn-fit-mcmc-precision-beta-api.R","qdesn-fit-mcmc-precision-beta-api","qdesn_fit_mcmc preserves explicit precision-beta control overrides",5,0,FALSE,FALSE,0,0.0869999999999891,0,0.0880000000000223,5
+"test-qdesn-fit-mcmc-precision-beta-api.R","qdesn-fit-mcmc-precision-beta-api","qdesn_fit_mcmc accepts advanced warmup blocks at the top level",17,0,FALSE,FALSE,0,0.319000000000017,0.00600000000000023,0.322999999999979,17
+"test-qdesn-forecast-recursion-diagnostic.R","qdesn-forecast-recursion-diagnostic","conditional-mean lattice recursion preserves draw identity and lead one",6,0,FALSE,FALSE,0,3.15500000000003,0,3.15499999999997,6
+"test-qdesn-forecast-recursion-diagnostic.R","qdesn-forecast-recursion-diagnostic","MCMC posterior subsampling records exact source rows",4,0,FALSE,FALSE,0,0.0679999999999836,0,0.0679999999999836,4
+"test-qdesn-frozen-input-overrides.R","qdesn-frozen-input-overrides","explicit input overrides survive raw-input construction",44,0,FALSE,FALSE,0,0.998000000000047,0.00400000000000045,1.00200000000001,44
+"test-qdesn-frozen-input-overrides.R","qdesn-frozen-input-overrides","future response changes cannot alter earlier frozen features",8,0,FALSE,FALSE,0,0.225000000000023,0.00899999999999945,0.234000000000037,8
+"test-qdesn-frozen-input-overrides.R","qdesn-frozen-input-overrides","per-lag overrides and malformed overrides are handled explicitly",6,0,FALSE,FALSE,0,0.158999999999992,0.0200000000000005,0.18300000000005,6
+"test-qdesn-frozen-input-overrides.R","qdesn-frozen-input-overrides","automatic preprocessing remains unchanged without overrides",6,0,FALSE,FALSE,0,0.0750000000000455,0,0.0749999999999886,6
+"test-qdesn-frozen-input-overrides.R","qdesn-frozen-input-overrides","decomposition runtime is initialized with explicit preprocessing",5,0,FALSE,FALSE,0,0.109000000000037,0,0.109000000000037,5
+"test-qdesn-latent-v-warmup-validation-export.R","qdesn-latent-v-warmup-validation-export","MCMC validation export carries latent-v warmup traces and health summaries",19,0,FALSE,FALSE,0,0.274999999999977,0,0.276999999999987,19
+"test-qdesn-latent-v-warmup-validation-export.R","qdesn-latent-v-warmup-validation-export","failure health rows persist latent-v failure summaries without a fit object",17,0,FALSE,FALSE,0,0.230000000000018,0,0.230999999999995,17
+"test-qdesn-latent-v-warmup-validation-export.R","qdesn-latent-v-warmup-validation-export","error payload parser recovers latent-v failure marker from pipeline logs",5,0,FALSE,FALSE,0,0.0749999999999886,0,0.0749999999999886,5
+"test-qdesn-mcmc-experiment-matrix.R","qdesn-mcmc-experiment-matrix","rhs experiment matrix deep merge updates nested fields only",4,0,FALSE,FALSE,0,0.05600000000004,0,0.0570000000000164,4
+"test-qdesn-mcmc-experiment-matrix.R","qdesn-mcmc-experiment-matrix","rhs experiment matrix ranking prioritizes convergence before runtime",5,0,FALSE,FALSE,0,0.0500000000000114,0,0.0509999999999877,5
+"test-qdesn-mcmc-experiment-matrix.R","qdesn-mcmc-experiment-matrix","rhs experiment matrix trigger evaluation handles threshold logic",2,0,FALSE,FALSE,0,0.0219999999999914,0,0.0219999999999914,2
+"test-qdesn-mcmc-experiment-matrix.R","qdesn-mcmc-experiment-matrix","rhs experiment matrix health collector summarizes diagnostics",7,0,FALSE,FALSE,0,0.147000000000048,0.0210000000000008,0.170999999999992,7
+"test-qdesn-mcmc-external-coherent-confirmation-v1.R","qdesn-mcmc-external-coherent-confirmation-v1","external-coherent confirmation v1 is exact, staged, and storage-light",33,1,FALSE,FALSE,0,0.425000000000011,0.00399999999999956,0.432000000000016,32
+"test-qdesn-mcmc-external-coherent-confirmation-v1.R","qdesn-mcmc-external-coherent-confirmation-v1","confirmation scripts enforce prepare, smoke, approval, and closeout gates",21,0,FALSE,FALSE,0,0.211999999999989,0.0170000000000003,0.231999999999971,21
+"test-qdesn-mcmc-external-coherent-confirmation-v1.R","qdesn-mcmc-external-coherent-confirmation-v1","prelaunch evidence has no stale home paths or forbidden payloads",6,0,FALSE,FALSE,0,0.163999999999987,0,0.164000000000044,6
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","rhs repair candidate assessment chooses representative when rhs broadening improves",1,0,FALSE,FALSE,0,0.0279999999999632,0.0219999999999994,0.0769999999999982,1
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","rhs repair candidate assessment falls back to candidate_failures when rhs remains weak",1,0,FALSE,FALSE,0,0.242999999999995,0.024,0.363999999999976,1
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","failed rhs grid extraction writes rhs fails from candidate progress",3,0,FALSE,FALSE,0,0.0320000000000391,0,0.0330000000000155,3
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","split rhat helper distinguishes stable and unstable chains",4,0,FALSE,FALSE,0,0.05600000000004,0,0.05600000000004,4
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","multichain campaign collection reads multichain root metadata cleanly",6,0,FALSE,FALSE,0,0.127999999999986,0.0200000000000005,0.187999999999988,6
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","multichain campaign rejects invalid output roots",1,0,FALSE,FALSE,0,0.0110000000000241,0.00699999999999967,0.0400000000000205,1
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","multichain follow-up assessment chooses structural repair when failures remain",1,0,FALSE,FALSE,0,0.0190000000000055,0.0100000000000007,0.0650000000000546,1
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","multichain follow-up assessment chooses representative confirmation when confirmation is strong",1,0,FALSE,FALSE,0,0.0840000000000032,0,0.115000000000009,1
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","representative default candidate assessment promotes when multichain confirmation improves",2,0,FALSE,FALSE,0,0.0409999999999968,0.0479999999999992,0.150000000000034,2
+"test-qdesn-mcmc-followup.R","qdesn-mcmc-followup","remaining-fail structural follow-up grid isolates the representative failure root",4,0,FALSE,FALSE,0,0.04200000000003,0,0.0749999999999886,4
+"test-qdesn-mcmc-metric-envelope-20260727.R","qdesn-mcmc-metric-envelope-20260727","20260727 MCMC envelope adds coherent evidence without changing minima",26,0,FALSE,FALSE,0,2.31599999999997,0.0499999999999998,2.36699999999996,26
+"test-qdesn-mcmc-metricgap-v3-tau0-repair.R","qdesn-mcmc-metricgap-v3-tau0-repair","metric-gap v3 tau0 repair is the exact 25-spec precision-loss subset",15,0,FALSE,FALSE,0,0.540999999999997,0.0170000000000003,0.557999999999993,15
+"test-qdesn-mcmc-metricgap-v3-tau0-repair.R","qdesn-mcmc-metricgap-v3-tau0-repair","metric-gap v3 repair defaults and manifest keep the repair isolated",15,0,FALSE,FALSE,0,0.19399999999996,0.0169999999999995,0.211999999999989,15
+"test-qdesn-mcmc-metricgap-v3-tau0-repair.R","qdesn-mcmc-metricgap-v3-tau0-repair","metric-gap v3 repair orchestration and closeout are staged and parseable",17,0,FALSE,FALSE,0,0.199999999999989,0.00800000000000001,0.209000000000003,17
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology confirmation freezes 21 fresh full-budget specs",69,2,FALSE,TRUE,0,3.55200000000002,0.0499999999999998,3.60999999999996,67
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology confirmation preserves source and storage contracts",20,0,FALSE,FALSE,0,1.16300000000001,0.0300000000000002,1.226,20
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology confirmation lifecycle is staged and parseable",21,0,FALSE,FALSE,0,0.678999999999974,0.00600000000000023,0.689000000000021,21
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology closeout loads before rejecting an unknown run",3,0,FALSE,FALSE,0,0.0299999999999727,0,2.29299999999995,3
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","toy validation generator returns consistent long and wide outputs",7,0,FALSE,FALSE,0,0.0639999999999645,0,0.0629999999999882,7
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","toy validation generator supports expanded phase-1 scenarios",15,0,FALSE,FALSE,0,0.37700000000001,0,0.376000000000033,15
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation generator supports dynamic DLM scenarios via simulation backend",6,0,FALSE,FALSE,0,1.76999999999998,0.0359999999999996,1.81200000000001,6
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","pilot validation root writes method summaries and campaign summaries",41,6,FALSE,FALSE,0,9.98399999999998,0.165,10.386,35
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","VB signoff distinguishes stable converged from stable unconverged traces",4,0,FALSE,FALSE,0,0.0550000000000068,0.00600000000000023,0.0610000000000355,4
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","MCMC signoff fails clearly drifting low-information chains",3,0,FALSE,FALSE,0,0.0889999999999986,0,0.0899999999999181,3
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder applies prior-specific inference overrides",8,0,FALSE,FALSE,0,0.176999999999964,0,0.283000000000015,8
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder falls back rhs_ns overrides from rhs block",6,0,FALSE,FALSE,0,0.0640000000000214,0,0.0919999999999845,6
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder honors validation_p_vec override",3,0,FALSE,FALSE,0,0.0349999999999682,0,0.05600000000004,3
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation root spec and config route likelihood family",4,0,FALSE,FALSE,0,0.0369999999999777,0,0.0470000000000255,4
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config routes AL with rhs_ns prior and preserves root keying",6,0,FALSE,FALSE,0,0.0690000000000168,0,0.0900000000000318,6
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","MCMC signoff for AL does not require gamma diagnostics",2,0,FALSE,FALSE,0,0.0540000000000305,0,0.0539999999999736,2
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","rhs_ns VB emits RHS diagnostics traces for signoff health checks",2,0,FALSE,TRUE,1,0.543000000000006,0.0469999999999997,0.720000000000027,1
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder enforces non-DLM input mode",2,0,FALSE,FALSE,0,0.0240000000000009,0.00700000000000056,0.0570000000000164,2
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder stamps explicit raw input-mode defaults",2,0,FALSE,FALSE,0,0.0259999999999536,0,0.0439999999999827,2
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","rhs repair candidate defaults promote the B2 and C3 controls",9,0,FALSE,FALSE,0,0.0960000000000036,0.00399999999999956,0.125999999999976,9
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","mean-readout-state recursion equals native recursion for one draw",4,0,FALSE,FALSE,0,4.20499999999998,0.00900000000000034,4.21299999999997,4
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","mean-readout-state recursion is invariant to draw permutation",4,0,FALSE,FALSE,0,1.70700000000005,0.548999999999999,2.255,4
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","lead one agrees across estimators for multiple posterior draws",2,0,FALSE,FALSE,0,1.03299999999996,0,1.03399999999999,2
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","mean-readout-state lattice records its estimator contract",6,0,FALSE,FALSE,0,1.02000000000004,0,1.01999999999998,6
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","feature-basis hash detects reservoir changes",3,0,FALSE,FALSE,0,1.03999999999996,0.0260000000000007,1.06399999999996,3
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","mean-readout-state mode rejects unsupported authority contracts",2,0,FALSE,FALSE,0,0.992000000000019,0,0.991999999999962,2
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","mean-readout-state recursion supports authority depths one and three",6,0,FALSE,FALSE,0,1.50700000000001,0,1.50699999999995,6
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","nonoverlapping rolling-origin blocks tile the held-out window",3,0,FALSE,FALSE,0,0.781999999999982,0.0149999999999997,0.797000000000025,3
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","analysis source coordinates preserve explicit simulation indices",4,0,FALSE,FALSE,0,0.100999999999999,0,0.100999999999999,4
+"test-qdesn-mean-readout-state-forecast.R","qdesn-mean-readout-state-forecast","analysis source coordinates reject ambiguous mappings",3,0,FALSE,FALSE,0,0.248999999999967,0.00499999999999989,0.254000000000019,3
+"test-qdesn-model-selection-authoritative.R","qdesn-model-selection-authoritative","qdesn_model_selection resolves authoritative engine from config shape",3,0,FALSE,FALSE,0,0.0879999999999654,0,0.0880000000000791,3
+"test-qdesn-model-selection-authoritative.R","qdesn-model-selection-authoritative","qdesn_model_selection routes modern staged configs to v2",5,0,FALSE,FALSE,0,0.0769999999999982,0,0.0760000000000218,5
+"test-qdesn-model-selection-authoritative.R","qdesn-model-selection-authoritative","qdesn_model_selection preserves legacy dispatch for esn_space configs",3,0,FALSE,FALSE,0,0.10899999999998,0,0.109000000000037,3
+"test-qdesn-model-selection-authoritative.R","qdesn-model-selection-authoritative","qdesn_model_selection v2 can merge base_cfg/ms_cfg shorthands",4,0,FALSE,FALSE,0,0.0769999999999982,0,0.0769999999999982,4
+"test-qdesn-model-selection-authoritative.R","qdesn-model-selection-authoritative","model selection v2 beta-prior builder supports current ridge and RHS variants",3,0,FALSE,FALSE,0,0.0400000000000205,0.00400000000000045,0.0440000000000964,3
+"test-qdesn-model-selection-authoritative.R","qdesn-model-selection-authoritative","model selection v2 accepts explicit candidate lists for bridge workflows",8,0,FALSE,FALSE,0,0.148000000000025,0.00499999999999989,0.153999999999996,8
+"test-qdesn-normal-comparison-script.R","qdesn-normal-comparison-script","Normal DESN source comparison script runs on synthetic data",12,0,FALSE,FALSE,0,0.437000000000012,0.0209999999999999,31.943,12
+"test-qdesn-normal-init-comparison.R","qdesn-normal-init-comparison","Normal DESN initialization comparison script runs on synthetic data",9,0,FALSE,FALSE,0,0.158999999999992,0.00899999999999945,27.876,9
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state records and validates exact ridge fits",10,0,FALSE,FALSE,0,0.327999999999975,0,0.341000000000008,10
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state distinguishes exact chunked fits",3,0,FALSE,FALSE,0,0.791999999999973,0,0.808000000000106,3
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state labels RHS-family sources as approximate",4,0,FALSE,FALSE,0,0.0979999999999563,0.00100000000000033,0.128000000000043,4
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state validates Q-DESN metadata and serialization",5,0,FALSE,FALSE,0,0.122000000000014,0.00399999999999956,0.152999999999906,5
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start validation rejects corrupted states",4,0,FALSE,FALSE,0,0.0910000000000082,0.00400000000000045,0.119000000000028,4
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start converters preserve moments and source metadata",10,0,FALSE,FALSE,0,0.456000000000017,0.0140000000000002,0.543000000000006,10
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit scaled ridge matches closed-form posterior algebra",11,0,FALSE,FALSE,0,0.236999999999966,0.00100000000000033,0.253000000000043,11
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit exact chunked scaled ridge matches unchunked",48,0,FALSE,FALSE,0,0.701999999999998,0.0209999999999999,0.783000000000015,48
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit validates scaled ridge inputs",7,0,FALSE,FALSE,0,0.19599999999997,0,0.196000000000026,7
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit RHS-family priors are finite approximate VB fits",23,0,FALSE,FALSE,0,0.971000000000004,0.00499999999999989,1.04099999999994,23
+"test-qdesn-normal.R","qdesn-normal","Normal DESN posterior draws and predictions are reproducible",5,0,FALSE,FALSE,0,0.172000000000025,0,0.182999999999993,5
+"test-qdesn-normal.R","qdesn-normal","qdesn_fit_normal reuses Q-DESN design construction and returns Normal class",9,0,FALSE,FALSE,0,1.66399999999999,0.0449999999999999,1.8370000000001,9
+"test-qdesn-normal.R","qdesn-normal","qdesn_fit_normal forwards exact chunking to scaled-ridge readout",9,0,FALSE,FALSE,0,0.271000000000015,0,0.322000000000003,9
+"test-qdesn-normal.R","qdesn-normal","qdesn_fit_normal supports RHS-family approximate readouts",6,0,FALSE,FALSE,0,0.144000000000005,0.00800000000000001,0.183999999999969,6
+"test-qdesn-normal.R","qdesn-normal","forecast_paths.qdesn_normal_fit produces reproducible recursive paths",9,0,FALSE,FALSE,0,2.18899999999996,0.0390000000000006,2.26799999999992,9
+"test-qdesn-normal.R","qdesn-normal","forecast_paths.qdesn_normal_fit fails early for unsupported settings",2,0,FALSE,FALSE,0,0.0789999999999509,0,0.139999999999986,2
+"test-qdesn-normal.R","qdesn-normal","qdesn_normal_to_vb_init carries beta moments and metadata",7,0,FALSE,FALSE,0,0.204000000000008,0,0.240000000000009,7
+"test-qdesn-normal.R","qdesn-normal","Normal DESN initializers seed AL/exAL VB and MCMC contracts",8,0,FALSE,FALSE,0,0.180000000000007,0.00999999999999979,0.302999999999997,8
+"test-qdesn-pipeline-entrypoints.R","qdesn-pipeline-entrypoints","Q-DESN compatibility pipeline entrypoints are present",15,0,FALSE,FALSE,0,0.336999999999989,0.0469999999999997,0.384000000000015,15
+"test-qdesn-pipeline-entrypoints.R","qdesn-pipeline-entrypoints","run_esn_pipeline_from_cfg chooses entrypoint by pipeline mode",2,0,FALSE,TRUE,0,0.0600000000000023,0,0.0720000000000027,2
+"test-qdesn-pipeline-entrypoints.R","qdesn-pipeline-entrypoints","run_esn_pipeline_from_cfg can stream child output for validation diagnostics",0,0,FALSE,TRUE,0,0.0260000000000105,0.00400000000000045,0.0350000000000819,0
+"test-qdesn-precision-beta-validation-export.R","qdesn-precision-beta-validation-export","failure health rows persist precision-beta failure summaries without a fit object",8,0,FALSE,FALSE,0,0.15300000000002,0.00800000000000001,0.159999999999968,8
+"test-qdesn-precision-beta-validation-export.R","qdesn-precision-beta-validation-export","error payload parser recovers precision-beta failure marker from pipeline logs",4,0,FALSE,FALSE,0,0.0570000000000164,0,0.0569999999999027,4
+"test-qdesn-prior-defaults.R","qdesn-prior-defaults","Q-DESN RHS-family constructors enforce shrink_intercept = FALSE",4,0,FALSE,FALSE,0,0.0790000000000077,0,0.0790000000000646,4
+"test-qdesn-prior-defaults.R","qdesn-prior-defaults","inference resolver defaults beta prior to rhs_ns and enforces intercept policy",5,0,FALSE,FALSE,0,0.307000000000016,0.00199999999999978,0.310000000000059,5
+"test-qdesn-prior-defaults.R","qdesn-prior-defaults","qdesn_fit defaults to rhs_ns prior in VB and MCMC paths",4,0,FALSE,FALSE,0,5.59199999999998,0.0620000000000003,5.57799999999997,4
+"test-qdesn-prior-defaults.R","qdesn-prior-defaults","rhs_ns beta prior object honors VB tau warmup before the first forced update",13,0,FALSE,FALSE,0,0.822999999999979,0.024,0.847999999999956,13
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","exact-fan-in reservoirs honor row degree and input normalization",11,0,FALSE,FALSE,0,0.295000000000016,0.00100000000000033,0.295000000000073,11
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","spectral normalization preserves the failed 300-unit fan-in case",5,0,FALSE,FALSE,0,2.18799999999999,0.0999999999999996,2.28800000000001,5
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","large approximate spectral radii require a verified eigenpair",3,0,FALSE,FALSE,0,0.45999999999998,0.00499999999999989,0.465000000000032,3
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","Normal recursive forecasts accept an explicit teacher-forced origin state",2,0,FALSE,FALSE,0,0.275000000000034,0.0220000000000002,0.333000000000084,2
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","Woodbury Normal-RHS moments match the full covariance solver",4,0,FALSE,FALSE,0,0.63900000000001,0.0199999999999996,0.724000000000046,4
+"test-qdesn-rhs-drift-rescue-wave-config.R","qdesn-rhs-drift-rescue-wave-config","rhs drift rescue wave config has required staged structure",23,0,FALSE,FALSE,0,0.411000000000001,0.0140000000000002,0.433000000000106,23
+"test-qdesn-rhs-mcmc-repair.R","qdesn-rhs-mcmc-repair","RHS MCMC repair resolver materializes A1 correctly",11,0,FALSE,FALSE,0,0.141999999999996,0.00600000000000023,0.176999999999907,11
+"test-qdesn-rhs-mcmc-repair.R","qdesn-rhs-mcmc-repair","RHS MCMC repair resolver rejects placeholder experiments",2,0,FALSE,FALSE,0,0.149000000000001,0.00499999999999989,0.162000000000035,2
+"test-qdesn-rhs-mcmc-repair.R","qdesn-rhs-mcmc-repair","RHS MCMC repair resolver accepts Stage C override inputs",4,0,FALSE,FALSE,0,0.0550000000000068,0.00100000000000033,0.0670000000000073,4
+"test-qdesn-rhs-mcmc-repair.R","qdesn-rhs-mcmc-repair","RHS MCMC repair ranking prioritizes eligibility then stability",2,0,FALSE,FALSE,0,0.0500000000000114,0,0.0499999999999545,2
+"test-qdesn-rhs-mcmc-repair.R","qdesn-rhs-mcmc-repair","RHS MCMC repair resolver materializes structural blocked tau/c2 experiment",6,0,FALSE,FALSE,0,0.101999999999975,0,0.114000000000033,6
+"test-qdesn-rhs-stageg-stageh-config.R","qdesn-rhs-stageg-stageh-config","rhs Stage-G/H manifest and profile matrix are well formed",28,0,FALSE,FALSE,0,0.348000000000013,0.00199999999999978,0.358999999999924,28
+"test-qdesn-rhs-stageg-stageh-gates.R","qdesn-rhs-stageg-stageh-gates","Stage-G gate evaluation is vectorized across profiles",5,0,FALSE,FALSE,0,0.107000000000028,0,0.107000000000085,5
+"test-qdesn-rhs-stageg-stageh-gates.R","qdesn-rhs-stageg-stageh-gates","Stage-G gate toggles behave correctly when constraints are disabled",2,0,FALSE,FALSE,0,0.173000000000002,0,0.173000000000002,2
+"test-qdesn-rhs-stagei-gates.R","qdesn-rhs-stagei-gates","Stage-I gate marks strict pass only for healthy fully eligible profiles",1,0,FALSE,FALSE,0,0.0190000000000055,0,0.0190000000000055,1
+"test-qdesn-rhs-stagei-gates.R","qdesn-rhs-stagei-gates","Stage-I improvement gate requires better Geweke and half-drift than baseline",2,0,FALSE,FALSE,0,0.156999999999982,0,0.157000000000039,2
+"test-qdesn-rhs-stagei-phase1-phase2-config.R","qdesn-rhs-stagei-phase1-phase2-config","Stage-I manifest and profile configs are well formed",26,0,FALSE,FALSE,0,0.319000000000017,0,0.343000000000075,26
+"test-qdesn-rhs-stagejk-config.R","qdesn-rhs-stagejk-config","Stage-J/K/L/M manifest and profiles are well formed",27,0,FALSE,FALSE,0,0.390999999999963,0.0369999999999999,0.440000000000055,27
+"test-qdesn-rhs-stagejk-gates.R","qdesn-rhs-stagejk-gates","Stage-J/K strict gate passes only when all strict constraints hold",3,0,FALSE,FALSE,0,0.0339999999999918,0,0.0330000000000155,3
+"test-qdesn-rhs-stagejk-gates.R","qdesn-rhs-stagejk-gates","Stage-J/K strict gate catches fail, ineligible, and trace-unavailable",4,0,FALSE,FALSE,0,0.0769999999999982,0.0129999999999999,0.0910000000000082,4
+"test-qdesn-rhs-stagem-healthcheck-script.R","qdesn-rhs-stagem-healthcheck-script","Stage-M healthcheck script exists",4,0,FALSE,FALSE,0,0.0489999999999782,0.00399999999999956,0.0649999999999409,4
+"test-qdesn-rhs-stagem-repair-config.R","qdesn-rhs-stagem-repair-config","Stage-M repair manifest and profile matrix are well formed",30,0,FALSE,FALSE,0,0.283000000000015,0.0220000000000002,0.316000000000031,30
+"test-qdesn-rhs-stagem-repair-supervisor-script.R","qdesn-rhs-stagem-repair-supervisor-script","Stage-M repair supervisor script exists and exposes key controls",5,0,FALSE,FALSE,0,0.0389999999999873,0.00800000000000001,0.0790000000000646,5
+"test-qdesn-rhs-stagen-config.R","qdesn-rhs-stagen-config","Stage-N manifest, blocker grid, profiles, and runner are well formed",27,0,FALSE,FALSE,0,0.210000000000036,0,0.224000000000046,27
+"test-qdesn-rhs-stagen-healthcheck-script.R","qdesn-rhs-stagen-healthcheck-script","Stage-N healthcheck script exists",4,0,FALSE,FALSE,0,0.0330000000000155,0,0.0410000000000537,4
+"test-qdesn-rhs-stageo-config.R","qdesn-rhs-stageo-config","Stage-O manifest, grids, profiles, and runner are well formed",39,0,FALSE,FALSE,0,0.281000000000006,0.00499999999999989,0.308999999999969,39
+"test-qdesn-rhs-stageo-healthcheck-script.R","qdesn-rhs-stageo-healthcheck-script","Stage-O healthcheck script exists",5,0,FALSE,FALSE,0,0.0430000000000064,0,0.0539999999999736,5
+"test-qdesn-rolling-origin-scale-repair.R","qdesn-rolling-origin-scale-repair","Q-DESN rolling-origin scale repair writes corrected artifacts non-destructively",3,2,FALSE,TRUE,1,0.0849999999999795,0.00700000000000056,1.73400000000004,0
+"test-qdesn-sigmagam-warmup-validation-export.R","qdesn-sigmagam-warmup-validation-export","VB validation export carries sigmagam warmup trace columns and health fields",15,0,FALSE,FALSE,0,1.48100000000005,0,1.4860000000001,15
+"test-qdesn-sigmagam-warmup-validation-export.R","qdesn-sigmagam-warmup-validation-export","MCMC validation health carries sigmagam warmup summaries",15,0,FALSE,FALSE,0,0.246000000000038,0,0.246999999999957,15
+"test-qdesn-sigmagam-warmup-validation-export.R","qdesn-sigmagam-warmup-validation-export","MCMC validation export carries latent-s warmup summaries and trace columns",18,0,FALSE,FALSE,0,0.355000000000018,0,0.355000000000018,18
+"test-qdesn-sigmagam-warmup-validation-export.R","qdesn-sigmagam-warmup-validation-export","MCMC validation export carries theta warmup summaries and trace columns",18,0,FALSE,FALSE,0,0.242999999999995,0,0.244000000000028,18
+"test-qdesn-static-crossstudy-collector.R","qdesn-static-crossstudy-collector","crossstudy collector skips placeholder and zero-byte root tables",3,0,FALSE,FALSE,0,0.0649999999999977,0,0.0649999999999409,3
+"test-qdesn-static-crossstudy-collector.R","qdesn-static-crossstudy-collector","crossstudy collector returns empty data frame for placeholder-only tables",3,0,FALSE,FALSE,0,0.0380000000000109,0,0.0380000000000109,3
+"test-qdesn-train-only-preprocessing.R","qdesn-train-only-preprocessing","Q-DESN preprocessing is invariant to held-out response and covariate values",11,0,FALSE,FALSE,0,0.182999999999993,0,0.182999999999993,11
+"test-qdesn-train-only-preprocessing.R","qdesn-train-only-preprocessing","model-selection real bundles use the same train-only transform",8,0,FALSE,FALSE,0,0.716999999999985,0.124,0.91700000000003,8
+"test-qdesn-train-only-preprocessing.R","qdesn-train-only-preprocessing","production real pipeline resolves the split before train-only preprocessing",6,0,FALSE,FALSE,0,0.0889999999999986,0,0.102999999999952,6
+"test-qdesn-train-only-preprocessing.R","qdesn-train-only-preprocessing","compact pipeline summaries retain train-only preprocessing provenance",7,0,FALSE,FALSE,0,0.174000000000035,0.00500000000000078,0.17999999999995,7
+"test-qdesn-train-only-rebaseline-v1.R","qdesn-train-only-rebaseline-v1","train-only rebaseline freezes every current metric-source design",28,2,FALSE,FALSE,0,0.297999999999945,0.00399999999999956,0.302999999999997,26
+"test-qdesn-train-only-rebaseline-v1.R","qdesn-train-only-rebaseline-v1","train-only rebaseline preserves source, budget, and storage contracts",29,0,FALSE,FALSE,0,0.286999999999978,0,0.286000000000058,29
+"test-qdesn-train-only-rebaseline-v1.R","qdesn-train-only-rebaseline-v1","train-only rebaseline lifecycle is staged and parseable",25,0,FALSE,FALSE,0,0.102999999999952,0.00300000000000011,0.105999999999995,25
+"test-qdesn-train-only-rebaseline-v1.R","qdesn-train-only-rebaseline-v1","active train-only assets contain no stale home paths or binaries",2,0,FALSE,FALSE,0,0.0159999999999627,0.0220000000000002,0.0380000000000109,2
+"test-qdesn-trainonly-article-handoff-v1.R","qdesn-trainonly-article-handoff-v1","train-only article handoff scripts encode the frozen contract",9,0,FALSE,FALSE,0,0.0430000000000064,0.00499999999999901,0.0470000000000255,9
+"test-qdesn-tt500-mcmc-al-rhs-recalibrated-handoff.R","qdesn-tt500-mcmc-al-rhs-recalibrated-handoff","TT500 MCMC AL RHS recalibrated handoff is article-compatible and pinned",48,0,FALSE,TRUE,0,0.495000000000005,0.0170000000000012,0.56899999999996,48
+"test-qdesn-tt500-mcmc-al-rhs-recalibration.R","qdesn-tt500-mcmc-al-rhs-recalibration","TT500 MCMC AL RHS recalibration config bundle is narrow and article-facing",28,0,FALSE,FALSE,0,0.395000000000039,0.0239999999999991,0.479000000000042,28
+"test-qdesn-tt500-mcmc-al-rhs-recalibration.R","qdesn-tt500-mcmc-al-rhs-recalibration","TT500 MCMC AL RHS recalibration roots exactly match recalibrated VB winners",5,0,FALSE,FALSE,0,0.0710000000000264,0,0.08400000000006,5
+"test-qdesn-tt500-mcmc-al-rhs-recalibration.R","qdesn-tt500-mcmc-al-rhs-recalibration","TT500 MCMC AL RHS audit resolves mcmc_al artifact directories",4,0,FALSE,FALSE,0,0.0590000000000259,0.0120000000000005,0.0720000000000027,4
+"test-qdesn-tt500-mcmc-vb-candidate-full-confirmation.R","qdesn-tt500-mcmc-vb-candidate-full-confirmation","TT500 MCMC VB-candidate full confirmation materialization is scoped and MCMC-ready",41,0,FALSE,FALSE,0,0.420000000000016,0.00399999999999956,0.490000000000009,41
+"test-qdesn-tt500-mcmc-vb-winner-confirmation.R","qdesn-tt500-mcmc-vb-winner-confirmation","TT500 MCMC VB-winner confirmation config bundle is frozen and narrow",24,0,FALSE,FALSE,0,0.23599999999999,0.00699999999999967,0.331000000000017,24
+"test-qdesn-tt500-mcmc-vb-winner-confirmation.R","qdesn-tt500-mcmc-vb-winner-confirmation","TT500 MCMC VB-winner confirmation uses the promoted per-cell profile set",6,0,FALSE,FALSE,0,0.0550000000000068,0,0.0660000000000309,6
+"test-qdesn-tt500-mcmc-vb-winner-confirmation.R","qdesn-tt500-mcmc-vb-winner-confirmation","TT500 MCMC audit resolves mcmc_exal artifact directories",4,0,FALSE,FALSE,0,0.333000000000027,0.00499999999999901,0.336999999999989,4
+"test-qdesn-tt500-mcmc-vb-winner-confirmation.R","qdesn-tt500-mcmc-vb-winner-confirmation","TT500 split alignment scores effective train rows while preserving context rows",5,0,FALSE,FALSE,0,0.144000000000005,0,0.144000000000005,5
+"test-qdesn-tt500-vb-adaptive-screening.R","qdesn-tt500-vb-adaptive-screening","adaptive Q-DESN screening profiles are compact and deterministic",12,0,FALSE,FALSE,0,0.41500000000002,0,0.416000000000054,12
+"test-qdesn-tt500-vb-adaptive-screening.R","qdesn-tt500-vb-adaptive-screening","adaptive checked-in configs have expected root counts",6,0,FALSE,FALSE,0,0.120999999999981,0.0139999999999993,0.144000000000005,6
+"test-qdesn-tt500-vb-adaptive-screening.R","qdesn-tt500-vb-adaptive-screening","cached materialized source inventory is filtered by stage defaults",0,0,FALSE,TRUE,0,0.0190000000000055,0,0.0270000000000437,0
+"test-qdesn-tt500-vb-adaptive-screening.R","qdesn-tt500-vb-adaptive-screening","screen ranking uses lead metrics instead of missing campaign forecast scalars",7,0,FALSE,FALSE,0,0.239999999999952,0.00900000000000034,0.249000000000024,7
+"test-qdesn-tt500-vb-break-surface-redesign.R","qdesn-tt500-vb-break-surface-redesign","break-surface redesign scripts are launch-inert by construction",8,0,FALSE,FALSE,0,0.0849999999999795,0,0.0850000000000364,8
+"test-qdesn-tt500-vb-break-surface-redesign.R","qdesn-tt500-vb-break-surface-redesign","break-surface materialized bundles carry required metadata when present",15,0,FALSE,FALSE,0,0.137,0.016,0.15300000000002,15
+"test-qdesn-tt500-vb-dominance-followup.R","qdesn-tt500-vb-dominance-followup","dominance campaign audit handles partial live campaigns and strict terminal campaigns",13,0,FALSE,FALSE,0,0.243999999999971,0.00200000000000067,0.246999999999957,13
+"test-qdesn-tt500-vb-dominance-followup.R","qdesn-tt500-vb-dominance-followup","dominance ranking materializes follow-up profiles and refuses empty dominance-pass filters",4,0,FALSE,FALSE,0,0.112000000000023,0,0.111999999999966,4
+"test-qdesn-tt500-vb-dominance-followup.R","qdesn-tt500-vb-dominance-followup","profile freezer and follow-up materializer write reproducible config stubs",8,0,FALSE,FALSE,0,0.0989999999999895,0.0169999999999995,0.125,8
+"test-qdesn-tt500-vb-dominance-followup.R","qdesn-tt500-vb-dominance-followup","RHS trace cleanup is dry-run safe and requires compact summary",8,0,FALSE,FALSE,0,0.0709999999999695,0.016,0.0869999999999891,8
+"test-qdesn-tt500-vb-dominance-screening.R","qdesn-tt500-vb-dominance-screening","dominance screening profiles are period-90 compact and unique",12,0,FALSE,FALSE,0,0.300000000000011,0,0.301000000000045,12
+"test-qdesn-tt500-vb-dominance-screening.R","qdesn-tt500-vb-dominance-screening","deterministic period-90 feature staging is future-known and named",4,0,FALSE,FALSE,0,0.0319999999999823,0,0.0320000000000391,4
+"test-qdesn-tt500-vb-dominance-screening.R","qdesn-tt500-vb-dominance-screening","explicit x lag zero is passed to the pipeline config",0,0,FALSE,TRUE,0,0.0149999999999864,0,0.01400000000001,0
+"test-qdesn-tt500-vb-dominance-screening.R","qdesn-tt500-vb-dominance-screening","dominance ranker compares Q-DESN cells with best VB baseline",4,0,FALSE,FALSE,0,0.976999999999975,0.0109999999999992,0.987999999999943,4
+"test-qdesn-tt500-vb-forecast-targeted-screen.R","qdesn-tt500-vb-forecast-targeted-screen","extended TT500 VB profile identifiers parse complete DESN metadata",7,0,FALSE,FALSE,0,0.132999999999981,0,0.133000000000038,7
+"test-qdesn-tt500-vb-forecast-targeted-screen.R","qdesn-tt500-vb-forecast-targeted-screen","forecast-targeted planner is cell-specific, bounded, and sentinel-aware",11,0,FALSE,FALSE,0,17.322,0.0969999999999995,17.6700000000001,11
+"test-qdesn-tt500-vb-forecast-targeted-screen.R","qdesn-tt500-vb-forecast-targeted-screen","forecast-targeted materializer writes reproducible config bundle",11,0,FALSE,FALSE,0,10.756,0,10.777,11
+"test-qdesn-tt500-vb-forecast-targeted-screen.R","qdesn-tt500-vb-forecast-targeted-screen","dominance ranker fills extended profile metadata from identifiers",7,0,FALSE,FALSE,0,0.444999999999993,0,0.444999999999936,7
+"test-qdesn-tt500-vb-hardcell-forecast-refinement.R","qdesn-tt500-vb-hardcell-forecast-refinement","hard-cell forecast refinement profiles are compact, bounded, and source-contract aware",9,0,FALSE,FALSE,0,0.978000000000009,0,0.979000000000042,9
+"test-qdesn-tt500-vb-hardcell-forecast-refinement.R","qdesn-tt500-vb-hardcell-forecast-refinement","hard-cell forecast refinement materializes its own stage namespace",6,0,FALSE,FALSE,0,0.183999999999969,0,0.201000000000022,6
+"test-qdesn-tt500-vb-mechanism-first-redesign.R","qdesn-tt500-vb-mechanism-first-redesign","Q-DESN mechanism-first launch scripts are staged and guarded",7,0,FALSE,FALSE,0,0.0550000000000068,0,0.0610000000000355,7
+"test-qdesn-tt500-vb-mechanism-first-redesign.R","qdesn-tt500-vb-mechanism-first-redesign","Q-DESN mechanism-first materialized bundles are VB-only and exact-spec scoped when present",6,3,FALSE,TRUE,1,0.206000000000017,0,0.218999999999937,2
+"test-qdesn-tt500-vb-mechanism-first-redesign.R","qdesn-tt500-vb-mechanism-first-redesign","Q-DESN mechanism-first decomposition bundles activate a different input mechanism",1,0,FALSE,TRUE,1,0.0240000000000009,0,0.0369999999999209,0
+"test-qdesn-tt500-vb-mechanism-first-redesign.R","qdesn-tt500-vb-mechanism-first-redesign","Q-DESN mechanism-first opt-in passes the real validation pipeline builder",0,0,FALSE,TRUE,0,3.99700000000001,0.271000000000001,4.31100000000004,0
+"test-qdesn-tt500-vb-mechanism-first-redesign.R","qdesn-tt500-vb-mechanism-first-redesign","Q-DESN mechanism-first DLM input remains an explicit opt-in",0,0,FALSE,TRUE,0,3.935,0.416,4.36099999999999,0
+"test-qdesn-tt500-vb-mechanism-first-redesign.R","qdesn-tt500-vb-mechanism-first-redesign","Q-DESN mechanism-first short-path bundles stay below robust path limits",5,0,FALSE,TRUE,1,0.0670000000000073,0,0.0760000000000218,4
+"test-qdesn-tt500-vb-rhs-fitfirst-followup.R","qdesn-tt500-vb-rhs-fitfirst-followup","RHS fit-first diagnostics classify rescue as diagnostic, not promotable",8,0,FALSE,FALSE,0,0.584000000000003,0.420999999999999,1.04100000000005,8
+"test-qdesn-tt500-vb-rhs-fitfirst-followup.R","qdesn-tt500-vb-rhs-fitfirst-followup","RHS fit-first follow-up planner is compact, bounded, and launch-gated by design",8,0,FALSE,FALSE,0,53.939,0.935,55.2329999999999,8
+"test-qdesn-tt500-vb-rhs-fitfirst-followup.R","qdesn-tt500-vb-rhs-fitfirst-followup","RHS fit-first follow-up materializes a separate non-authoritative config bundle",7,0,FALSE,FALSE,0,55.021,0.183,55.4299999999999,7
+"test-qdesn-tt500-vb-rhs-fitforecast-rescue.R","qdesn-tt500-vb-rhs-fitforecast-rescue","RHS fit+forecast rescue planner is bounded, cell-specific, and avoids failed shrinkage surface",10,0,FALSE,FALSE,0,21.3240000000001,0,21.4059999999999,10
+"test-qdesn-tt500-vb-rhs-fitforecast-rescue.R","qdesn-tt500-vb-rhs-fitforecast-rescue","RHS fit+forecast rescue materializes an isolated non-authoritative config bundle",7,0,FALSE,FALSE,0,31.332,0,31.4290000000001,7
+"test-qdesn-tt500-vb-stage3-forecast-bias-rescue.R","qdesn-tt500-vb-stage3-forecast-bias-rescue","Stage 3 forecast-bias planner targets only cells without a primary-dominating Q-DESN profile",8,0,FALSE,FALSE,0,21.9739999999999,0.0549999999999997,22.042,8
+"test-qdesn-tt500-vb-stage3-forecast-bias-rescue.R","qdesn-tt500-vb-stage3-forecast-bias-rescue","Stage 3 materializer writes isolated storage-light config bundle",7,0,FALSE,FALSE,0,15.708,0,16.322,7
+"test-qdesn-tt500-vb-stage4-transfer.R","qdesn-tt500-vb-stage4-transfer","Stage 4A transfer planner targets unresolved Article TT500 VB cells only",7,0,FALSE,FALSE,0,0.218999999999937,0,0.227000000000089,7
+"test-qdesn-tt500-vb-stage4-transfer.R","qdesn-tt500-vb-stage4-transfer","Stage 4A transfer materializer writes isolated cell-specific config bundle",6,0,FALSE,FALSE,0,0.771999999999935,0,0.79200000000003,6
+"test-qdesn-tt500-vb-stage4-transfer.R","qdesn-tt500-vb-stage4-transfer","Forecast-targeted materializer can freeze ridge priors without changing default RHS-NS behavior",4,0,FALSE,FALSE,0,0.222999999999956,0,0.242999999999938,4
+"test-qdesn-tt500-vb-targeted-refinement.R","qdesn-tt500-vb-targeted-refinement","dominance diagnostics are cell-aware and preserve top profiles",16,0,FALSE,FALSE,11,1.24299999999994,0.0120000000000005,1.25400000000002,5
+"test-qdesn-tt500-vb-targeted-refinement.R","qdesn-tt500-vb-targeted-refinement","targeted refinement profiles are bounded, unique, and source-cell tagged",16,0,FALSE,FALSE,10,2.86199999999997,0,2.86299999999994,6
+"test-qdesn-tt500-vb-targeted-refinement.R","qdesn-tt500-vb-targeted-refinement","targeted refinement materializes reproducible follow-up configs",6,0,FALSE,FALSE,0,0.0720000000000027,0,0.0789999999999509,6
+"test-qdesn-validation-campaign-workers-static.R","qdesn-validation-campaign-workers-static","qdesn_validation_run_campaign exposes worker control",5,0,FALSE,FALSE,0,0.0720000000000027,0,0.0819999999999936,5
+"test-qdesn-validation-group-summary-robustness.R","qdesn-validation-group-summary-robustness","group method summary handles missing numeric columns without merge failure",5,0,FALSE,FALSE,0,0.0660000000000309,0,0.0649999999999409,5
+"test-qdesn-validation-group-summary-robustness.R","qdesn-validation-group-summary-robustness","group pair summary handles missing numeric columns without merge failure",5,0,FALSE,FALSE,0,0.0729999999999791,0.00199999999999889,0.0749999999999318,5
+"test-qdesn-validation-group-summary-robustness.R","qdesn-validation-group-summary-robustness","tau-set method summary labels complete healthy packs",6,0,FALSE,FALSE,0,0.0779999999999745,0.00900000000000034,0.0879999999999654,6
+"test-qdesn-validation-group-summary-robustness.R","qdesn-validation-group-summary-robustness","tau-set pair summary flags incomplete packs when one method misses tau",4,0,FALSE,FALSE,0,0.274999999999977,0,0.274999999999977,4
+"test-qdesn-validation-runtime-guard.R","qdesn-validation-runtime-guard","runtime guard records R 4.6 launch metadata",0,0,FALSE,TRUE,0,0.0670000000000073,0,0.0929999999999609,0
+"test-qdesn-validation-runtime-guard.R","qdesn-validation-runtime-guard","runtime guard fails fast for impossible minimum version",1,0,FALSE,FALSE,0,0.11099999999999,0.0080000000000009,0.16700000000003,1
+"test-qdesn-validation-runtime-guard.R","qdesn-validation-runtime-guard","file manifest records hashes for existing files",5,0,FALSE,FALSE,0,0.0610000000000355,0.00199999999999889,0.08400000000006,5
+"test-qdesn-vb-batching-modes.R","qdesn-vb-batching-modes","qdesn_fit_vb routes stochastic AL chunking through the static readout engine",12,0,FALSE,FALSE,0,20.294,0.0750000000000011,20.403,12
+"test-qdesn-vb-batching-modes.R","qdesn-vb-batching-modes","qdesn_fit_vb stochastic AL is approximate but close on tiny smooth data",4,0,FALSE,FALSE,0,1.6099999999999,0.0269999999999992,1.65000000000009,4
+"test-qdesn-vb-batching-modes.R","qdesn-vb-batching-modes","qdesn_fit_vb routes hybrid AL and full-refresh hybrid matches exact",7,0,FALSE,FALSE,0,1.07799999999997,0.00500000000000078,1.09199999999998,7
+"test-qdesn-vb-batching-modes.R","qdesn-vb-batching-modes","qdesn_fit_vb rejects stochastic exAL while preserving exact exAL",4,0,FALSE,FALSE,0,4.50800000000004,0.0199999999999996,4.54200000000003,4
+"test-qdesn-vb-batching-modes.R","qdesn-vb-batching-modes","qdesn_fit_vb routes hybrid exAL with full-refresh recovery",6,2,FALSE,FALSE,0,9.11399999999992,0.0080000000000009,9.12900000000002,4
+"test-qdesn-vb-batching-modes.R","qdesn-vb-batching-modes","qdesn_fit_vb routes hybrid exAL RHS_NS with full-refresh recovery",9,1,FALSE,FALSE,0,7.29500000000007,0.0339999999999989,7.34300000000007,8
+"test-qdesn-vb-likelihood-family.R","qdesn-vb-likelihood-family","qdesn_fit_vb preserves default exAL readout routing",2,0,FALSE,FALSE,0,0.90300000000002,0,0.90300000000002,2
+"test-qdesn-vb-likelihood-family.R","qdesn-vb-likelihood-family","qdesn_fit_vb forwards explicit AL likelihood controls",4,0,FALSE,FALSE,0,0.09699999999998,0,0.09800000000007,4
+"test-qdesn-vb-likelihood-family.R","qdesn-vb-likelihood-family","qdesn_fit_vb forwards exact chunking controls",6,0,FALSE,FALSE,0,0.259999999999991,0.00399999999999956,0.26400000000001,6
+"test-qdesn-vb-online-wrapper.R","qdesn-vb-online-wrapper","one-batch online wrapper equals ordinary AL ridge Q-DESN fit",9,0,FALSE,FALSE,0,0.316000000000031,0.00600000000000023,0.368000000000052,9
+"test-qdesn-vb-online-wrapper.R","qdesn-vb-online-wrapper","two-batch online wrapper uses posterior-as-prior handoff metadata",13,0,FALSE,FALSE,0,1.03599999999994,0.020999999999999,1.14800000000002,13
+"test-qdesn-vb-online-wrapper.R","qdesn-vb-online-wrapper","exact chunked online wrapper matches unchunked online wrapper",8,0,FALSE,FALSE,0,0.562999999999988,0.0150000000000006,0.748000000000047,8
+"test-qdesn-vb-online-wrapper.R","qdesn-vb-online-wrapper","online wrapper fails early for unsupported target handoffs",7,0,FALSE,FALSE,0,0.0800000000000409,0.00199999999999889,0.0819999999999936,7
+"test-qdesn-vb-posterior-as-prior.R","qdesn-vb-posterior-as-prior","posterior-as-prior records Gaussian natural handoff metadata",10,0,FALSE,FALSE,0,0.150999999999954,0.0140000000000011,0.216000000000008,10
+"test-qdesn-vb-posterior-as-prior.R","qdesn-vb-posterior-as-prior","posterior-as-prior exact chunking matches unchunked handoff target",8,0,FALSE,FALSE,0,0.802000000000021,0.00900000000000034,0.951999999999998,8
+"test-qdesn-vb-posterior-as-prior.R","qdesn-vb-posterior-as-prior","posterior-as-prior forbids diagonal covariance until validated",1,0,FALSE,FALSE,0,0.01400000000001,0,0.0130000000000337,1
+"test-qdesn-vb-rolling-window.R","qdesn-vb-rolling-window","qdesn_vb_fit_rolling fits independent rolling windows without future leakage",15,0,FALSE,FALSE,0,0.287000000000035,0.00399999999999956,0.299999999999955,15
+"test-qdesn-vb-rolling-window.R","qdesn-vb-rolling-window","qdesn_vb_fit_rolling supports expanding windows",5,0,FALSE,FALSE,0,0.206999999999994,0,0.218999999999937,5
+"test-qdesn-vb-rolling-window.R","qdesn-vb-rolling-window","qdesn_vb_fit_rolling exact chunking matches unchunked per window",7,0,FALSE,FALSE,0,0.446000000000026,0.00999999999999979,0.474999999999909,7
+"test-qdesn-vb-rolling-window.R","qdesn-vb-rolling-window","qdesn_vb_fit_rolling supports AL ridge posterior-as-prior handoff",17,0,FALSE,FALSE,0,0.627000000000066,0.00799999999999912,0.762000000000057,17
+"test-qdesn-vb-rolling-window.R","qdesn-vb-rolling-window","posterior-as-prior exact chunking matches unchunked per handoff target",8,0,FALSE,FALSE,0,0.535000000000082,0.00600000000000023,0.63900000000001,8
+"test-qdesn-vb-rolling-window.R","qdesn-vb-rolling-window","posterior-as-prior supports expanding AL ridge origin sequences",7,0,FALSE,FALSE,0,1.10300000000007,0.0340000000000007,1.24000000000001,7
+"test-qdesn-vb-rolling-window.R","qdesn-vb-rolling-window","qdesn_vb_fit_rolling fails early for gated target handoffs and modes",6,0,FALSE,FALSE,0,0.102999999999952,0,0.102999999999952,6
+"test-qdesn-vb-simplification-ladder.R","qdesn-vb-simplification-ladder","Q-DESN VB simplification ladder writes gated comparison outputs",34,3,FALSE,FALSE,1,0.564000000000078,0.00699999999999967,84.888,30
+"test-qdesn-vb-train-only-rebaseline-v1.R","qdesn-vb-train-only-rebaseline-v1","VB train-only rebaseline is an exact 18-cell replay",21,1,FALSE,FALSE,0,0.319999999999936,0,0.32000000000005,20
+"test-qdesn-vb-train-only-rebaseline-v1.R","qdesn-vb-train-only-rebaseline-v1","VB train-only rebaseline freezes source, preprocessing, and storage contracts",22,0,FALSE,FALSE,0,0.214999999999918,0.00999999999999979,0.225000000000023,22
+"test-qdesn-vb-train-only-rebaseline-v1.R","qdesn-vb-train-only-rebaseline-v1","VB train-only lifecycle scripts are staged and parseable",14,0,FALSE,FALSE,0,0.09800000000007,0.0080000000000009,0.105999999999995,14
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","qdesn_vb_make_warm_start records state and validates dimensions",17,0,FALSE,FALSE,0,0.283000000000015,0.00199999999999889,0.283999999999992,17
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","Q-DESN warm start routes to the same init as explicit engine init",5,0,FALSE,FALSE,0,0.67999999999995,0.0140000000000011,0.72199999999998,5
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","warm-started exact chunking remains equivalent to warm-started unchunked AL",4,0,FALSE,FALSE,0,0.406999999999925,0,0.424999999999955,4
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","Q-DESN warm starts support exAL and RHS_NS finite states",9,0,FALSE,FALSE,0,1.90800000000002,0.000999999999999446,1.94600000000003,9
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","Q-DESN warm starts fail early on mismatches and stochastic mode",4,0,FALSE,FALSE,0,0.283000000000015,0.00399999999999956,0.300000000000068,4
+"test-quantile-synthesis.R","quantile-synthesis","synthesis handles draw orientation consistently",4,0,FALSE,FALSE,0,0.106999999999971,0,0.107000000000085,4
+"test-quantile-synthesis.R","quantile-synthesis","synthesis smoke output is finite and monotone over levels",3,0,FALSE,FALSE,0,0.0660000000000309,0,0.0670000000000073,3
+"test-quantile-synthesis.R","quantile-synthesis","synthesis accepts dynamic fit objects and forecast objects",6,0,FALSE,FALSE,0,0.0899999999999181,0.00399999999999956,0.0950000000000273,6
+"test-quantile-synthesis.R","quantile-synthesis","synthesis errors clearly when forecast draws are missing",1,0,FALSE,FALSE,0,0.0230000000000246,0,0.0230000000000246,1
+"test-quantile-synthesis.R","quantile-synthesis","synthesis print, summary, and plot methods are usable",9,0,FALSE,FALSE,0,0.254000000000019,0.00600000000000023,0.262000000000057,9
+"test-readout-linear-transform.R","readout-linear-transform","reservoir orthogonalization is train-fitted and forecast-consistent",5,0,FALSE,FALSE,0,0.0819999999999936,0,0.0819999999999936,5
+"test-readout-linear-transform.R","readout-linear-transform","SVD orthogonalization has a stable reusable reduced schema",4,0,FALSE,FALSE,0,0.395000000000095,0,0.395999999999958,4
+"test-readout-linear-transform.R","readout-linear-transform","readout transforms reject schema drift",1,0,FALSE,FALSE,0,0.0309999999999491,0,0.0300000000000864,1
+"test-rng-repeatability.R","rng-repeatability","compiled stochastic helpers obey the R seed",4,0,FALSE,FALSE,0,0.0579999999999927,0,0.0579999999999927,4
+"test-rng-repeatability.R","rng-repeatability","dynamic MCMC fast path is repeatable under a fixed seed",5,0,FALSE,FALSE,0,78.489,0.0119999999999987,78.8079999999999,5
+"test-rng-repeatability.R","rng-repeatability","static MCMC path is repeatable under a fixed seed",5,0,FALSE,FALSE,0,1.22799999999995,0,1.22799999999984,5
+"test-rng-repeatability.R","rng-repeatability","stochastic helpers are repeatable across fresh R processes and thread settings",1,0,TRUE,FALSE,0,0.0220000000000482,0,0.0219999999999345,0
+"test-s3-method-registration.R","s3-method-registration","JSS-facing S3 methods are registered",37,0,FALSE,FALSE,0,0.142999999999915,0,0.144000000000005,37
+"test-s3-method-registration.R","s3-method-registration","shared fit predicates remain specific to fitted model families",6,0,FALSE,FALSE,0,0.0769999999999982,0,0.0769999999999982,6
+"test-smoke.R","smoke","exdqlm loads and key symbols exist",8,0,FALSE,FALSE,0,0.121999999999957,0,0.123000000000047,8
+"test-static-al-ind-alias.R","static-al-ind-alias","exalStaticLDVB supports al.ind alias for reduced AL path",3,0,FALSE,FALSE,0,0.05499999999995,0,0.0540000000000873,3
+"test-static-al-ind-alias.R","static-al-ind-alias","exalStaticMCMC supports al.ind alias for reduced AL path",3,0,FALSE,FALSE,0,0.0760000000000218,0,0.0759999999997945,3
+"test-static-al-ind-alias.R","static-al-ind-alias","static al.ind and dqlm.ind must agree when both are supplied",2,0,FALSE,FALSE,0,0.07000000000005,0,0.0709999999999127,2
+"test-static-al-ind-alias.R","static-al-ind-alias","exalStaticLDVB keeps exAL path when al.ind = FALSE",2,0,FALSE,FALSE,0,14.127,0,14.1759999999999,2
+"test-static-diagnostic-coefficient-plot.R","static-diagnostic-coefficient-plot","static diagnostic coefficient plot validates lightweight inputs",9,0,FALSE,FALSE,0,0.0889999999999418,0,0.0889999999999418,9
+"test-static-exal-shared-issue-checks.R","static-exal-shared-issue-checks","exAL coefficient map reduces to AL at gamma = 0",12,0,FALSE,FALSE,0,0.109000000000037,0,0.109000000000151,12
+"test-static-exal-shared-issue-checks.R","static-exal-shared-issue-checks","implemented exAL family is quantile-fixed at p0",180,0,FALSE,FALSE,0,2.67099999999994,0.00300000000000011,2.67900000000009,180
+"test-static-ldvb-jacobian.R","static-ldvb-jacobian","static LDVB transformed objective includes Jacobian term",2,0,FALSE,FALSE,0,0.0520000000000209,0,0.0529999999998836,2
+"test-static-ldvb-jacobian.R","static-ldvb-jacobian","static LDVB xi includes finite Jacobian expectation",2,0,FALSE,FALSE,0,3.82600000000002,0,3.83200000000011,2
+"test-truncated-normal-entropy.R","truncated-normal-entropy","positive truncated-normal entropy uses lower-truncation sign",3,0,FALSE,FALSE,0,0.0539999999999736,0,0.053000000000111,3
+"test-vb-traces.R","vb-traces","dynamic ISVB stores a standardized vb_trace diagnostics table",14,0,FALSE,FALSE,0,4.98099999999999,0,4.9860000000001,14
+"test-vb-traces.R","vb-traces","dynamic LDVB stores a standardized vb_trace diagnostics table",16,0,FALSE,FALSE,0,13.385,0.00900000000000034,13.4169999999999,16
+"test-vb-traces.R","vb-traces","reduced dynamic VB paths expose vb_trace with gamma columns set to NA",16,0,FALSE,FALSE,0,0.918000000000006,0,0.917999999999893,16
+"test-vb-traces.R","vb-traces","static LDVB stores a standardized vb_trace diagnostics table",17,0,FALSE,FALSE,0,21.376,0,21.434,17
+"test-vb-traces.R","vb-traces","static reduced LDVB exposes vb_trace with gamma columns set to NA",9,0,FALSE,FALSE,0,0.155999999999949,0,0.155999999999949,9

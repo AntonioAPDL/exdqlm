@@ -16,7 +16,8 @@ List with \code{parameters}, \code{models}, and a diagnostic qualification.
 \description{
 Reports rank-normalized folded split R-hat, summed per-chain spectral ESS
 estimates, batch-means Monte Carlo errors, and model probability agreement.
-ESS is the coda spectral estimate, not the bulk/tail ESS used by Stan.
+Spectral ESS is capped at the retained draw count per chain; it is not
+the bulk/tail ESS used by Stan.
 These are convergence screens; they do not establish exploration of an
 unlisted architecture or guarantee mixing. Fixed precision has undefined
 R-hat and ESS and is reported as NA.

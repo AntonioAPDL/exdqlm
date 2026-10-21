@@ -3,7 +3,10 @@
 Base: `integration/ind-forecast-300-500-shared-20261015`, commit
 `94bd95784f413f3edde88a35cb991f2a56b6afef`. The default branch lacks the
 current Q-DESN and Normal DESN implementations, so this isolated feature branch
-builds on their shared integration branch. Existing inference code is unchanged.
+builds on their shared integration branch. Existing readout inference code is
+unchanged. A scalar-dimension correction in the shared feature builder permits
+one-unit reservoirs; six multi-feature base/current comparisons produce
+identical designs, reservoirs and state histories.
 
 ## Numerical and statistical target
 
@@ -45,8 +48,49 @@ Forecasts exactly reuse the Normal DESN path method with external joint draws;
 one-step predictive mixture means and variances are also checked independently.
 
 All ten AutoDESN Rd pages parse and pass `tools::checkRd()`. Static usage analysis
-reports no findings for the new functions. Installed-package and complete-suite
-results will be recorded here after the native package build finishes.
+reports no findings for the new functions. The final installed-package focused
+run passes **384 expectations with zero failures, errors or warnings**, including
+**130 AutoDESN expectations**, the existing Gaussian readout and recursive
+forecasts, topology, and warm-start tests. The coefficient-covariance test uses
+the exact Wishart sampling variance and a six-MCSE entrywise bound, including
+for zero population covariances.
+
+Repository-wide validation is reported separately. It must not be interpreted
+as an all-green release check: the shared integration branch includes archived
+study tests pinned to other package versions and host-specific evidence paths.
+The first complete invocation records 5,540 passing expectations, 41 failed
+expectations, 62 test cases with errors, and 31 warnings. One failure was the
+old covariance tolerance subsequently corrected and rerun successfully.
+The untouched base run records 5,415 passing expectations, 40 failed
+expectations, 62 test cases with errors, and the same 31 warnings. Across all
+**560 existing test cases, expectation counts, passes, failures, errors,
+warnings and skips match exactly**. There are **zero new failures in existing
+test cases**. `baseline_comparison.csv` preserves the case-by-case evidence.
+
+The additional run with `NOT_CRAN=true` passes **894 expectations across 99
+test cases in 16 files**, with zero failures, errors, warnings or skips. This
+includes existing MCMC routing, strict/fast backend, shrinkage, convergence and
+repeatability tests. `final_coverage.csv` combines the initial full run with
+the final focused and extended checks, retaining the latest result per case;
+all raw run tables remain available.
+
+Initial `R CMD check` also identifies pre-existing distribution issues: archived
+configuration paths exceed portable-tar limits, a transfer-function example
+references missing `nino34` data, and existing manuals have argument/default
+mismatches. The branch corrects the simulation helper's malformed math markup,
+generates missing online/rolling manuals from their existing roxygen, and
+declares already-used optional `Matrix`/`RSpectra` dependencies. Its Windows CI
+checkout now succeeds after enabling Git long paths. Detailed final check and
+base-comparison artifacts accompany this report; the PR remains a draft.
+The final metadata check (installation, examples and tests checked separately)
+reports one inherited portable-path error, three inherited documentation/code
+warnings, and two notes. No finding names an AutoDESN function or manual page.
+The earlier complete package check also confirms the missing-data example
+error; skipping examples in the metadata refresh does not resolve that issue.
+At the recorded CI snapshot, four completed OS/R jobs fail repository-wide
+checks, including the missing-data example and checkout-only historical study
+assets. No AutoDESN test failure is reported in those job logs. The devel job
+is still running. CI status is therefore explicitly not reported as green.
 
 ## Repeated forecasting study
 
@@ -96,6 +140,8 @@ The bank favors short memory for linear data, lag count 4 for nonlinear data,
 and lag count 12 for seasonal data. Mean depth-2 mass is approximately 2.2%,
 25.2%, and 1.8%, respectively. These describe representations within this bank;
 the generating processes do not possess a uniquely defined DESN depth.
+The nonlinear process uses two lags; the bank offers 1, 4 and 12, so 4 is its
+shortest available input window containing both relevant lags.
 
 The examples support implementation feasibility and show that automatic
 selection need not prefer depth. They do not establish general superiority:

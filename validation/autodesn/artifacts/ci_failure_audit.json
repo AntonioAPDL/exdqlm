@@ -1,0 +1,62 @@
+[
+  {
+    "name": "macos-latest (release)",
+    "id": 119174281737,
+    "characters": 2686555,
+    "autodesn_lines": [],
+    "autodesn_failure_lines": [],
+    "summary": [
+      "2026-10-21T10:50:55.3169390Z   > X <- cbind(nino34, scale(BTflow)[,1])  # T x n",
+      "2026-10-21T10:50:55.3169670Z   Error: object 'nino34' not found",
+      "2026-10-21T10:50:55.5113580Z [ FAIL 158 | WARN 57 | SKIP 8 | PASS 5680 ]",
+      "2026-10-21T10:50:55.5770190Z [ FAIL 158 | WARN 57 | SKIP 8 | PASS 5680 ]",
+      "2026-10-21T10:50:56.0374120Z [ FAIL 158 | WARN 57 | SKIP 8 | PASS 5680 ]",
+      "2026-10-21T10:50:56.1588790Z [ FAIL 158 | WARN 57 | SKIP 8 | PASS 5680 ]"
+    ]
+  },
+  {
+    "name": "windows-latest (release)",
+    "id": 119174282155,
+    "characters": 6324771,
+    "autodesn_lines": [],
+    "autodesn_failure_lines": [],
+    "summary": [
+      "2026-10-21T10:55:27.6494205Z   > X <- cbind(nino34, scale(BTflow)[,1])  # T x n\r",
+      "2026-10-21T10:55:27.6494445Z   Error: object 'nino34' not found\r",
+      "2026-10-21T10:55:27.7455133Z [ FAIL 267 | WARN 55 | SKIP 8 | PASS 5141 ]\r",
+      "2026-10-21T10:55:28.2401361Z [ FAIL 267 | WARN 55 | SKIP 8 | PASS 5141 ]\r",
+      "2026-10-21T10:55:28.3756087Z [ FAIL 267 | WARN 55 | SKIP 8 | PASS 5141 ]\r",
+      "2026-10-21T10:55:28.9015528Z [ FAIL 267 | WARN 55 | SKIP 8 | PASS 5141 ]\r"
+    ]
+  },
+  {
+    "name": "ubuntu-latest (release)",
+    "id": 119174282190,
+    "characters": 2812358,
+    "autodesn_lines": [],
+    "autodesn_failure_lines": [],
+    "summary": [
+      "2026-10-21T10:54:34.6568804Z   > X <- cbind(nino34, scale(BTflow)[,1])  # T x n",
+      "2026-10-21T10:54:34.6569143Z   Error: object 'nino34' not found",
+      "2026-10-21T10:54:34.8020031Z [ FAIL 157 | WARN 50 | SKIP 8 | PASS 5688 ]",
+      "2026-10-21T10:54:34.8585639Z [ FAIL 157 | WARN 50 | SKIP 8 | PASS 5688 ]",
+      "2026-10-21T10:54:34.8867638Z [ FAIL 157 | WARN 50 | SKIP 8 | PASS 5688 ]",
+      "2026-10-21T10:54:34.9786566Z [ FAIL 157 | WARN 50 | SKIP 8 | PASS 5688 ]"
+    ]
+  },
+  {
+    "name": "ubuntu-latest (oldrel-1)",
+    "id": 119174282320,
+    "characters": 2801481,
+    "autodesn_lines": [],
+    "autodesn_failure_lines": [],
+    "summary": [
+      "2026-10-21T10:49:16.4618939Z   > X <- cbind(nino34, scale(BTflow)[,1])  # T x n",
+      "2026-10-21T10:49:16.4619127Z   Error: object 'nino34' not found",
+      "2026-10-21T10:49:16.5452685Z [ FAIL 157 | WARN 46 | SKIP 8 | PASS 5677 ]",
+      "2026-10-21T10:49:16.5781425Z [ FAIL 157 | WARN 46 | SKIP 8 | PASS 5677 ]",
+      "2026-10-21T10:49:16.6057195Z [ FAIL 157 | WARN 46 | SKIP 8 | PASS 5677 ]",
+      "2026-10-21T10:49:16.6625368Z [ FAIL 157 | WARN 46 | SKIP 8 | PASS 5677 ]"
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "common_test_cases": 560,
+  "changed_failure_error_outcomes": 0,
+  "new_failures_in_existing_cases": 0,
+  "feature_totals": {
+    "nb": 5616,
+    "passed": 5540,
+    "failed": 41,
+    "error": 62,
+    "warning": 31,
+    "skipped": 4
+  },
+  "base_totals": {
+    "nb": 5490,
+    "passed": 5415,
+    "failed": 40,
+    "error": 62,
+    "warning": 31,
+    "skipped": 4
+  }
+}

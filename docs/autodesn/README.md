@@ -29,6 +29,12 @@ mcmc_args = list(...))`. Explicit bank construction permits multiple chains to
 reuse reservoir states, designs and SVDs. `n_mcmc` is the number of post-burn
 sweeps **before thinning**; `thin = 1` is generally preferred.
 
+Inspect the complete settings of a candidate with
+`bank$specifications[[j]]`, including layer widths, bridges, leak, radius and
+input preprocessing. The most probable row is
+`which.max(chains[[1L]]$model_summary$posterior_probability)`; forecasts still
+average joint draws over the bank rather than substituting that one model.
+
 ## Statistical model
 
 For candidate (j), let (H_j) be the slopes from the shared DESN builder,
@@ -79,6 +85,13 @@ conditional likelihood. It is not a claim that the entire unconditional
 autoregressive series is multivariate Gaussian with a fixed exogenous design.
 An SVD per model plus a rank-one intercept update evaluates the same score
 without a dense observation covariance factorization at every sweep.
+
+This is also the precise GP connection: conditional on a specification and
+ridge precision, Gaussian readout weights induce the kernel
+\(K_j(t,s)=v_0+\lambda^{-1}\sum_k F_{j,tk}F_{j,sk}\) on observed histories.
+AutoDESN therefore searches over kernels induced by recurrent feature maps,
+integrates their linear readouts, and averages their posterior predictions.
+Its specification bank takes the place of a GP kernel grammar.
 
 One Gibbs sweep is:
 
@@ -162,9 +175,12 @@ radius criterion alone proves stability after feeding stochastic outputs back.
 Unbounded activations and aggressive settings should be inspected through
 simulated paths.
 
-For M models, n scored observations and d slopes, cached SVD memory is roughly
-O(M n min(n,d)); each complete model scan is O(M min(n,d)). A selected coefficient
-draw uses a (d+1)-dimensional precision Cholesky. Banks with hundreds of large
+For M models, n scored observations and d slopes, each readout cache stores
+O(nd + d^2 + min(n,d)) values; full reservoir weights and state histories add
+further memory. The SVD's left vectors are temporary, while their projections
+are cached. Each complete model scan is O(M min(n,d)). A selected coefficient
+draw uses a (d+1)-dimensional precision Cholesky and a residual matrix product.
+Banks with hundreds of large
 reservoirs need screening, caching, or more efficient linear algebra. The bank
 is built once per forecast origin; it is not refit at each future step.
 
@@ -203,5 +219,7 @@ The scripts source the checked-out R implementation so the study records the
 working implementation. The test runner instead exercises the installed API;
 install the checkout first with `R CMD INSTALL .`. Set `AUTODESN_TEST_FILTER`
 for a focused testthat filename filter, or leave it unset for the complete suite.
+Set `NOT_CRAN=true` to include the additional computational tests normally
+skipped by CRAN.
 Simulation comparisons are modest implementation checks with repeated series,
 not a comprehensive forecasting benchmark or proof of a benefit from depth.

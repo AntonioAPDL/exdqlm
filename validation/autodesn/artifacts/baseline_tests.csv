@@ -1,0 +1,24 @@
+"file","context","test","nb","failed","skipped","error","warning","user","system","real","passed"
+"test-qdesn-mcmc-external-coherent-confirmation-v1.R","qdesn-mcmc-external-coherent-confirmation-v1","external-coherent confirmation v1 is exact, staged, and storage-light",33,1,FALSE,FALSE,0,1.346,0.0119999999999998,1.366,32
+"test-qdesn-mcmc-external-coherent-confirmation-v1.R","qdesn-mcmc-external-coherent-confirmation-v1","confirmation scripts enforce prepare, smoke, approval, and closeout gates",21,0,FALSE,FALSE,0,0.0659999999999998,0,0.0660000000000007,21
+"test-qdesn-mcmc-external-coherent-confirmation-v1.R","qdesn-mcmc-external-coherent-confirmation-v1","prelaunch evidence has no stale home paths or forbidden payloads",6,0,FALSE,FALSE,0,0.249,0,0.249000000000001,6
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology confirmation freezes 21 fresh full-budget specs",69,2,FALSE,TRUE,0,0.925,0,0.926,67
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology confirmation preserves source and storage contracts",20,0,FALSE,FALSE,0,0.0510000000000002,0.232,0.283,20
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology confirmation lifecycle is staged and parseable",21,0,FALSE,FALSE,0,0.0739999999999998,0.0190000000000001,0.093,21
+"test-qdesn-mcmc-sparse-topology-confirm-v1.R","qdesn-mcmc-sparse-topology-confirm-v1","sparse-topology closeout loads before rejecting an unknown run",3,0,FALSE,FALSE,0,0.00800000000000001,0.00999999999999979,0.843999999999999,3
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","toy validation generator returns consistent long and wide outputs",7,0,FALSE,FALSE,0,0.0489999999999995,0.012,0.0609999999999999,7
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","toy validation generator supports expanded phase-1 scenarios",15,0,FALSE,FALSE,0,0.173,0,0.173999999999999,15
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation generator supports dynamic DLM scenarios via simulation backend",6,0,FALSE,FALSE,0,1.488,0,1.489,6
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","pilot validation root writes method summaries and campaign summaries",41,6,FALSE,FALSE,0,3.61,0,3.769,35
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","VB signoff distinguishes stable converged from stable unconverged traces",4,0,FALSE,FALSE,0,0.0280000000000005,0,0.0279999999999987,4
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","MCMC signoff fails clearly drifting low-information chains",3,0,FALSE,FALSE,0,0.0970000000000013,0,0.0969999999999995,3
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder applies prior-specific inference overrides",8,0,FALSE,FALSE,0,0.0810000000000013,0,0.0899999999999999,8
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder falls back rhs_ns overrides from rhs block",6,0,FALSE,FALSE,0,0.0350000000000001,0,0.0439999999999987,6
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder honors validation_p_vec override",3,0,FALSE,FALSE,0,0.0199999999999996,0,0.0279999999999987,3
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation root spec and config route likelihood family",4,0,FALSE,FALSE,0,0.0269999999999992,0,0.0340000000000007,4
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config routes AL with rhs_ns prior and preserves root keying",6,0,FALSE,FALSE,0,0.0560000000000009,0,0.0630000000000006,6
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","MCMC signoff for AL does not require gamma diagnostics",2,0,FALSE,FALSE,0,0.0570000000000004,0,0.0570000000000004,2
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","rhs_ns VB emits RHS diagnostics traces for signoff health checks",2,0,FALSE,TRUE,1,0.573,0,0.665000000000001,1
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder enforces non-DLM input mode",2,0,FALSE,FALSE,0,0.0310000000000006,0,0.0389999999999997,2
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","validation config builder stamps explicit raw input-mode defaults",2,0,FALSE,FALSE,0,0.0170000000000012,0,0.0269999999999992,2
+"test-qdesn-mcmc-validation-pilot.R","qdesn-mcmc-validation-pilot","rhs repair candidate defaults promote the B2 and C3 controls",9,0,FALSE,FALSE,0,0.0510000000000002,0,0.0589999999999993,9

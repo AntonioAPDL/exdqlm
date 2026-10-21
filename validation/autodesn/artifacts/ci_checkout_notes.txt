@@ -1,0 +1,5 @@
+Initial artifact-commit workflow: https://github.com/AntonioAPDL/exdqlm/actions/runs/39584058164
+Windows job 119168465783 failed in actions/checkout before R setup.
+Reason: Filename too long for three existing validation/fitforecast_v2/promotions evidence CSV paths.
+Those paths are already present in base commit 94bd95784f413f3edde88a35cb991f2a56b6afef.
+The branch enables Git core.longpaths on Windows before checkout so the existing tree can be tested.

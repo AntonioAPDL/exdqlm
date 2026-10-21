@@ -1,0 +1,100 @@
+"file","context","test","nb","failed","skipped","error","warning","user","system","real","passed"
+"test-dqlm-vb-sim-smoke.R","dqlm-vb-sim-smoke","dqlm coercion is respected when gamma is fixed at zero",5,0,FALSE,FALSE,0,0.419,0.00900000000000001,0.428,5
+"test-dqlm-vb-sim-smoke.R","dqlm-vb-sim-smoke","LDVB reduced DQLM honors explicit vb_control max_iter",2,0,FALSE,FALSE,0,0.156000000000001,0,0.156,2
+"test-dqlm-vb-sim-smoke.R","dqlm-vb-sim-smoke","LDVB smoke on synthetic dynamic quantiles (exDQLM vs DQLM) stays finite and sensible",27,0,FALSE,FALSE,0,212.685,0.528,214.734,27
+"test-exal-inference-config.R","exal-inference-config","RHS NULL init_log_tau keeps legacy default tau initialization",2,0,FALSE,FALSE,0,0.0829999999999984,0,0.0840000000000032,2
+"test-exal-inference-config.R","exal-inference-config","RHS explicit init_log_tau override is preserved",2,0,FALSE,FALSE,0,0.119,0,0.120000000000005,2
+"test-exal-inference-config.R","exal-inference-config","RHS non-numeric init_log_tau override falls back to legacy default with warning",2,0,FALSE,FALSE,0,0.0819999999999936,0.00700000000000012,0.0869999999999891,2
+"test-exal-inference-config.R","exal-inference-config","RHS_NS settings resolve and instantiate beta prior object",16,0,FALSE,FALSE,0,0.257999999999981,0,0.257999999999981,16
+"test-exal-inference-config.R","exal-inference-config","RHS_NS NULL init_log_tau keeps guardrail default log_tau=0",2,0,FALSE,FALSE,0,0.0370000000000061,0,0.0370000000000061,2
+"test-exal-inference-config.R","exal-inference-config","RHS_NS non-numeric init_log_tau falls back to guardrail default with warning",3,0,FALSE,FALSE,0,0.0669999999999789,0,0.0669999999999789,3
+"test-exal-inference-config.R","exal-inference-config","likelihood family defaults to exal and supports explicit al routing",4,0,FALSE,FALSE,0,0.0680000000000121,0,0.0680000000000121,4
+"test-exal-inference-config.R","exal-inference-config","VB exact chunking config resolves without changing absent defaults",6,0,FALSE,FALSE,0,0.180000000000007,0.0229999999999999,0.201999999999998,6
+"test-exal-inference-config.R","exal-inference-config","sigmagam warmup controls resolve for VB, MCMC warm start, and MCMC core",43,0,FALSE,FALSE,0,0.757000000000005,0.018,0.777000000000015,43
+"test-exal-inference-config.R","exal-inference-config","precision-beta presets normalize to the validated recovery profiles",8,0,FALSE,FALSE,0,0.114000000000004,0,0.114000000000004,8
+"test-exal-inference-config.R","exal-inference-config","precision-beta config resolves preset aliases and explicit overrides",7,0,FALSE,FALSE,0,0.12299999999999,0.00100000000000011,0.123999999999995,7
+"test-exal-inference-config.R","exal-inference-config","public control builders expose the normalized advanced warmup surface",83,0,FALSE,FALSE,0,1.16,0.0269999999999999,1.18800000000002,83
+"test-exal-inference-config.R","exal-inference-config","builder helpers preserve existing control lists and fill only missing defaults",14,0,FALSE,FALSE,0,0.176999999999992,0.00700000000000012,0.183999999999997,14
+"test-exal-inference-config.R","exal-inference-config","static entrypoints accept normalized control builders",2,0,FALSE,FALSE,0,29.642,0.103,29.829,2
+"test-exal-inference-config.R","exal-inference-config","entrypoints apply the default warmup profile and allow explicit opt-out",9,0,FALSE,FALSE,0,112.476,0.481,115.058,9
+"test-exal-inference-config.R","exal-inference-config","default sigmagam warmup clamps to the available iteration budget",2,0,FALSE,FALSE,0,4.572,0,4.584,2
+"test-exal-inference-config.R","exal-inference-config","dynamic entrypoints accept normalized control builders",4,0,FALSE,FALSE,0,65.518,0.259,66.228,4
+"test-exal-inference-config.R","exal-inference-config","dynamic entrypoints use the default sigmagam warmup profile",6,0,FALSE,FALSE,0,38.001,0.118,38.297,6
+"test-exal-sigmagam-structured.R","exal-sigmagam-structured","structured exAL scale-skewness block has finite moments and repeatable draws",10,0,FALSE,FALSE,0,0.0900000000000318,0,0.0889999999999986,10
+"test-exal-sigmagam-structured.R","exal-sigmagam-structured","structured and legacy static LDVB scale-skewness factors remain selectable",6,0,FALSE,FALSE,0,5.44799999999998,0,5.44499999999999,6
+"test-exdqlm-transfer-mcmc.R","exdqlm-transfer-mcmc","transfer-function MCMC wrapper matches direct augmented model contract for k=1",20,0,FALSE,FALSE,0,0.90100000000001,0,0.90100000000001,20
+"test-exdqlm-transfer-mcmc.R","exdqlm-transfer-mcmc","transfer-function wrappers support multivariate X with block tf.df semantics",9,0,FALSE,FALSE,0,1.53000000000003,0,1.529,9
+"test-exdqlm-transfer-mcmc.R","exdqlm-transfer-mcmc","transfer-function wrappers support componentwise tf.df and full exDQLM path",15,0,FALSE,FALSE,0,4.54300000000001,0,4.54399999999998,15
+"test-exdqlm-transfer-mcmc.R","exdqlm-transfer-mcmc","transfer-function MCMC output with multivariate X works with downstream methods",16,0,FALSE,FALSE,0,0.482000000000028,0.012,0.494000000000028,16
+"test-mcmc-backend-routing.R","mcmc-backend-routing","MCMC backend routing respects strict and fast modes",6,0,FALSE,FALSE,0,0.197000000000003,0,0.197000000000003,6
+"test-mcmc-backend-routing.R","mcmc-backend-routing","Invalid MCMC mode falls back to strict",3,0,FALSE,FALSE,0,0.125999999999976,0.00099999999999989,0.12700000000001,3
+"test-mcmc-dynamic-fastmode-stat-parity.R","mcmc-dynamic-fastmode-stat-parity","fast mode exDQLM stays statistically close to R baseline",7,0,FALSE,FALSE,0,0.683999999999969,0,0.684000000000026,7
+"test-mcmc-dynamic-fastmode-stat-parity.R","mcmc-dynamic-fastmode-stat-parity","fast mode dQLM stays statistically close to R baseline",7,0,FALSE,FALSE,0,0.68199999999996,0,0.682000000000016,7
+"test-mcmc-dynamic-strict-parity.R","mcmc-dynamic-strict-parity","strict mode keeps dynamic exDQLM on the R backend with finite outputs",20,0,FALSE,FALSE,0,0.420000000000016,0.00600000000000023,0.425999999999988,20
+"test-mcmc-dynamic-strict-parity.R","mcmc-dynamic-strict-parity","strict mode keeps dynamic dQLM on the R backend with finite outputs",20,0,FALSE,FALSE,0,0.380999999999972,0,0.380999999999972,20
+"test-rng-repeatability.R","rng-repeatability","compiled stochastic helpers obey the R seed",4,0,FALSE,FALSE,0,0.0250000000000341,0,0.0250000000000341,4
+"test-rng-repeatability.R","rng-repeatability","dynamic MCMC fast path is repeatable under a fixed seed",5,0,FALSE,FALSE,0,47.785,0.0649999999999999,48.097,5
+"test-rng-repeatability.R","rng-repeatability","static MCMC path is repeatable under a fixed seed",5,0,FALSE,FALSE,0,0.269000000000005,0,0.269999999999982,5
+"test-rng-repeatability.R","rng-repeatability","stochastic helpers are repeatable across fresh R processes and thread settings",8,0,FALSE,FALSE,0,0.236999999999966,0,134.814,8
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static VB RHS warns about ignored Gaussian prior inputs and returns RHS metadata",15,0,FALSE,FALSE,0,67.241,0.265,68.6319999999999,15
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static AL VB reduced path supports RHS prior",5,0,FALSE,FALSE,0,1.20799999999997,0.00099999999999989,1.21300000000008,5
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static MCMC RHS warns, stores latent draws, and normalizes cleanly",14,0,FALSE,FALSE,0,0.754000000000019,0.004,0.779999999999973,14
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static AL MCMC reduced path supports RHS prior",5,0,FALSE,FALSE,0,0.685999999999922,0.004,0.689999999999941,5
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS VB warmup freezes tau before the forced post-warmup update",7,0,FALSE,FALSE,0,0.0910000000000082,0,0.0919999999999845,7
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS collapse diagnostic flags tau collapse and zeroed slopes",5,0,FALSE,FALSE,0,0.367000000000075,0.00099999999999989,0.367000000000075,5
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS init_log_tau null/unset resolves to log(1)=0 and tau=1",3,0,FALSE,FALSE,0,0.0370000000000346,0.0130000000000003,0.0499999999999545,3
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS explicit numeric init_log_tau override is preserved",3,0,FALSE,FALSE,0,0.0349999999999682,0,0.0350000000000819,3
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS small tau0 does not force collapse-prone init when unset",4,0,FALSE,FALSE,0,0.0370000000000346,0,0.0389999999999873,4
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS preflight fails on non-finite resolved tau init",2,0,FALSE,FALSE,0,0.0389999999999873,0,0.0380000000000109,2
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS collapse diagnostic flags precision-beta pattern without tau at lower bound",4,0,FALSE,FALSE,0,0.0430000000000064,0,0.0430000000000064,4
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS_NS slab aliases map to RHS slab controls",6,0,FALSE,FALSE,0,0.0450000000000728,0,0.0459999999999354,6
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static VB RHS_NS supports fixed zeta2 via zeta2_fixed",8,0,FALSE,FALSE,0,30.758,0.106,32.186,8
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static MCMC RHS_NS fixed zeta2 keeps c2 draws constant",5,0,FALSE,FALSE,0,0.343999999999937,0,0.343999999999937,5
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS_NS VB uses closed-form IG block moments and precision map",15,0,FALSE,FALSE,0,0.332000000000107,0.0209999999999999,0.354000000000042,15
+"test-static-beta-prior-rhs.R","static-beta-prior-rhs","static RHS_NS MCMC uses closed-form Gibbs scales and exact precision expression",9,0,FALSE,FALSE,0,0.113000000000056,0.00600000000000023,0.119000000000028,9
+"test-static-class-generics.R","static-class-generics","exalStaticMCMC generics dispatch and return stable outputs",9,0,FALSE,FALSE,0,0.380999999999972,0,0.380999999999972,9
+"test-static-class-generics.R","static-class-generics","exalStaticLDVB generics dispatch and enforce plot X contract",9,0,FALSE,FALSE,0,12.4029999999999,0.0389999999999997,12.383,9
+"test-static-diagnostics.R","static-diagnostics","exalStaticDiagnostics compares LDVB and MCMC on a shared design",33,0,FALSE,FALSE,0,22.764,0.0409999999999999,22.905,33
+"test-static-diagnostics.R","static-diagnostics","static MCMC default proposal is scale-collapsed slice",7,0,FALSE,FALSE,0,1.50099999999998,0.00700000000000012,1.51099999999997,7
+"test-static-diagnostics.R","static-diagnostics","static LDVB records sigmagam warmup scheduling",5,0,FALSE,FALSE,0,25.914,0,26.1070000000001,5
+"test-static-diagnostics.R","static-diagnostics","static MCMC records sigmagam warmup diagnostics",6,0,FALSE,FALSE,0,14.545,0,14.545,6
+"test-static-diagnostics.R","static-diagnostics","static rhs_ns sparse benchmark is silent and finite with VB warm start",13,0,FALSE,FALSE,0,63.338,0.089,63.943,13
+"test-static-exal-gamma-band-reduction.R","static-exal-gamma-band-reduction","tight gamma band behaves like the AL submodel numerically",3,0,FALSE,FALSE,0,0.0159999999999627,0,0.0159999999999627,3
+"test-static-exal-gamma-band-reduction.R","static-exal-gamma-band-reduction","static exAL accepts a tight gamma band around zero",4,0,FALSE,FALSE,0,8.59099999999989,0.0270000000000001,8.90299999999991,4
+"test-static-exal-gamma-band-reduction.R","static-exal-gamma-band-reduction","shared static exAL MCMC ingredients reduce to AL at gamma zero",7,0,FALSE,FALSE,0,0.11099999999999,0.0089999999999999,0.120000000000005,7
+"test-static-fit-normalization.R","static-fit-normalization","static VB normalization and init extraction work for AL (dqlm.ind=TRUE)",8,0,FALSE,FALSE,0,0.163999999999987,0,0.163999999999987,8
+"test-static-fit-normalization.R","static-fit-normalization","static VB normalization and init extraction work for exAL",16,0,FALSE,FALSE,0,21.361,0.0709999999999997,21.772,16
+"test-static-fit-normalization.R","static-fit-normalization","static MCMC normalization reports ESS and acceptance fields",26,0,FALSE,FALSE,0,2.38100000000009,0.00600000000000023,2.38799999999992,26
+"test-static-fit-normalization.R","static-fit-normalization","static MCMC can disable per-iteration diagnostics trace",4,0,FALSE,FALSE,0,0.277000000000044,0,0.277000000000044,4
+"test-static-fit-normalization.R","static-fit-normalization","static quantile path extractor returns aligned vectors",7,0,FALSE,FALSE,0,0.349000000000046,0,0.350000000000023,7
+"test-static-fit-normalization.R","static-fit-normalization","static normalization marks RHS collapse runs as unhealthy",8,0,FALSE,FALSE,0,12.925,0.0130000000000003,13.032,8
+"test-static-p025-stability.R","static-p025-stability","positive truncated-normal helper stays valid in the extreme left tail",4,0,FALSE,FALSE,0,0.05600000000004,0,0.0559999999999263,4
+"test-static-p025-stability.R","static-p025-stability","static LDVB p0=0.25 benchmark converges with finite state",13,0,FALSE,FALSE,0,25.255,0.105,25.996,13
+"test-static-p025-stability.R","static-p025-stability","static LDVB avoids the gamma=0 bad mode on the ex4 seed",9,0,FALSE,FALSE,0,46.716,0.0899999999999999,47.25,9
+"test-static-p025-stability.R","static-p025-stability","static MCMC slice warm start is clean on the p0=0.25 benchmark",6,0,FALSE,FALSE,0,35.8960000000001,0.185,36.432,6
+"test-static-regression-regmod.R","static-regression-regmod","regMod returns exdqlm-compatible structure",6,0,FALSE,FALSE,0,0.0850000000000364,0,0.0850000000000364,6
+"test-static-regression-regmod.R","static-regression-regmod","exalStaticLDVB runs on tiny deterministic input",13,0,FALSE,FALSE,0,7.87900000000002,0.0129999999999999,7.99399999999991,13
+"test-static-regression-regmod.R","static-regression-regmod","static LDVB qdesn-style delta xi path is deterministic",5,0,FALSE,FALSE,0,16.4880000000001,0.00500000000000034,16.7190000000001,5
+"test-static-regression-regmod.R","static-regression-regmod","static LDVB ignores stale MC xi controls and stays deterministic Delta",6,0,FALSE,FALSE,0,15.272,0.0139999999999998,15.3400000000001,6
+"test-static-regression-regmod.R","static-regression-regmod","static LD precision regularization handles singular Hessians",3,0,FALSE,FALSE,0,0.160999999999945,0.00700000000000012,0.166999999999916,3
+"test-static-regression-regmod.R","static-regression-regmod","static LD cycle detector identifies alternating traces",4,0,FALSE,FALSE,0,0.106999999999971,0,0.13799999999992,4
+"test-static-regression-regmod.R","static-regression-regmod","static LD cycle detector stays quiet on smooth traces",1,0,FALSE,FALSE,0,0.0330000000000155,0,0.0339999999998781,1
+"test-static-regression-regmod.R","static-regression-regmod","static LDVB records stabilization diagnostics",6,0,FALSE,FALSE,0,12.1659999999999,0.044,12.277,6
+"test-static-regression-regmod.R","static-regression-regmod","exalStaticMCMC runs on tiny deterministic input",4,0,FALSE,FALSE,0,0.405999999999949,0,0.406000000000176,4
+"test-static-regression-regmod.R","static-regression-regmod","exalStaticMCMC supports gamma substeps and global eta jump controls",5,0,FALSE,FALSE,0,1.23500000000001,0,1.2349999999999,5
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic LDVB exposes joint convergence diagnostics",19,0,FALSE,FALSE,0,22.9069999999999,0.0490000000000004,23.0319999999999,19
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic DQLM LDVB honors vb_control iteration cap",3,0,FALSE,FALSE,0,1.06200000000001,0.00199999999999978,1.06400000000008,3
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic LDVB records sigmagam warmup scheduling",5,0,FALSE,FALSE,0,17.784,0,17.8200000000002,5
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic LDVB records sts warmup scheduling",7,0,FALSE,FALSE,0,14.2930000000001,0.097,14.454,7
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic ISVB honors strict gamma criterion in joint stopping",1,0,FALSE,FALSE,0,2.00099999999998,0.00200000000000022,2.00299999999993,1
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic MCMC supports VB warm start and MH diagnostics",14,0,FALSE,FALSE,0,26.269,0.116,26.4179999999999,14
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic MCMC default proposal is scale-collapsed slice",6,0,FALSE,FALSE,0,13.7819999999999,0.0420000000000003,13.8680000000002,6
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic MCMC defaults to an LDVB warm start",3,0,FALSE,FALSE,0,5.82600000000002,0,5.82500000000005,3
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic MCMC supports exact slice gamma kernel",8,0,FALSE,FALSE,0,5.76199999999994,0,5.76299999999992,8
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic MCMC records sigmagam warmup diagnostics",13,0,FALSE,FALSE,0,7.779,0.00700000000000012,7.798,13
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic DQLM MCMC records latent and sigma warmup diagnostics",9,0,FALSE,FALSE,0,1.36300000000006,0.00399999999999956,1.38900000000012,9
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","dynamic MCMC can disable per-iteration diagnostics trace",4,0,FALSE,FALSE,0,5.7639999999999,0,5.76700000000005,4
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","GIG wrappers floor near-zero b_vec inputs at 1e-10",4,0,FALSE,FALSE,0,0.0480000000000018,0,0.0470000000000255,4
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","static MCMC supports VB warm start",17,0,FALSE,FALSE,0,18.7180000000001,0.106,18.9759999999999,17
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","static MCMC supports eta-space slice gamma kernel",9,0,FALSE,FALSE,0,0.756999999999834,0.00599999999999978,0.76299999999992,9
+"test-vb-mcmc-convergence-controls.R","vb-mcmc-convergence-controls","multichain diagnostics helper returns chain summaries",2,0,FALSE,FALSE,0,1.48900000000003,0.00800000000000001,1.50999999999999,2

@@ -1,0 +1,6 @@
+"file","context","test","nb","failed","skipped","error","warning","user","system","real","passed"
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","exact-fan-in reservoirs honor row degree and input normalization",11,0,FALSE,FALSE,0,0.216,0.0100000000000002,0.227,11
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","spectral normalization preserves the failed 300-unit fan-in case",5,0,FALSE,FALSE,0,0.352,0.0230000000000001,0.375,5
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","large approximate spectral radii require a verified eigenpair",3,0,FALSE,FALSE,0,2.707,0.554,3.261,3
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","Normal recursive forecasts accept an explicit teacher-forced origin state",2,0,FALSE,FALSE,0,0.052999999999999,0,0.0830000000000002,2
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","Woodbury Normal-RHS moments match the full covariance solver",4,0,FALSE,FALSE,0,0.0680000000000005,0.00499999999999989,0.119999999999999,4

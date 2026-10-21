@@ -1,0 +1,76 @@
+qdesn-mcmc-external-coherent-confirmation-v1: ......1.....................................................
+qdesn-mcmc-sparse-topology-confirm-v1: .2..................................................................34............................................
+qdesn-mcmc-validation-pilot: ............................5......6.......78......................9a.....................................Wb.............
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. rhs_ns VB emits RHS diagnostics traces for signoff health checks ('test-qdesn-mcmc-validation-pilot.R:435:3') - cannot open file '/tmp/RtmpVeKNxx/qdesn-rhsns-root-5/scenario-toy_sine_small__tau-0p50__lik-exal__prior-rhs_ns__seed-123__res-tiny_d1_n8/fits/vb/progress_trace.csv': No such file or directory
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-qdesn-mcmc-external-coherent-confirmation-v1.R:23:3'): exte
+as.character(read.dcf(file.path(root, "DESCRIPTION"))[1L, "Version"]) (`actual`) not identical to "1.0.0" (`expected`).
+
+`actual`:   "1.1.1"
+`expected`: "1.0.0"
+
+── 2. Failure ('test-qdesn-mcmc-sparse-topology-confirm-v1.R:43:3'): sparse-topo
+as.character(read.dcf(file.path(root, "DESCRIPTION"))[1L, "Version"]) (`actual`) not identical to "1.0.0" (`expected`).
+
+`actual`:   "1.1.1"
+`expected`: "1.0.0"
+
+── 3. Failure ('test-qdesn-mcmc-sparse-topology-confirm-v1.R:72:3'): sparse-topo
+all(file.exists(generated$path)) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE
+
+── 4. Error ('test-qdesn-mcmc-sparse-topology-confirm-v1.R:73:3'): sparse-topolo
+Error: 'sha256sum' is not an exported object from 'namespace:tools'
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-qdesn-mcmc-sparse-topology-confirm-v1.R:73:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─base::unname(tools::sha256sum(generated$path))
+
+── 5. Failure ('test-qdesn-mcmc-validation-pilot.R:99:3'): pilot validation root
+res$root_status (`actual`) not identical to "SUCCESS" (`expected`).
+
+`actual`:   "FAIL"
+`expected`: "SUCCESS"
+
+── 6. Failure ('test-qdesn-mcmc-validation-pilot.R:106:3'): pilot validation roo
+file.exists(file.path(res$root_dir, "fits", "mcmc", "chain_summary.csv")) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE
+
+── 7. Failure ('test-qdesn-mcmc-validation-pilot.R:122:3'): pilot validation roo
+nrow(camp$stage_group) >= 1L is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE
+
+── 8. Failure ('test-qdesn-mcmc-validation-pilot.R:123:3'): pilot validation roo
+nrow(camp$chain_group) >= 1L is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE
+
+── 9. Failure ('test-qdesn-mcmc-validation-pilot.R:163:5'): pilot validation roo
+file.exists(file.path(cmp_plot_root, "plots", "runtime_ratio_compare.png")) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE
+
+── 10. Failure ('test-qdesn-mcmc-validation-pilot.R:164:5'): pilot validation ro
+file.exists(file.path(cmp_plot_root, "plots", "score_delta_change_compare.png")) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE
+  ... and 1 more
+
+
+Maximum number of 10 failures reached, some test results may be missing.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
