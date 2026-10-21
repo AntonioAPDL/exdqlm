@@ -37,29 +37,28 @@ average joint draws over the bank rather than substituting that one model.
 
 ## Statistical model
 
-For candidate (j), let (H_j) be the slopes from the shared DESN builder,
+For candidate $j$, let $H_j$ be the slopes from the shared DESN builder,
 
-\[
+$$
  F_j=H_j/\sqrt{d_j},\quad X_j=[\mathbf1,F_j],\qquad
  y_t\mid j,\beta_j,s^2,\mathcal F_{t-1}
  \sim N(x_{jt}^{\mathsf T}\beta_j,s^2).
-\]
+$$
 
 The division is optional but is fixed before scoring. It controls the
 dimension dependence of the slope prior's total output variance; it does not
 make different widths or nonlinear feature maps equivalent.
 
-\[
+$$
  \beta_{j0}\sim N(0,v_0),\quad
  \beta_{j,-0}\mid\lambda\sim N(0,I/\lambda),\quad
  s^2\sim\mathrm{IG}(a_s,b_s),\quad
  \lambda\sim\mathrm{Gamma}(a_\lambda,b_\lambda).
-\]
+$$
 
 All gamma distributions use shape/rate. The inverse-gamma density is
-proportional to (x^{-a-1}\exp(-b/x)). Defaults are (v_0=10),
-
-\(a_s=3,b_s=1,a_\lambda=2,b_\lambda=2\), in standardized response units.
+proportional to $x^{-a-1}\exp(-b/x)$. Defaults are $v_0=10$,
+$a_s=3,b_s=1,a_\lambda=2,b_\lambda=2$, in standardized response units.
 `learn_ridge = FALSE` holds `ridge_precision` fixed. There are no local
 shrinkage parameters, RHS variables, latent AL variables or time-varying
 coefficients in this version.
@@ -75,10 +74,10 @@ forecast computation are shared.
 
 For fixed variance and precision, integrate all coefficients analytically:
 
-\[
+$$
  C_j=s^2I+v_0\mathbf1\mathbf1^{\mathsf T}+F_jF_j^{\mathsf T}/\lambda,
  \quad \ell_j=-\tfrac12\{n\log(2\pi)+\log|C_j|+y^{\mathsf T}C_j^{-1}y\}.
-\]
+$$
 
 For autoregressive features this is the algebraic integral of the causal
 conditional likelihood. It is not a claim that the entire unconditional
@@ -88,22 +87,22 @@ without a dense observation covariance factorization at every sweep.
 
 This is also the precise GP connection: conditional on a specification and
 ridge precision, Gaussian readout weights induce the kernel
-\(K_j(t,s)=v_0+\lambda^{-1}\sum_k F_{j,tk}F_{j,sk}\) on observed histories.
+$K_j(t,s)=v_0+\lambda^{-1}\sum_k F_{j,tk}F_{j,sk}$ on observed histories.
 AutoDESN therefore searches over kernels induced by recurrent feature maps,
 integrates their linear readouts, and averages their posterior predictions.
 Its specification bank takes the place of a GP kernel grammar.
 
 One Gibbs sweep is:
 
-1. Draw (j\) with probabilities proportional to
-   (p(j)\exp\{\ell_j(s^2,\lambda)\}\).
-2. **Immediately redraw** (\beta_j\) from its Gaussian conditional. Steps 1
+1. Draw $j$ with probabilities proportional to
+   $p(j)\exp\{\ell_j(s^2,\lambda)\}$.
+2. **Immediately redraw** $\beta_j$ from its Gaussian conditional. Steps 1
    and 2 form one joint update of model and coefficients, even when dimensions
    differ. No stale coefficient vector survives a model update.
-3. Draw (s^2\) from
-   (\mathrm{IG}(a_s+n/2,b_s+\|y-X_j\beta_j\|^2/2)\).
-4. If enabled, draw (\lambda\) from
-   (\mathrm{Gamma}(a_\lambda+d_j/2,b_\lambda+\|\beta_{j,-0}\|^2/2)\).
+3. Draw $s^2$ from
+   $\mathrm{IG}(a_s+n/2,b_s+\|y-X_j\beta_j\|^2/2)$.
+4. If enabled, draw $\lambda$ from
+   $\mathrm{Gamma}(a_\lambda+d_j/2,b_\lambda+\|\beta_{j,-0}\|^2/2)$.
 
 There is no coefficient-dimension addition in step 3 because the coefficient
 prior is independent of variance. The proper intercept is excluded from step
@@ -175,13 +174,13 @@ radius criterion alone proves stability after feeding stochastic outputs back.
 Unbounded activations and aggressive settings should be inspected through
 simulated paths.
 
-For M models, n scored observations and d slopes, each readout cache stores
-O(nd + d^2 + min(n,d)) values; full reservoir weights and state histories add
+For $M$ models, $n$ scored observations and $d$ slopes, each readout cache stores
+$O(nd + d^2 + \min(n,d))$ values; full reservoir weights and state histories add
 further memory. The SVD's left vectors are temporary, while their projections
-are cached. Each complete model scan is O(M min(n,d)). A selected coefficient
-draw uses a (d+1)-dimensional precision Cholesky and a residual matrix product.
-Banks with hundreds of large
-reservoirs need screening, caching, or more efficient linear algebra. The bank
+are cached. Each complete model scan is $O(M\min(n,d))$. A selected coefficient
+draw uses a $(d+1)$-dimensional precision Cholesky and a residual matrix product.
+Banks with hundreds of large reservoirs need screening, caching, or more
+efficient linear algebra. The bank
 is built once per forecast origin; it is not refit at each future step.
 
 ## Gibbs, SMC and future extension
