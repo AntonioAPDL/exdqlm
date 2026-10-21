@@ -1,0 +1,29 @@
+Elapsed seconds: 898.491
+Independent series per DGP: 6; origins per series: 2; horizons: 12
+Origins and horizons within a series are dependent; do not use them as independent replicates.
+Two chains pooled for AutoDESN after checking diagnostic screens. Fixed DESN uses one chain.
+No forced pass criterion for predictive superiority or realized interval coverage.
+R version 4.3.3 (2024-02-29)
+Revision: 94bd95784f413f3edde88a35cb991f2a56b6afef
+R version 4.3.3 (2024-02-29)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 24.04.3 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.12.0 
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.12.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Berlin
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_4.3.3 coda_0.19-4.1  grid_4.3.3     lattice_0.22-5

@@ -1,0 +1,5 @@
+Dense quadrature 81 to 121 refinement difference: 3.209188471e-11
+Expanded-bound difference: 3.157849315e-09
+Integration bounds: log variance [-8,3], log precision [-8,7]; expanded to [-10,4],[-10,8].
+No SVD score is used by the quadrature oracle.
+R version 4.3.3 (2024-02-29)
