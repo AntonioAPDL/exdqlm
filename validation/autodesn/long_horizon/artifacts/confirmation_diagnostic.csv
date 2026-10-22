@@ -1,0 +1,3 @@
+"dgp","repetition","max_model_chain_range","parameter","rhat","ess_spectral","mcse_batch"
+"nonlinear",1,0.00559447106342991,"log_variance",1.00011263256798,15391.4678027465,0.000554103617780715
+"nonlinear",1,0.00559447106342991,"log_ridge_precision",1.00107553557788,1777.85744793988,0.0168501916621436

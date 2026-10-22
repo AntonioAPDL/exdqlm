@@ -640,7 +640,7 @@ posterior_predict.qdesn_normal_fit <- function(object, nd = 1000L, X_new = NULL,
   if (is.function(a)) return(a)
   switch(tolower(a),
     "tanh" = base::tanh,
-    "relu" = function(x) pmax(0, x),
+    "relu" = function(x) pmax(x, 0),
     "identity" = function(x) x,
     .normal_desn_stop("Unknown activation: %s", as.character(a)[1L])
   )
@@ -664,6 +664,12 @@ posterior_predict.qdesn_normal_fit <- function(object, nd = 1000L, X_new = NULL,
 #'   as teacher-forced future observations for subsequent reservoir inputs.
 #' @param origin_state Optional list of reservoir states at the forecast origin.
 #' @param return_design Logical; if `TRUE`, return per-draw readout design rows.
+#' @param innovations Optional finite H by number-of-draws matrix of standard
+#'   Normal innovations. Supplied values are scaled by each draw's noise SD.
+#' @param recursion_mode Use simulated observations for posterior predictive
+#'   feedback, or conditional means for an explicitly labeled plug-in diagnostic.
+#' @param backend Serial paths (default, preserving existing RNG order) or
+#'   batched matrix propagation using the same reservoir transition.
 #' @param ... Reserved for future exogenous/decomposition forecast controls.
 #' @return List with `yrep`, `mu_draws`, `beta`, `omega2`, and metadata.
 #' @export
@@ -674,6 +680,9 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
                                             y_future_obs = NULL,
                                             origin_state = NULL,
                                             return_design = FALSE,
+                                            innovations = NULL,
+                                            recursion_mode = c("posterior_predictive", "conditional_mean_plugin"),
+                                            backend = c("serial", "batched"),
                                             ...) {
   if (!inherits(object, "qdesn_normal_fit") || is.null(object$fit)) {
     .normal_desn_stop("forecast_paths.qdesn_normal_fit() requires a fitted qdesn_normal_fit.")
@@ -701,6 +710,8 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
 
   H <- as.integer(H)[1L]
   nd <- as.integer(nd)[1L]
+  recursion_mode <- match.arg(recursion_mode)
+  backend <- match.arg(backend)
   if (!is.finite(H) || H < 1L) .normal_desn_stop("H must be a positive integer.")
   if (!is.finite(nd) || nd < 1L) .normal_desn_stop("nd must be a positive integer.")
   if (!is.null(y_future_obs)) {
@@ -725,6 +736,10 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
   omega2 <- as.numeric(draws$omega2)
   if (nrow(beta) != length(omega2)) .normal_desn_stop("draws have inconsistent beta and omega2 lengths.")
   nd_eff <- nrow(beta)
+  if (!is.null(innovations) && (!is.matrix(innovations) || !is.numeric(innovations) ||
+      !identical(dim(innovations), c(H, nd_eff)) || any(!is.finite(innovations)))) {
+    .normal_desn_stop("innovations must be a finite H by number-of-draws numeric matrix.")
+  }
 
   res <- object$reservoir
   D <- as.integer(meta$D %||% length(res$W))[1L]
@@ -781,6 +796,7 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
     u
   }
   forward_one <- function(h_prev, u_vec) {
+    batched <- identical(backend, "batched")
     h_new <- vector("list", D)
     htilde <- if (D >= 2L) vector("list", D - 1L) else list()
     pre1 <- res$W[[1L]] %*% h_prev[[1L]] + res$Win[[1L]] %*% u_vec
@@ -794,19 +810,47 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
           htilde[[d]] <- if (isTRUE(Q_is_identity[d])) h_new[[d]] else res$Q[[d]] %*% h_new[[d]]
         }
       }
-      lower <- do.call(c, lapply(seq_len(D - 1L), function(d) k_act(as.numeric(htilde[[d]]))))
-      x_res <- c(as.numeric(h_new[[D]]), lower)
+      if (batched) {
+        lower <- do.call(rbind, lapply(seq_len(D - 1L), function(d) k_act(htilde[[d]])))
+        x_res <- rbind(h_new[[D]], lower)
+      } else {
+        lower <- do.call(c, lapply(seq_len(D - 1L), function(d) k_act(as.numeric(htilde[[d]]))))
+        x_res <- c(as.numeric(h_new[[D]]), lower)
+      }
     } else {
-      x_res <- as.numeric(h_new[[1L]])
+      x_res <- if (batched) h_new[[1L]] else as.numeric(h_new[[1L]])
     }
-    if (add_bias) x_res <- c(1, x_res)
+    if (add_bias) x_res <- if (batched) rbind(1, x_res) else c(1, x_res)
     list(h = h_new, x = x_res)
   }
 
   yrep <- matrix(NA_real_, H, nd_eff)
   mu_draws <- matrix(NA_real_, H, nd_eff)
   design <- if (isTRUE(return_design)) array(NA_real_, dim = c(H, nd_eff, ncol(beta))) else NULL
-  for (s in seq_len(nd_eff)) {
+  if (identical(backend, "batched")) {
+    if (is.null(innovations) && recursion_mode == "posterior_predictive") {
+      innovations <- matrix(stats::rnorm(H * nd_eff), H, nd_eff)
+    }
+    h_prev <- lapply(h_origin, function(z) matrix(z, nrow = length(z), ncol = nd_eff))
+    lags <- if (m_res > 0L) matrix(rev(tail(y_hist, m_res)), m_res, nd_eff) else matrix(numeric(), 0L, nd_eff)
+    for (hh in seq_len(H)) {
+      z <- process_lags(lags)
+      u <- rbind(rep(win_scale_bias, nd_eff), z * win_scale_global)
+      step <- forward_one(h_prev, u)
+      if (nrow(step$x) != ncol(beta)) {
+        .normal_desn_stop("Forecast design width does not match Normal DESN beta dimension.")
+      }
+      mu <- colSums(step$x * t(beta))
+      y_new <- if (recursion_mode == "conditional_mean_plugin") mu else
+        mu + sqrt(omega2) * innovations[hh, ]
+      if (is.finite(y_future_obs[hh])) y_new[] <- y_future_obs[hh]
+      mu_draws[hh, ] <- mu
+      yrep[hh, ] <- y_new
+      if (isTRUE(return_design)) design[hh, , ] <- t(step$x)
+      if (m_res > 0L) lags <- rbind(y_new, lags[seq_len(m_res - 1L), , drop = FALSE])
+      h_prev <- step$h
+    }
+  } else for (s in seq_len(nd_eff)) {
     y_buf <- y_hist
     h_prev <- lapply(h_origin, as.numeric)
     for (hh in seq_len(H)) {
@@ -815,7 +859,9 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
         .normal_desn_stop("Forecast design width does not match Normal DESN beta dimension.")
       }
       mu <- as.numeric(crossprod(step$x, beta[s, ]))
-      y_new <- mu + stats::rnorm(1L, sd = sqrt(omega2[s]))
+      y_new <- if (recursion_mode == "conditional_mean_plugin") mu else
+        if (is.null(innovations)) mu + stats::rnorm(1L, sd = sqrt(omega2[s])) else
+          mu + sqrt(omega2[s]) * innovations[hh, s]
       if (is.finite(y_future_obs[hh])) y_new <- y_future_obs[hh]
       mu_draws[hh, s] <- mu
       yrep[hh, s] <- y_new
@@ -832,6 +878,8 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
     nd = nd_eff,
     H = H,
     design = design,
+    recursion_mode = recursion_mode,
+    backend = backend,
     target = object$fit$target_label,
     forecast_family = "normal_recursive"
   )

@@ -10,7 +10,8 @@ autodesn_fit(
   conditioning = 30L,
   model_prior = NULL,
   normalize_features = TRUE,
-  mcmc_args = list()
+  mcmc_args = list(),
+  washout = NULL
 )
 }
 \arguments{
@@ -25,6 +26,11 @@ autodesn_fit(
 \item{normalize_features}{Divide slope features by sqrt(number of slopes).}
 
 \item{mcmc_args}{Named controls forwarded to \code{\link[=autodesn_fit_bank]{autodesn_fit_bank()}}.}
+
+\item{washout}{Optional total number of initial unscored observations,
+including the conditioning prefix. Must cover conditioning and every
+candidate's lag/washout requirement. NULL preserves the default additive
+conditioning-plus-warmup convention.}
 }
 \value{
 An \code{autodesn_fit} supporting the existing Q-DESN prediction methods.

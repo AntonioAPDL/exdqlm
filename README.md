@@ -441,6 +441,12 @@ reuse the Q-DESN implementations. The proper intercept, common causal response
 window, frozen preprocessing, and joint model/readout predictive draws are
 documented in the [AutoDESN guide](docs/autodesn/README.md).
 
+The [500/500/100 example](validation/autodesn/long_horizon/README.md) uses 500
+unscored washout observations, exactly 500 training rows, and a 100-step
+fixed-origin forecast with nested innovation paths and the shared batched
+Normal transition. Its frozen identity-bridge bank, diagnostics, scores and
+plots are reproducible from the included scripts.
+
 ```r
 specs <- autodesn_candidates(D = c(1L, 2L), n = 12L, m = c(1L, 4L),
                              alpha = 0.5, rho = 0.8, seed = c(11L, 29L))

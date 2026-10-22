@@ -1,0 +1,115 @@
+
+dynamic_seasonal_r01: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  Diagnostic-only retry before examining future forecasts
+  chain 1/3, 3000 burn + 8000 retained sweeps
+  chain 2/3, 3000 burn + 8000 retained sweeps
+  chain 3/3, 3000 burn + 8000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+dynamic_seasonal_r01 complete in 124.4 seconds
+
+dynamic_seasonal_r02: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+dynamic_seasonal_r02 complete in 62.9 seconds
+
+dynamic_seasonal_r03: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+dynamic_seasonal_r03 complete in 61.2 seconds
+
+linear_r01: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+linear_r01 complete in 56.4 seconds
+
+linear_r02: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+linear_r02 complete in 56.6 seconds
+
+linear_r03: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+linear_r03 complete in 57.1 seconds
+
+nonlinear_r01: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  Diagnostic-only retry before examining future forecasts
+  chain 1/3, 3000 burn + 8000 retained sweeps
+  chain 2/3, 3000 burn + 8000 retained sweeps
+  chain 3/3, 3000 burn + 8000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+nonlinear_r01 complete in 120.6 seconds
+
+nonlinear_r02: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+nonlinear_r02 complete in 53.0 seconds
+
+nonlinear_r03: warmup 1:500, fit 501:1000, forecast 1001:1100
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+  Diagnostic-only retry before examining future forecasts
+  chain 1/3, 3000 burn + 8000 retained sweeps
+  chain 2/3, 3000 burn + 8000 retained sweeps
+  chain 3/3, 3000 burn + 8000 retained sweeps
+  chain 1/3, 1500 burn + 4000 retained sweeps
+  chain 2/3, 1500 burn + 4000 retained sweeps
+  chain 3/3, 1500 burn + 4000 retained sweeps
+nonlinear_r03 complete in 109.1 seconds
+              dgp           method       rmse       crps covered90
+ dynamic_seasonal         AutoDESN 10.4522460  5.8911813 0.9066667
+           linear         AutoDESN  0.4969513  0.2821022 0.9033333
+        nonlinear         AutoDESN  0.6669747  0.3639884 0.9333333
+ dynamic_seasonal         Constant 26.5581818 15.5456481 0.9433333
+           linear         Constant  0.4964138  0.2813665 0.9066667
+        nonlinear         Constant  0.8243263  0.4806480 0.9500000
+ dynamic_seasonal       Fixed_DESN 10.6052317  5.9906781 0.9100000
+           linear       Fixed_DESN  0.5077271  0.2912750 0.8666667
+        nonlinear       Fixed_DESN  0.5326680  0.3033715 0.9566667
+ dynamic_seasonal     Gaussian_AR1 25.3939237 14.7068453 0.9566667
+           linear     Gaussian_AR1  0.4954956  0.2814119 0.9033333
+        nonlinear     Gaussian_AR1  0.7800515  0.4520633 0.9533333
+ dynamic_seasonal    Gaussian_AR90 11.0440301  6.2702828 0.9100000
+           linear    Gaussian_AR90  0.5051048  0.2895604 0.9133333
+        nonlinear    Gaussian_AR90  0.5451185  0.3287921 0.9900000
+ dynamic_seasonal       Oracle_DGP 10.0087470  5.6245663 0.8900000
+           linear       Oracle_DGP  0.4925063  0.2791635 0.8933333
+        nonlinear       Oracle_DGP  0.6803059  0.3682133 0.9300000
+ dynamic_seasonal Seasonal_naive90 13.1967613  7.4418247 0.9466667
+           linear Seasonal_naive90  0.6866004  0.3857980 0.9000000
+        nonlinear Seasonal_naive90  1.0032938  0.5667898 0.9833333

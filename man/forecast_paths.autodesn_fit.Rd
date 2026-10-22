@@ -4,7 +4,18 @@
 \alias{forecast_paths.autodesn_fit}
 \title{Recursive Gaussian AutoDESN forecast paths}
 \usage{
-forecast_paths.autodesn_fit(object, H, nd = 1000L, seed = NULL, ...)
+forecast_paths.autodesn_fit(
+  object,
+  H,
+  nd = 1000L,
+  seed = NULL,
+  draw_index = NULL,
+  inner_paths = 1L,
+  innovations = NULL,
+  recursion_mode = c("posterior_predictive", "conditional_mean_plugin"),
+  backend = c("serial", "batched"),
+  ...
+)
 }
 \arguments{
 \item{object}{An \code{autodesn_fit} built from \code{\link[=autodesn_build_bank]{autodesn_build_bank()}}.}
@@ -15,10 +26,25 @@ forecast_paths.autodesn_fit(object, H, nd = 1000L, seed = NULL, ...)
 
 \item{seed}{Optional seed preserving the caller's RNG state.}
 
+\item{draw_index}{Optional indices of retained joint posterior draws. When
+supplied, their length determines the number of outer draws instead of nd.}
+
+\item{inner_paths}{Independent innovation paths per outer draw.}
+
+\item{innovations}{Optional H by (outer draws times inner_paths) matrix of
+standard-normal innovations, allowing paired comparisons and nested subsets.}
+
+\item{recursion_mode}{Posterior predictive feedback or a separately labeled
+zero-innovation conditional-mean plug-in diagnostic.}
+
+\item{backend}{Shared Normal forecast engine: serial (default) or batched.}
+
 \item{...}{Reserved. Unrecognized controls fail explicitly.}
 }
 \value{
-List with \code{yrep}, \code{mu_draws}, model and draw indices, \code{H}, and \code{nd}.
+List with \code{yrep}, \code{mu_draws}, model and draw indices, \code{H}, \code{nd},
+outer/inner path indices, and \code{mean_conditional_location} averaged over
+inner paths for each outer draw. Predictive quantiles must pool \code{yrep}.
 }
 \description{
 One joint model, coefficient, and variance draw is held fixed throughout

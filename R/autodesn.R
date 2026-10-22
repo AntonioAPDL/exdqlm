@@ -101,18 +101,29 @@ autodesn_candidates <- function(D = c(1L, 2L), n = 12L, m = c(1L, 4L),
 #' @param conditioning Number of initial observations reserved for scaling.
 #' @param model_prior Optional positive masses, one per candidate.
 #' @param normalize_features Divide slope features by sqrt(number of slopes).
+#' @param washout Optional total number of initial unscored observations,
+#'   including the conditioning prefix. Must cover conditioning and every
+#'   candidate's lag/washout requirement. NULL preserves the default additive
+#'   conditioning-plus-warmup convention.
 #' @return An `autodesn_bank` retaining designs, reservoir weights, states,
 #'   observed history, common row indices, and frozen preprocessing.
 #' @export
 autodesn_build_bank <- function(y, candidates = autodesn_candidates(),
                                 conditioning = 30L, model_prior = NULL,
-                                normalize_features = TRUE) {
+                                normalize_features = TRUE, washout = NULL) {
   y <- .normal_desn_assert_response(y)
   .autodesn_integer(conditioning, "conditioning", 2L)
   if (!is.list(candidates) || !length(candidates)) stop("candidates must be a nonempty list.", call. = FALSE)
   specs <- lapply(candidates, .autodesn_spec)
   common_warmup <- max(vapply(specs, function(x) max(x$m, x$washout), numeric(1)))
   drop <- conditioning + common_warmup
+  if (!is.null(washout)) {
+    .autodesn_integer(washout, "washout", 2L)
+    if (washout < max(conditioning, common_warmup)) {
+      stop("Total washout must cover conditioning and every candidate's lag/washout requirement.", call. = FALSE)
+    }
+    drop <- washout
+  }
   if (length(y) < drop + 2L) stop("Need at least two scored observations after conditioning and common warmup.", call. = FALSE)
   center <- mean(y[seq_len(conditioning)])
   scale <- stats::sd(y[seq_len(conditioning)])
@@ -149,6 +160,7 @@ autodesn_build_bank <- function(y, candidates = autodesn_candidates(),
   bank$history_scaled <- z
   bank$preprocessing <- list(center = center, scale = scale, conditioning = conditioning,
                              common_warmup = common_warmup, drop = drop)
+  if (!is.null(washout)) bank$preprocessing$washout_mode <- "total_prefix"
   bank$meta <- list(likelihood_family = "normal", beta_prior_type = "independent_ridge",
                     input_mode = "raw_y_lags", selection = "finite_bank",
                     package_version = .qdesn_vb_package_version(),
@@ -167,13 +179,14 @@ autodesn_build_bank <- function(y, candidates = autodesn_candidates(),
 #' @export
 autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 30L,
                          model_prior = NULL, normalize_features = TRUE,
-                         mcmc_args = list()) {
+                         mcmc_args = list(), washout = NULL) {
   if (!is.list(mcmc_args) || (length(mcmc_args) &&
       (is.null(names(mcmc_args)) || any(!nzchar(names(mcmc_args))) || anyDuplicated(names(mcmc_args))))) {
     stop("mcmc_args must be a uniquely named list.", call. = FALSE)
   }
   if ("bank" %in% names(mcmc_args)) stop("mcmc_args cannot override bank.", call. = FALSE)
-  bank <- autodesn_build_bank(y, candidates, conditioning, model_prior, normalize_features)
+  bank <- autodesn_build_bank(y, candidates, conditioning, model_prior,
+                               normalize_features, washout = washout)
   do.call(autodesn_fit_bank, c(list(bank = bank), mcmc_args))
 }
 
@@ -245,17 +258,51 @@ posterior_predict.autodesn_fit <- function(object, nd = 1000L, X_new = NULL, see
 #' @param H Positive forecast horizon.
 #' @param nd Number of posterior predictive paths.
 #' @param seed Optional seed preserving the caller's RNG state.
+#' @param draw_index Optional indices of retained joint posterior draws. When
+#'   supplied, their length determines the number of outer draws instead of nd.
+#' @param inner_paths Independent innovation paths per outer draw.
+#' @param innovations Optional H by (outer draws times inner_paths) matrix of
+#'   standard-normal innovations, allowing paired comparisons and nested subsets.
+#' @param recursion_mode Posterior predictive feedback or a separately labeled
+#'   zero-innovation conditional-mean plug-in diagnostic.
+#' @param backend Shared Normal forecast engine: serial (default) or batched.
 #' @param ... Reserved. Unrecognized controls fail explicitly.
-#' @return List with `yrep`, `mu_draws`, model and draw indices, `H`, and `nd`.
+#' @return List with `yrep`, `mu_draws`, model and draw indices, `H`, `nd`,
+#'   outer/inner path indices, and `mean_conditional_location` averaged over
+#'   inner paths for each outer draw. Predictive quantiles must pool `yrep`.
 #' @export
-forecast_paths.autodesn_fit <- function(object, H, nd = 1000L, seed = NULL, ...) {
+forecast_paths.autodesn_fit <- function(object, H, nd = 1000L, seed = NULL,
+                                        draw_index = NULL, inner_paths = 1L,
+                                        innovations = NULL,
+                                        recursion_mode = c("posterior_predictive", "conditional_mean_plugin"),
+                                        backend = c("serial", "batched"), ...) {
   .autodesn_integer(H, "H")
   .autodesn_integer(nd, "nd")
+  .autodesn_integer(inner_paths, "inner_paths")
+  recursion_mode <- match.arg(recursion_mode)
+  backend <- match.arg(backend)
   if (length(list(...))) stop("AutoDESN forecast paths do not accept additional controls.", call. = FALSE)
   bank <- object$bank
   if (is.null(bank$templates)) stop("Recursive forecasts require autodesn_build_bank().", call. = FALSE)
+  if (!is.null(draw_index) && (!is.numeric(draw_index) || !length(draw_index) ||
+      any(!is.finite(draw_index)) || any(draw_index != floor(draw_index)) ||
+      any(draw_index < 1L | draw_index > nrow(object$draws)))) {
+    stop("draw_index must contain valid retained joint-draw indices.", call. = FALSE)
+  }
   .autodesn_seed(seed, function() {
-    ids <- sample.int(nrow(object$draws), nd, replace = TRUE)
+    outer_ids <- if (is.null(draw_index)) sample.int(nrow(object$draws), nd, replace = TRUE) else as.integer(draw_index)
+    n_outer <- length(outer_ids)
+    ids <- rep(outer_ids, each = inner_paths)
+    nd <- length(ids)
+    if (!is.null(innovations) && (!is.matrix(innovations) || !is.numeric(innovations) ||
+        !identical(dim(innovations), c(as.integer(H), as.integer(nd))) || any(!is.finite(innovations)))) {
+      stop("innovations must be a finite H by total-path-count numeric matrix.", call. = FALSE)
+    }
+    # Keep the original serial, one-path-per-draw RNG order unchanged. Nested
+    # paths use one global noise bank, independent of model grouping.
+    if (is.null(innovations) && inner_paths > 1L && recursion_mode == "posterior_predictive") {
+      innovations <- matrix(stats::rnorm(H * nd), H, nd)
+    }
     model_ids <- object$draws$model[ids]
     yrep <- mu <- matrix(NA_real_, H, nd)
     for (j in unique(model_ids)) {
@@ -270,12 +317,22 @@ forecast_paths.autodesn_fit <- function(object, H, nd = 1000L, seed = NULL, ...)
       class(template) <- c("qdesn_normal_fit", "list")
       fc <- forecast_paths.qdesn_normal_fit(template, H = H, nd = length(cols),
               y_hist = bank$history_scaled, draws = list(beta = beta,
-              omega2 = object$draws$variance[ids[cols]]))
+              omega2 = object$draws$variance[ids[cols]]),
+              innovations = if (is.null(innovations)) NULL else innovations[, cols, drop = FALSE],
+              recursion_mode = recursion_mode, backend = backend)
       yrep[, cols] <- fc$yrep
       mu[, cols] <- fc$mu_draws
     }
+    mean_location <- vapply(seq_len(n_outer), function(k)
+      rowMeans(mu[, (k - 1L) * inner_paths + seq_len(inner_paths), drop = FALSE]), numeric(H))
+    dim(mean_location) <- c(H, n_outer)
     list(yrep = .autodesn_unscale(bank, yrep), mu_draws = .autodesn_unscale(bank, mu),
          draw_index = ids, model = model_ids, H = H, nd = nd,
+         outer_draw_index = rep(seq_len(n_outer), each = inner_paths),
+         inner_path_index = rep(seq_len(inner_paths), times = n_outer),
+         n_outer = n_outer, inner_paths = inner_paths,
+         mean_conditional_location = .autodesn_unscale(bank, mean_location),
+         recursion_mode = recursion_mode, backend = backend,
          forecast_family = "normal_recursive_autodesn",
          origin = length(bank$history), target = "conditional_mean")
   })

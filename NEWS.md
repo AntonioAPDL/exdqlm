@@ -1,5 +1,12 @@
 # Development: Gaussian AutoDESN
 
+- Added an explicit total washout option and nested fixed-origin forecasts
+  retaining joint posterior draws across inner paths and all forecast leads.
+- Added an opt-in batched engine to the shared Normal forecast transition,
+  paired innovation inputs, outer-draw mean locations, and a separately
+  labeled zero-innovation plug-in diagnostic. Serial defaults are preserved.
+- Added a 500-washout/500-training/100-forecast study following the corrected
+  Q-DESN identity-bridge contract, with analytic and regression checks.
 - Added finite-bank Gaussian DESN specification selection with a proper
   independent Gaussian ridge prior and optional learned global precision.
 - Reused Q-DESN reservoir construction and Normal recursive forecasting;

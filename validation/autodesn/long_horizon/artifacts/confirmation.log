@@ -1,0 +1,10 @@
+Confirmation: nonlinear repetition 1
+  chain 1/3, 5000 burn + 32000 retained sweeps
+  chain 2/3, 5000 burn + 32000 retained sweeps
+  chain 3/3, 5000 burn + 32000 retained sweeps
+       dgp repetition max_rhat min_spectral_ess max_model_chain_range
+ nonlinear          1 1.001076         1777.857           0.005594471
+ diagnostic_screen_pass model_probability_total_variation original_rmse
+                   TRUE                       0.005004598      0.502189
+ confirmation_rmse original_crps confirmation_crps mean_location_RMS_difference
+         0.5061028     0.2704397         0.2723844                  0.008041537

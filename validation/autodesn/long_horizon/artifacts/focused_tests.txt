@@ -1,0 +1,35 @@
+Package version: 1.1.1
+Filter: autodesn|qdesn-normal$|normal-init-comparison|normal-warm-start|qdesn-mean-readout-state-forecast|qdesn-redesign-topology|qdesn-forecast-recursion-diagnostic
+R version 4.3.3 (2024-02-29)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 24.04.3 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.12.0
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.12.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C
+
+time zone: America/Santiago
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] exdqlm_1.1.1   testthat_3.2.1
+
+loaded via a namespace (and not attached):
+ [1] digest_0.6.34       waldo_0.5.2         desc_1.4.3
+ [4] igraph_1.6.0        R6_2.5.1            numDeriv_2016.8-1.1
+ [7] Matrix_1.6-5        lattice_0.22-5      coda_0.19-4.1
+[10] magrittr_2.0.3      glue_1.7.0          parallel_4.3.3
+[13] pkgconfig_2.0.3     lifecycle_1.0.4     cli_3.6.2
+[16] praise_1.0.0        grid_4.3.3          withr_2.5.0
+[19] compiler_4.3.3      tools_4.3.3         nimble_1.4.3
+[22] RSpectra_0.16-1     pracma_2.4.6        brio_1.1.4
+[25] Rcpp_1.0.12         rlang_1.1.3

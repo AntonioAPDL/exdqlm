@@ -141,6 +141,12 @@ already standardized response; the shared builder never estimates it from the
 scored response window. Input scales and bounded inputs retain normal Q-DESN
 semantics.
 
+The optional bank argument `washout` specifies the **total** unscored prefix,
+including conditioning, rather than adding another warmup. For exactly 500
+training observations after 500 warmup observations, pass a length-1000 history
+with `conditioning = 500L, washout = 500L`. It must cover every candidate's
+lag/washout requirement. The legacy additive convention remains the default.
+
 Adding a candidate with a larger lag count or washout can change this common
 response window. To compare different banks on identical data, give all of them
 the same sufficient washout and conditioning prefix.
@@ -151,6 +157,21 @@ draw of model, coefficients and variance and retains it for all horizons.
 Gaussian innovations are sampled and fed back. Slopes are converted back to
 the shared builder's feature scale before calling the Normal forecast method.
 Forecasts and fitted means return to the original response scale.
+
+For nested simulation, `nd` controls outer joint posterior draws and
+`inner_paths` controls innovation paths per draw. A supplied `draw_index`
+reuses specific retained draws, and `innovations` accepts a standard-normal
+noise bank for paired calculations. `backend = "batched"` propagates paths
+through the same transition using matrix operations; serial remains default.
+`mean_conditional_location` averages conditional means over inner paths for
+each outer draw. It also equals applying that draw's linear readout to its
+average readout state. Pool all `yrep` outcomes to estimate marginal predictive
+quantiles. The separately labeled `conditional_mean_plugin` mode is a
+zero-innovation diagnostic, not the predictive distribution.
+
+See the [500/500/100 experiment](../../validation/autodesn/long_horizon/README.md)
+for the exact split, identity-bridge bank, three-chain fits, 100-step recursive
+forecasts, known-DGP reference, inner-path sensitivity and reproduction commands.
 
 `mu_draws[h, ]` describes conditional means evaluated along simulated histories;
 at later horizons it is not obtained by recursively feeding only mean forecasts.

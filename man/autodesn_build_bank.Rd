@@ -9,7 +9,8 @@ autodesn_build_bank(
   candidates = autodesn_candidates(),
   conditioning = 30L,
   model_prior = NULL,
-  normalize_features = TRUE
+  normalize_features = TRUE,
+  washout = NULL
 )
 }
 \arguments{
@@ -22,6 +23,11 @@ autodesn_build_bank(
 \item{model_prior}{Optional positive masses, one per candidate.}
 
 \item{normalize_features}{Divide slope features by sqrt(number of slopes).}
+
+\item{washout}{Optional total number of initial unscored observations,
+including the conditioning prefix. Must cover conditioning and every
+candidate's lag/washout requirement. NULL preserves the default additive
+conditioning-plus-warmup convention.}
 }
 \value{
 An \code{autodesn_bank} retaining designs, reservoir weights, states,
