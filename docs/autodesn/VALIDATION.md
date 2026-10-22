@@ -169,4 +169,55 @@ correctly, and a separate audit verifies complete case counts and aggregates.
 The executed environment is native R 4.3.3 on Ubuntu 24.04.3. Production R code
 adds no dependencies. Plot reproduction additionally uses Python, numpy,
 pandas and matplotlib. No SMC, RHS, AL/exAL architecture averaging, exogenous
-forecast input or online updating is claimed by this implementation.
+forecast input or online parameter updating is claimed by this implementation.
+
+## Extended heteroscedastic rolling-origin validation
+
+The primary [500/2000 rolling study](../../validation/autodesn/heteroscedastic/rolling/README.md)
+uses three independent series from each of three nonlinear heteroscedastic
+processes. Observations 1:500 supply frozen scaling/warmup, 501:2500 provide
+exactly 2,000 fitting rows, and 2501:2600 form the 100-observation test block.
+There are 71 complete origins, 2500:2570, each with leads 1:30. The posterior
+and preprocessing are fitted once at 2500. Observed responses update states
+between origins; simulated responses feed back within an issued forecast.
+This follows the repository's corrected Q-DESN no-refit protocol.
+
+The 72-model bank and independent Gaussian ridge priors are unchanged. Each
+origin uses 192 joint posterior draws and 16 inner innovation paths; each joint
+draw stays fixed through all leads. The Gaussian innovation variance remains
+constant, so this is a heteroscedastic misspecification test. The earlier
+[fixed-origin H=100 and one-step results](../../validation/autodesn/heteroscedastic/RESULTS.md)
+remain separate diagnostics. The rolling protocol was requested afterward;
+DGPs, candidate specifications, priors and fitting windows were not retuned.
+
+Executed verification:
+
+- Three rolling contract groups pass, covering causal future replacement,
+  observed-state timing, shared-builder equivalence including depth 3,
+  single-origin forecast equivalence, fixed joint draws, serial/fork replay,
+  innovation subsets, complete origin/lead indices and observed GJR updates.
+- 569 rolling export checks pass over 134,190 raw score rows. All
+  18 compact forecast checkpoints restore; 17,280 archived path values and
+  648 initial architecture probabilities replay within numerical precision.
+- All 18 final fit screens pass: maximum Rhat 1.006317,
+  minimum spectral ESS 610.3, maximum architecture probability
+  chain range 0.03160. These are practical screens,
+  not proofs of convergence. Final diagnostic-selected seeds and sampler
+  durations replay the earlier fits; failed attempts remain in that ledger.
+- Seven earlier heteroscedastic contract groups and 393 focused existing
+  installed-package expectations pass. Production R files are unchanged by
+  this validation extension. The earlier fixed-origin export audit passes
+  all 956 checks.
+- Source manifests and SHA256 ledgers retain the complete evidence. A prior
+  parallel inference retry exceeded the 8 GB budget; serial chains and
+  compact forecast objects resolved that resource issue. Numerical output
+  parity and the resource history are retained.
+
+The [rolling results](../../validation/autodesn/heteroscedastic/rolling/RESULTS.md)
+include lead-specific scores, per-series results, uncertainty widths, paired
+inner-path sensitivity and four PNG/PDF figure pairs. The 2,130 origin/lead
+pairs per series reuse only 100 outcomes and are dependent; independent
+replication remains three series per process. These custom examples do not
+establish general superiority. Repository-wide release checks were not
+rerun for this validation-only extension; the inherited failures documented
+above remain unresolved.

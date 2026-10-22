@@ -1,0 +1,9 @@
+
+smooth_scale_r01: warmup 1:500; fit 501:2500; test 2501:2600
+  AutoDESN attempt 1: 3 chains, 2000 burn + 6000 retained each
+  Fixed_DESN attempt 1: 3 chains, 2000 burn + 6000 retained each
+smooth_scale_r01 complete in 145.4 seconds
+
+smooth_scale_r02: warmup 1:500; fit 501:2500; test 2501:2600
+  AutoDESN attempt 1: 3 chains, 2000 burn + 6000 retained each
+  AutoDESN attempt 2: 3 chains, 4000 burn + 16000 retained each

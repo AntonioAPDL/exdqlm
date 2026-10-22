@@ -1,0 +1,11 @@
+threshold_gjr_r02 AutoDESN: replay 3 serial chains, 2000 burn + 6000 retained
+threshold_gjr_r02 Fixed_DESN: replay 3 serial chains, 2000 burn + 6000 retained
+threshold_gjr_r02 compact checkpoint bytes 411616 398352 ; forecasting 71 origins
+threshold_gjr_r02 scored origin 2509
+threshold_gjr_r02 scored origin 2519
+threshold_gjr_r02 scored origin 2529
+threshold_gjr_r02 scored origin 2539
+threshold_gjr_r02 scored origin 2549
+threshold_gjr_r02 scored origin 2559
+threshold_gjr_r02 scored origin 2569
+threshold_gjr_r02 complete in 143.3 seconds

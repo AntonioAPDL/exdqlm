@@ -1,0 +1,54 @@
+{
+  "incomplete_attempt": {
+    "exit_code": 137,
+    "reason": "8 GB cgroup memory limit during three-worker parallel longer-chain retry",
+    "completed_cases": 1,
+    "next_case": "smooth_scale repetition 2, AutoDESN attempt 2",
+    "failed_attempt_configuration": "Three concurrent chains; 4000 burn + 16000 retained each."
+  },
+  "final_changes": [
+    "Serial chains by default; release failed-fit objects before retry.",
+    "Observed-feedback reservoir locations evaluated once per outer draw, then repeated over inner innovations.",
+    "Equivalent GJR conditional variance recursion evaluated by stats::filter, verified against a scalar implementation."
+  ],
+  "changed_model_priors_seeds_candidates_or_test_design": false,
+  "first_case_forecast_parity": {
+    "fixed_origin/AutoDESN": {
+      "mean": 0.0,
+      "lower90": 0.0,
+      "upper90": 0.0,
+      "negative_log_score": 0.0
+    },
+    "fixed_origin/Fixed_DESN": {
+      "mean": 0.0,
+      "lower90": 0.0,
+      "upper90": 0.0,
+      "negative_log_score": 0.0
+    },
+    "one_step/AutoDESN": {
+      "mean": 0.0,
+      "lower90": 0.0,
+      "upper90": 0.0,
+      "negative_log_score": 0.0
+    },
+    "one_step/Fixed_DESN": {
+      "mean": 0.0,
+      "lower90": 0.0,
+      "upper90": 0.0,
+      "negative_log_score": 0.0
+    }
+  },
+  "first_case_max_abs_illustrative_path_difference": 0.0,
+  "initial_source_snapshots": [
+    {
+      "artifact": "initial_forecasting_source.txt",
+      "original_path": "validation/autodesn/heteroscedastic/forecasting.R",
+      "sha256": "a6f5d48568758d762db91b3b24b2c56186556194a9f83c611f2e6c44e12ce556"
+    },
+    {
+      "artifact": "initial_runner_source.txt",
+      "original_path": "validation/autodesn/heteroscedastic/run_study.R",
+      "sha256": "bbcee79ad924d507532ce5cc7092aa451e173592e80d3443ed7dfc64efd2008d"
+    }
+  ]
+}

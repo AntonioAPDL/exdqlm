@@ -145,7 +145,9 @@ The optional bank argument `washout` specifies the **total** unscored prefix,
 including conditioning, rather than adding another warmup. For exactly 500
 training observations after 500 warmup observations, pass a length-1000 history
 with `conditioning = 500L, washout = 500L`. It must cover every candidate's
-lag/washout requirement. The legacy additive convention remains the default.
+lag/washout requirement. With the same controls, a length-2500 history gives
+exactly 2,000 training rows (501:2500). Keep the 100 future targets outside that
+history. The legacy additive convention remains the default.
 
 Adding a candidate with a larger lag count or washout can change this common
 response window. To compare different banks on identical data, give all of them
@@ -243,3 +245,12 @@ Set `NOT_CRAN=true` to include the additional computational tests normally
 skipped by CRAN.
 Simulation comparisons are modest implementation checks with repeated series,
 not a comprehensive forecasting benchmark or proof of a benefit from depth.
+
+The [500/2000 rolling-origin study](../../validation/autodesn/heteroscedastic/rolling/README.md)
+extends the experiment to 2,000 likelihood rows and three nonlinear variance
+mechanisms. A 100-observation test block supports 71 complete rolling origins,
+each forecasting 30 leads. Following the corrected Q-DESN protocol, the
+posterior and preprocessing stay fixed while observed states update between
+origins; feedback within a forecast is simulated. Compact checkpoints support
+new horizon/origin replays. The earlier fixed-origin and one-step experiments
+remain separate diagnostics.

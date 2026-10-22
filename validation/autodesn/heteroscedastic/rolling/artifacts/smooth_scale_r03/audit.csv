@@ -1,0 +1,2 @@
+"dgp","repetition","fit_start","fit_end","n_train","washout","first_origin","last_origin","origins","H","total_paths","refit_per_origin","posterior_model_weights_updated","preprocessing_updated","future_values_within_origin","original_path_replay_max_abs","posterior_probability_replay_max_abs","max_rhat","min_ess","auto_model_chain_range","all_finite","elapsed_seconds"
+"smooth_scale",3,501,2500,2000,500,2500,2570,71,30,3072,FALSE,FALSE,FALSE,FALSE,4.88498130835069e-15,2.22044604925031e-16,1.00614590089678,610.317636014033,0.00487561558718624,TRUE,139.515

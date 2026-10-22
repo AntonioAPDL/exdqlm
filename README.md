@@ -447,6 +447,14 @@ fixed-origin forecast with nested innovation paths and the shared batched
 Normal transition. Its frozen identity-bridge bank, diagnostics, scores and
 plots are reproducible from the included scripts.
 
+The [500/2000 rolling-origin study](validation/autodesn/heteroscedastic/rolling/README.md)
+uses three nonlinear heteroscedastic processes and three independent series per
+process. Its 100-observation test block supports 71 complete origins with
+30-step recursive forecasts. The posterior is fitted once; observed states
+update between origins. Fixed DESN, AR, fitted GJR-GARCH and known-DGP references
+provide comparisons. Earlier fixed-origin and one-step diagnostics are retained
+separately.
+
 ```r
 specs <- autodesn_candidates(D = c(1L, 2L), n = 12L, m = c(1L, 4L),
                              alpha = 0.5, rho = 0.8, seed = c(11L, 29L))

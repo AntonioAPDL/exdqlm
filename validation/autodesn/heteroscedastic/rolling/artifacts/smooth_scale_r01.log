@@ -1,0 +1,11 @@
+smooth_scale_r01 AutoDESN: replay 3 serial chains, 2000 burn + 6000 retained
+smooth_scale_r01 Fixed_DESN: replay 3 serial chains, 2000 burn + 6000 retained
+smooth_scale_r01 compact checkpoint bytes 397912 409872 ; forecasting 71 origins
+smooth_scale_r01 scored origin 2509
+smooth_scale_r01 scored origin 2519
+smooth_scale_r01 scored origin 2529
+smooth_scale_r01 scored origin 2539
+smooth_scale_r01 scored origin 2549
+smooth_scale_r01 scored origin 2559
+smooth_scale_r01 scored origin 2569
+smooth_scale_r01 complete in 154.2 seconds
