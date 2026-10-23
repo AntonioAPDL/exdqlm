@@ -67,6 +67,16 @@ rhs_save <- function(x, path) {
   if (file.info(tmp)$size <= 0 || !file.rename(tmp, path)) stop("Atomic checkpoint save failed: ", path)
 }
 
+rhs_require_checkpoints <- function(results, paths, context) {
+  if (any(vapply(results, inherits, FALSE, "try-error")))
+    stop(context, ": worker returned an error; completed checkpoints remain restartable.")
+  # NULL is also the successful return value. A killed fork can return NULL
+  # too, so the existence of every atomic result is the authoritative check.
+  if (any(!file.exists(paths)))
+    stop(context, ": worker did not save every expected checkpoint; resume serially.")
+  invisible(TRUE)
+}
+
 rhs_source_manifest <- function() {
   paths <- sort(c(list.files("R", pattern = "\\.R$", full.names = TRUE),
                   list.files("src", pattern = "\\.(cpp|h)$", full.names = TRUE)))
@@ -138,7 +148,7 @@ rhs_build_bank <- function(cfg, directory) {
   for (start in seq(1L, length(sc$specs), by = 8L)) {
     ids <- seq.int(start, min(length(sc$specs), start + 7L))
     result <- parallel::mclapply(ids, make_one, mc.cores = cfg$feature_workers, mc.set.seed = FALSE)
-    if (any(vapply(result, inherits, FALSE, "try-error"))) stop("Feature-bank construction failed; completed parts remain restartable")
+    rhs_require_checkpoints(result,file.path(cache,sprintf("part_%04d.rds",ids)),"Feature-bank construction")
     cat("Built/audited", max(ids), "/", length(sc$specs), "candidates\n"); flush.console()
   }
   parts <- lapply(seq_along(sc$specs), function(j) readRDS(file.path(cache, sprintf("part_%04d.rds", j))))

@@ -1,8 +1,14 @@
 # Export all retained scalar traces and hyperparameter summaries, bank-free.
 args<-commandArgs(trailingOnly=TRUE);base<-if(length(args)) args[1] else "validation/autodesn/standardized_rhs/artifacts"
 cfg<-jsonlite::fromJSON("validation/autodesn/standardized_rhs/configuration.json")
+selected<-NULL
+at<-which(args=="--scenario")
+if(length(at)) {
+ stopifnot(length(at)==1L,at<length(args),args[at+1L]%in%cfg$scenarios$id)
+ selected<-args[at+1L];cfg$scenarios<-cfg$scenarios[cfg$scenarios$id==selected,,drop=FALSE]
+}
 legacy<-file.path(base,"legacy_prefix_requested","rhs")
-if(dir.exists(legacy)) for(ad in list.dirs(legacy,full.names=TRUE,recursive=FALSE)) {
+if(dir.exists(legacy) && is.null(selected)) for(ad in list.dirs(legacy,full.names=TRUE,recursive=FALSE)) {
  if(!grepl("attempt_[0-9]+$",ad)) next
  old<-lapply(1:3,function(k) readRDS(file.path(ad,paste0("chain_",k,".rds"))))
  tr<-do.call(rbind,lapply(1:3,function(k) cbind(chain=k,old[[k]]$fit$draws)))
@@ -19,6 +25,17 @@ for(i in seq_len(nrow(cfg$scenarios))) {
  metadata<-lapply(r,function(x) list(contract_id=x$contract_id,inference_seconds=x$inference_seconds,
    controls=x$fit$controls,sampler_stats=x$fit$sampler_stats))
  saveRDS(metadata,file.path(d,"chain_metadata.rds"),compress="xz")
+ if(sc$method=="rhs") {
+  pilots<-lapply(1:3,function(k) readRDS(file.path(d,"pilot",paste0("chain_",k,".rds"))))
+  saveRDS(lapply(pilots,function(x) list(contract_id=x$contract_id,inference_seconds=x$inference_seconds,
+   controls=x$fit$controls,sampler_stats=x$fit$sampler_stats)),file.path(d,"pilot_metadata.rds"),compress="xz")
+  actual<-do.call(rbind,lapply(1:3,function(k) {
+   z<-pilots[[k]];data.frame(chain=k,n_burn=z$fit$controls$n_burn,n_mcmc=z$fit$controls$n_mcmc,
+    seed=z$fit$controls$seed,inference_seconds=z$inference_seconds)
+  }))
+  write.csv(actual,file.path(d,"effective_pilot_controls.csv"),row.names=FALSE)
+  rm(pilots);gc(FALSE)
+ }
  tr<-do.call(rbind,lapply(1:3,function(k) cbind(chain=k,r[[k]]$fit$draws)))
  con<-gzfile(file.path(d,"traces.csv.gz"),"wt");write.csv(tr,con,row.names=FALSE);close(con)
  if(sc$method=="rhs") {
@@ -32,6 +49,7 @@ for(i in seq_len(nrow(cfg$scenarios))) {
    nonself_proposals=if(is.null(s$nonself_proposals)) NA_real_ else s$nonself_proposals,
    nonself_acceptances=if(is.null(s$nonself_acceptances)) NA_real_ else s$nonself_acceptances)
  }))
+ explore$proposal_scope<-"all_sweeps_including_burnin";explore$switch_scope<-"retained_draws"
  write.csv(explore,file.path(d,"exploration.csv"),row.names=FALSE)
  # Failed attempts retain all scalar traces and exact controls too. Full
  # coefficient vectors remain local; the compact joint checkpoint preserves

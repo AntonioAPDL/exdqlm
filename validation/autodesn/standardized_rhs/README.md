@@ -82,6 +82,19 @@ observations update reservoir states only between origins. A transport parity
 check compares the production standardized forecast API with the raw-basis
 rolling adapter before any test scoring.
 
+Forecasts now default to one worker. `forecast_serial.R <scenario>` resumes
+using only the qualified compact checkpoint and verifies frozen statistical
+settings and production hashes. It avoids loading inference designs. The
+driver requires every expected atomic checkpoint before reporting progress;
+an undelivered fork result can no longer be mistaken for a completed batch.
+For bounded fitting invocations, `run.R --stage fit --max-attempt N` stops at
+the Nth predeclared diagnostic budget; a later invocation reuses saved chains.
+The full attempt table stays in the contract and no unqualified forecast is
+issued. Current runs embed the full study and executed harness hashes.
+Actual pilot controls are exported from saved chains. The early scaling-only
+run's inherited `configuration.pilot` field was unused; the effective controls
+are three chains of 1,000 burn +2,000 retained draws, as its saved fits confirm.
+
 `execute.py` runs all three cases and their predictive-MC sensitivities
 sequentially and records measured exit codes, wall time and parent peak RSS.
 `archive.R` retains the 384 joint predictive draws and required reservoir

@@ -152,7 +152,7 @@ rhs_forecast <- function(cp, cfg, directory, id) {
   for (start in seq(1L, length(origins), by = 8L)) {
     ids <- seq.int(start, min(length(origins), start + 7L))
     results <- parallel::mclapply(ids, forecast_one, mc.cores = cfg$origin_workers, mc.set.seed = FALSE)
-    if (any(vapply(results, inherits, FALSE, "try-error"))) stop("Forecast failed; completed origins can be resumed")
+    rhs_require_checkpoints(results,file.path(directory,sprintf("origin_%04d.rds",origins[ids])),"Forecast")
     cat(cp$beta_prior, "origins", max(ids), "/", length(origins), "complete\n"); flush.console()
   }
   result <- lapply(origins, function(o) readRDS(file.path(directory, sprintf("origin_%04d.rds", o))))

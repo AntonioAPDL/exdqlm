@@ -29,7 +29,7 @@ def main():
  study=json.loads((HERE/'configuration.json').read_text());diag=pd.read_csv(d/'independent_diagnostics.csv')
  budgets=pd.read_csv(d/'mcmc_budget_sensitivity.csv');bank=json.loads((a.data/'standardized_bank/status.json').read_text())
  figures=d/'figures';figures.mkdir(exist_ok=True)
- plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.spines.top':False,'axes.spines.right':False})
+ plt.rcParams.update({'font.family':'DejaVu Sans','font.size':11,'axes.spines.top':False,'axes.spines.right':False})
  labels=list(SHORT);palette=dict(zip(labels,COLORS))
  fig,axes=plt.subplots(3,2,figsize=(10,9),layout='constrained')
  for ax,metric in zip(axes.flat,['RMSE','MAE','CRPS','NLL','Coverage90','Width90']):
@@ -47,7 +47,7 @@ def main():
   ax.fill_between(g.target,g.lower90,g.upper90,color=palette[lab],alpha=.15,label='90% interval')
   ax.fill_between(g.target,g.lower50,g.upper50,color=palette[lab],alpha=.3,label='50% interval')
   ax.plot(g.target,g['mean'],color=palette[lab],lw=1,label='30-step mean')
-  ax.set(title=SHORT[lab],ylabel='Response');ax.legend(ncol=4,frameon=False,fontsize=7)
+  ax.set(title=SHORT[lab],ylabel='Response');ax.legend(ncol=4,frameon=False,fontsize=10)
  axes[-1].set_xlabel('Target time; each forecast conditions on observations through target - 30')
  fig.savefig(figures/'forecasts.png',dpi=170);plt.close(fig)
  fig,axes=plt.subplots(2,1,figsize=(10,5),layout='constrained')
@@ -62,10 +62,11 @@ def main():
  ids=sorted(top);fig,ax=plt.subplots(figsize=(10,4),layout='constrained');x=np.arange(len(ids))
  for i,(name,g) in enumerate(models.items()):
   gg=g.set_index('model');ax.bar(x+(i-1)*.26,gg.loc[ids,'posterior_probability'],width=.26,label=name,color=COLORS[i])
- ax.set_xticks(x,[f"{j}\n{models['requested'].set_index('model').loc[j,'candidate']}" for j in ids],rotation=60,ha='right',fontsize=6)
- ax.set(ylabel='Posterior probability',title='Union of the eight leading architectures in each standardized fit');ax.legend(frameon=False,ncol=3)
+ ax.set_xticks(x,[str(j) for j in ids],fontsize=10)
+ ax.set(ylabel='Posterior probability',xlabel='Frozen architecture ID (full candidate names in the CSV)',title='Union of the eight leading architectures in each standardized fit');ax.legend(frameon=False,ncol=3)
  fig.savefig(figures/'architectures.png',dpi=170);plt.close(fig)
  pdfmetrics.registerFont(TTFont('DV',findfont('DejaVu Sans')));pdfmetrics.registerFont(TTFont('DVB',findfont('DejaVu Sans:weight=bold')))
+ pdfmetrics.registerFontFamily('DV',normal='DV',bold='DVB',italic='DV',boldItalic='DVB')
  styles=getSampleStyleSheet()
  for s in styles.byName.values():s.fontName='DV';s.textColor=colors.HexColor('#24313d')
  styles['Title'].fontName='DVB';styles['Title'].fontSize=23;styles['Title'].leading=28
@@ -73,7 +74,7 @@ def main():
  styles['BodyText'].fontSize=9;styles['BodyText'].leading=14
  styles.add(ParagraphStyle('Small',parent=styles['BodyText'],fontSize=7.2,leading=10))
  story=[]
- def para(t,style='BodyText'):story.append(Paragraph(t,styles[style]));story.append(Spacer(1,7))
+ def para(t,style='BodyText'):story.append(Paragraph(t.replace('<=','&lt;=').replace('>=','&gt;='),styles[style]));story.append(Spacer(1,7))
  def title(t):para(t,'Heading1')
  def table(rows,widths=None,size=7.6):
   content=[[Paragraph(str(v),styles['Small']) for v in row] for row in rows]
@@ -111,18 +112,19 @@ def main():
  page();title('Rolling forecasts and predictive intervals');image('forecasts.png',500)
  para('These panels show horizon 30 at every rolling origin. Observed reservoir states are updated between forecast origins. Inside each issued forecast, future responses are simulated recursively, never read from the held-out series.','Small')
  page();title('Architecture averaging and shrinkage');image('architectures.png',500)
- rows=[['Scenario','Leading model','Probability','tau median [5%,95%]','c^2 median [5%,95%]']]
+ rows=[['Scenario','Leading model','Probability','tau median [5%,95%]','c^2 median [5%,95%]','Diagonal effective slopes']]
  for sc in study['scenarios']:
   g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()]
   row=[sc['id'],f"{int(lead.model)}: {lead.candidate}",f'{lead.posterior_probability:.5f}']
   if sc['method']=='rhs':
    q=pd.read_csv(a.data/sc['id']/sc['method']/'shrinkage_quantiles.csv').set_index('parameter')
-   for nm in ['global_tau','slab_variance']:
+   for nm in ['global_tau','slab_variance','effective_slopes_diagonal']:
     v=q.loc[nm];row.append(f'{v["median"]:.4g} [{v.q05:.4g}, {v.q95:.4g}]')
-  else:row+=['-','-']
+  else:row+=['-','-','-']
   rows.append(row)
- table(rows,[82,100,58,130,130])
+ table(rows,[70,95,50,95,95,95])
  para('tau0 is a prior multiplier, not a fixed posterior value of tau. Both u and c^2 are sampled. The displayed slab values are posterior draws of c^2, not the slab_scale hyperparameter. Local scales remain coefficient-specific; their distribution is not replaced by a common penalty.')
+ para('The effective-slope diagnostic sums the diagonal-design approximation to 1 minus the shrinkage factor. Correlated reservoir columns prevent interpreting it as an exact degrees-of-freedom count. The CSV also records aggregate log-local scale traces.','Small')
  para('Architecture probabilities are posterior occupancy averages across three chains. Proposals retain positive mass on every architecture and include the exact Hastings correction. No test-error screening replaces Bayesian architecture averaging.')
  page();title('MCMC convergence and numerical validation');image('traces.png',500)
  rows=[['Scenario','Max rank R-hat','Min bulk ESS','Min tail ESS','Retained / chain']]
@@ -152,27 +154,38 @@ def main():
  para('The full CSV contains all 24 settings per model: origins 2500, 2735, 2970; N=192/384; K=4/8/16/32. These reuse one qualified posterior per model. The 90 scored pairs in a setting are dependent and are not the full 14,130-pair comparison.','Small')
  page();title('Measured runtime and reproducibility')
  build=json.loads((a.data/'raw_bank/status.json').read_text())
- para(f"Shared raw reservoir construction: {build['invocation_wall_seconds']:.2f} s wall time ({build['candidate_compute_seconds_sum']:.2f} s summed candidate compute). Frozen column standardization: {bank['standardization_seconds']:.2f} s. Bank loading, compilation and reporting are not inference.")
+ para(f"Shared raw reservoir construction: {build['invocation_wall_seconds']:.2f} s wall time ({build['candidate_compute_seconds_sum']:.2f} s summed candidate compute). Frozen readout preparation, including column standardization and sufficient statistics: {bank['standardization_seconds']:.2f} s. Bank loading, compilation and reporting are not inference.")
  rows=[['Scenario','Pilots (s)','Inference incl. failed attempts (s)','Forecast compute (s)','State update (s)','Parent peak RSS (GiB)']]
  for sc in study['scenarios']:
   st=json.loads((a.data/sc['id']/sc['method']/'status.json').read_text());t=st['timings'];m=json.loads((a.data/sc['id']/'process_memory.json').read_text())
-  rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',f'{m["process_peak_rss_kib"]/2**20:.2f}'])
+  failed=a.data/sc['id']/'failed_fork_resume_memory.json'
+  if failed.exists():m['process_peak_rss_kib']=max(m.get('process_peak_rss_kib') or 0,json.loads(failed.read_text()).get('process_peak_rss_kib') or 0) or None
+  peak=f'{m["process_peak_rss_kib"]/2**20:.2f}' if m.get('process_peak_rss_kib') else 'NA'
+  rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',peak])
  table(rows,[94,60,104,83,74,85])
  para('Forecast compute is the sum of per-origin computation, not parallel wall time. State preparation, scoring, exports and predictive-budget sensitivity are excluded from that sum. Parent VmHWM excludes forked workers and is not a unique-memory estimate for the entire process tree. Cgroup observations include file cache and concurrent dependency setup.','Small')
+ para('The initial scaling-only RSS sample used a namespace-local PID against host /proc and is invalid; it is reported as NA. The corrected observer resolves the process namespace explicitly. Ridge forecasting was interrupted after 98 origins and resumed from its saved fit and per-origin checkpoints; its measured peak covers the observed resume invocations, including a failed fork attempt. That failed resume took 255.02 s wall time, separate from completed forecast compute. No refit was needed.','Small')
  legacy=a.data/'legacy_prefix_requested/rhs/status.json'
  if legacy.exists():
   lt=json.loads(legacy.read_text())['timings'];para(f"Additional failed prefix-sampler development cost: {lt['inference_seconds_all_attempts']:.2f} s inference plus {lt['training_pilot_seconds']:.2f} s pilot computation. These produced no forecasts and are retained in the budget/diagnostic evidence.",'Small')
  with zipfile.ZipFile(HERE.parent/'rhs_comparison/evidence/C1_numeric_evidence.zip') as z:gp=json.loads(z.read('gp/status.json'))
  gt=gp['timings']
  para(f"Reused Native AutoGP reference: two runs with eight SMC particles each; summed training time {gt['smc_training_seconds_sum']:.2f} s; original native run/export time {gt['native_run_elapsed_seconds_sum']:.2f} s. Its later rolling conditioning/scoring/export replay took {gt['replayed_rolling_conditioning_scoring_export_seconds']:.2f} s with peak RSS {gt['replayed_peak_rss_kib']/2**20:.3f} GiB. A pure GP forecasting timer and native-training peak memory were unavailable. These are different timer scopes and cannot support a clean end-to-end speedup claim.", 'Small')
+ bench=pd.read_csv(a.data/'validation/standardized_backend_benchmark.csv').groupby('backend').elapsed_seconds.median()
+ error=pd.read_csv(a.data/'validation/standardized_backend_parity.csv').max_paired_draw_error.max()
+ para(f"A separate short-chain computational benchmark (200 rows, four standardized designs, up to 64 slopes, 100 burn +800 retained draws; three timing repetitions) took median {bench['R']:.3f} s in R and {bench['cpp']:.3f} s with the native kernels, a {bench['R']/bench['cpp']:.2f}x ratio. Coupled coefficient/scale draws differed by at most {error:.3g}, with identical model paths. Setup and compilation were excluded. These short runs measure computation, not convergence.",'Small')
+ page()
  title('Audit details')
  para(f"All 428 admitted architectures have the same raw reservoirs and candidate identities in all three new cases. Maximum absolute training feature mean: {bank['max_abs_mean']:.3g}; maximum sample-SD error: {bank['max_sd_error']:.3g}. No constant columns were found in this bank. The API freezes a constant-column exclusion mask when necessary.")
  para('Validation covers shared Q-DESN scaling parity, frozen transforms, intercept transport, direct/batched recursive forecast parity, backward-compatible ridge draws, normalized RHS densities, Gaussian integrated likelihoods, scale updates, architecture ratios, and R/C++ agreement. Saved path snapshots independently reproduce scores at the first, middle and last origins. See validation_status.json and the archived test logs for actual pass/skip counts.')
+ validation=json.loads((a.data/'validation/validation_status.json').read_text())
+ para(f"Current installed regression assertions: {validation['installed_regression']['passed']} passed, zero failures/errors/warnings, one loaded-DLL context skip covered separately by the source-only checks. The 32 independent small-posterior reference checks passed. Prior-preserving interweaving has independent conditional quadrature and no-information prior-CDF checks; the historical default sampler reproduces the earlier draws exactly.")
+ para('Release status remains draft. The earlier scoped R CMD check recorded one inherited nonportable-path error, three existing documentation/non-ASCII warnings and two notes. This update installs and passes the focused checks; a clean repository-wide release check is not claimed.','Small')
  para('Reproduce from feature/autodesn-rhs-20261022: run standardized_rhs/run.R for requested, scaling_only and ridge_standardized sequentially; then rhs_comparison/sensitivity.R for each output, standardized_rhs/export.R, analysis.py and report.py. configuration.json fixes all budgets and seeds. Hash-guarded checkpoints reject changed inputs or production sources.','Small')
  para('Code and draft PR: https://github.com/AntonioAPDL/exdqlm/pull/3. Original report and reproducibility evidence remain under validation/autodesn/rhs_comparison/evidence/. This supplement preserves those results.','Small')
  out=HERE/'evidence';out.mkdir(exist_ok=True);pdf=out/'AutoDESN_Standardized_RHS_C1_Report.pdf'
  def footer(c,doc):
   c.setFont('DV',7);c.setFillColor(colors.HexColor('#657282'));c.drawString(48,25,'AutoDESN | exploratory C1 sensitivity | 23 October 2026');c.drawRightString(548,25,str(doc.page))
- SimpleDocTemplate(str(pdf),pagesize=(596,842),leftMargin=48,rightMargin=48,topMargin=42,bottomMargin=42,title='AutoDESN standardized RHS C1 sensitivity').build(story,onFirstPage=footer,onLaterPages=footer)
+ SimpleDocTemplate(str(pdf),pagesize=(596,842),leftMargin=42,rightMargin=42,topMargin=36,bottomMargin=36,title='AutoDESN standardized RHS C1 sensitivity').build(story,onFirstPage=footer,onLaterPages=footer)
  print(pdf)
 if __name__=='__main__':main()

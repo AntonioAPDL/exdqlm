@@ -1,4 +1,11 @@
 source("validation/autodesn/rhs_comparison/helpers.R")
+testthat::test_that("fork progress requires actual saved result checkpoints", {
+  d<-tempfile();dir.create(d);p<-file.path(d,c("one.rds","two.rds"));writeLines("saved",p[1])
+  testthat::expect_silent(rhs_require_checkpoints(list(NULL),p[1],"test"))
+  testthat::expect_error(rhs_require_checkpoints(list(NULL,NULL),p,"test"),"did not save every")
+  testthat::expect_error(rhs_require_checkpoints(list(structure("failed",class="try-error")),p[1],"test"),"worker returned an error")
+  writeLines("saved",p[2]);testthat::expect_silent(rhs_require_checkpoints(list(NULL,NULL),p,"test"))
+})
 source("validation/autodesn/rhs_comparison/runner.R")
 library(testthat)
 

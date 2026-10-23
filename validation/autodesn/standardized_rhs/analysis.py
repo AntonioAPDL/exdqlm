@@ -64,6 +64,10 @@ def main():
   manifest=json.loads(z.read('SHA256.json'))
   for name,expected in manifest.items():assert hashlib.sha256(z.read(name)).hexdigest()==expected,name
   for key,label in [('ridge','Ridge: original basis'),('rhs','RHS: original basis, tau0=1, slab=2'),('gp','Native AutoGP')]:
+   status=json.loads(z.read(key+'/status.json'));assert status['complete'] and status['benchmark_complete']
+   assert status['origins']==471 and status['score_pairs']==14130
+   assert status['posterior_updates'] is False and status['model_weight_updates'] is False
+   if key=='gp':assert status['native_checks_passed'] and status['input_sha256']==cfg['input_sha256']
    frame=pd.read_csv(io.BytesIO(z.read(key+'/scores.csv.gz')),compression='gzip');frame=validate_scores(frame,cfg,{'ridge':'AutoDESN ridge','rhs':'AutoDESN RHS','gp':'AutoGP'}[key])
    frame['model']=label;frame['scenario']='reference_'+key;scores.append(frame)
    records.append(dict(scenario='reference_'+key,**aggregate(frame)))

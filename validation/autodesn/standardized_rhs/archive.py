@@ -12,7 +12,7 @@ with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=
   if not p.is_file():continue
   rel=p.relative_to(base);parts=rel.parts
   if 'cpp_cache' in parts or 'parts' in parts:continue
-  if p.suffix=='.rds' and not p.name in ['contract.rds','chain_metadata.rds']:continue
+  if p.suffix=='.rds' and not p.name in ['contract.rds','chain_metadata.rds','pilot_metadata.rds']:continue
   if p.name in ['all_scores.csv.gz'] or 'figures' in parts:continue
   if p.suffix not in ['.json','.csv','.gz','.log','.txt','.rds']:continue
   data=p.read_bytes();name=str(rel)

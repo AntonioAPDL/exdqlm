@@ -7,6 +7,7 @@
   "fit_rows": [501,2500],
   "unit_variance_at_prior_input": true,
   "chains": 3,
+  "forecast_workers": 1,
   "model_moves": 4,
   "rb_every": 200,
   "proposal_prior_fraction": 0.2,

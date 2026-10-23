@@ -9,22 +9,38 @@ from pathlib import Path
 HERE=Path(__file__).resolve().parent
 
 def run(command,log,memory):
-    started=time.monotonic();peak=0;group=0;samples=0
+    started=time.monotonic();peak=0;group=0;samples=0;host_pid=None
+    namespace=Path('/proc/self/ns/pid').stat().st_ino
+    def resolve_pid(local_pid):
+        # /proc may expose host IDs while subprocess.pid is namespace-local.
+        for proc in Path('/proc').glob('[0-9]*'):
+            try:
+                if (proc/'ns/pid').stat().st_ino!=namespace:continue
+                vals=dict(line.split(':',1) for line in (proc/'status').read_text().splitlines() if ':' in line)
+                if int(vals.get('NSpid','0').split()[-1])==local_pid:return int(proc.name)
+            except (FileNotFoundError,ProcessLookupError,PermissionError):pass
+        return None
+    def record(complete=False,exit_code=None):
+        result=dict(complete=complete,exit_code=exit_code,invocation_wall_seconds=time.monotonic()-started,
+            process_peak_rss_kib=peak or None,cgroup_max_bytes_during_observation=group,samples=samples,
+            memory_note='Parent R VmHWM resolved using PID-namespace inode and NSpid; forked workers excluded. Cgroup includes file cache and other jobs.')
+        tmp=memory.with_suffix(memory.suffix+'.partial');tmp.write_text(json.dumps(result,indent=2));tmp.replace(memory)
+        return result
     with log.open('w') as f:
         p=subprocess.Popen(command,stdout=f,stderr=subprocess.STDOUT)
         while p.poll() is None:
             try:
-                status=Path(f'/proc/{p.pid}/status').read_text()
+                if host_pid is None:host_pid=resolve_pid(p.pid)
+                if host_pid is None:time.sleep(.1);continue
+                status=Path(f'/proc/{host_pid}/status').read_text()
                 vals=dict(line.split(':',1) for line in status.splitlines() if ':' in line)
                 peak=max(peak,int(vals.get('VmHWM','0 kB').split()[0]))
                 group=max(group,int(Path('/sys/fs/cgroup/memory.current').read_text()))
                 samples+=1
+                record()
             except (FileNotFoundError,ProcessLookupError):pass
             time.sleep(.5)
-    result=dict(complete=True,exit_code=p.returncode,invocation_wall_seconds=time.monotonic()-started,
-                process_peak_rss_kib=peak,cgroup_max_bytes_during_observation=group,samples=samples,
-                memory_note='Parent R VmHWM; forked workers excluded. Cgroup samples include file cache and concurrent setup.')
-    memory.write_text(json.dumps(result,indent=2));return result
+    return record(True,p.returncode)
 
 def main():
     a=argparse.ArgumentParser();a.add_argument('--wait-pid',type=int);args=a.parse_args()

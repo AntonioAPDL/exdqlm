@@ -14,8 +14,11 @@ value <- function(key,default) {
 options <- rhs_options(character());cfg <- rhs_configuration(options)
 study <- jsonlite::fromJSON(file.path(root,"configuration.json"))
 cfg$attempts <- as.data.frame(study$attempts)
+cfg$origin_workers <- study$forecast_workers
 base <- value("out",file.path(root,"artifacts"))
 stage <- value("stage","all")
+max_attempt <- as.integer(value("max-attempt",nrow(cfg$attempts)))
+stopifnot(length(max_attempt)==1L,!is.na(max_attempt),max_attempt>=1L,max_attempt<=nrow(cfg$attempts))
 scenario_id <- value("scenario","requested")
 stopifnot(stage%in%c("build","fit","forecast","all"),scenario_id%in%study$scenarios$id)
 sc <- study$scenarios[match(scenario_id,study$scenarios$id),,drop=FALSE]
@@ -84,16 +87,26 @@ cat("Shared standardized bank:",length(bank$models),"models,",bank$n,"training r
 if(stage=="build") quit(status=0)
 directory <- file.path(options$out,sc$method);dir.create(directory,recursive=TRUE,showWarnings=FALSE)
 config <- cfg
+config$standardized_study <- study
+config$pilot <- study$pilot
+config$training_proposal_prior_fraction <- study$proposal_prior_fraction
 config$readout_standardization <- study[c("standardize_features","normalize_features","feature_sd_tol","interpretation")]
 config$scenario <- as.list(sc)
 if(sc$method=="rhs") config$rhs_control <- c(list(tau0=sc$tau0,slab_scale=sc$slab_scale,slab_df=sc$slab_df),study$sampler)
 config[[paste0(sc$method,"_seed")]] <- sc$seed
 config$model_control <- list(method="mh",moves=study$model_moves,rb_every=study$rb_every)
+harness_paths <- c("validation/autodesn/rhs_comparison/helpers.R","validation/autodesn/rhs_comparison/runner.R",
+ "validation/autodesn/load_checkout.R","validation/autodesn/c1_comparison/helpers.R",
+ "validation/autodesn/long_horizon/helpers.R","validation/autodesn/heteroscedastic/forecasting.R",
+ "validation/autodesn/heteroscedastic/rolling/helpers.R")
+harness_source <- data.frame(path=harness_paths,sha256=vapply(harness_paths,function(p) digest::digest(file=p,algo="sha256"),""))
 contract <- list(bank_id=bank_result$id,configuration=config,
- production_source=rhs_source_manifest(),runner_sha256=digest::digest(file=file.path(root,"run.R"),algo="sha256"))
+ production_source=rhs_source_manifest(),harness_source=harness_source,
+ runner_sha256=digest::digest(file=file.path(root,"run.R"),algo="sha256"))
 id <- rhs_guard(directory,contract)
 write.csv(contract$production_source,file.path(directory,"source_manifest.csv"),row.names=FALSE)
 rhs_json(list(contract_id=id,configuration=config,production_source=contract$production_source,
+ harness_source=harness_source,
  git_revision=.autodesn_checkout_revision),file.path(directory,"provenance.json"))
 rhs_json(config,file.path(options$out,"configuration.json"))
 Rcpp::sourceCpp("src/autodesn_rhs.cpp",cacheDir=file.path(base,"cpp_cache"),rebuild=FALSE,showOutput=FALSE)
@@ -149,7 +162,7 @@ if(file.exists(cp_path)) {
  cp <- readRDS(cp_path);stopifnot(identical(cp$comparison_contract_id,id))
 } else {
  total <- 0;passed <- FALSE
- for(attempt in seq_len(nrow(config$attempts))) {
+ for(attempt in seq_len(max_attempt)) {
   ctl <- config$attempts[attempt,];adir <- file.path(directory,paste0("attempt_",attempt))
   dir.create(adir,showWarnings=FALSE);fits <- vector("list",3)
   for(k in 1:3) {
