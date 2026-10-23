@@ -9,6 +9,13 @@ def main():
  b=HERE/'artifacts';records={};record_path=b/'postprocessing_execution.json'
  if record_path.exists():records=json.loads(record_path.read_text())
  def run(name,command):
+  if name in records:
+   i=1
+   while f'{name}_previous_{i}' in records:i+=1
+   previous=f'{name}_previous_{i}';records[previous]=records[name]
+   for suffix in ['.log','_memory.json']:
+    src=b/(name+suffix)
+    if src.exists():shutil.copyfile(src,b/(previous+suffix))
   result=measured.run(command,b/(name+'.log'),b/(name+'_memory.json'));records[name]=result
   record_path.write_text(json.dumps(records,indent=2));print(name,json.dumps(result),flush=True)
   if result['exit_code']:raise SystemExit(f'{name} failed; evidence and checkpoints retained')
@@ -31,7 +38,8 @@ def main():
  validation=reference['validation']
  validation['production_test_reuse_explicit']=True
  validation['fresh_DGP_assertions_passed']=12;validation['fresh_workflow_assertions_passed']=20
- validation['summary']='The unchanged production R/src previously passed639 installed focused assertions (one loaded-DLL context skip covered by76 source-only checks),77 R study contracts,6 Python scoring/causality contracts,4 independent diagnostic tests and32 small-posterior checks. Fresh NHS1 checks passed12 DGP assertions,20 workflow assertions, R/native small-chain parity and native GP save/reload/conditioning contracts. These short tests do not establish convergence; each full fit separately passes its parameter/architecture and independent rank/ESS screens.'
+ validation['fresh_Python_contracts_passed']=6
+ validation['summary']='The unchanged production R/src previously passed 639 installed focused assertions (one loaded-DLL context skip covered by 76 source-only checks), 77 R study contracts, 6 Python scoring/causality contracts, 4 independent diagnostic tests and 32 small-posterior checks. Fresh NHS1 checks passed 12 DGP assertions, 20 workflow assertions, 6 dataset/scoring/conditioning contracts, R/native small-chain parity and native GP save/reload/conditioning contracts. These short tests do not establish convergence; each full fit separately passes its parameter/architecture and independent rank/ESS screens.'
  (b/'validation/validation_status.json').write_text(json.dumps(validation,indent=2))
  execution=json.loads((b/'execution_status.json').read_text())
  for case in ['requested','scaling_only','ridge_standardized']:

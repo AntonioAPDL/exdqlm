@@ -57,6 +57,23 @@ for(i in seq_len(nrow(cfg$scenarios))) {
   q<-do.call(rbind,lapply(names,function(n) data.frame(parameter=n,q05=quantile(tr[[n]],.05),median=median(tr[[n]]),q95=quantile(tr[[n]],.95))))
   write.csv(q,file.path(d,"shrinkage_quantiles.csv"),row.names=FALSE)
  }
+ # Forecast-relevant functions also have a common meaning across differing
+ # coefficient dimensions. Monitor six fixed training-row fitted means.
+ bank<-readRDS(file.path(base,"standardized_bank/bank.rds"))
+ anchors<-as.integer(round(seq(1L,bank$n,length.out=6L)))
+ functional<-do.call(rbind,lapply(1:3,function(k) {
+  f<-r[[k]]$fit;value<-matrix(NA_real_,nrow(f$draws),length(anchors))
+  for(j in unique(f$draws$model)) {
+   ids<-which(f$draws$model==j);coef<-do.call(rbind,f$beta[ids])
+   value[ids,]<-coef%*%t(bank$models[[j]]$X[anchors,,drop=FALSE])
+  }
+  stopifnot(all(is.finite(value)))
+  value<-bank$preprocessing$center+bank$preprocessing$scale*value
+  colnames(value)<-paste0("fitted_time_",bank$keep_idx[anchors])
+  data.frame(chain=k,iteration=seq_len(nrow(value)),value)
+ }))
+ export_trace(functional,file.path(d,"functional_traces.csv.gz"))
+ rm(bank,functional);gc(FALSE)
  explore<-do.call(rbind,lapply(1:3,function(k) {
   f<-r[[k]]$fit;s<-f$sampler_stats
   data.frame(chain=k,draws=nrow(f$draws),unique_models=length(unique(f$draws$model)),switches=sum(diff(f$draws$model)!=0),

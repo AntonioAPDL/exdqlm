@@ -12,7 +12,7 @@ def main():
  study=json.loads((HERE/'study.json').read_text());sc=next(x for x in study['scenarios'] if x['id']==a.scenario)
  d=HERE/'artifacts'/a.scenario/sc['method'];status=json.loads((d/'status.json').read_text())
  assert status['fit_complete'] and status['qualified']
- trace_hash=hashlib.sha256((d/'traces.csv.gz').read_bytes()).hexdigest()
+ trace_hash=hashlib.sha256((d/'traces.csv.gz').read_bytes()+(d/'functional_traces.csv.gz').read_bytes()).hexdigest()
  old=d/'independent_screen.json'
  if old.exists():
   previous=json.loads(old.read_text())
@@ -25,6 +25,11 @@ def main():
   x=np.array([g[name].to_numpy() for _,g in trace.groupby('chain')]);rows.append(dict(parameter=name,**diagnostics(x)))
  for model in models.loc[models.posterior_probability>=.01,'model']:
   x=np.array([(g.model.to_numpy()==model).astype(float) for _,g in trace.groupby('chain')]);rows.append(dict(parameter=f'model_{model}',**diagnostics(x)))
+ functional=pd.read_csv(d/'functional_traces.csv.gz')
+ assert functional.groupby('chain').size().equals(trace.groupby('chain').size())
+ for name in functional.columns:
+  if not name.startswith('fitted_time_'):continue
+  x=np.array([g[name].to_numpy() for _,g in functional.groupby('chain')]);rows.append(dict(parameter=name,**diagnostics(x)))
  checks=pd.DataFrame(rows);checks.to_csv(d/'independent_diagnostics.csv',index=False)
  passed=bool(np.isfinite(checks[['rhat','bulk_ess','tail_ess']]).all().all() and (checks.rhat<=1.01).all() and (checks.bulk_ess>=400).all() and (checks.tail_ess>=400).all())
  record=dict(complete=True,passed=passed,checked_before_forecasting=not (d/'scores.csv').exists(),trace_sha256=trace_hash,maximum_rhat=float(checks.rhat.max()),minimum_bulk_ess=float(checks.bulk_ess.min()),minimum_tail_frequency_ess=float(checks.tail_ess.min()))

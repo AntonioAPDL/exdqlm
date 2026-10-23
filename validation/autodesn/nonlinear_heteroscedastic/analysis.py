@@ -69,6 +69,6 @@ def main():
  for (model,band),g in one.groupby(['model','volatility_band'],observed=True):
   calibration.append(dict(model=model,band=band,**aggregate(g),mean_true_sd=g.true_conditional_sd.mean(),mean_predictive_sd=g.predictive_sd.mean(),conditional_mean_RMSE=float(np.sqrt(np.mean((g['mean']-g.true_conditional_mean)**2)))))
  pd.DataFrame(calibration).to_csv(c/'calibration_by_volatility.csv',index=False)
- audit=dict(complete=True,new_DGP=True,reference_inference_reused=False,pairs_per_model=14130,independent_replications=1,dependent_rolling_pairs=True,path_audits=audits,one_step_volatility_cuts_from_training=cuts.tolist())
+ audit=dict(complete=True,new_DGP=True,reference_inference_reused=False,pairs_per_model=14130,dgp_realizations=1,dependent_rolling_pairs=True,path_audits=audits,one_step_volatility_cuts_from_training=cuts.tolist())
  (c/'audit.json').write_text(json.dumps(audit,indent=2));print(pooled.to_string(index=False))
 if __name__=='__main__':main()

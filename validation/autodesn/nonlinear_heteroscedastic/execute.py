@@ -10,6 +10,13 @@ def main():
  state=b/'execution_status.json'
  if state.exists():records=json.loads(state.read_text())
  def run(name,cmd):
+  if name in records:
+   i=1
+   while f'{name}_previous_{i}' in records:i+=1
+   previous=f'{name}_previous_{i}';records[previous]=records[name]
+   for suffix in ['.log','_memory.json']:
+    src=b/(name+suffix)
+    if src.exists():shutil.copyfile(src,b/(previous+suffix))
   result=measured.run(cmd,b/(name+'.log'),b/(name+'_memory.json'));records[name]=result
   state.write_text(json.dumps(records,indent=2));print(name,json.dumps(result),flush=True)
   return result['exit_code']
