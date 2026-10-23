@@ -33,6 +33,23 @@ feature scaling from changing hyperparameters. The standardized ridge is a
 matched feature-basis comparator. AutoGP remains the frozen completed native
 reference. No Gaussian model is replaced by a quantile likelihood.
 
+The first standardized requested-prior run used the historical prefix local
+embedding. All four budgets failed the architecture gates, including three
+chains with 64,000 retained draws each; no forecasts were issued from those
+fits. They are retained as `legacy_prefix_requested` evidence. Continuous
+global-scale diagnostics alone would have accepted the last budget, which
+demonstrates why architecture diagnostics are also necessary.
+
+The final protocol uses two optional exact sampler improvements:
+`local_layout="layerwise"` and `interweave_global=TRUE`. Layer/readout-index
+slots avoid reassigning deepest-layer scales to shallow-layer features on a
+depth change. Inactive half-Cauchy auxiliaries integrate to one. A second
+global/local update holds products u*lambda fixed and samples their exact
+prior conditional, then restores the augmentation conditionals. Neither
+change alters the normalized RHS marginal target. Both are checked
+independently; derivations are in `docs/autodesn/RHS.md`. This sampler revision
+uses training diagnostics only, before any requested-prior test forecasts.
+
 These are **exploratory sensitivity analyses** because the original C1 test
 outcomes have already been inspected. Neither lower test errors nor this one
 series establish general superiority. No additional search over tau0/slab
@@ -46,6 +63,9 @@ export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 Rscript validation/autodesn/standardized_rhs/run.R --scenario requested
 Rscript validation/autodesn/standardized_rhs/run.R --scenario scaling_only
 Rscript validation/autodesn/standardized_rhs/run.R --scenario ridge_standardized
+Rscript validation/autodesn/standardized_rhs/export.R
+python validation/autodesn/standardized_rhs/analysis.py
+python validation/autodesn/standardized_rhs/report.py
 ```
 
 The runner rebuilds the original causal raw bank once, fits the shared scaling
@@ -61,3 +81,8 @@ leads 1:30 and 192 joint draws x8 innovation paths. Fits and weights stay fixed;
 observations update reservoir states only between origins. A transport parity
 check compares the production standardized forecast API with the raw-basis
 rolling adapter before any test scoring.
+
+`execute.py` runs all three cases and their predictive-MC sensitivities
+sequentially and records measured exit codes, wall time and parent peak RSS.
+`archive.R` retains the 384 joint predictive draws and required reservoir
+templates; `archive.py` packs numeric evidence with SHA256 verification.

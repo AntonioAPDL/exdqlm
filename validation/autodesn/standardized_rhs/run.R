@@ -86,7 +86,7 @@ directory <- file.path(options$out,sc$method);dir.create(directory,recursive=TRU
 config <- cfg
 config$readout_standardization <- study[c("standardize_features","normalize_features","feature_sd_tol","interpretation")]
 config$scenario <- as.list(sc)
-if(sc$method=="rhs") config$rhs_control <- list(tau0=sc$tau0,slab_scale=sc$slab_scale,slab_df=sc$slab_df)
+if(sc$method=="rhs") config$rhs_control <- c(list(tau0=sc$tau0,slab_scale=sc$slab_scale,slab_df=sc$slab_df),study$sampler)
 config[[paste0(sc$method,"_seed")]] <- sc$seed
 config$model_control <- list(method="mh",moves=study$model_moves,rb_every=study$rb_every)
 contract <- list(bank_id=bank_result$id,configuration=config,

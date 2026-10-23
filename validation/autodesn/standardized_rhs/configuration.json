@@ -10,6 +10,7 @@
   "model_moves": 4,
   "rb_every": 200,
   "proposal_prior_fraction": 0.2,
+  "sampler": {"local_layout":"layerwise", "interweave_global":true},
   "pilot": {"n_burn":1000,"n_mcmc":2000},
   "attempts": [
     {"n_burn":2000,"n_mcmc":6000},

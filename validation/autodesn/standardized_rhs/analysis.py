@@ -21,7 +21,7 @@ def main():
   assert saved['readout_standardization']['standardize_features'] and not saved['readout_standardization']['normalize_features']
   for key in ['input_sha256','washout','fit_start','fit_end','n_train','first_origin','last_origin','H','outer_draws','inner_paths','innovation_seed']:
    assert saved[key]==cfg[key],key
-  if sc['method']=='rhs':assert saved['rhs_control']=={k:sc[k] for k in ['tau0','slab_scale','slab_df']}
+  if sc['method']=='rhs':assert saved['rhs_control']==dict({k:sc[k] for k in ['tau0','slab_scale','slab_df']},**study['sampler'])
   for source in provenance['production_source']:
    assert hashlib.sha256((HERE.parents[2]/source['path']).read_bytes()).hexdigest()==source['sha256']
   geometry=(st['bank_id'],provenance['production_source'])
@@ -46,6 +46,13 @@ def main():
    dd=dd[dd.sampled]
    budgets.append(dict(scenario=sc['id'],**s,max_rhat=dd.rhat.max(),min_ess=dd.ess_spectral.min(),
     leading_model=int(mm.loc[mm.posterior_probability.idxmax(),'model']),leading_probability=mm.posterior_probability.max()))
+ legacy=a.data/'legacy_prefix_requested/rhs'
+ if legacy.exists():
+  for ad in sorted(legacy.glob('attempt_*')):
+   s=json.loads((ad/'status.json').read_text());dd=pd.read_csv(ad/'diagnostics.csv');mm=pd.read_csv(ad/'model_probabilities.csv');dd=dd[dd.sampled]
+   budgets.append(dict(scenario='legacy_prefix_requested',**s,max_rhat=dd.rhat.max(),min_ess=dd.ess_spectral.min(),
+    max_architecture_rhat=mm.loc[mm.posterior_probability>=.01,'rhat_indicator'].max(),
+    model_chain_range=mm.chain_range.max(),leading_model=int(mm.loc[mm.posterior_probability.idxmax(),'model']),leading_probability=mm.posterior_probability.max()))
  diagnostics_table=pd.DataFrame(diagnostic_rows);diagnostics_table.to_csv(out/'independent_diagnostics.csv',index=False)
  assert (diagnostics_table.rhat<=1.01).all() and (diagnostics_table.bulk_ess>=400).all() and (diagnostics_table.tail_ess>=400).all(),'Independent posterior screen failed'
  archive=HERE.parent/'rhs_comparison/evidence/C1_numeric_evidence.zip'
@@ -54,6 +61,8 @@ def main():
   with archive.open('wb') as f:
    for part in parts:f.write(part.read_bytes())
  with zipfile.ZipFile(archive) as z:
+  manifest=json.loads(z.read('SHA256.json'))
+  for name,expected in manifest.items():assert hashlib.sha256(z.read(name)).hexdigest()==expected,name
   for key,label in [('ridge','Ridge: original basis'),('rhs','RHS: original basis, tau0=1, slab=2'),('gp','Native AutoGP')]:
    frame=pd.read_csv(io.BytesIO(z.read(key+'/scores.csv.gz')),compression='gzip');frame=validate_scores(frame,cfg,{'ridge':'AutoDESN ridge','rhs':'AutoDESN RHS','gp':'AutoGP'}[key])
    frame['model']=label;frame['scenario']='reference_'+key;scores.append(frame)

@@ -18,6 +18,8 @@ autodesn_rhs_control(
   slice_steps = 50L,
   slice_max_shrink = 10000L,
   local_max_attempts = 100000L,
+  local_layout = c("prefix", "layerwise"),
+  interweave_global = FALSE,
   ...
 )
 }
@@ -48,6 +50,12 @@ NULL uses slab_scale^2.}
 \item{slice_max_shrink}{Maximum slice proposals before reporting failure.}
 
 \item{local_max_attempts}{Maximum exact local rejection proposals per update.}
+
+\item{local_layout}{Auxiliary local-scale embedding: historical \code{"prefix"}
+or \code{"layerwise"} for reservoir banks. Both give iid half-Cauchy local priors.}
+
+\item{interweave_global}{Add a product-preserving global/local update;
+requires sampled global and local scales. The posterior target is unchanged.}
 
 \item{...}{Reserved; unknown arguments are rejected.}
 }

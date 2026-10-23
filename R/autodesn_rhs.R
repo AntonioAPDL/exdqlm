@@ -25,6 +25,10 @@
 #' @param slice_steps Maximum randomized stepping-out budget per slice update.
 #' @param slice_max_shrink Maximum slice proposals before reporting failure.
 #' @param local_max_attempts Maximum exact local rejection proposals per update.
+#' @param local_layout Auxiliary local-scale embedding: historical `"prefix"`
+#'   or `"layerwise"` for reservoir banks. Both give iid half-Cauchy local priors.
+#' @param interweave_global Add a product-preserving global/local update;
+#'   requires sampled global and local scales. The posterior target is unchanged.
 #' @param ... Reserved; unknown arguments are rejected.
 #' @return A validated list of RHS controls.
 #' @export
@@ -32,7 +36,8 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
     learn_global = TRUE, learn_slab = TRUE, fixed_local_scales = NULL,
     initial_global = 1, initial_slab = NULL, save_local = FALSE,
     slice_width = 1, slice_steps = 50L, slice_max_shrink = 10000L,
-    local_max_attempts = 100000L, ...) {
+    local_max_attempts = 100000L, local_layout = c("prefix", "layerwise"),
+    interweave_global = FALSE, ...) {
   extra <- list(...)
   if (length(extra)) stop("Unknown RHS control arguments: ",
     paste(if (is.null(names(extra))) "<unnamed>" else names(extra), collapse = ", "),
@@ -41,7 +46,7 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
     stop("tau0 must contain positive finite values.", call. = FALSE)
   for (nm in c("slab_scale", "slab_df", "initial_global", "slice_width"))
     .autodesn_positive(get(nm), nm)
-  for (nm in c("learn_global", "learn_slab", "save_local"))
+  for (nm in c("learn_global", "learn_slab", "save_local", "interweave_global"))
     .autodesn_flag(get(nm), nm)
   for (nm in c("slice_steps", "slice_max_shrink", "local_max_attempts"))
     .autodesn_integer(get(nm), nm)
@@ -49,13 +54,17 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
   if (!is.null(fixed_local_scales) && (!is.numeric(fixed_local_scales) ||
       !length(fixed_local_scales) || any(!is.finite(fixed_local_scales) | fixed_local_scales <= 0)))
     stop("fixed_local_scales must contain positive finite lambda values.", call. = FALSE)
+  local_layout <- match.arg(local_layout)
+  if (interweave_global && (!learn_global || !is.null(fixed_local_scales)))
+    stop("interweave_global requires sampled global and local scales.", call. = FALSE)
   out <- list(tau0 = as.numeric(tau0), slab_scale = slab_scale, slab_df = slab_df,
     learn_global = learn_global, learn_slab = learn_slab,
     fixed_local_scales = fixed_local_scales, initial_global = initial_global,
     initial_slab = initial_slab, save_local = save_local,
     slice_width = slice_width, slice_steps = as.integer(slice_steps),
     slice_max_shrink = as.integer(slice_max_shrink),
-    local_max_attempts = as.integer(local_max_attempts))
+    local_max_attempts = as.integer(local_max_attempts),
+    local_layout = local_layout, interweave_global = interweave_global)
   structure(out, class = c("autodesn_rhs_control", "list"))
 }
 
@@ -103,6 +112,51 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
 
 .autodesn_rhs_log_variance <- function(log_local, log_global, log_slab, tau0 = 1) {
   -.autodesn_rhs_logadd(-log_slab, -2 * (log(tau0) + log_global + log_local))
+}
+
+# A normalized product-space embedding. Inactive coordinates retain their iid
+# half-Cauchy prior and integrate to one, whatever the architecture dimension.
+# Layerwise slots align layer/neuron indices, rather than assigning a deep
+# layer's scales to shallow features when the readout order changes with D.
+.autodesn_rhs_layout <- function(bank, layout) {
+  dims <- vapply(bank$models, function(m) as.integer(m$d), integer(1))
+  if (layout == "prefix") return(list(index = lapply(dims, seq_len), dimension = max(dims)))
+  if (is.null(bank$templates) || length(bank$templates) != length(dims))
+    stop("layerwise local_layout requires a reservoir bank.", call. = FALSE)
+  ns <- lapply(bank$templates, function(t)
+    as.integer(c(t$reservoir$n_tilde,tail(t$reservoir$n,1L))))
+  if (any(lengths(ns) < 1L) || any(vapply(seq_along(ns), function(j)
+      sum(ns[[j]]) != if (is.null(bank$models[[j]]$raw_d)) dims[j] else bank$models[[j]]$raw_d, FALSE)))
+    stop("layerwise local_layout requires unrotated reservoir readout columns.", call. = FALSE)
+  maxima <- vapply(seq_len(max(lengths(ns))), function(d)
+    max(vapply(ns, function(n) if(length(n)>=d) n[d] else 0L, 0L)), 0L)
+  offset <- c(0L, head(cumsum(maxima), -1L))
+  maps <- lapply(seq_along(ns), function(j) {
+    n <- ns[[j]];D <- length(n);order <- c(D, seq_len(D-1L))
+    ix <- unlist(lapply(order, function(d) offset[d]+seq_len(n[d])), use.names = FALSE)
+    active <- bank$models[[j]]$active_features
+    if (!is.null(active)) ix <- ix[active]
+    as.integer(ix)
+  })
+  list(index = maps, dimension = as.integer(sum(maxima)))
+}
+
+.autodesn_rhs_log_hc_log <- function(x) log(2/pi)-abs(x)-log1p(exp(-2*abs(x)))
+
+# Let rho_j=log(u)+log(lambda_j). The log-coordinate transformation has
+# determinant one. At fixed rho, beta and slab, every Gaussian variance stays
+# fixed, so p(log(u)|rho) is proportional to HC_log(log(u))*prod HC_log(rho-u).
+# Integrate nu out of this block, then restore its exact nu|lambda conditional.
+.autodesn_rhs_interweave <- function(log_local, log_global, width, steps, max_shrink) {
+  rho <- log_local + log_global
+  target <- function(r) .autodesn_rhs_log_hc_log(r) + sum(.autodesn_rhs_log_hc_log(rho-r))
+  update <- .autodesn_rhs_slice(log_global, target, width, steps, max_shrink)
+  ell <- rho-update$value
+  g <- stats::rgamma(length(ell), shape=1, rate=1)
+  aux <- .autodesn_rhs_logadd(0,-2*ell)-log(g)
+  if(any(!is.finite(c(ell,aux)))) stop("Invalid interwoven RHS scale draw.",call.=FALSE)
+  list(log_global=update$value,log_local=ell,log_aux=aux,
+       proposals=update$proposals,steps_out=update$steps_out)
 }
 
 # Exact Gaussian coefficient integral in the ORIGINAL feature basis. Whiten
@@ -271,12 +325,13 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
   rc <- do.call(autodesn_rhs_control, unclass(rhs_control))
   M <- length(bank$models)
   dims <- vapply(bank$models, function(m) as.integer(m$d), integer(1))
-  dmax <- max(dims)
+  embedding <- .autodesn_rhs_layout(bank, rc$local_layout)
+  index <- embedding$index;dmax <- embedding$dimension
   if (!length(rc$tau0) %in% c(1L, M)) stop("tau0 must be scalar or have one value per model.", call. = FALSE)
   tau0 <- rep(rc$tau0, length.out = M)
   fixed_local <- rc$fixed_local_scales
   if (!is.null(fixed_local) && !length(fixed_local) %in% unique(c(1L, dmax)))
-    stop("fixed_local_scales must be scalar or have length equal to the largest slope count.", call. = FALSE)
+    stop("fixed_local_scales must be scalar or have length equal to the local auxiliary dimension (largest slope count for prefix layout).", call. = FALSE)
   if (!is.null(fixed_local)) fixed_local <- rep(fixed_local, length.out = dmax)
   initial_slab <- if (is.null(rc$initial_slab)) rc$slab_scale^2 else rc$initial_slab
   .autodesn_positive(initial_slab, "initial slab variance")
@@ -296,6 +351,7 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
     fixed_global = if (rc$learn_global) NULL else rc$initial_global,
     fixed_slab = if (rc$learn_slab) NULL else initial_slab,
     fixed_local_scales = fixed_local)
+  if (rc$local_layout != "prefix" && !is.null(fixed_local)) target$local_index <- index
   .autodesn_seed(seed, function() {
     model_id <- if (is.null(mc$initial_model)) sample.int(M, 1L, prob = bank$prior) else mc$initial_model
     log_u <- log(rc$initial_global); log_c2 <- log(initial_slab)
@@ -303,7 +359,7 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
     log_aux <- rep(0, dmax)
     variance <- initial_variance
     first_logv <- c(log(intercept_variance), .autodesn_rhs_log_variance(
-      ell[seq_len(dims[model_id])], log_u, log_c2, tau0[model_id]))
+      ell[index[[model_id]]], log_u, log_c2, tau0[model_id]))
     engine <- .autodesn_rhs_backend(backend, bank$models[[model_id]], bank$y, variance, first_logv)
     draws <- data.frame(iteration = retained, model = integer(K), variance = numeric(K),
       global_scale = numeric(K), global_tau = numeric(K), slab_variance = numeric(K),
@@ -318,10 +374,14 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
     evaluations <- 0L; local_attempts <- 0L; local_updates <- 0L
     slice_proposals <- c(global = 0L, slab = 0L)
     slice_steps_out <- c(global = 0L, slab = 0L)
+    if(rc$interweave_global) {
+      slice_proposals <- c(slice_proposals,interweave=0L)
+      slice_steps_out <- c(slice_steps_out,interweave=0L)
+    }
     evaluate <- function(j) {
       evaluations <<- evaluations + 1L
       lv <- c(log(intercept_variance), .autodesn_rhs_log_variance(
-        ell[seq_len(dims[j])], log_u, log_c2, tau0[j]))
+        ell[index[[j]]], log_u, log_c2, tau0[j]))
       engine$gaussian(bank$models[[j]], bank$y, variance, lv)
     }
     k <- 0L
@@ -370,7 +430,7 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
       variance <- 1 / stats::rgamma(1L, shape = a_sigma + bank$n / 2,
         rate = b_sigma + sum((bank$y - fitted)^2) / 2)
       .autodesn_positive(variance, "sampled observation variance")
-      active <- seq_len(dims[model_id])
+      active <- index[[model_id]]
       if (is.null(fixed_local)) {
         if (length(active)) {
           upd <- engine$local(ell[active], log_aux[active], b[-1L],
@@ -404,6 +464,13 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
         log_c2 <- upd$value
         slice_proposals["slab"] <- slice_proposals["slab"] + upd$proposals
         slice_steps_out["slab"] <- slice_steps_out["slab"] + upd$steps_out
+      }
+      if(rc$interweave_global) {
+        upd <- .autodesn_rhs_interweave(ell[active],log_u,
+          rc$slice_width,rc$slice_steps,rc$slice_max_shrink)
+        ell[active] <- upd$log_local;log_aux[active] <- upd$log_aux;log_u <- upd$log_global
+        slice_proposals["interweave"] <- slice_proposals["interweave"]+upd$proposals
+        slice_steps_out["interweave"] <- slice_steps_out["interweave"]+upd$steps_out
       }
       if (keep[it]) {
         k <- k + 1L
@@ -447,7 +514,7 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
           likelihood_family = "normal", target = "conditional_mean",
           beta_prior_type = "independent_rhs", prior_family = "regularized_horseshoe_pv",
           probability_estimator = if (is.null(cp)) "occupancy" else "rao_blackwell",
-          local_scale_augmentation = "common_max_dimension_prefix",
+          local_scale_augmentation = if(rc$local_layout=="prefix") "common_max_dimension_prefix" else "common_layer_neuron_slots",
           mean_log_local_definition = "mean_of_common_auxiliary_vector_zero_when_dimension_zero",
           shrinkage_diagnostic = "diagonal_design_approximation",
           scale_support = "unbounded_log_scale"))), class = "autodesn_fit")

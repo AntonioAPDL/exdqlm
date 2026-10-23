@@ -31,7 +31,7 @@ def main():
     base=HERE/'artifacts';base.mkdir(exist_ok=True);results={}
     if args.wait_pid:
         while Path(f'/proc/{args.wait_pid}').exists():time.sleep(1)
-    for scenario in ['scaling_only','ridge_standardized']:
+    for scenario in ['requested','scaling_only','ridge_standardized']:
         d=base/scenario;d.mkdir(exist_ok=True)
         results[scenario]=run(['Rscript','--vanilla',str(HERE/'run.R'),'--scenario',scenario],
                             d/'execution.log',d/'process_memory.json')

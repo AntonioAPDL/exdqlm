@@ -50,6 +50,7 @@ jobs:
         run: |
           Rscript --vanilla validation/autodesn/rhs_comparison/test_contracts.R
           python -m unittest discover -s validation/autodesn/rhs_comparison -p test_contracts.py -v
+          python -m unittest discover -s validation/autodesn/standardized_rhs -p test_diagnostics.py -v
       - name: Frozen readout scaling and normalized RHS contracts
         run: |
           Rscript --vanilla -e 'source("validation/autodesn/load_checkout.R"); Rcpp::sourceCpp("src/autodesn_rhs.cpp"); testthat::test_dir("tests/testthat", filter="autodesn-rhs|autodesn-scaling", stop_on_failure=TRUE)'

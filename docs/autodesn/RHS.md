@@ -314,3 +314,41 @@ sensitivity protocol and independent chains are specified in
 `validation/autodesn/standardized_rhs/`. The previous C1 feature basis was
 H/sqrt(d), not column z-scores. Its results remain results for that prior;
 the new settings define a different prior and an exploratory sensitivity.
+
+Standardization is a change in prior geometry, not just an algebraic speedup.
+If z_j=(h_j-a_j)/s_j, a standardized draw maps to raw slopes beta_j/s_j
+and raw intercept beta_0-sum(a_j*beta_j/s_j). Applying only the slope change
+would give the wrong fitted and recursive forecast means. The saved transform
+is also required when a new row lies far outside the training feature range;
+its mean and SD must not be recomputed from the forecast batch.
+
+## Optional mixing improvements
+
+`rhs_control=list(local_layout="layerwise", interweave_global=TRUE)` adds
+two exact computational changes without altering the normalized RHS marginal
+prior, likelihood, or architecture prior. Defaults preserve the earlier sampler.
+The layerwise embedding assigns common auxiliary half-Cauchy slots by layer
+and readout-coordinate index. The reservoir design orders its deepest layer
+first; using a simple prefix otherwise reassigns those scales to different
+layers when depth changes. Inactive slots always have their proper normalized
+prior. Their integral is one, so the architecture probabilities need no extra
+dimension-dependent correction. A nonuniform `fixed_local_scales` vector is
+interpreted in the chosen embedding and can therefore change that fixed target.
+
+The extra global/local update holds `rho_j=log(u)+log(lambda_j)` fixed for
+active coordinates. The transformation from `(log(u),log(lambda))` to
+`(log(u),rho)` has determinant one. All coefficient variances and the
+Gaussian likelihood stay fixed. The log conditional is therefore
+
+```
+log p(r | rho) = log HC_log(r) + sum(log HC_log(rho_j-r)) + constant,
+HC_log(x) = exp(x)*2/(pi*(1+exp(2*x))).
+```
+
+An unbounded slice update samples `r`, then sets `log(lambda_j)=rho_j-r`.
+The half-Cauchy augmentation variables are integrated out in this block and
+immediately redrawn from `nu_j | lambda_j ~ IG(1,1+1/lambda_j^2)` afterward.
+This restoration is necessary; retaining the old augmentation would be wrong.
+The block changes no coefficient, slab, or fitted mean. It improves movement
+along a strongly dependent global/local direction, but still requires actual
+multiple-chain diagnostics, especially for architecture probabilities.

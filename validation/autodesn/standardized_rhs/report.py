@@ -1,5 +1,5 @@
 """Build the supplemental scientific report from audited, completed evidence."""
-import argparse,json,sys
+import argparse,json,sys,zipfile
 from pathlib import Path
 import numpy as np,pandas as pd
 import matplotlib
@@ -94,6 +94,7 @@ def main():
  change=100*(req.RMSE/old.RMSE-1)
  para(f"Requested fit pooled RMSE: <b>{req.RMSE:.6f}</b> ({change:+.2f}% relative to the earlier RHS run). This is a descriptive result on the same previously examined series, not an independent replication or a test of general superiority.")
  para('All reported standardized fits passed the declared chain checks and the independent rank-normalized R-hat / bulk and tail ESS screen. Shorter failed attempts are retained and counted in inference cost. Exact diagnostics and their limits appear below.')
+ para('The historical prefix-scale sampler failed architecture exploration even at 64,000 retained draws per chain; it issued no forecasts. The revised sampler uses layerwise auxiliary slots and an exact product-preserving global/local update. Both preserve the normalized RHS marginal target. This change was made using training-chain diagnostics only.','Small')
  para('This is an exploratory sensitivity analysis. No further tau0/slab search used held-out errors. Overlapping rolling-origin pairs are dependent. Native AutoGP and original-basis outputs are reused, verified references; their inference is not represented as a new run.','Small')
  page();title('Pooled predictive scores')
  para('Every row contains exactly 14,130 origin-horizon pairs. RMSE, MAE, CRPS and negative log predictive density (NLL) are in original response units or the corresponding log-density scale. Smaller is better for these four scores.')
@@ -158,6 +159,12 @@ def main():
   rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',f'{m["process_peak_rss_kib"]/2**20:.2f}'])
  table(rows,[94,60,104,83,74,85])
  para('Forecast compute is the sum of per-origin computation, not parallel wall time. State preparation, scoring, exports and predictive-budget sensitivity are excluded from that sum. Parent VmHWM excludes forked workers and is not a unique-memory estimate for the entire process tree. Cgroup observations include file cache and concurrent dependency setup.','Small')
+ legacy=a.data/'legacy_prefix_requested/rhs/status.json'
+ if legacy.exists():
+  lt=json.loads(legacy.read_text())['timings'];para(f"Additional failed prefix-sampler development cost: {lt['inference_seconds_all_attempts']:.2f} s inference plus {lt['training_pilot_seconds']:.2f} s pilot computation. These produced no forecasts and are retained in the budget/diagnostic evidence.",'Small')
+ with zipfile.ZipFile(HERE.parent/'rhs_comparison/evidence/C1_numeric_evidence.zip') as z:gp=json.loads(z.read('gp/status.json'))
+ gt=gp['timings']
+ para(f"Reused Native AutoGP reference: two runs with eight SMC particles each; summed training time {gt['smc_training_seconds_sum']:.2f} s; original native run/export time {gt['native_run_elapsed_seconds_sum']:.2f} s. Its later rolling conditioning/scoring/export replay took {gt['replayed_rolling_conditioning_scoring_export_seconds']:.2f} s with peak RSS {gt['replayed_peak_rss_kib']/2**20:.3f} GiB. A pure GP forecasting timer and native-training peak memory were unavailable. These are different timer scopes and cannot support a clean end-to-end speedup claim.", 'Small')
  title('Audit details')
  para(f"All 428 admitted architectures have the same raw reservoirs and candidate identities in all three new cases. Maximum absolute training feature mean: {bank['max_abs_mean']:.3g}; maximum sample-SD error: {bank['max_sd_error']:.3g}. No constant columns were found in this bank. The API freezes a constant-column exclusion mask when necessary.")
  para('Validation covers shared Q-DESN scaling parity, frozen transforms, intercept transport, direct/batched recursive forecast parity, backward-compatible ridge draws, normalized RHS densities, Gaussian integrated likelihoods, scale updates, architecture ratios, and R/C++ agreement. Saved path snapshots independently reproduce scores at the first, middle and last origins. See validation_status.json and the archived test logs for actual pass/skip counts.')
