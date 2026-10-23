@@ -6,7 +6,7 @@ if (cfg$mode != "full") stop("Sensitivity is defined only for the frozen full NH
 directory <- file.path(options$out, options$method)
 status <- jsonlite::fromJSON(file.path(directory, "status.json"))
 if (!isTRUE(status$complete) || !isTRUE(status$qualified) || isTRUE(status$reused))
-  stop("A fresh, complete, qualified posterior is required. Cached ridge sensitivity is imported with its baseline.")
+  stop("A fresh, complete, qualified posterior is required.")
 cp <- readRDS(file.path(directory, "posterior_checkpoint.rds"))
 stopifnot(isTRUE(cp$qualified), nrow(cp$draws) == 384L,
           identical(cp$comparison_contract_id, status$contract_id))
@@ -17,7 +17,7 @@ for (i in seq_len(nrow(provenance$production_source))) {
     stop("Production source changed since fitting; use the fitting source revision for sensitivity")
 }
 out <- file.path(directory, "sensitivity"); dir.create(out, showWarnings = FALSE)
-source_paths <- c("validation/autodesn/nonlinear_heteroscedastic/helpers.R","validation/autodesn/rhs_comparison/sensitivity.R",
+source_paths <- c("validation/autodesn/nonlinear_heteroscedastic/sensitivity.R","validation/autodesn/nonlinear_heteroscedastic/helpers.R","validation/autodesn/rhs_comparison/sensitivity.R",
                   "validation/autodesn/c1_comparison/helpers.R",
                   "validation/autodesn/heteroscedastic/rolling/helpers.R")
 id <- rhs_guard(out, list(posterior_contract = cp$comparison_contract_id,

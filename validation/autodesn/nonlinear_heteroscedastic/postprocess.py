@@ -32,19 +32,15 @@ def main():
  run('replay',R('replay.R'))
  run('backend_benchmark',R('benchmark.R'))
  run('analysis',[sys.executable,str(HERE/'analysis.py')])
- # Production-source tests are inherited verified checks of unchanged R/src.
- reference=json.loads((HERE/'evidence/production_validation_reference.json').read_text())
+ # Fresh production regressions and independent oracles bind to this source.
+ reference=json.loads((b/'validation/current_validation_reference.json').read_text())
  current=json.loads((b/'requested/rhs/provenance.json').read_text())['production_source']
- assert current==reference['production_source'],'Production source changed; inherited tests cannot be reused'
+ assert {x['path']:x['sha256'] for x in current}=={x['path']:x['sha256'] for x in reference['production_source']},'Production source changed after current validation'
  validation=reference['validation']
- validation.pop('standardized_backend_benchmark',None)
+ assert validation['complete'] and validation['installed_regression']['passed']==652
  bench=pd.read_csv(b/'validation/standardized_backend_benchmark.csv').groupby('backend').elapsed_seconds.median()
  parity=pd.read_csv(b/'validation/standardized_backend_parity.csv')
  validation['fresh_computational_backend_benchmark']=dict(median_R_seconds=float(bench['R']),median_cpp_seconds=float(bench['cpp']),ratio=float(bench['R']/bench['cpp']),max_coupled_draw_error=float(parity.max_paired_draw_error.max()),identical_model_paths=bool(parity.identical_model_path.all()),short_synthetic_designs_not_convergence_evidence=True)
- validation['production_test_reuse_explicit']=True
- validation['fresh_DGP_assertions_passed']=12;validation['fresh_workflow_assertions_passed']=20
- validation['fresh_Python_contracts_passed']=6
- validation['summary']='The unchanged production R/src previously passed 639 installed focused assertions (one loaded-DLL context skip covered by 76 source-only checks), 77 R study contracts, 6 Python scoring/causality contracts, 4 independent diagnostic tests and 32 small-posterior checks. Fresh NHS1 checks passed 12 DGP assertions, 20 workflow assertions, 6 dataset/scoring/conditioning contracts, R/native small-chain parity and native GP save/reload/conditioning contracts. These short tests do not establish convergence; each full fit separately passes its parameter/architecture and independent rank/ESS screens.'
  (b/'validation/validation_status.json').write_text(json.dumps(validation,indent=2))
  execution=json.loads((b/'execution_status.json').read_text())
  for case in ['requested','scaling_only','ridge_standardized']:

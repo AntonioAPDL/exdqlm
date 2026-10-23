@@ -20,7 +20,7 @@ def main():
   assert saved['readout_standardization']['standardize_features'] and not saved['readout_standardization']['normalize_features']
   for k in ['input_sha256','washout','fit_start','fit_end','n_train','first_origin','last_origin','H','outer_draws','inner_paths','innovation_seed']:assert saved[k]==cfg[k],k
   if sc['method']=='rhs':assert saved['rhs_control']==dict({k:sc[k] for k in ['tau0','slab_scale','slab_df']},**study['sampler'])
-  for source in pr['production_source']+pr.get('harness_source',[]):assert sha256(HERE.parents[2]/source['path'])==source['sha256']
+  for source in pr['production_source']+pr.get('harness_source',[])+saved.get('extra_harness_source',[]):assert sha256(HERE.parents[2]/source['path'])==source['sha256']
   this=(st['bank_id'],pr['production_source'])
   if geometry is None:geometry=this
   else:assert geometry==this
@@ -34,7 +34,7 @@ def main():
   causality=json.loads((d/'causality_audit.json').read_text());assert causality['complete'] and causality['max_path_error']==0
   rows=validate_scores(pd.read_csv(d/'scores.csv'),cfg,'AutoDESN RHS' if sc['method']=='rhs' else 'AutoDESN ridge')
   audits[sc['id']]=audit_paths(d,rows,cfg);rows['model']=LABELS[sc['id']];scores.append(rows)
- for case in list(study['scenarios'])+[dict(id=x.name,method='rhs') for x in b.glob('*_initial_proposal')]:
+ for case in list(study['scenarios'])+[dict(id=x.name,method='rhs') for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k'))]:
   d=b/case['id']/case['method']
   if not d.exists():continue
   controls=json.loads((d/'provenance.json').read_text())['configuration']['attempts']

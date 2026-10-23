@@ -1,0 +1,811 @@
+{
+  "validation": {
+    "complete": true,
+    "installed_regression": {
+      "passed": 652,
+      "failed": 0,
+      "errors": 0,
+      "warnings": 0,
+      "context_skips": 1
+    },
+    "source_unloaded_native": {
+      "passed": 76,
+      "failed": 0,
+      "warnings": 0,
+      "skipped": 0
+    },
+    "R_contracts_passed": 77,
+    "Python_contract_tests_passed": 6,
+    "independent_diagnostic_tests_passed": 4,
+    "independent_posterior_checks": {
+      "passed": 32,
+      "checks": 32
+    },
+    "fresh_DGP_assertions_passed": 12,
+    "fresh_workflow_assertions_passed": 24,
+    "fresh_Python_contracts_passed": 6,
+    "joint_kernel_independent": {
+      "complete": true,
+      "deterministic_density_states": 6,
+      "ordered_detailed_balance_pairs": 36,
+      "independent_posterior_functionals": 4,
+      "sobol_points_per_scramble": 262144,
+      "scrambles": 4
+    },
+    "exact_default_rhs_backward_draw_parity": true,
+    "production_test_reuse_explicit": false,
+    "summary": "Fresh checks for the changed production source passed 652 focused assertions (one loaded-DLL context skip covered by 76 source-only checks), 77 R study contracts, 6 Python scoring/causality contracts, 4 independent diagnostic tests and 32 independent posterior-reference checks. Fresh NHS1 tests passed 12 DGP assertions, 24 workflow assertions and 6 dataset/scoring/conditioning contracts. The optional joint sampler passed 6 independent normalized-density states, 36 ordered acceptance ratios and 4 posterior functionals against independent integration; disabling it preserves previous draws exactly. Native GP transport/conditioning contracts and R/C++ small-chain parity are separately checked. These checks do not establish full-size posterior convergence: all production chains must pass their own parameter/architecture and independent rank/ESS screens before forecasting."
+  },
+  "production_source": [
+    {
+      "path": "R/00_utils.R",
+      "sha256": "8dfde1df99eb823ca589731455504905fbc80a0443bc0b052d1819d83f9b56b8",
+      "_row": "R/00_utils.R"
+    },
+    {
+      "path": "R/BTflow.R",
+      "sha256": "aa4bfe38e4df72796909370005f44a5cde168480c145db48bfbdef86c5b0c952",
+      "_row": "R/BTflow.R"
+    },
+    {
+      "path": "R/ELIanoms.R",
+      "sha256": "9cb5d183b34139c233ca659c59c62062698ca0f1d8c33fc5a275c1c29f09dcdc",
+      "_row": "R/ELIanoms.R"
+    },
+    {
+      "path": "R/RcppExports.R",
+      "sha256": "5271f5dd993a0ddf31b54aeb4482dfcb7a661c47a2a596a08ac5c927a86fe54f",
+      "_row": "R/RcppExports.R"
+    },
+    {
+      "path": "R/autodesn.R",
+      "sha256": "7ac9b2232d626e09f40add190c80fe157c00cf17d5e23610c4105feea7d95620",
+      "_row": "R/autodesn.R"
+    },
+    {
+      "path": "R/autodesn_diagnostics.R",
+      "sha256": "a46e3cd9bed8423dc36ce38b3a722f2c3622d4440e4d0973081a37625a9f7fe0",
+      "_row": "R/autodesn_diagnostics.R"
+    },
+    {
+      "path": "R/autodesn_gaussian.R",
+      "sha256": "522f3c7144a52ea95ec70f6514327f85317712042762a472f69e50bba4792330",
+      "_row": "R/autodesn_gaussian.R"
+    },
+    {
+      "path": "R/autodesn_rhs.R",
+      "sha256": "792ddc38ef538d4efbb79b42fa9843007d9c057847e219fff448d3b49c146e66",
+      "_row": "R/autodesn_rhs.R"
+    },
+    {
+      "path": "R/autodesn_rhs_joint.R",
+      "sha256": "e4c15d4255c93140ed6f50c7d57eef628c12c8f2998e30fcbee66cb41c89a628",
+      "_row": "R/autodesn_rhs_joint.R"
+    },
+    {
+      "path": "R/autodesn_scaling.R",
+      "sha256": "ea65256ca1c8e88e062e4d4e48414dd80807495ebc134240d780ab56fa79cb26",
+      "_row": "R/autodesn_scaling.R"
+    },
+    {
+      "path": "R/benchmark_analysis.R",
+      "sha256": "368f24a1fab26fcb13b27119b1f082e7e0e05bf303bd230c718cd995409f0e6d",
+      "_row": "R/benchmark_analysis.R"
+    },
+    {
+      "path": "R/benchmark_build.R",
+      "sha256": "29c26d5470384ecbe5d1dd929e52ead891d66686221f3c0d870d23f8cec52c0e",
+      "_row": "R/benchmark_build.R"
+    },
+    {
+      "path": "R/benchmark_download.R",
+      "sha256": "e27657d64ba8ba7beafd17620cc43d58baed33cc1e189c3f6f0145716b7d6101",
+      "_row": "R/benchmark_download.R"
+    },
+    {
+      "path": "R/benchmark_parse.R",
+      "sha256": "85d73676fd61f8f481524c82c0a188f5c90b6d6aa95b0747055d7e3788de8452",
+      "_row": "R/benchmark_parse.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_baselines.R",
+      "sha256": "299bdc2aaad55de0eb824840d6230979c718ca97fd6912f60e222468df5602d4",
+      "_row": "R/benchmark_qdesn_baselines.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_calibration.R",
+      "sha256": "92287a5f2c8c70a564513f0f1e0d5169a3fdd8a039b8ff43fbd72ec7865f5509",
+      "_row": "R/benchmark_qdesn_calibration.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_collapse_audit.R",
+      "sha256": "36bd0755cb7b17726057fe2e30f655c8a2a36d9daceb24b4fe2e6b42f608eeda",
+      "_row": "R/benchmark_qdesn_collapse_audit.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_data.R",
+      "sha256": "4ea66de0fc8cfdf34f105144e9bdcffa6faace05dea0521b79a539aef27d8409",
+      "_row": "R/benchmark_qdesn_data.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_diagnostics.R",
+      "sha256": "daf4d6339250eeebe837b047cc8b36a8bbd8a42075de0467fc8c860a566692b4",
+      "_row": "R/benchmark_qdesn_diagnostics.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_fixed_debug.R",
+      "sha256": "a52f0c797254378d1b3ca3ce2abc90cca0bfe569a55ca6be071b6254466b7df5",
+      "_row": "R/benchmark_qdesn_fixed_debug.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_metrics.R",
+      "sha256": "d143785d6ee896db0e7017156c9a5bf0c2c9c71d2821f296eb5ede43a22c1d6e",
+      "_row": "R/benchmark_qdesn_metrics.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_one_step_audit.R",
+      "sha256": "1442248beb8cfb37b6c6b6c93300b62fc1afd67538a2841331c935164771dc50",
+      "_row": "R/benchmark_qdesn_one_step_audit.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_pathology_audit.R",
+      "sha256": "6228f209ba955cb80b3a19399607abb2a04e1d1f780f357df3439194b2d94c9e",
+      "_row": "R/benchmark_qdesn_pathology_audit.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_quantile_debug.R",
+      "sha256": "b4364e84f319e6db2c67705e797669696cef38d5532c4bd753536004f45a05fa",
+      "_row": "R/benchmark_qdesn_quantile_debug.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_quantiles.R",
+      "sha256": "a2c164bdeb1ec5ab5c3e379c8e9764c240b65f872c3c2497a5c95eeb2975ff9c",
+      "_row": "R/benchmark_qdesn_quantiles.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_report.R",
+      "sha256": "a55991b406819abc508a4a0692369e05a518ff641e788996fbd4799836fc378c",
+      "_row": "R/benchmark_qdesn_report.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_results.R",
+      "sha256": "ce3851da7468f73dab6d3f40f2b028265edf074625478a5c375653233ef1c224",
+      "_row": "R/benchmark_qdesn_results.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_rhs_debug.R",
+      "sha256": "d129f11fb901b22aabfdb4151c879bfef82d1ae5697a9bd92bbb2b32a3a8e111",
+      "_row": "R/benchmark_qdesn_rhs_debug.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_runner.R",
+      "sha256": "984f5665344956dc3a592b8f47c4482cf9f7a277d8ce490df6ded51ffe40d02d",
+      "_row": "R/benchmark_qdesn_runner.R"
+    },
+    {
+      "path": "R/benchmark_qdesn_shoulder_audit.R",
+      "sha256": "73b06ddfedead6199078aa0bea40ca0247a80ab04ea185e55a0cca8f8a212c4a",
+      "_row": "R/benchmark_qdesn_shoulder_audit.R"
+    },
+    {
+      "path": "R/benchmark_utils.R",
+      "sha256": "2e97a6abf3e4c667c6d92c11f005d97686ec742fb9374bd5a6b36e90772116f0",
+      "_row": "R/benchmark_utils.R"
+    },
+    {
+      "path": "R/climateIndices.R",
+      "sha256": "61bcbeb7b032110658334b15c82cd50c69af704198580268735c4c4ab00737db",
+      "_row": "R/climateIndices.R"
+    },
+    {
+      "path": "R/combineMods.R",
+      "sha256": "b32640a109bcc4cc39690b1d2753d5c2374bfc7ff0026fdc6c0a02c41b2e507b",
+      "_row": "R/combineMods.R"
+    },
+    {
+      "path": "R/compPlot.R",
+      "sha256": "4718b06d2ec34302507748b31568295dd62871bd6fe7dcc65a15991b36a054ce",
+      "_row": "R/compPlot.R"
+    },
+    {
+      "path": "R/dlmMod.R",
+      "sha256": "a066feaf9dd56978a3ed5cef83f8cf99238a514893ea5e042a625bb006703bc5",
+      "_row": "R/dlmMod.R"
+    },
+    {
+      "path": "R/exal.R",
+      "sha256": "89270ccece0fe9a53edfe6f5d7dd04c4672c27396b91945b264f5c0f27584d79",
+      "_row": "R/exal.R"
+    },
+    {
+      "path": "R/exalStaticDiagnostic_methods.R",
+      "sha256": "d1dd663f4dd364be9b993b211c83323485f5d1637cd0f7a09a929173d1d25961",
+      "_row": "R/exalStaticDiagnostic_methods.R"
+    },
+    {
+      "path": "R/exalStaticDiagnostics.R",
+      "sha256": "bfe1c6b82a515ab317dbc702149128dc14403f9f1fb0cb79404c0b0dbeb6f45b",
+      "_row": "R/exalStaticDiagnostics.R"
+    },
+    {
+      "path": "R/exalStaticFit_methods.R",
+      "sha256": "b0a72d1c8756a0035be5caab5676c2a476f3e70437eb4f36015a78d04bdbb556",
+      "_row": "R/exalStaticFit_methods.R"
+    },
+    {
+      "path": "R/exalStaticLDVB.R",
+      "sha256": "99c8a4665070efc848e18e1e58b61fd73fa41305d09f8ba6ef0746b301422a8c",
+      "_row": "R/exalStaticLDVB.R"
+    },
+    {
+      "path": "R/exalStaticMCMC.R",
+      "sha256": "675806115c20cabcc40d59d69c71d0679197e332fe60e6b168838b4411fec95f",
+      "_row": "R/exalStaticMCMC.R"
+    },
+    {
+      "path": "R/exal_alias_methods.R",
+      "sha256": "30f87508ff84ab3dbd53043cdf25e02a00a922c6a2c4cca21945c502ba83af09",
+      "_row": "R/exal_alias_methods.R"
+    },
+    {
+      "path": "R/exal_inference_config.R",
+      "sha256": "18f6a140e0dc4e33702528b21db8bf3b264b743fc745f2daf0b276143fb11044",
+      "_row": "R/exal_inference_config.R"
+    },
+    {
+      "path": "R/exal_ldvb_engine.R",
+      "sha256": "c05460ef838bf624ee789eeccfc95d24a89fd2fc113b85cebde4f6c027758f03",
+      "_row": "R/exal_ldvb_engine.R"
+    },
+    {
+      "path": "R/exal_ldvb_fit.R",
+      "sha256": "c17357c9f2a026d0502f068be61859a8befbf4c4247671a51fcbc6de80b275ad",
+      "_row": "R/exal_ldvb_fit.R"
+    },
+    {
+      "path": "R/exal_mcmc_collapsed_scale_shape.R",
+      "sha256": "f48e4f40bfd151fc2314ae403b37249b191b97d9db34854285f2d81c6462ad0b",
+      "_row": "R/exal_mcmc_collapsed_scale_shape.R"
+    },
+    {
+      "path": "R/exal_mcmc_fit.R",
+      "sha256": "e918c89e409fa813b9aef5bcdaaa946054e352a2788d1a386265dc935eca7df6",
+      "_row": "R/exal_mcmc_fit.R"
+    },
+    {
+      "path": "R/exal_online_stage0.R",
+      "sha256": "a1ead5d1cf9ed398834c1083246b13ca811e1cd0c9c4946f8bc990eaa476dc47",
+      "_row": "R/exal_online_stage0.R"
+    },
+    {
+      "path": "R/exal_online_state.R",
+      "sha256": "78e37475d8075cad7cb9467fd3a6eaf5f6b8408a94afd0a61ce0e74a2f27ac30",
+      "_row": "R/exal_online_state.R"
+    },
+    {
+      "path": "R/exal_online_step.R",
+      "sha256": "73a567574bba55d6d9a558b8392a7fe7a4da3d14a57f9d69cb86ddfb5c54972d",
+      "_row": "R/exal_online_step.R"
+    },
+    {
+      "path": "R/exal_online_vbld.R",
+      "sha256": "0f6ef3f3f5aa512334fbf07b807f7216387f001c16303b33a56d22d66e6b78b9",
+      "_row": "R/exal_online_vbld.R"
+    },
+    {
+      "path": "R/exal_sigmagam_structured.R",
+      "sha256": "4bc6e0d11736ec5e7ef73a267c84aedf7b1de36ad218f81859e0060ec552052f",
+      "_row": "R/exal_sigmagam_structured.R"
+    },
+    {
+      "path": "R/exdqlm-package.R",
+      "sha256": "dcd40a9cdf6af139ed8962da932e086d60c55b73962c99c174a2877f0e523690",
+      "_row": "R/exdqlm-package.R"
+    },
+    {
+      "path": "R/exdqlmDiagnostic_methods.R",
+      "sha256": "3006cadd8a93af785e2e7835ed66f436362b330ac924575bcee077c3712aaff9",
+      "_row": "R/exdqlmDiagnostic_methods.R"
+    },
+    {
+      "path": "R/exdqlmDiagnostics.R",
+      "sha256": "eeb3c29ccc4e9d47a0199647656e54f112b923e4f4fe8cdc0a7b72882cf3292c",
+      "_row": "R/exdqlmDiagnostics.R"
+    },
+    {
+      "path": "R/exdqlmFit_methods.R",
+      "sha256": "8ae3c91330e80cc09f50d8157825f0c555ec86d1930da3e291ea96b4be738abe",
+      "_row": "R/exdqlmFit_methods.R"
+    },
+    {
+      "path": "R/exdqlmForecast.R",
+      "sha256": "eb8dff640f1c5337446c69aa37cd460d70b762c1b2f74c0361f0fcf1cfd0aced",
+      "_row": "R/exdqlmForecast.R"
+    },
+    {
+      "path": "R/exdqlmForecastDiagnostic_methods.R",
+      "sha256": "7bfb106f7752f3bed1987480cdddc91af3a002c582ddca4636281473de7ad011",
+      "_row": "R/exdqlmForecastDiagnostic_methods.R"
+    },
+    {
+      "path": "R/exdqlmForecastDiagnostics.R",
+      "sha256": "b0a6027ff719b8016c3c1f0d40ac9e593fe9c63ac714f9907f5bec9d56fe83e6",
+      "_row": "R/exdqlmForecastDiagnostics.R"
+    },
+    {
+      "path": "R/exdqlmForecast_methods.R",
+      "sha256": "616cda0dd07c303cc4cde23960ccbbd4138119cd64270c5d27caf1b2130185a7",
+      "_row": "R/exdqlmForecast_methods.R"
+    },
+    {
+      "path": "R/exdqlmISVB.R",
+      "sha256": "e9481377e5759999c5a7e2c1de5b6a9532bc03f7875e1240e0d2cab2b9ef0b3f",
+      "_row": "R/exdqlmISVB.R"
+    },
+    {
+      "path": "R/exdqlmLDVB.R",
+      "sha256": "0acc3376f181ebf8282f05e51c9be2d3a36a0386d4a590cdafa812ddf2f4a451",
+      "_row": "R/exdqlmLDVB.R"
+    },
+    {
+      "path": "R/exdqlmMCMC.R",
+      "sha256": "b67be06ada2d26dc65d0214c919c1f77178daa815a720e368c6e7a852c473e24",
+      "_row": "R/exdqlmMCMC.R"
+    },
+    {
+      "path": "R/exdqlmPlot.R",
+      "sha256": "31468706e7386d435bdf264aa15f5696817e0adfbc96dd1b331362ef1b2d0824",
+      "_row": "R/exdqlmPlot.R"
+    },
+    {
+      "path": "R/exdqlmSynthesis_methods.R",
+      "sha256": "6a657c5226a533eea9d6a085b46638d1785e0d8a2cb9233f5e1680b44c8a5c77",
+      "_row": "R/exdqlmSynthesis_methods.R"
+    },
+    {
+      "path": "R/exdqlmTransferISVB.R",
+      "sha256": "3d610ce9462285825f35e21a37b9d3efb486f41ea945c4036905000b7a1360b7",
+      "_row": "R/exdqlmTransferISVB.R"
+    },
+    {
+      "path": "R/exdqlmTransferLDVB.R",
+      "sha256": "9cd2b561e9d7a2ae000a66fd2bc71fc32daa2da64e371a0418502c198e476d36",
+      "_row": "R/exdqlmTransferLDVB.R"
+    },
+    {
+      "path": "R/exdqlmTransferMCMC.R",
+      "sha256": "318bcfc5ee9a5b1e2a7e848de0e2979817cd14f0ec208b7f2c67da0f7ba493da",
+      "_row": "R/exdqlmTransferMCMC.R"
+    },
+    {
+      "path": "R/exdqlm_methods.R",
+      "sha256": "59a8c4c4ade08e85b132350ebb534933a031a574e40aa9b501b86a45841dbdcf",
+      "_row": "R/exdqlm_methods.R"
+    },
+    {
+      "path": "R/gamma_bounds.R",
+      "sha256": "326378dc7b8ce174e725fc7a821ddc2a69826bc58df755ae4ad764b313781512",
+      "_row": "R/gamma_bounds.R"
+    },
+    {
+      "path": "R/generics_etc.R",
+      "sha256": "036935530fe46f85011a5acaa4650d673f66415a98a5c6677a1bb8cabc37c965",
+      "_row": "R/generics_etc.R"
+    },
+    {
+      "path": "R/kl_diagnostics.R",
+      "sha256": "779d5a01ab72b0b83c4f23bad0036875adac3575fb0ad1189278d27aab22a3fd",
+      "_row": "R/kl_diagnostics.R"
+    },
+    {
+      "path": "R/model_selection_distribution_first.R",
+      "sha256": "a8c910d878b76aae49558baaf9b52c213654489497ef88ce88f49b885d367a6b",
+      "_row": "R/model_selection_distribution_first.R"
+    },
+    {
+      "path": "R/model_selection_utils_v2.R",
+      "sha256": "2252b6daa08249ed590f36521ec5211d7005a191d51cb4d696d581eb0470432a",
+      "_row": "R/model_selection_utils_v2.R"
+    },
+    {
+      "path": "R/nino34.R",
+      "sha256": "d2a15e40698c6e45818b7b792a3a4fc317e13f1f3ec7918f11f84cc74298df30",
+      "_row": "R/nino34.R"
+    },
+    {
+      "path": "R/optionA_alias.R",
+      "sha256": "b4684be3e19964201840b1854ad5b6619500089c76a81e93ab8248560ea479b3",
+      "_row": "R/optionA_alias.R"
+    },
+    {
+      "path": "R/pipeline_inference_validation.R",
+      "sha256": "0a257529d41c07b70457cf58abcce6391fa52d387f5e8bd752e552ab1159247d",
+      "_row": "R/pipeline_inference_validation.R"
+    },
+    {
+      "path": "R/polytrendMod.R",
+      "sha256": "aece273733ec5805145f0b6fc0368e6ef06c3efadc575a02d5fa3d15443218a1",
+      "_row": "R/polytrendMod.R"
+    },
+    {
+      "path": "R/priors_beta.R",
+      "sha256": "9a96fbd6c1e1673ab3273ce41075d7609be2ab55cbb187b21c5f585d920e28d9",
+      "_row": "R/priors_beta.R"
+    },
+    {
+      "path": "R/qdesn_design_only.R",
+      "sha256": "26180316ddf638c70f8b7cab1b9f0bcfb340aeb3da21248f207855717a1f95c1",
+      "_row": "R/qdesn_design_only.R"
+    },
+    {
+      "path": "R/qdesn_dlm_decomposition.R",
+      "sha256": "e265be8a470d688139c8b893bef1a9aad4b03171bb6705d2275496c33c6285f6",
+      "_row": "R/qdesn_dlm_decomposition.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy.R",
+      "sha256": "e6dcc5e1a5b1a2270056717a402e92718975ebed92f851c74f2b922740956d46",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_candidate_dataset_audit.R",
+      "sha256": "47f4f63663873d6b9974f9d291f6883729208ef50c52d7c122c9337056c7f6aa",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_candidate_dataset_audit.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_candidate_datasets.R",
+      "sha256": "dddd82d9791995527ad5acab13d173fc5cdf8002f25e1600a043ba231ed5f537",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_candidate_datasets.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_candidate_last5000_last500_audit.R",
+      "sha256": "f3003e513bde6e81b3a72882359a3c57e8e8f78c6284097169755d9ec5f2ff0f",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_candidate_last5000_last500_audit.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_dataset_audit_plots.R",
+      "sha256": "ee877bf603b5aca4b59adab244a5b5ad2ed91b5fe7f142d5660d327380bfb0aa",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_dataset_audit_plots.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_final_analysis_pack.R",
+      "sha256": "5308d83514ef10d3f8961b08b71ad10ff631b8fa93c619d65845eb2f1ca42dd3",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_final_analysis_pack.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R",
+      "sha256": "c640c1a27741b107e894c0e86fe54c1a5bf04ba2fe8a8e61bce27ca85cb400a8",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_fit_plot_pack.R",
+      "sha256": "324fb7e99fee0daa7f4bfae34ffb5d0f866beae9aa01830ccfaf6381baefe695",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_fit_plot_pack.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_main_comparison_analysis.R",
+      "sha256": "bbf3cb8b8cca66023fb897f8fff1b58023b752589aeef13cf3e97eed749a41cc",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_main_comparison_analysis.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_rowfaithful_replay.R",
+      "sha256": "76438cac03d764dc0a196af1a30ce58496c02b21caa52a8829b15ca5e8d4c0a3",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_rowfaithful_replay.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_exdqlm_crossstudy_study_facing_analysis.R",
+      "sha256": "d55eccb4d8c9bb2b423fb8a40ed952c27909161696b831840824a554d41c2523",
+      "_row": "R/qdesn_dynamic_exdqlm_crossstudy_study_facing_analysis.R"
+    },
+    {
+      "path": "R/qdesn_dynamic_p90_steepertrend_closeout_analysis.R",
+      "sha256": "e9c166a2cfad088e3af742ebd6e6225be11cb2beedb85fb868844abe0bbcd923",
+      "_row": "R/qdesn_dynamic_p90_steepertrend_closeout_analysis.R"
+    },
+    {
+      "path": "R/qdesn_fitforecast_launch_plan.R",
+      "sha256": "9984bca7f7a09c95e4b1f6198a86f9242b48cac66125e5752fc39e9c10610882",
+      "_row": "R/qdesn_fitforecast_launch_plan.R"
+    },
+    {
+      "path": "R/qdesn_fitforecast_screening.R",
+      "sha256": "e4d73c6a66987dccdba6964212eeb0152b7401dcc87642d2025ea7e2878386ee",
+      "_row": "R/qdesn_fitforecast_screening.R"
+    },
+    {
+      "path": "R/qdesn_mcmc.R",
+      "sha256": "66cba1763ad65da0dd199cbf8ad6cc9de8069b1747a7fe827bf390245e1f56ff",
+      "_row": "R/qdesn_mcmc.R"
+    },
+    {
+      "path": "R/qdesn_mcmc_experiment_matrix.R",
+      "sha256": "9b2e0860d6dcfc9c60af0b70e2ff084d97909541ea170a903b527025305af9f1",
+      "_row": "R/qdesn_mcmc_experiment_matrix.R"
+    },
+    {
+      "path": "R/qdesn_mcmc_followup.R",
+      "sha256": "4dd9653308ec6461e4e113034c51003814b8eed89d0664fa7682ab3bfa9bb029",
+      "_row": "R/qdesn_mcmc_followup.R"
+    },
+    {
+      "path": "R/qdesn_mcmc_validation.R",
+      "sha256": "ad11913147c712f7d490a6c650a864d79e0b02074872afe63b0c3bc9c0e18343",
+      "_row": "R/qdesn_mcmc_validation.R"
+    },
+    {
+      "path": "R/qdesn_mcmc_validation_compare.R",
+      "sha256": "74b0afa1e778079a712a080111cf4ed870efd7ee7675543a6d6fe9c9d7829222",
+      "_row": "R/qdesn_mcmc_validation_compare.R"
+    },
+    {
+      "path": "R/qdesn_mean_readout_state_forecast.R",
+      "sha256": "bc3ba8cdaf7c7e9a9a1be21abb5b8c5610e198cc81844a2baad5f185875eb80d",
+      "_row": "R/qdesn_mean_readout_state_forecast.R"
+    },
+    {
+      "path": "R/qdesn_model_selection.R",
+      "sha256": "9ff4aad299d7b0834aacd30aaffc10ae58253e2833f187b1192811622878446e",
+      "_row": "R/qdesn_model_selection.R"
+    },
+    {
+      "path": "R/qdesn_model_selection_facade.R",
+      "sha256": "6e2d62d1cdc80c4965c1a4861a12239294479d501e4b3c0b57ef9bb423ad04a1",
+      "_row": "R/qdesn_model_selection_facade.R"
+    },
+    {
+      "path": "R/qdesn_model_selection_v2.R",
+      "sha256": "4097bd163309b4437fa83914ccc707b964d8a5b766f39eba028e6e219c123a7c",
+      "_row": "R/qdesn_model_selection_v2.R"
+    },
+    {
+      "path": "R/qdesn_normal.R",
+      "sha256": "4383d9e0de20a468ae1900923acdae4eb23f183ecfbef6a6b78d5f0551c07a9b",
+      "_row": "R/qdesn_normal.R"
+    },
+    {
+      "path": "R/qdesn_normal_warm_start.R",
+      "sha256": "5a03aaa42afeee8ad81e5533c676bef3ccd217bbb46336891d6d28bba49d7db2",
+      "_row": "R/qdesn_normal_warm_start.R"
+    },
+    {
+      "path": "R/qdesn_rhs_mcmc_repair.R",
+      "sha256": "23f98f8e2d5281dba290496b98a0b14ba92c4e4cb5c7bcc4eee626f63b7bc2e0",
+      "_row": "R/qdesn_rhs_mcmc_repair.R"
+    },
+    {
+      "path": "R/qdesn_rhs_ns_prior.R",
+      "sha256": "56cb37474e36d313fbe1a786e566aa4046c8afb0580399d8f6d3a66e91deeeec",
+      "_row": "R/qdesn_rhs_ns_prior.R"
+    },
+    {
+      "path": "R/qdesn_rhs_prior.R",
+      "sha256": "859ce115a88f211168b2614f3011de89dcc03a10daa65b4426390fb1f9a403e8",
+      "_row": "R/qdesn_rhs_prior.R"
+    },
+    {
+      "path": "R/qdesn_rhs_stageg_stageh_gate.R",
+      "sha256": "96bd80313e0ea7f9f6e962f63b626b9e98cef95dc366a10140b70cb2369b0c1f",
+      "_row": "R/qdesn_rhs_stageg_stageh_gate.R"
+    },
+    {
+      "path": "R/qdesn_rhs_stagei_gate.R",
+      "sha256": "cab260a11c2291c20857cc834c35c6c81ea9f16c13de9ad82075295cc7a2a073",
+      "_row": "R/qdesn_rhs_stagei_gate.R"
+    },
+    {
+      "path": "R/qdesn_rhs_stagejk_gate.R",
+      "sha256": "e2616e5c67468d9a7b3ecaeba26f385c4a492e518e6d80ee293d220cba239042",
+      "_row": "R/qdesn_rhs_stagejk_gate.R"
+    },
+    {
+      "path": "R/qdesn_static_exdqlm_crossstudy.R",
+      "sha256": "a66fb7cd9cac975cb95d604f85913b55ce34c87c9357947a77d67dd2447d7870",
+      "_row": "R/qdesn_static_exdqlm_crossstudy.R"
+    },
+    {
+      "path": "R/qdesn_static_exdqlm_crossstudy_debt_wave.R",
+      "sha256": "a78aea9cfa60483c97b8a099f19a991875a85687834492655e7ad7c87b9f6fe6",
+      "_row": "R/qdesn_static_exdqlm_crossstudy_debt_wave.R"
+    },
+    {
+      "path": "R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R",
+      "sha256": "9917844988afc4152125527570c5725ad98ad33341b51fa185ac39395d5937eb",
+      "_row": "R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R"
+    },
+    {
+      "path": "R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R",
+      "sha256": "46ad3609965f61166c071e2d3aced247b0633dc1191318f34b70d923bf087403",
+      "_row": "R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R"
+    },
+    {
+      "path": "R/qdesn_train_only_preprocessing.R",
+      "sha256": "bd3932dcffa75fa105b1df45951eb59649be8657919ed2f8622889f97cd3a7a3",
+      "_row": "R/qdesn_train_only_preprocessing.R"
+    },
+    {
+      "path": "R/qdesn_validation_common_shift_intervention.R",
+      "sha256": "fe38a87c44d20d05edfb6be230b55a970115fd33f788215461e0fe898a70d5d4",
+      "_row": "R/qdesn_validation_common_shift_intervention.R"
+    },
+    {
+      "path": "R/qdesn_validation_interval_dispersion.R",
+      "sha256": "fe0a0e9657f697eee6ab52afd7e7d6e955da75589726069d7b3967dedcaa5b46",
+      "_row": "R/qdesn_validation_interval_dispersion.R"
+    },
+    {
+      "path": "R/qdesn_validation_metric_intervals.R",
+      "sha256": "5a7c9b8ecccbed0c146a153d77b3c035e1abc4a667e64f549574c915925fe9f9",
+      "_row": "R/qdesn_validation_metric_intervals.R"
+    },
+    {
+      "path": "R/qdesn_validation_origin_horizon_attribution.R",
+      "sha256": "0184b62b09f41c523304692d046788d3239dc6241a3751c31d908bc1e80901bf",
+      "_row": "R/qdesn_validation_origin_horizon_attribution.R"
+    },
+    {
+      "path": "R/qdesn_validation_runtime.R",
+      "sha256": "04d53b43c2800c9977938552f13dfda781669e746a496f77bdd5632c9f47b94f",
+      "_row": "R/qdesn_validation_runtime.R"
+    },
+    {
+      "path": "R/qdesn_vb.R",
+      "sha256": "2968852a96e041c88ade303b4d7d1497715f16f9a2e1c84ac621242d86937a67",
+      "_row": "R/qdesn_vb.R"
+    },
+    {
+      "path": "R/qdesn_vb_rolling_window.R",
+      "sha256": "6de3bc8b4249774b6be9e69b90d6f7eb0dfc47054f7b1616e06d980aec3ba6f5",
+      "_row": "R/qdesn_vb_rolling_window.R"
+    },
+    {
+      "path": "R/qdesn_vb_warm_start.R",
+      "sha256": "69d90b4389331d6ce8610d654a144b7520cfef81eaeb0bc58b7079d620b366c0",
+      "_row": "R/qdesn_vb_warm_start.R"
+    },
+    {
+      "path": "R/quantileSynthesis.R",
+      "sha256": "9c2b294293b9f12b6efa22b28ff43a8b9dfe5d5a28fbc5808bbcd25a8ce5a985",
+      "_row": "R/quantileSynthesis.R"
+    },
+    {
+      "path": "R/readout_scale.R",
+      "sha256": "f4182f79eada7b6d7513c08850b323b14791b874d5d8e52b092367cb9b41e7fe",
+      "_row": "R/readout_scale.R"
+    },
+    {
+      "path": "R/readout_transform.R",
+      "sha256": "ad802a4f028c22bae019db3af6eff4165d3321666f1b02e9fee347f54bce2b32",
+      "_row": "R/readout_transform.R"
+    },
+    {
+      "path": "R/regMod.R",
+      "sha256": "061f49c93cdc895cc899ce31a86665dd42cfa277a78cb3111acd278d037d9b81",
+      "_row": "R/regMod.R"
+    },
+    {
+      "path": "R/run_esn_pipeline.R",
+      "sha256": "308b37d2e991e3f5940cb970e88869f1473eb9fc186d3dda3606cd56c7e23817",
+      "_row": "R/run_esn_pipeline.R"
+    },
+    {
+      "path": "R/scIVTmag.R",
+      "sha256": "fc59f819ad8ee897d1f0980aad4ee3642f69c8a16f9ed70788bfd1172cdcfae3",
+      "_row": "R/scIVTmag.R"
+    },
+    {
+      "path": "R/seasMod.R",
+      "sha256": "dfd42beb307ae2cbab1a39636887ffbebb767f270fe7c078c0fd1f207da88442",
+      "_row": "R/seasMod.R"
+    },
+    {
+      "path": "R/simulate_ts_mc_quantiles.R",
+      "sha256": "58db739249add2c6749c2f770d23a15ca0e48a5b2953a69b8fc6d7c94ee46e74",
+      "_row": "R/simulate_ts_mc_quantiles.R"
+    },
+    {
+      "path": "R/static_beta_prior.R",
+      "sha256": "6f89caf7b25513be16159f6f044ee7d5b268ce06daa4043131f007827e9c0d68",
+      "_row": "R/static_beta_prior.R"
+    },
+    {
+      "path": "R/tfRegMod.R",
+      "sha256": "fb83ccd659a96a147b255c4bea37f71e4ea44c75d2c907fdceb0bf1aee6ae725",
+      "_row": "R/tfRegMod.R"
+    },
+    {
+      "path": "R/transfer_function_helpers.R",
+      "sha256": "fcbd28ac7c31da9ed7b6965fb67d3042497b1b554f4f1dbc803e647175a95fe9",
+      "_row": "R/transfer_function_helpers.R"
+    },
+    {
+      "path": "R/update_theta_bridge.R",
+      "sha256": "6da7d51e452369032e3bfcd2d9e6a75b5618e392d99b58285c45c3e941c878ba",
+      "_row": "R/update_theta_bridge.R"
+    },
+    {
+      "path": "R/utils-debug.R",
+      "sha256": "00003a53e765b9feee5e6fa02bc203758ed4750a5bad8b176fcdbd7c2bf4d69f",
+      "_row": "R/utils-debug.R"
+    },
+    {
+      "path": "R/utils.R",
+      "sha256": "051628df07053420f5ed17a7321c15cb5e106c039699f08c1aec3307871dc011",
+      "_row": "R/utils.R"
+    },
+    {
+      "path": "R/utils_require_fun.R",
+      "sha256": "73358c570312025b7f3b148abc8627992184cc708519e435f3b049260f6f4579",
+      "_row": "R/utils_require_fun.R"
+    },
+    {
+      "path": "R/vb_diagnostics.R",
+      "sha256": "5b31286ea6c7ed373c78579cbafcaa575f65c3cd648fc2310af06b885dce41dc",
+      "_row": "R/vb_diagnostics.R"
+    },
+    {
+      "path": "R/zzz.R",
+      "sha256": "6479a0dcbf51adf453853e9920f0e1fcbed7cc618615a5063e05403323135197",
+      "_row": "R/zzz.R"
+    },
+    {
+      "path": "src/RcppExports.cpp",
+      "sha256": "8cc545e8a684079c8f775d69778f37e6af08d07262683a57beb1cf345ecb1995",
+      "_row": "src/RcppExports.cpp"
+    },
+    {
+      "path": "src/autodesn_rhs.cpp",
+      "sha256": "f761d251ab3d98b81e2eb84b2828cd17a11393398d2d405571e3d770f562da2e",
+      "_row": "src/autodesn_rhs.cpp"
+    },
+    {
+      "path": "src/builder_mods.cpp",
+      "sha256": "6269bf8581329ccf023ba61344eddfcdf824c15ebb197738cf35b7a0e027d486",
+      "_row": "src/builder_mods.cpp"
+    },
+    {
+      "path": "src/exAL.cpp",
+      "sha256": "db13b7248524e39f20af4a1b716919b8d343c7e06979cc619ee03ff3ddf4358c",
+      "_row": "src/exAL.cpp"
+    },
+    {
+      "path": "src/exdqlm.cpp",
+      "sha256": "ca8d6d98fabea8d937037e7eb76edfe4f4f4348a6622d3cc9915b6cafffcb5de",
+      "_row": "src/exdqlm.cpp"
+    },
+    {
+      "path": "src/kalman.cpp",
+      "sha256": "46385b92dce34b0fb14f20705610459aee3797afd7aad4b52d99093947840f25",
+      "_row": "src/kalman.cpp"
+    },
+    {
+      "path": "src/matrix_creation.cpp",
+      "sha256": "8cf6b2112a52d7b98e8a492a2c21a468c9d17c6308ca24c31131bf0a9b93111b",
+      "_row": "src/matrix_creation.cpp"
+    },
+    {
+      "path": "src/mcmc_ffbs.cpp",
+      "sha256": "f6ccf41466ece60a3a63737bb434309e8bea59f5b254a086793e5cca0aba6065",
+      "_row": "src/mcmc_ffbs.cpp"
+    },
+    {
+      "path": "src/omp_compat.h",
+      "sha256": "f3dafd7c9fff9ce0fb65b2d0ae4702724d91568c3e42e28bd4299228a3294b05",
+      "_row": "src/omp_compat.h"
+    },
+    {
+      "path": "src/sampling_truncnorm.cpp",
+      "sha256": "2cdf54c467ec5d9d5b50bc6fa97560fc13328426ef2ed09b28ace1b18e2691b3",
+      "_row": "src/sampling_truncnorm.cpp"
+    },
+    {
+      "path": "src/sampling_utils.cpp",
+      "sha256": "5e4d4bfe90ad3b5e2aa4992f47c32953ce15f7488c780ff60a26673ded8bcd86",
+      "_row": "src/sampling_utils.cpp"
+    },
+    {
+      "path": "src/zzz_preinclude.h",
+      "sha256": "7ac943a528f13ac2643aedba0b1d9b505599847acbff5231b80b67650d0958b2",
+      "_row": "src/zzz_preinclude.h"
+    }
+  ]
+}

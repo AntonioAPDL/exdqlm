@@ -1,5 +1,5 @@
 # Archive only forecast-relevant reservoirs, preserving original model IDs.
-# Zero-probability templates are replaced by NULL; all 384 joint draws,
+# Templates unused by the 384 predictive draws become NULL; all joint draws,
 # coefficients, frozen weights, scaling history and diagnostics are retained.
 args<-commandArgs(trailingOnly=TRUE)
 base<-if(length(args)) args[1] else "validation/autodesn/nonlinear_heteroscedastic/artifacts"

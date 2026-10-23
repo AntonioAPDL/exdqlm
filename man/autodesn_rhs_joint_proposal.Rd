@@ -17,3 +17,14 @@ autodesn_rhs_joint_proposal(center, scale, df = 5, moves = 1L,
 }
 \value{A validated proposal for \code{model_control$joint_proposal}. Model probabilities use \code{model_control$proposal}, with positive mass on every architecture.}
 \description{This is a Metropolis--Hastings proposal, not a prior. Estimate its parameters with training chains only and freeze it before fresh production chains. Coefficients are integrated out in the joint architecture/scale move and immediately redrawn. Both sampled global and slab scales and method \code{mh} are required. The default NULL joint proposal preserves the historical sampler and random-number stream.}
+
+\examples{
+# A deliberately broad fixed proposal for a two-architecture bank:
+joint <- autodesn_rhs_joint_proposal(
+  center = matrix(0, nrow = 2, ncol = 3), scale = diag(3), moves = 2)
+# Supply it to autodesn_fit_bank(..., beta_prior = "rhs",
+#   model_control = list(method = "mh", proposal = c(.5, .5),
+#                        joint_proposal = joint)).
+# In an actual study, fit proposal parameters using training chains, then
+# freeze them before fresh production chains and inspect multiple-chain diagnostics.
+}

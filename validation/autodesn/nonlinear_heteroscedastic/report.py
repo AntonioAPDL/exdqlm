@@ -30,8 +30,8 @@ def main():
   ax.set(title=metric,xlabel='Forecast horizon');ax.grid(alpha=.15)
  handles,labels=axes[0,0].get_legend_handles_labels();fig.legend(handles,labels,loc='outside lower center',ncol=2,frameon=False)
  fig.savefig(figures/'horizons.png',dpi=170);plt.close(fig)
- fig,axes=plt.subplots(3,1,figsize=(10,8),layout='constrained')
- for ax,lab in zip(axes,[LABELS[0],LABELS[2],LABELS[3]]):
+ fig,axes=plt.subplots(4,1,figsize=(10,10),layout='constrained')
+ for ax,lab in zip(axes,LABELS):
   g=scores[(scores.model==lab)&(scores.horizon==30)]
   ax.plot(truth.time.iloc[2500:],truth.y.iloc[2500:],color='#303b45',lw=.65,label='Observed')
   ax.fill_between(g.target,g.lower90,g.upper90,color=PALETTE[lab],alpha=.15,label='90% interval')
@@ -118,6 +118,9 @@ def main():
   else:row+=['-','-']
   rows.append(row)
  table(rows,[90,110,50,125,125])
+ for sc in study['scenarios'][:2]:
+  q=pd.read_csv(b/sc['id']/sc['method']/'shrinkage_quantiles.csv').set_index('parameter').loc['effective_slopes_diagonal']
+  para(f"{sc['id']} diagonal effective-slopes proxy: median {q['median']:.3f}, 5%-95% [{q.q05:.3f}, {q.q95:.3f}]. This sums d_j*(X'X)_jj / (sigma²+d_j*(X'X)_jj), using slope prior variances d_j; it ignores feature correlations and is not a count of selected coefficients.",'Small')
  para('tau0 is a prior multiplier, not a fixed posterior tau. Global, local and slab scales are sampled. The normalized Gaussian slope density and every architecture-dependent Gaussian determinant are retained. Layerwise common auxiliary coordinates and product-preserving interweaving preserve the same normalized RHS target; inactive proper priors integrate to one. No test-error screening substitutes for architecture averaging.','Small')
  page();title('Retained-chain diagnostics');image(figures/'traces.png')
  rows=[['Scenario','Max rank R-hat','Min bulk ESS','Min tail/frequency ESS','Kept/chain']]
@@ -126,11 +129,18 @@ def main():
   rows.append([sc['id'],f'{z.rhat.max():.5f}',f'{z.bulk_ess.min():.1f}',f'{z.tail_ess.min():.1f}',int(n)])
  table(rows,[125,90,90,100,95])
  para('Three chains; continuous split rank/folded R-hat<=1.01 and bulk/tail ESS>=400. Six fixed training-row fitted means are additionally monitored across architectures with different coefficient dimensions. Architecture indicators with posterior mass>=1% also pass rank R-hat/frequency ESS, plus the R spectral-ESS and absolute chain-frequency-range gates. Binary frequency ESS is shown in both ESS columns. Checks pass before forecasting. These monitored diagnostics do not prove convergence or accurate rare-model probabilities. Full traces, controls, chain exploration and all failed budgets are archived.','Small')
+ title('Architecture exploration')
+ rows=[['Scenario','Models visited (chains 1/2/3)','Retained switches (chains 1/2/3)']]
+ for sc in study['scenarios']:
+  z=pd.read_csv(b/sc['id']/sc['method']/'exploration.csv')
+  rows.append([sc['id'],' / '.join(str(int(v)) for v in z.unique_models),' / '.join(str(int(v)) for v in z.switches)])
+ table(rows,[125,185,190])
+ para('Visits and switches describe exploration; they are not convergence criteria. Proposal/acceptance counts include burn-in and are retained with the exact controls. Architecture indicator diagnostics concern the retained chains.','Small')
  page();title('Sampling and predictive budgets')
  rows=[['Scenario','Burn/chain','Kept/chain','Max R-hat','Min spectral ESS','Pass']]
  for _,r in budgets.iterrows():rows.append([r.scenario,int(r.n_burn),int(r.n_mcmc),f'{r.max_rhat:.5f}',f'{r.min_ess:.1f}',str(bool(r.qualified))])
  table(rows,[145,68,68,74,85,60])
- para('The displayed R-hat/ESS columns concern continuous parameters. Pass additionally requires architecture diagnostics. Any declared recovery uses only completed training-chain occupancy to freeze a full-support proposal, exact Hastings correction and fresh production seeds. No test scores inform recovery.','Small')
+ para('The displayed R-hat/ESS columns concern continuous parameters. Pass additionally requires architecture diagnostics. After two failed model-only proposals, a joint architecture/log-scale Student-t mixture is fitted to completed training chains and frozen before fresh production. Four original model-only moves and two joint moves per sweep retain exact Gaussian coefficient-collapsed targets, prior/Jacobian constants and Hastings corrections. Declared production budgets are 16k/32k/64k/128k kept per chain. Shared training is reported once below. No failed screen is waived. No test scores inform recovery.','Small')
  title('Predictive Monte Carlo sensitivity')
  sens=pd.read_csv(c/'mc_sensitivity_summary.csv');rows=[['Scenario','N x K','RMSE (3 origins)','CRPS','NLL']]
  for sc in study['scenarios']:
@@ -153,10 +163,10 @@ def main():
   st=json.loads((b/sc['id']/sc['method']/'status.json').read_text());t=st['timings'];m=json.loads((b/sc['id']/'process_memory.json').read_text())
   rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',f'{m["process_peak_rss_kib"]/2**20:.2f}'])
  table(rows,[100,70,80,90,80,80])
- for d in b.glob('*_initial_proposal'):
-  t=json.loads((d/'rhs/status.json').read_text())['timings'];para(f"Additional failed training cost ({d.name}): {t['inference_seconds_all_attempts']:.2f}s completed inference plus {t['training_pilot_seconds']:.2f}s pilots. These supplied a frozen training-only proposal and issued no forecasts.",'Small')
+ for d in sorted(x for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k'))):
+  t=json.loads((d/'rhs/status.json').read_text())['timings'];para(f"Additional failed training cost ({d.name}): {t['inference_seconds_all_attempts']:.2f}s completed inference plus {t.get('training_pilot_seconds',0):.2f}s pilots. These supplied one shared training-only proposal and issued no forecasts; do not add this shared cost twice for the two RHS priors.",'Small')
  para(f"Native AutoGP summed SMC callback training: {gt['smc_training_seconds_sum']:.2f}s. Native invocation including startup, training, export and conditioning contracts: {gt['native_launcher_seconds_this_invocation']:.2f}s. Rolling conditioning/scoring/export: {gt['rolling_conditioning_scoring_seconds']:.2f}s. Native-process peak RSS: {native['native_peak_rss_kib']/2**20:.3f}GiB. Timer scopes differ from AutoDESN per-origin compute; no clean end-to-end speedup claim follows.",'Small')
- para('Inference totals include completed failed budgets; interrupted partial work is retained separately in wall-time logs. Forecast compute sums per-origin calls and excludes state preparation, scoring/export and sensitivity. Parent VmHWM excludes forked workers; Native Julia memory uses Linux wait4 child rusage. Dependency setup may overlap early AutoDESN work; these are observed runtimes, not isolated hardware benchmarks.','Small')
+ para('Inference totals include completed failed budgets; interrupted partial work is retained separately in wall-time logs. Forecast compute sums per-origin calls and excludes state preparation, scoring/export and sensitivity. Parent VmHWM excludes forked workers; Native Julia memory uses Linux wait4 child rusage. R uses one BLAS thread; the original native AutoGP script uses two BLAS threads and one Julia thread. Large inference/forecast jobs run sequentially. Hardware quota and memory limits are archived. Dependency setup may overlap early AutoDESN work; these are observed runtimes, not isolated hardware benchmarks.','Small')
  page();title('Validation, limits and reproducibility')
  para(f"All {bank['admitted']} admitted architectures share the raw bank and frozen feature transforms. Maximum absolute training column mean {bank['max_abs_mean']:.3g}; maximum sample-SD error {bank['max_sd_error']:.3g}. The API freezes exclusions for near-constant features; the intercept has its own proper prior and raw-coordinate transport includes its centering shift.")
  validation=json.loads((b/'validation/validation_status.json').read_text());para(validation['summary'])
@@ -166,7 +176,7 @@ def main():
  para('Independent path reconstruction verifies scores at the first, middle and last origins. Future-data perturbation changes every unavailable response by100 while holding posterior draws and innovations fixed; forecasts remain identical. Archived joint checkpoints are replayed against saved paths. The numeric archive has part-level, complete-archive and internal SHA256 checks, plus a restored-analysis round trip.','Small')
  para('Gaussian conditional variances are deliberately misspecified for this heteroscedastic DGP. Poor calibration in high-volatility periods motivates a future variance-model extension; such an extension would be a distinct benchmark with its own prior and validation. A single series and overlapping origin/lead pairs do not establish general superiority. Preprocessing is treated as frozen rather than jointly inferred.','Small')
  para('Release remains draft. The inherited scoped repository R CMD check has one nonportable-path error, three documentation/non-ASCII warnings and two notes. Focused tests and numerical checks are reported separately; no clean package-wide release check is claimed.','Small')
- para('See README.md and RESULTS.md in validation/autodesn/nonlinear_heteroscedastic. generate.R freezes the DGP; run.R/execute.py fit the three AutoDESN cases; run_gp.py fits pinned Native AutoGP; export.R, archive.R, replay.R, analysis.py and report.py reproduce evidence and reporting. Existing C1 artifacts are preserved. Draft PR: https://github.com/AntonioAPDL/exdqlm/pull/4.','Small')
+ para('See README.md and RESULTS.md in validation/autodesn/nonlinear_heteroscedastic. generate.R freezes the DGP; run.R/fit_joint.R/execute_joint.py fit the three AutoDESN cases; run_gp.py fits pinned Native AutoGP; export.R, archive.R, replay.R, analysis.py and report.py reproduce evidence and reporting. Existing C1 artifacts are preserved. Draft PR: https://github.com/AntonioAPDL/exdqlm/pull/4.','Small')
  out=HERE/'evidence/NHS1_AutoDESN_AutoGP_Report.pdf'
  def footer(canvas,doc):
   canvas.setFont('DV',7);canvas.setFillColor(colors.HexColor('#657282'));canvas.drawString(48,25,'NHS1 | one new DGP realization | 23 October 2026');canvas.drawRightString(548,25,str(doc.page))
