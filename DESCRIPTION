@@ -26,8 +26,9 @@ Description: Bayesian quantile-regression routines for dynamic state-space
     'rhs_ns', evidence lower bound (ELBO) diagnostics, optional C++
     accelerators, and posterior predictive synthesis across separately fitted
     quantiles through 'quantileSynthesis()'. A Gaussian DESN extension supports
-    finite-bank Bayesian specification selection with independent ridge
-    priors, blocked Gibbs sampling, and recursive predictive averaging.
+    finite-bank Bayesian specification selection with independent ridge or
+    normalized regularized horseshoe priors, blocked Gibbs and collapsed
+    Metropolis sampling, and recursive predictive averaging.
     Dynamic exDQLM methods are
     described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
@@ -85,4 +86,4 @@ LinkingTo:
 SystemRequirements: C++17; OpenMP (optional)
 URL: https://github.com/AntonioAPDL/exdqlm
 BugReports: https://github.com/AntonioAPDL/exdqlm/issues
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0

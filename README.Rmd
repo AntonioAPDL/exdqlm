@@ -366,10 +366,16 @@ names(syn)
 
 `autodesn_build_bank()` and `autodesn_fit_bank()` add finite-bank Bayesian
 selection of DESN specifications under a Gaussian likelihood and an independent
-Gaussian ridge readout prior. Reservoir construction and recursive forecasting
+ridge or normalized regularized horseshoe readout prior. Reservoir construction and recursive forecasting
 reuse the Q-DESN implementations. The proper intercept, common causal response
 window, frozen preprocessing, and joint model/readout predictive draws are
 documented in the [AutoDESN guide](docs/autodesn/README.md).
+
+Use `beta_prior = "rhs"` with `autodesn_rhs_control()` for global, local, and
+slab shrinkage. The [RHS guide](docs/autodesn/RHS.md) explains the normalized
+prior, efficient collapsed model sampler, C++ backend, and diagnostics. The
+[C1 comparison](validation/autodesn/rhs_comparison/README.md) runs ridge
+AutoDESN, RHS AutoDESN, and AutoGP with the same frozen forecast protocol.
 
 The [500/500/100 example](validation/autodesn/long_horizon/README.md) uses 500
 unscored washout observations, exactly 500 training rows, and a 100-step

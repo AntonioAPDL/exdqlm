@@ -11,7 +11,11 @@ autodesn_fit(
   model_prior = NULL,
   normalize_features = TRUE,
   mcmc_args = list(),
-  washout = NULL
+  washout = NULL,
+  beta_prior = c("ridge", "rhs"),
+  rhs_control = list(),
+  model_control = list(),
+  backend = c("auto", "R", "cpp")
 )
 }
 \arguments{
@@ -31,6 +35,14 @@ autodesn_fit(
 including the conditioning prefix. Must cover conditioning and every
 candidate's lag/washout requirement. NULL preserves the default additive
 conditioning-plus-warmup convention.}
+
+\item{beta_prior}{Readout prior, \code{"ridge"} or normalized \code{"rhs"}.}
+
+\item{rhs_control}{RHS controls from \code{\link[=autodesn_rhs_control]{autodesn_rhs_control()}} or a named list.}
+
+\item{model_control}{RHS architecture sampler controls; see \code{\link[=autodesn_fit_bank]{autodesn_fit_bank()}}.}
+
+\item{backend}{RHS algebra backend, \code{"auto"}, \code{"R"}, or \code{"cpp"}.}
 }
 \value{
 An \code{autodesn_fit} supporting the existing Q-DESN prediction methods.

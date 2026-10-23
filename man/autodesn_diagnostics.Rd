@@ -11,7 +11,10 @@ autodesn_diagnostics(fits)
 for the same bank, prior and target distribution.}
 }
 \value{
-List with \code{parameters}, \code{models}, and a diagnostic qualification.
+List with \code{parameters}, \code{models}, \code{chains}, \code{beta_prior_type}, and a
+diagnostic qualification. \code{parameters$sampled} marks quantities whose
+convergence can be screened. Model-indicator R-hat and spectral ESS are
+additional columns in \code{models}.
 }
 \description{
 Reports rank-normalized folded split R-hat, summed per-chain spectral ESS
@@ -19,6 +22,17 @@ estimates, batch-means Monte Carlo errors, and model probability agreement.
 Spectral ESS is capped at the retained draw count per chain; it is not
 the bulk/tail ESS used by Stan.
 These are convergence screens; they do not establish exploration of an
-unlisted architecture or guarantee mixing. Fixed precision has undefined
-R-hat and ESS and is reported as NA.
+unlisted architecture or guarantee mixing. Deliberately fixed parameters
+have undefined R-hat and ESS, reported as NA with \code{sampled = FALSE}.
+Model-indicator diagnostics describe architecture exploration separately
+from continuous parameters. An unvisited model has undefined indicator ESS;
+this does not establish that its posterior probability is zero.
+}
+\details{
+RHS chains must share the complete normalized prior, including fixed scale
+values and the per-model global scales. Different initialization, proposal,
+backend, and run-length settings are allowed because they do not change the
+target. Full categorical scans use their conditional probabilities for
+model-probability Monte Carlo errors. Collapsed MH uses sampled indicators;
+its occupancy estimates are never presented as Rao--Blackwell estimates.
 }

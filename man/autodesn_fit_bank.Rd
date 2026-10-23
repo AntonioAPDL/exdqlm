@@ -2,7 +2,7 @@
 % Please edit documentation in R/autodesn_gaussian.R
 \name{autodesn_fit_bank}
 \alias{autodesn_fit_bank}
-\title{Fit a Gaussian AutoDESN bank with blocked Gibbs sampling}
+\title{Fit a Gaussian AutoDESN bank with a ridge or RHS readout}
 \usage{
 autodesn_fit_bank(
   bank,
@@ -17,7 +17,11 @@ autodesn_fit_bank(
   learn_ridge = TRUE,
   ridge_precision = 1,
   initial_variance = NULL,
-  seed = NULL
+  seed = NULL,
+  beta_prior = c("ridge", "rhs"),
+  rhs_control = list(),
+  model_control = list(),
+  backend = c("auto", "R", "cpp")
 )
 }
 \arguments{
@@ -42,6 +46,21 @@ autodesn_fit_bank(
 \item{initial_variance}{Optional starting observation variance.}
 
 \item{seed}{Optional seed, with the caller's RNG state restored.}
+
+\item{beta_prior}{Readout prior: \code{"ridge"} (the unchanged default) or the
+normalized regularized horseshoe \code{"rhs"}. Both are independent of the
+observation variance; the intercept retains its own proper Gaussian prior.}
+
+\item{rhs_control}{Named controls from \code{\link[=autodesn_rhs_control]{autodesn_rhs_control()}}, or a named
+list of its arguments. Used only with \code{beta_prior = "rhs"}.}
+
+\item{model_control}{RHS architecture sampler controls: \code{method} (\code{"mh"} or
+\code{"categorical"}), \code{moves}, full-support \code{proposal} probabilities,
+\code{rb_every}, and \code{initial_model}. See the RHS guide for their meaning.}
+
+\item{backend}{RHS linear algebra backend: \code{"auto"}, \code{"R"}, or \code{"cpp"}.
+Auto uses the compiled implementation when available. Ridge retains its
+existing SVD implementation and accepts \code{"auto"} or \code{"R"}.}
 }
 \value{
 An \code{autodesn_fit} with joint draws and model probability estimates.
@@ -49,7 +68,9 @@ An \code{autodesn_fit} with joint draws and model probability estimates.
 \description{
 Each sweep jointly updates model and coefficients by sampling the model
 with coefficients integrated out, then immediately redrawing coefficients.
-Variance and optionally global ridge precision follow. Coefficient priors
+Variance and prior scales follow. Ridge uses a full categorical model scan;
+RHS uses collapsed Metropolis model moves by default, with a full categorical
+scan available as a reference. Coefficient priors
 are independent of observation variance, unlike \code{normal_desn_fit()}'s
 scaled-ridge prior. No reversible-jump or particle approximation is used.
 }

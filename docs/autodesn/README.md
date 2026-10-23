@@ -3,6 +3,11 @@
 AutoDESN learns probabilities over a **finite, prespecified bank** of DESN
 specifications and averages their forecasts. It reuses `qdesn_fit_vb()` for
 reservoir construction and `forecast_paths.qdesn_normal_fit()` for recursion.
+Choose `beta_prior = "ridge"` (default) or `beta_prior = "rhs"` for the
+normalized regularized horseshoe. Both use the same bank and forecast API.
+The [RHS guide](RHS.md) gives the prior, sampler, controls, and validation
+contract. The [C1 comparison](../../validation/autodesn/rhs_comparison/README.md)
+compares ridge AutoDESN, RHS AutoDESN, and AutoGP on the frozen rolling experiment.
 The new inference code is additive: existing Normal and quantile fitters,
 dispatchers, priors, model-selection facades and forecast methods are unchanged.
 The shared builder also fixes a scalar-feature dimension issue so one-unit
@@ -35,7 +40,7 @@ input preprocessing. The most probable row is
 `which.max(chains[[1L]]$model_summary$posterior_probability)`; forecasts still
 average joint draws over the bank rather than substituting that one model.
 
-## Statistical model
+## Statistical model and default ridge prior
 
 For candidate $j$, let $H_j$ be the slopes from the shared DESN builder,
 
@@ -59,9 +64,9 @@ $$
 All gamma distributions use shape/rate. The inverse-gamma density is
 proportional to $x^{-a-1}\exp(-b/x)$. Defaults are $v_0=10$,
 $a_s=3,b_s=1,a_\lambda=2,b_\lambda=2$, in standardized response units.
-`learn_ridge = FALSE` holds `ridge_precision` fixed. There are no local
-shrinkage parameters, RHS variables, latent AL variables or time-varying
-coefficients in this version.
+`learn_ridge = FALSE` holds `ridge_precision` fixed. The alternative normalized
+RHS prior adds global, local, and slab scales; see [RHS.md](RHS.md). Neither
+readout introduces latent AL variables or time-varying coefficients.
 
 **This prior is independent of observation variance.** The existing
 `normal_desn_fit(beta_prior_type = "ridge")` uses a different, scaled ridge
@@ -70,7 +75,7 @@ Normal-inverse-gamma posterior and marginal likelihood cannot be substituted
 here. The new readout sampler therefore lives separately, while feature and
 forecast computation are shared.
 
-## How selection works
+## How ridge selection works
 
 For fixed variance and precision, integrate all coefficients analytically:
 
@@ -200,7 +205,7 @@ simulated paths.
 For $M$ models, $n$ scored observations and $d$ slopes, each readout cache stores
 $O(nd + d^2 + \min(n,d))$ values; full reservoir weights and state histories add
 further memory. The SVD's left vectors are temporary, while their projections
-are cached. Each complete model scan is $O(M\min(n,d))$. A selected coefficient
+are cached. Each complete ridge model scan is $O(M\min(n,d))$. A selected coefficient
 draw uses a $(d+1)$-dimensional precision Cholesky and a residual matrix product.
 Banks with hundreds of large reservoirs need screening, caching, or more
 efficient linear algebra. The bank
@@ -221,9 +226,11 @@ static-parameter rejuvenation scheme. It is not inherently optimal and a
 particle filter is unnecessary for deterministic reservoir states. Start with
 this audited Gibbs target and compare equal compute budgets before adding SMC.
 
-RHS or AL/exAL can later replace the readout layer. Their integrated structure
-scores and transition kernels need fresh derivation; existing approximate VB
-scores must not be relabeled exact posterior model probabilities.
+The normalized RHS readout now has its own coefficient-integrated Gaussian
+scores and exact-target MCMC transitions; see [RHS.md](RHS.md). Its local scales
+require Cholesky solves in the original feature basis. Collapsed MH avoids a
+complete bank scan at every sweep. AL/exAL readout extensions still require a
+separate derivation; approximate VB scores are not exact posterior model weights.
 
 ## Validation and reproduction
 

@@ -39,7 +39,7 @@
   z / sum(z)
 }
 
-#' Prepare a finite bank of Gaussian ridge readout designs
+#' Prepare a finite bank of Gaussian readout designs
 #'
 #' The matrices contain slopes only; one proper Gaussian intercept is added.
 #' Autoregressive designs define a conditional likelihood. The caller must use
@@ -147,11 +147,13 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
   as.vector(mu + backsolve(R, stats::rnorm(length(mu))))
 }
 
-#' Fit a Gaussian AutoDESN bank with blocked Gibbs sampling
+#' Fit a Gaussian AutoDESN bank with a ridge or RHS readout
 #'
 #' Each sweep jointly updates model and coefficients by sampling the model
 #' with coefficients integrated out, then immediately redrawing coefficients.
-#' Variance and optionally global ridge precision follow. Coefficient priors
+#' Variance and prior scales follow. Ridge uses a full categorical model scan;
+#' RHS uses collapsed Metropolis model moves by default, with a full categorical
+#' scan available as a reference. Coefficient priors
 #' are independent of observation variance, unlike `normal_desn_fit()`'s
 #' scaled-ridge prior. No reversible-jump or particle approximation is used.
 #'
@@ -166,6 +168,17 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
 #' @param ridge_precision Initial or fixed slope precision.
 #' @param initial_variance Optional starting observation variance.
 #' @param seed Optional seed, with the caller's RNG state restored.
+#' @param beta_prior Readout prior: `"ridge"` (the unchanged default) or the
+#'   normalized regularized horseshoe `"rhs"`. Both are independent of the
+#'   observation variance; the intercept retains its own proper Gaussian prior.
+#' @param rhs_control Named controls from [autodesn_rhs_control()], or a named
+#'   list of its arguments. Used only with `beta_prior = "rhs"`.
+#' @param model_control RHS architecture sampler controls: `method` (`"mh"` or
+#'   `"categorical"`), `moves`, full-support `proposal` probabilities,
+#'   `rb_every`, and `initial_model`. See the RHS guide for their meaning.
+#' @param backend RHS linear algebra backend: `"auto"`, `"R"`, or `"cpp"`.
+#'   Auto uses the compiled implementation when available. Ridge retains its
+#'   existing SVD implementation and accepts `"auto"` or `"R"`.
 #' @return An `autodesn_fit` with joint draws and model probability estimates.
 #' @export
 autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
@@ -173,7 +186,27 @@ autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
                          a_sigma = 3, b_sigma = 1,
                          a_lambda = 2, b_lambda = 2,
                          learn_ridge = TRUE, ridge_precision = 1,
-                         initial_variance = NULL, seed = NULL) {
+                         initial_variance = NULL, seed = NULL,
+                         beta_prior = c("ridge", "rhs"), rhs_control = list(),
+                         model_control = list(), backend = c("auto", "R", "cpp")) {
+  beta_prior <- match.arg(beta_prior)
+  if (identical(backend, "r")) backend <- "R"
+  backend <- match.arg(backend)
+  if (beta_prior == "rhs") {
+    if (!missing(a_lambda) || !missing(b_lambda) || !missing(learn_ridge) ||
+        !missing(ridge_precision)) {
+      stop("Ridge-specific controls are not used by RHS; set rhs_control instead.", call. = FALSE)
+    }
+    return(.autodesn_fit_rhs_bank(bank = bank, n_burn = n_burn,
+      n_mcmc = n_mcmc, thin = thin, intercept_variance = intercept_variance,
+      a_sigma = a_sigma, b_sigma = b_sigma, initial_variance = initial_variance,
+      seed = seed, rhs_control = rhs_control, model_control = model_control,
+      backend = backend))
+  }
+  if (length(rhs_control) || length(model_control)) {
+    stop("rhs_control and model_control require beta_prior = 'rhs'.", call. = FALSE)
+  }
+  if (backend == "cpp") stop("The ridge sampler uses its existing R/SVD backend; use backend = 'auto' or 'R'.", call. = FALSE)
   if (!inherits(bank, "autodesn_bank")) stop("Use autodesn_prepare_bank() or autodesn_build_bank() first.")
   .autodesn_flag(learn_ridge, "learn_ridge")
   .autodesn_integer(n_burn, "n_burn", 0L)

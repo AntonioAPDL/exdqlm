@@ -2,7 +2,7 @@
 % Please edit documentation in R/autodesn_gaussian.R
 \name{autodesn_prepare_bank}
 \alias{autodesn_prepare_bank}
-\title{Prepare a finite bank of Gaussian ridge readout designs}
+\title{Prepare a finite bank of Gaussian readout designs}
 \usage{
 autodesn_prepare_bank(
   y,
