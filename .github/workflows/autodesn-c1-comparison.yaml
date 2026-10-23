@@ -1,0 +1,104 @@
+name: C1 AutoDESN AutoGP AutoARIMA
+on:
+  pull_request:
+    paths:
+      - 'validation/autodesn/c1_comparison/**'
+      - '.github/workflows/autodesn-c1-comparison.yaml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r-models:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        method: [desn, arima]
+    env:
+      OPENBLAS_NUM_THREADS: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.3.3'
+          use-public-rspm: true
+      - name: Install validation dependencies
+        run: Rscript -e 'install.packages(c("coda", "jsonlite", "testthat", "remotes")); remotes::install_version("forecast", version="8.21.1", upgrade="never")'
+      - name: Numerical and causal contracts
+        run: Rscript validation/autodesn/c1_comparison/test_contracts.R
+      - name: Fit and evaluate C1
+        run: Rscript validation/autodesn/c1_comparison/run_${{ matrix.method }}.R
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c1-${{ matrix.method }}
+          path: |
+            validation/autodesn/c1_comparison/artifacts/${{ matrix.method }}/
+            !validation/autodesn/c1_comparison/artifacts/${{ matrix.method }}/bank_parts/
+          retention-days: 30
+          if-no-files-found: error
+  autogp:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    env:
+      JULIA_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 2
+      OMP_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10.10'
+      - uses: julia-actions/cache@v2
+      - name: Check out pinned authors implementation
+        run: |
+          git clone https://github.com/probsys/AutoGP.jl /tmp/AutoGP.jl
+          git -C /tmp/AutoGP.jl checkout 2ad372db2b8bea176e3b32a769bfb5d6cff80866
+          julia --project=/tmp/AutoGP.jl -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+      - name: Fit SMC and export exact joint predictive distributions
+        run: julia --project=/tmp/AutoGP.jl validation/autodesn/c1_comparison/run_autogp.jl
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c1-gp
+          path: validation/autodesn/c1_comparison/artifacts/gp/
+          retention-days: 30
+          if-no-files-found: error
+  comparison:
+    needs: [r-models, autogp]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy scipy pandas==2.2.3 matplotlib
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: c1-*
+          path: validation/autodesn/c1_comparison/downloads
+      - name: Assemble model evidence
+        run: |
+          mkdir -p validation/autodesn/c1_comparison/artifacts
+          cp -r validation/autodesn/c1_comparison/downloads/c1-desn validation/autodesn/c1_comparison/artifacts/desn
+          cp -r validation/autodesn/c1_comparison/downloads/c1-arima validation/autodesn/c1_comparison/artifacts/arima
+          cp -r validation/autodesn/c1_comparison/downloads/c1-gp validation/autodesn/c1_comparison/artifacts/gp
+      - run: python -m unittest discover -s validation/autodesn/c1_comparison -p test_scoring.py -v
+      - run: python validation/autodesn/c1_comparison/report.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c1-comparison
+          path: validation/autodesn/c1_comparison/artifacts/comparison/
+          retention-days: 30
+          if-no-files-found: error
