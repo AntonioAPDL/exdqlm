@@ -1,5 +1,6 @@
 """Freeze completed delivery metadata, restore archives and verify the round trip."""
 import json,gzip,hashlib,subprocess,sys,shutil
+from datetime import datetime,timezone
 from pathlib import Path
 import pandas as pd
 HERE=Path(__file__).resolve().parent
@@ -21,7 +22,7 @@ def main():
    while f.read(1048576):pass
   streams.append(str(p.relative_to(b)))
  (b/'validation/compressed_integrity.json').write_text(json.dumps(dict(complete=True,read_through_eof=True,files=streams),indent=2))
- status=dict(complete=True,series='NHS1',dgp_realizations=1,dependent_rolling_pairs=True,seed=1766021,
+ status=dict(complete=True,completed_UTC=datetime.now(timezone.utc).isoformat(),series='NHS1',dgp_realizations=1,dependent_rolling_pairs=True,seed=1766021,
   washout=500,training=2000,test=500,origins_per_model=471,horizons=30,pairs_per_model=14130,
   requested_rhs_controls=dict(tau0=.001,slab_scale=1,slab_df=4),standardize_features=True,normalize_features=False,
   new_fits=['AutoDESN RHS .001/1','AutoDESN RHS 1/2','AutoDESN ridge','Native AutoGP'],reference_inference_reused=False,

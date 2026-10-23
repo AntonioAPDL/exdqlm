@@ -84,7 +84,7 @@ def main():
   w,h=PIL.open(path).size;story.append(Image(str(path),width=width,height=width*h/w))
  def page():story.append(PageBreak())
  para('AutoDESN and AutoGP: nonlinear heteroscedastic seasonal dynamics','Title')
- para('NHS1 | completed fresh comparison | 23 October 2026','Small')
+ para('NHS1 | completed fresh comparison | study initiated 23 October 2026','Small')
  para('One new series combines threshold nonlinear dynamics, an asymmetric nonsinusoidal seasonal pattern and persistent, asymmetric conditional variance. No deterministic trend is present. The DGP, seed, prior controls, architecture candidates and forecasting protocol were fixed before fitting. Every model is fitted fresh; no C1 forecast output is reused.')
  title('Data-generating process')
  para('Write y(t)=s(t)+x(t). The centered period-60 seasonal offset combines two asymmetric triangular pulses, a ramp and a 12-step block pattern. The residual conditional mean is a(x1)*x1 +0.28*tanh(1.4*x2) -0.25*tanh(x12) +0.22*tanh(x60) +0.20*tanh(1.5*x1*x2), where xk=x(t-k), a(x)=0.58 for x&lt;0 and 0.22 otherwise.')
@@ -107,7 +107,9 @@ def main():
  rows=[['Model','Band','Pairs','90% coverage','Predictive SD','True SD']]
  for _,r in cal.iterrows():rows.append([r.model,r.band,int(r.pairs),f'{r.Coverage90:.3f}',f'{r.mean_predictive_sd:.3f}',f'{r.mean_true_sd:.3f}'])
  table(rows,[170,55,45,80,75,75])
- page();title('Bayesian architecture averaging and shrinkage');image(figures/'architectures.png')
+ page();title('Bayesian architecture averaging and shrinkage')
+ para('For slopes, beta_j | tau,lambda_j,c² ~ N(0,v_j), v_j=c²*tau²*lambda_j²/(c²+tau²*lambda_j²), independently of observation variance sigma². The global multiplier u and local lambda_j have unit half-Cauchy priors; tau=tau0*u. The intercept has variance10. Architecture moves integrate every coefficient using C_m=sigma²*I+X_m*diag(10,v)*X_mᵀ, retaining its determinant and normalized Gaussian density. This is the normalized RHS, not the augmented rhs_ns prior.','Small')
+ image(figures/'architectures.png')
  rows=[['Scenario','Leading candidate','Mass','tau median [5%,95%]','c^2 median [5%,95%]']]
  for sc in study['scenarios']:
   g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()];row=[sc['id'],f'{int(lead.model)}: {lead.candidate}',f'{lead.posterior_probability:.5f}']
@@ -172,14 +174,14 @@ def main():
  validation=json.loads((b/'validation/validation_status.json').read_text());para(validation['summary'])
  bench=pd.read_csv(b/'validation/standardized_backend_benchmark.csv').groupby('backend').elapsed_seconds.median()
  parity=pd.read_csv(b/'validation/standardized_backend_parity.csv')
- para(f"Fresh short computational benchmark: median R {bench['R']:.3f}s versus native kernels {bench['cpp']:.3f}s ({bench['R']/bench['cpp']:.2f}x). Four standardized synthetic designs,200 rows, up to64 slopes,100 burn +800 retained draws,three timing repetitions; setup/compilation excluded. Maximum coupled-draw discrepancy {parity.max_paired_draw_error.max():.3g}; identical model paths. This is a computational check, not evidence of posterior convergence or a full-study speedup.",'Small')
+ para(f"Fresh short computational benchmark: median R {bench['R']:.3f}s versus native kernels {bench['cpp']:.3f}s ({bench['R']/bench['cpp']:.2f}x). Four standardized synthetic designs,200 rows, up to64 slopes,100 burn +800 retained draws,three timing repetitions; setup/compilation excluded. Maximum coupled-draw discrepancy {parity.max_paired_draw_error.max():.3g}; identical model paths. Joint proposals are disabled in this short kernel benchmark; production timings include them. This is a computational check, not evidence of posterior convergence or a full-study speedup.",'Small')
  para('Independent path reconstruction verifies scores at the first, middle and last origins. Future-data perturbation changes every unavailable response by100 while holding posterior draws and innovations fixed; forecasts remain identical. Archived joint checkpoints are replayed against saved paths. The numeric archive has part-level, complete-archive and internal SHA256 checks, plus a restored-analysis round trip.','Small')
  para('Gaussian conditional variances are deliberately misspecified for this heteroscedastic DGP. Poor calibration in high-volatility periods motivates a future variance-model extension; such an extension would be a distinct benchmark with its own prior and validation. A single series and overlapping origin/lead pairs do not establish general superiority. Preprocessing is treated as frozen rather than jointly inferred.','Small')
  para('Release remains draft. The inherited scoped repository R CMD check has one nonportable-path error, three documentation/non-ASCII warnings and two notes. Focused tests and numerical checks are reported separately; no clean package-wide release check is claimed.','Small')
  para('See README.md and RESULTS.md in validation/autodesn/nonlinear_heteroscedastic. generate.R freezes the DGP; run.R/fit_joint.R/execute_joint.py fit the three AutoDESN cases; run_gp.py fits pinned Native AutoGP; export.R, archive.R, replay.R, analysis.py and report.py reproduce evidence and reporting. Existing C1 artifacts are preserved. Draft PR: https://github.com/AntonioAPDL/exdqlm/pull/4.','Small')
  out=HERE/'evidence/NHS1_AutoDESN_AutoGP_Report.pdf'
  def footer(canvas,doc):
-  canvas.setFont('DV',7);canvas.setFillColor(colors.HexColor('#657282'));canvas.drawString(48,25,'NHS1 | one new DGP realization | 23 October 2026');canvas.drawRightString(548,25,str(doc.page))
+  canvas.setFont('DV',7);canvas.setFillColor(colors.HexColor('#657282'));canvas.drawString(48,25,'NHS1 | one new DGP realization | study initiated 23 October 2026');canvas.drawRightString(548,25,str(doc.page))
  SimpleDocTemplate(str(out),pagesize=(596,842),leftMargin=42,rightMargin=42,topMargin=36,bottomMargin=36,title='NHS1 nonlinear heteroscedastic AutoDESN and AutoGP').build(story,onFirstPage=footer,onLaterPages=footer)
  print(out)
 if __name__=='__main__':main()

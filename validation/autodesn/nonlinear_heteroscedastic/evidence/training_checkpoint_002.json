@@ -1,0 +1,397 @@
+{
+  "comparison_complete": false,
+  "forecast_outputs_available": false,
+  "completed_failed_budgets": [
+    {
+      "attempt": "attempt_1",
+      "status": {
+        "complete": true,
+        "diagnostic_gates_passed": false,
+        "qualified": false,
+        "mode": "full",
+        "attempt": 1,
+        "chains": 3,
+        "gates": {
+          "rhat_max": 1.01,
+          "ess_min": 400,
+          "model_chain_range_max": 0.05
+        },
+        "inference_seconds_all_attempts": 196.081
+      },
+      "parameters": [
+        {
+          "parameter": "log_variance",
+          "rhat": 1.08184957861142,
+          "ess_spectral": 146.474200722293,
+          "mcse_batch": 0.0016269430454213,
+          "sampled": true
+        },
+        {
+          "parameter": "log_global",
+          "rhat": 1.07776749004229,
+          "ess_spectral": 221.654291826628,
+          "mcse_batch": 0.0591570069537787,
+          "sampled": true
+        },
+        {
+          "parameter": "log_slab",
+          "rhat": 1.02959185854934,
+          "ess_spectral": 1421.42636142283,
+          "mcse_batch": 0.0158968760608546,
+          "sampled": true
+        },
+        {
+          "parameter": "mean_log_local",
+          "rhat": 1.00031899189015,
+          "ess_spectral": 35424.4595907401,
+          "mcse_batch": 0.0004522781206883,
+          "sampled": true
+        },
+        {
+          "parameter": "intercept",
+          "rhat": 1.00004291980297,
+          "ess_spectral": 47927.9521490241,
+          "mcse_batch": 7.38719084567477e-05,
+          "sampled": true
+        },
+        {
+          "parameter": "fitted_rms",
+          "rhat": 1.05498550891711,
+          "ess_spectral": 339.354149204006,
+          "mcse_batch": 0.0005209574897547,
+          "sampled": true
+        },
+        {
+          "parameter": "effective_slopes_diagonal",
+          "rhat": 1.07878998137362,
+          "ess_spectral": 370.308038279723,
+          "mcse_batch": 0.707200127004805,
+          "sampled": true
+        }
+      ],
+      "leading_architectures": [
+        {
+          "model": 118,
+          "candidate": "broad_046",
+          "D": 1,
+          "posterior_probability": 0.323395833333333,
+          "chain_range": 0.3518125,
+          "rhat_indicator": 1.07717479658099,
+          "ess_indicator_spectral": 234.611235792234
+        },
+        {
+          "model": 212,
+          "candidate": "broad_142",
+          "D": 2,
+          "posterior_probability": 0.181625,
+          "chain_range": 0.181875,
+          "rhat_indicator": 1.03877724523559,
+          "ess_indicator_spectral": 354.56267802191
+        },
+        {
+          "model": 103,
+          "candidate": "broad_031",
+          "D": 1,
+          "posterior_probability": 0.0833125,
+          "chain_range": 0.1138125,
+          "rhat_indicator": 1.02143021885644,
+          "ess_indicator_spectral": 1229.18916283286
+        },
+        {
+          "model": 394,
+          "candidate": "broad_344",
+          "D": 4,
+          "posterior_probability": 0.069,
+          "chain_range": 0.0895,
+          "rhat_indicator": 1.01522228317045,
+          "ess_indicator_spectral": 979.835193720844
+        },
+        {
+          "model": 374,
+          "candidate": "broad_317",
+          "D": 4,
+          "posterior_probability": 0.0641458333333333,
+          "chain_range": 0.06275,
+          "rhat_indicator": 1.02646788233545,
+          "ess_indicator_spectral": 265.511102947319
+        },
+        {
+          "model": 301,
+          "candidate": "broad_236",
+          "D": 3,
+          "posterior_probability": 0.0549583333333333,
+          "chain_range": 0.070125,
+          "rhat_indicator": 1.01167473632072,
+          "ess_indicator_spectral": 1159.73537675759
+        }
+      ]
+    },
+    {
+      "attempt": "attempt_2",
+      "status": {
+        "complete": true,
+        "diagnostic_gates_passed": false,
+        "qualified": false,
+        "mode": "full",
+        "attempt": 2,
+        "chains": 3,
+        "gates": {
+          "rhat_max": 1.01,
+          "ess_min": 400,
+          "model_chain_range_max": 0.05
+        },
+        "inference_seconds_all_attempts": 628.137
+      },
+      "parameters": [
+        {
+          "parameter": "log_variance",
+          "rhat": 1.0100391811294,
+          "ess_spectral": 180.573518807919,
+          "mcse_batch": 0.0014911087493249,
+          "sampled": true
+        },
+        {
+          "parameter": "log_global",
+          "rhat": 1.0157507136076,
+          "ess_spectral": 379.946484611947,
+          "mcse_batch": 0.048023940980749,
+          "sampled": true
+        },
+        {
+          "parameter": "log_slab",
+          "rhat": 1.00363615829755,
+          "ess_spectral": 1849.4022960823,
+          "mcse_batch": 0.0140726033191417,
+          "sampled": true
+        },
+        {
+          "parameter": "mean_log_local",
+          "rhat": 1.00012209721433,
+          "ess_spectral": 73143.6897953129,
+          "mcse_batch": 0.0003194279899438,
+          "sampled": true
+        },
+        {
+          "parameter": "intercept",
+          "rhat": 0.999987421795454,
+          "ess_spectral": 95999.9999999999,
+          "mcse_batch": 5.05496376131638e-05,
+          "sampled": true
+        },
+        {
+          "parameter": "fitted_rms",
+          "rhat": 1.00677624681557,
+          "ess_spectral": 407.230828976441,
+          "mcse_batch": 0.0004769772426779,
+          "sampled": true
+        },
+        {
+          "parameter": "effective_slopes_diagonal",
+          "rhat": 1.00720863159283,
+          "ess_spectral": 521.268207079307,
+          "mcse_batch": 0.600185317765847,
+          "sampled": true
+        }
+      ],
+      "leading_architectures": [
+        {
+          "model": 118,
+          "candidate": "broad_046",
+          "D": 1,
+          "posterior_probability": 0.3559375,
+          "chain_range": 0.14471875,
+          "rhat_indicator": 1.01884625330768,
+          "ess_indicator_spectral": 427.412037307614
+        },
+        {
+          "model": 212,
+          "candidate": "broad_142",
+          "D": 2,
+          "posterior_probability": 0.1895,
+          "chain_range": 0.03265625,
+          "rhat_indicator": 1.00171434453433,
+          "ess_indicator_spectral": 686.914873665511
+        },
+        {
+          "model": 103,
+          "candidate": "broad_031",
+          "D": 1,
+          "posterior_probability": 0.07571875,
+          "chain_range": 0.01325,
+          "rhat_indicator": 1.00217490328269,
+          "ess_indicator_spectral": 1859.36908942907
+        },
+        {
+          "model": 394,
+          "candidate": "broad_344",
+          "D": 4,
+          "posterior_probability": 0.06865625,
+          "chain_range": 0.02328125,
+          "rhat_indicator": 1.00177766102451,
+          "ess_indicator_spectral": 1879.62991578179
+        },
+        {
+          "model": 374,
+          "candidate": "broad_317",
+          "D": 4,
+          "posterior_probability": 0.0474895833333333,
+          "chain_range": 0.01915625,
+          "rhat_indicator": 1.00411121705633,
+          "ess_indicator_spectral": 813.373336842185
+        },
+        {
+          "model": 301,
+          "candidate": "broad_236",
+          "D": 3,
+          "posterior_probability": 0.04528125,
+          "chain_range": 0.0308125,
+          "rhat_indicator": 1.0025654645688,
+          "ess_indicator_spectral": 2250.86271877642
+        }
+      ]
+    },
+    {
+      "attempt": "attempt_3",
+      "status": {
+        "complete": true,
+        "diagnostic_gates_passed": false,
+        "qualified": false,
+        "mode": "full",
+        "attempt": 3,
+        "chains": 3,
+        "gates": {
+          "rhat_max": 1.01,
+          "ess_min": 400,
+          "model_chain_range_max": 0.05
+        },
+        "inference_seconds_all_attempts": 1590.482
+      },
+      "parameters": [
+        {
+          "parameter": "log_variance",
+          "rhat": 1.01150789623312,
+          "ess_spectral": 404.58322930629,
+          "mcse_batch": 0.0012199577280711,
+          "sampled": true
+        },
+        {
+          "parameter": "log_global",
+          "rhat": 1.0101925296684,
+          "ess_spectral": 642.553817619771,
+          "mcse_batch": 0.042302257400404,
+          "sampled": true
+        },
+        {
+          "parameter": "log_slab",
+          "rhat": 1.00379041995775,
+          "ess_spectral": 3063.0716825623,
+          "mcse_batch": 0.0117582428703887,
+          "sampled": true
+        },
+        {
+          "parameter": "mean_log_local",
+          "rhat": 1.00001503044564,
+          "ess_spectral": 125148.472552951,
+          "mcse_batch": 0.0002564553262242,
+          "sampled": true
+        },
+        {
+          "parameter": "intercept",
+          "rhat": 0.999999965193729,
+          "ess_spectral": 189493.086405265,
+          "mcse_batch": 3.51513079505019e-05,
+          "sampled": true
+        },
+        {
+          "parameter": "fitted_rms",
+          "rhat": 1.00758534972292,
+          "ess_spectral": 857.872855898999,
+          "mcse_batch": 0.0003899720143955,
+          "sampled": true
+        },
+        {
+          "parameter": "effective_slopes_diagonal",
+          "rhat": 1.01006374533687,
+          "ess_spectral": 1259.33278332638,
+          "mcse_batch": 0.461889626890324,
+          "sampled": true
+        }
+      ],
+      "leading_architectures": [
+        {
+          "model": 118,
+          "candidate": "broad_046",
+          "D": 1,
+          "posterior_probability": 0.311947916666667,
+          "chain_range": 0.040375,
+          "rhat_indicator": 1.01063834547561,
+          "ess_indicator_spectral": 727.581259470593
+        },
+        {
+          "model": 212,
+          "candidate": "broad_142",
+          "D": 2,
+          "posterior_probability": 0.155880208333333,
+          "chain_range": 0.028828125,
+          "rhat_indicator": 1.00646042315072,
+          "ess_indicator_spectral": 1254.26874861258
+        },
+        {
+          "model": 103,
+          "candidate": "broad_031",
+          "D": 1,
+          "posterior_probability": 0.0848802083333333,
+          "chain_range": 0.00646875,
+          "rhat_indicator": 1.00253686207158,
+          "ess_indicator_spectral": 3360.17424050983
+        },
+        {
+          "model": 301,
+          "candidate": "broad_236",
+          "D": 3,
+          "posterior_probability": 0.0687708333333333,
+          "chain_range": 0.010375,
+          "rhat_indicator": 1.00161609287411,
+          "ess_indicator_spectral": 4144.44263029416
+        },
+        {
+          "model": 384,
+          "candidate": "broad_332",
+          "D": 4,
+          "posterior_probability": 0.066859375,
+          "chain_range": 0.008484375,
+          "rhat_indicator": 1.00165820125716,
+          "ess_indicator_spectral": 3674.53441200932
+        },
+        {
+          "model": 394,
+          "candidate": "broad_344",
+          "D": 4,
+          "posterior_probability": 0.0656145833333333,
+          "chain_range": 0.019921875,
+          "rhat_indicator": 1.00111469147468,
+          "ess_indicator_spectral": 3822.02581886576
+        }
+      ]
+    }
+  ],
+  "completed_final_budget_chains": [
+    {
+      "complete": true,
+      "chain": 1,
+      "attempt": 4,
+      "inference_seconds": 712.356,
+      "seed": 7196021,
+      "retained": 128000,
+      "backend": "cpp",
+      "sampler_summary": {
+        "nonself_proposals": 768763,
+        "nonself_acceptances": 10978,
+        "numerical_failures": 0,
+        "local_rejection_attempts": 12360360,
+        "local_updates": 11388113
+      }
+    }
+  ],
+  "note": "Historical training-only checkpoint; later evidence determines final qualification."
+}

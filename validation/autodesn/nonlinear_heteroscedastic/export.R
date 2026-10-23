@@ -21,6 +21,14 @@ if(length(at)) {
 }
 for(legacy_case in list.files(base,pattern="_(initial_proposal|rebalanced_64k)$")) {
 legacy<-file.path(base,legacy_case,"rhs")
+if(is.null(selected) && dir.exists(file.path(legacy,"pilot"))) {
+ pilots<-lapply(1:3,function(k) readRDS(file.path(legacy,"pilot",paste0("chain_",k,".rds"))))
+ saveRDS(lapply(pilots,function(x) list(contract_id=x$contract_id,inference_seconds=x$inference_seconds,
+  controls=x$fit$controls,sampler_stats=x$fit$sampler_stats)),file.path(legacy,"pilot_metadata.rds"),compress="xz")
+ tr<-do.call(rbind,lapply(1:3,function(k) cbind(chain=k,pilots[[k]]$fit$draws)))
+ export_trace(tr,file.path(legacy,"pilot/traces.csv.gz"))
+ rm(pilots,tr);gc(FALSE)
+}
 if(dir.exists(legacy) && is.null(selected)) for(ad in list.dirs(legacy,full.names=TRUE,recursive=FALSE)) {
  if(!grepl("attempt_[0-9]+$",ad)) next
  old<-lapply(1:3,function(k) readRDS(file.path(ad,paste0("chain_",k,".rds"))))

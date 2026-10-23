@@ -30,7 +30,9 @@ unscaled. Three AutoDESN cases (requested RHS .001/1/4, scaling-only RHS 1/2/4,
 standardized ridge) and freshly fitted pinned Native AutoGP are compared.
 Existing C1 scores are not reused for the new DGP.
 
-`study.json` freezes chain/predictive budgets and seeds. The initial model-only proposals failed their training diagnostics. A full-support joint
+`study.json` records the original chain/predictive budgets and seeds.
+`fit_joint.R` declares the subsequent joint-kernel budget extension; each saved
+configuration and provenance file records the controls actually executed. The initial model-only proposals failed their training diagnostics. A full-support joint
 architecture/log-scale independence proposal is fitted to those training chains,
 frozen, and used in fresh production chains with the exact MH correction;
 all architectures retain positive proposal mass and the exact Hastings ratio.

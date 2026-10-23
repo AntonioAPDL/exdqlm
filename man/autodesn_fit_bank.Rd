@@ -56,7 +56,11 @@ list of its arguments. Used only with \code{beta_prior = "rhs"}.}
 
 \item{model_control}{RHS architecture sampler controls: \code{method} (\code{"mh"} or
 \code{"categorical"}), \code{moves}, full-support \code{proposal} probabilities,
-\code{rb_every}, and \code{initial_model}. See the RHS guide for their meaning.}
+\code{rb_every}, \code{initial_model}, and optional \code{joint_proposal} from
+\code{\link{autodesn_rhs_joint_proposal}}. Joint proposals update the architecture
+and log noise/global/slab scales with an exact coefficient-collapsed MH ratio.
+Fit and freeze proposal parameters using training chains before fresh production.
+See the RHS guide for the target and update ordering.}
 
 \item{backend}{RHS linear algebra backend: \code{"auto"}, \code{"R"}, or \code{"cpp"}.
 Auto uses the compiled implementation when available. Ridge retains its
