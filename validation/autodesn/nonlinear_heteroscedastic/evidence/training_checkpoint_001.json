@@ -1,0 +1,80 @@
+{
+  "comparison_complete": false,
+  "forecast_outputs_available": false,
+  "failed_completed_attempts": [
+    {
+      "case": "requested_initial_proposal",
+      "attempt": "attempt_1",
+      "qualified": false,
+      "parameter_max_rhat": 1.25656441229729,
+      "parameter_min_spectral_ess": 91.628392356028,
+      "max_architecture_frequency_range": 0.494,
+      "diagnostic_sha256": "7700eab33ea47aa31fdc1fd9a8de59956063d300393f10d586ff68686b6ea234",
+      "architecture_table_sha256": "48cce287149fc4bdc3277afc3c29badb969e75a14d049213e354f8f2f89305cf"
+    },
+    {
+      "case": "requested_initial_proposal",
+      "attempt": "attempt_2",
+      "qualified": false,
+      "parameter_max_rhat": 1.05739654912028,
+      "parameter_min_spectral_ess": 146.733419247811,
+      "max_architecture_frequency_range": 0.1206875,
+      "diagnostic_sha256": "b7947c106b5ee7ac5ef2ea075ce323a57f12c8aed77837721451169bb9f70b4c",
+      "architecture_table_sha256": "7db198c77582485c927685f470d530649176dd2f356182b173759c5edd3687a9"
+    },
+    {
+      "case": "requested_initial_proposal",
+      "attempt": "attempt_3",
+      "qualified": false,
+      "parameter_max_rhat": 1.0238942535652,
+      "parameter_min_spectral_ess": 170.344251158804,
+      "max_architecture_frequency_range": 0.1369375,
+      "diagnostic_sha256": "12793671833b384f04653f8aff4e4d963ad2492737e05e702d3caa709fdca69a",
+      "architecture_table_sha256": "28ed171cbafd2367965f37fc164fa7379d6063f259540493e36309e205dd41a8"
+    },
+    {
+      "case": "requested_initial_proposal",
+      "attempt": "attempt_4",
+      "qualified": false,
+      "parameter_max_rhat": 1.36971921204317,
+      "parameter_min_spectral_ess": 342.772004337143,
+      "max_architecture_frequency_range": 0.81928125,
+      "diagnostic_sha256": "0cc1a60e519d0e6e589ef9d23a7e651ed006473260fd8fe01735b233b1b78704",
+      "architecture_table_sha256": "92bdebe3d61f360205bd30968157169ec9a8430070dca842374bfe52fc778d33"
+    },
+    {
+      "case": "requested_rebalanced_64k",
+      "attempt": "attempt_1",
+      "qualified": false,
+      "parameter_max_rhat": 1.10079227200003,
+      "parameter_min_spectral_ess": 162.59140371009,
+      "max_architecture_frequency_range": 0.18996875,
+      "diagnostic_sha256": "0cc484d1a39d57d9a57431fa9f08ef02ea919436d8cf06911d1be35414a5d843",
+      "architecture_table_sha256": "bf79593a2d3c8aa1302f07be485a5e6a80c31412dec62dcc4d91007b89acba83"
+    },
+    {
+      "case": "requested",
+      "attempt": "attempt_1",
+      "qualified": false,
+      "parameter_max_rhat": 1.08184957861142,
+      "parameter_min_spectral_ess": 146.474200722293,
+      "max_architecture_frequency_range": 0.3518125,
+      "diagnostic_sha256": "b96b63bf08d8b766bcbcc57ec34d39a70d3f05d6c0358436823f07b1b091a2ff",
+      "architecture_table_sha256": "7f0bad283bca8d735f2da5ce42408bea072017ea5e4a40710cfb8408bad8ab9f"
+    }
+  ],
+  "note": "Historical checkpoint before new-DGP production qualification; no performance claim. Continuing execution status must be read from later evidence.",
+  "frozen_bank": {
+    "complete": true,
+    "fit_start": 501,
+    "fit_end": 2500,
+    "unit_variance": true,
+    "dimension_normalization": false,
+    "admitted": 426,
+    "max_abs_mean": 8.771146135788665e-14,
+    "max_sd_error": 2.220446049250313e-16,
+    "excluded_constant_columns": 0,
+    "standardization_seconds": 18.189999999999998,
+    "feature_geometry_sha256": "4621f3f3172e6ec6dc7a827a5287cb39c29e7df55b669f3ec747929ec5f68c95"
+  }
+}
