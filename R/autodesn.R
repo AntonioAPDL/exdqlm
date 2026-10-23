@@ -101,6 +101,9 @@ autodesn_candidates <- function(D = c(1L, 2L), n = 12L, m = c(1L, 4L),
 #' @param conditioning Number of initial observations reserved for scaling.
 #' @param model_prior Optional positive masses, one per candidate.
 #' @param normalize_features Divide slope features by sqrt(number of slopes).
+#' @param standardize_features Z-score readout columns using only scored training rows.
+#'   This is separate from reservoir input scaling and sqrt-d normalization.
+#' @param feature_sd_tol Positive SD threshold for excluding constant readout columns.
 #' @param washout Optional total number of initial unscored observations,
 #'   including the conditioning prefix. Must cover conditioning and every
 #'   candidate's lag/washout requirement. NULL preserves the default additive
@@ -110,7 +113,8 @@ autodesn_candidates <- function(D = c(1L, 2L), n = 12L, m = c(1L, 4L),
 #' @export
 autodesn_build_bank <- function(y, candidates = autodesn_candidates(),
                                 conditioning = 30L, model_prior = NULL,
-                                normalize_features = TRUE, washout = NULL) {
+                                normalize_features = TRUE, washout = NULL,
+                                standardize_features = FALSE, feature_sd_tol = 1e-8) {
   y <- .normal_desn_assert_response(y)
   .autodesn_integer(conditioning, "conditioning", 2L)
   if (!is.list(candidates) || !length(candidates)) stop("candidates must be a nonempty list.", call. = FALSE)
@@ -152,7 +156,8 @@ autodesn_build_bank <- function(y, candidates = autodesn_candidates(),
   }
   bank <- autodesn_prepare_bank(z[keep_idx], lapply(templates, function(x) x$X[, -1L, drop = FALSE]),
                                  model_info = info, model_prior = model_prior,
-                                 normalize_features = normalize_features)
+                                 normalize_features = normalize_features,
+                                 standardize_features = standardize_features, feature_sd_tol = feature_sd_tol)
   bank$templates <- templates
   bank$specifications <- specs
   bank$keep_idx <- keep_idx
@@ -185,7 +190,8 @@ autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 3
                          model_prior = NULL, normalize_features = TRUE,
                          mcmc_args = list(), washout = NULL,
                          beta_prior = c("ridge", "rhs"), rhs_control = list(),
-                         model_control = list(), backend = c("auto", "R", "cpp")) {
+                         model_control = list(), backend = c("auto", "R", "cpp"),
+                         standardize_features = FALSE, feature_sd_tol = 1e-8) {
   beta_prior <- match.arg(beta_prior)
   if (identical(backend, "r")) backend <- "R"
   backend <- match.arg(backend)
@@ -198,7 +204,8 @@ autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 3
     stop("Set beta_prior, rhs_control, model_control and backend as top-level arguments, not inside mcmc_args.", call. = FALSE)
   }
   bank <- autodesn_build_bank(y, candidates, conditioning, model_prior,
-                               normalize_features, washout = washout)
+                               normalize_features, washout = washout,
+                               standardize_features = standardize_features, feature_sd_tol = feature_sd_tol)
   do.call(autodesn_fit_bank, c(list(bank = bank, beta_prior = beta_prior,
     rhs_control = rhs_control, model_control = model_control, backend = backend), mcmc_args))
 }
@@ -243,10 +250,11 @@ posterior_predict.autodesn_fit <- function(object, nd = 1000L, X_new = NULL, see
     if (!is.list(X_new) || length(X_new) != length(bank$models)) stop("X_new must have one slope matrix per bank candidate.", call. = FALSE)
     designs <- lapply(seq_along(X_new), function(j) {
       x <- as.matrix(X_new[[j]])
-      if (!is.numeric(x) || any(!is.finite(x)) || nrow(x) < 1L || ncol(x) != bank$models[[j]]$d) {
+      raw_d <- if (is.null(bank$models[[j]]$raw_d)) bank$models[[j]]$d else bank$models[[j]]$raw_d
+      if (!is.numeric(x) || any(!is.finite(x)) || nrow(x) < 1L || ncol(x) != raw_d) {
         stop("X_new matrices must be finite with the fitted slope dimensions.", call. = FALSE)
       }
-      cbind(1, x / bank$models[[j]]$divisor)
+      cbind(1, .autodesn_feature_apply(bank$models[[j]], x))
     })
     if (length(unique(vapply(designs, nrow, integer(1)))) != 1L) stop("X_new matrices must share response rows.", call. = FALSE)
   }
@@ -321,7 +329,7 @@ forecast_paths.autodesn_fit <- function(object, H, nd = 1000L, seed = NULL,
     for (j in unique(model_ids)) {
       cols <- which(model_ids == j)
       beta <- do.call(rbind, object$beta[ids[cols]])
-      beta[, -1L] <- beta[, -1L, drop = FALSE] / bank$models[[j]]$divisor
+      beta <- .autodesn_raw_beta(bank$models[[j]], beta)
       # The Normal forecast API accepts external joint posterior draws. This
       # adapter labels their source and does not fit a scaled-ridge posterior.
       template <- bank$templates[[j]]

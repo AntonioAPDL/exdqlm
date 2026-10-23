@@ -50,11 +50,17 @@
 #' @param model_info Optional data frame with one row per candidate.
 #' @param model_prior Positive prior masses, normalized to sum to one.
 #' @param normalize_features Divide slopes by the square root of their count.
+#' @param standardize_features Center and scale each slope using the supplied training rows.
+#'   Constant columns (SD <= feature_sd_tol) are excluded with a frozen mask.
+#' @param feature_sd_tol Positive threshold for constant training columns.
 #' @return An `autodesn_bank`. Use [autodesn_build_bank()] for recursive forecasts.
 #' @export
 autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = NULL,
-                                  normalize_features = TRUE) {
+                                  normalize_features = TRUE, standardize_features = FALSE,
+                                  feature_sd_tol = 1e-8) {
   .autodesn_flag(normalize_features, "normalize_features")
+  .autodesn_flag(standardize_features, "standardize_features")
+  .autodesn_positive(feature_sd_tol, "feature_sd_tol")
   y <- as.numeric(y)
   if (length(y) < 2L || any(!is.finite(y))) stop("y must be finite, length >= 2.")
   if (!is.list(features) || !length(features)) stop("features must be a nonempty list.")
@@ -64,6 +70,8 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
     if (!is.numeric(H)) stop("Feature matrices must be numeric.", call. = FALSE)
     if (nrow(H) != n || any(!is.finite(H)))
       stop("Every feature matrix must be finite and have length(y) rows.")
+    geometry <- .autodesn_feature_fit(H, standardize_features, feature_sd_tol)
+    H <- geometry$features
     d <- ncol(H)
     divisor <- if (normalize_features && d > 0L) sqrt(d) else 1
     F <- H / divisor
@@ -81,10 +89,11 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
       ry <- y
       r1 <- rep(1, n)
     }
-    list(X = X, d = d, divisor = divisor, XtX = crossprod(X),
+    geometry$features <- NULL
+    c(list(X = X, d = d, divisor = divisor, XtX = crossprod(X),
          Xty = as.vector(crossprod(X, y)), spectrum = spectrum,
          uy = uy, u1 = u1, ry2 = sum(ry^2), r12 = sum(r1^2),
-         r1y = sum(r1 * ry), n = n)
+         r1y = sum(r1 * ry), n = n), geometry)
   })
   M <- length(models)
   if (is.null(model_prior)) model_prior <- rep(1 / M, M)
@@ -100,7 +109,8 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
   if (is.null(model_info)) model_info <- data.frame(model = seq_len(M))
   if (!is.data.frame(model_info) || nrow(model_info) != M) stop("model_info must have one row per candidate.")
   structure(list(y = y, models = models, model_info = model_info,
-                 prior = prior, n = n, normalize_features = normalize_features),
+                 prior = prior, n = n, normalize_features = normalize_features,
+                 standardize_features = standardize_features, feature_sd_tol = feature_sd_tol),
             class = "autodesn_bank")
 }
 

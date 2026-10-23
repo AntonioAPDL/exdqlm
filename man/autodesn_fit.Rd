@@ -15,10 +15,16 @@ autodesn_fit(
   beta_prior = c("ridge", "rhs"),
   rhs_control = list(),
   model_control = list(),
-  backend = c("auto", "R", "cpp")
+  backend = c("auto", "R", "cpp"),
+  standardize_features = FALSE,
+  feature_sd_tol = 1e-8
 )
 }
 \arguments{
+\item{standardize_features}{Center and scale readout columns using only scored training rows. Stored statistics and any constant-column exclusion mask are frozen for prediction. This is separate from input scaling and sqrt-d normalization.}
+
+\item{feature_sd_tol}{Positive training SD threshold for excluding constant readout columns when standardization is enabled.}
+
 \item{y}{Finite univariate observed series through the forecast origin.}
 
 \item{candidates}{Named or unnamed list of Q-DESN specifications.}

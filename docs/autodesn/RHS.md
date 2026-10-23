@@ -284,3 +284,33 @@ Both coordinate Jacobians are included. Slice updates alternate in `r` and
 `s` on their full real supports. The code uses stable log-sum arithmetic.
 All scale updates condition on the newly drawn coefficients, following the
 coefficient-collapsed architecture move and its immediate coefficient draw.
+
+
+## Explicit column standardization
+
+`standardize_features=TRUE` in `autodesn_prepare_bank`, `autodesn_build_bank`
+or `autodesn_fit` uses the same readout scaling helpers as Q-DESN model
+selection. Column means and sample SDs are fitted only on the bank's scored
+training rows, then frozen. The response/lag scaling and readout scaling are
+separate. The intercept stays proper and unscaled. Nearly constant columns
+are excluded with a frozen mask; `feature_sd_tol` defaults to 1e-8.
+
+For unit-variance columns at the prior input, also set
+`normalize_features=FALSE`. Keeping both flags TRUE instead gives column
+variance 1/d after sqrt-d normalization. Defaults preserve historical behavior.
+The coefficient transport to the raw reservoir engine includes both the
+slope rescaling and the intercept shift; future data never refit a scaler.
+
+```r
+fit <- autodesn_fit(y, candidates=specs, conditioning=500L, washout=500L,
+  standardize_features=TRUE, normalize_features=FALSE,
+  beta_prior="rhs",
+  rhs_control=list(tau0=0.001, slab_scale=1, slab_df=4),
+  mcmc_args=list(n_burn=6000L,n_mcmc=32000L,seed=4066021L))
+```
+
+These budgets illustrate the API, not a convergence guarantee. The C1
+sensitivity protocol and independent chains are specified in
+`validation/autodesn/standardized_rhs/`. The previous C1 feature basis was
+H/sqrt(d), not column z-scores. Its results remain results for that prior;
+the new settings define a different prior and an exploratory sensitivity.

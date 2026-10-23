@@ -7,6 +7,7 @@ on:
       - 'R/qdesn_normal.R'
       - 'src/autodesn_rhs.cpp'
       - 'validation/autodesn/rhs_comparison/**'
+      - 'validation/autodesn/standardized_rhs/**'
       - '.github/workflows/autodesn-rhs-comparison.yaml'
   workflow_dispatch:
     inputs:
@@ -49,6 +50,9 @@ jobs:
         run: |
           Rscript --vanilla validation/autodesn/rhs_comparison/test_contracts.R
           python -m unittest discover -s validation/autodesn/rhs_comparison -p test_contracts.py -v
+      - name: Frozen readout scaling and normalized RHS contracts
+        run: |
+          Rscript --vanilla -e 'source("validation/autodesn/load_checkout.R"); Rcpp::sourceCpp("src/autodesn_rhs.cpp"); testthat::test_dir("tests/testthat", filter="autodesn-rhs|autodesn-scaling", stop_on_failure=TRUE)'
       - name: Execute explicitly unqualified smoke pipelines
         run: |
           Rscript --vanilla validation/autodesn/rhs_comparison/run.R --mode smoke --method ridge

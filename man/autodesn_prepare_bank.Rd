@@ -9,10 +9,16 @@ autodesn_prepare_bank(
   features,
   model_info = NULL,
   model_prior = NULL,
-  normalize_features = TRUE
+  normalize_features = TRUE,
+  standardize_features = FALSE,
+  feature_sd_tol = 1e-8
 )
 }
 \arguments{
+\item{standardize_features}{Center and scale readout columns using only scored training rows. Stored statistics and any constant-column exclusion mask are frozen for prediction. This is separate from input scaling and sqrt-d normalization.}
+
+\item{feature_sd_tol}{Positive training SD threshold for excluding constant readout columns when standardization is enabled.}
+
 \item{y}{Finite numeric response on a common conditioning window.}
 
 \item{features}{Nonempty list of numeric slope matrices with length(y) rows.}
