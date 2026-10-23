@@ -1,6 +1,18 @@
 # Export all retained scalar traces and hyperparameter summaries, bank-free.
 args<-commandArgs(trailingOnly=TRUE);base<-if(length(args)) args[1] else "validation/autodesn/standardized_rhs/artifacts"
 cfg<-jsonlite::fromJSON("validation/autodesn/standardized_rhs/configuration.json")
+# Write and compress a closed regular file before publishing it. The former
+# direct gzfile export left two truncated streams despite a zero process exit;
+# the original RDS chains were intact. Downstream audits read every gzip to EOF.
+export_trace<-function(x,path) {
+ gzip<-Sys.which("gzip");stopifnot(nzchar(gzip))
+ tmp<-tempfile("trace-",tmpdir=dirname(path),fileext=".csv")
+ on.exit(unlink(c(tmp,paste0(tmp,".gz"))),add=TRUE)
+ write.csv(x,tmp,row.names=FALSE)
+ stopifnot(system2(gzip,c("-n","-f",shQuote(tmp)))==0L,
+           file.exists(paste0(tmp,".gz")))
+ stopifnot(file.rename(paste0(tmp,".gz"),path))
+}
 selected<-NULL
 at<-which(args=="--scenario")
 if(length(at)) {
@@ -13,7 +25,7 @@ if(dir.exists(legacy) && is.null(selected)) for(ad in list.dirs(legacy,full.name
  if(!grepl("attempt_[0-9]+$",ad)) next
  old<-lapply(1:3,function(k) readRDS(file.path(ad,paste0("chain_",k,".rds"))))
  tr<-do.call(rbind,lapply(1:3,function(k) cbind(chain=k,old[[k]]$fit$draws)))
- con<-gzfile(file.path(ad,"traces.csv.gz"),"wt");write.csv(tr,con,row.names=FALSE);close(con)
+ export_trace(tr,file.path(ad,"traces.csv.gz"))
  saveRDS(lapply(old,function(x) list(contract_id=x$contract_id,inference_seconds=x$inference_seconds,
   controls=x$fit$controls,sampler_stats=x$fit$sampler_stats)),file.path(ad,"chain_metadata.rds"),compress="xz")
  rm(old,tr);gc(FALSE)
@@ -39,7 +51,7 @@ for(i in seq_len(nrow(cfg$scenarios))) {
   rm(pilots);gc(FALSE)
  }
  tr<-do.call(rbind,lapply(1:3,function(k) cbind(chain=k,r[[k]]$fit$draws)))
- con<-gzfile(file.path(d,"traces.csv.gz"),"wt");write.csv(tr,con,row.names=FALSE);close(con)
+ export_trace(tr,file.path(d,"traces.csv.gz"))
  if(sc$method=="rhs") {
   names<-c("global_scale","global_tau","slab_variance","effective_slopes_diagonal")
   q<-do.call(rbind,lapply(names,function(n) data.frame(parameter=n,q05=quantile(tr[[n]],.05),median=median(tr[[n]]),q95=quantile(tr[[n]],.95))))
@@ -60,7 +72,7 @@ for(i in seq_len(nrow(cfg$scenarios))) {
   if(!grepl("attempt_[0-9]+$",attempt) || identical(attempt,ad)) next
   old<-lapply(1:3,function(k) readRDS(file.path(attempt,paste0("chain_",k,".rds"))))
   ot<-do.call(rbind,lapply(1:3,function(k) cbind(chain=k,old[[k]]$fit$draws)))
-  con<-gzfile(file.path(attempt,"traces.csv.gz"),"wt");write.csv(ot,con,row.names=FALSE);close(con)
+  export_trace(ot,file.path(attempt,"traces.csv.gz"))
   saveRDS(lapply(old,function(x) list(contract_id=x$contract_id,inference_seconds=x$inference_seconds,
    controls=x$fit$controls,sampler_stats=x$fit$sampler_stats)),file.path(attempt,"chain_metadata.rds"),compress="xz")
   rm(old,ot);gc(FALSE)

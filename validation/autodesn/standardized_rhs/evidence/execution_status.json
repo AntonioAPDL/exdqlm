@@ -1,0 +1,43 @@
+{
+  "complete": true,
+  "execution_date": "2026-10-23",
+  "study": "Selected C1 exploratory standardized RHS sensitivity",
+  "scenarios": [
+    "requested",
+    "scaling_only",
+    "ridge_standardized"
+  ],
+  "origins_per_model": 471,
+  "pairs_per_model": 14130,
+  "requested_hyperparameters": {
+    "tau0": 0.001,
+    "slab_scale": 1,
+    "slab_df": 4
+  },
+  "standardize_features": true,
+  "normalize_features": false,
+  "preprocessing_fit_rows": [
+    501,
+    2500
+  ],
+  "forecast_parameters_fitted_once": true,
+  "all_three_posterior_screens_passed": true,
+  "independent_diagnostic_screen_passed": true,
+  "score_path_audits_passed": true,
+  "archived_joint_checkpoint_replay_windows": 9,
+  "monitored_trace_gzip_streams_verified": 14,
+  "predictive_sensitivity_origin_budget_combinations_per_model": 24,
+  "heldout_tuning": false,
+  "reference_inference_reused": [
+    "Native AutoGP",
+    "original ridge",
+    "original RHS"
+  ],
+  "independent_new_series_replications": 0,
+  "package_release_check_clean": false,
+  "release_limitations": "Inherited R CMD check: one nonportable-path error, three existing documentation/non-ASCII warnings, two notes. Focused checks pass; draft only.",
+  "background_numerical_work_running": false,
+  "archive_roundtrip_verified": true,
+  "archive_numeric_files": 241,
+  "restored_analysis_exact_summary_parity": true
+}

@@ -1,0 +1,29 @@
+{
+  "complete": true,
+  "files": {
+    "AutoDESN_Standardized_RHS_C1_Report.pdf": {
+      "bytes": 2066512,
+      "sha256": "920d12738915ebdd86c5e0fce0d4d4103de77673ff58a4d55baae0d14a1708f7"
+    },
+    "frozen_feature_geometry.rds": {
+      "bytes": 265080,
+      "sha256": "b319e8a2a342179768ad68a7a57a10a13c677ff0e9ff3c58a03d89e6e3073567"
+    },
+    "requested_forecast_checkpoint.rds": {
+      "bytes": 743772,
+      "sha256": "3e55e205ceaba8f6a3f5b4d8e878916713b1c823631de826f9bb738670647191"
+    },
+    "scaling_only_forecast_checkpoint.rds": {
+      "bytes": 550072,
+      "sha256": "a1fac5c7c8e33d732b2d2c50835ca609e5ef0558828eaa209792bdc32b98fb7e"
+    },
+    "ridge_standardized_forecast_checkpoint.rds": {
+      "bytes": 491176,
+      "sha256": "54686752d1bf70a6ffaf37eaad3b476d23c86890f91be66850cec8fcfd4dfa52"
+    }
+  },
+  "archive_roundtrip_verified": true,
+  "archive_numeric_files": 241,
+  "archive_sha256": "55f518cd826439d593306810c475840d53f520c5714a3733a9e7762d3db7337f",
+  "summary_parity_exact": true
+}

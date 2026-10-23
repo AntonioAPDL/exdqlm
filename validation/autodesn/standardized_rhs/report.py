@@ -96,6 +96,7 @@ def main():
  para(f"Requested fit pooled RMSE: <b>{req.RMSE:.6f}</b> ({change:+.2f}% relative to the earlier RHS run). This is a descriptive result on the same previously examined series, not an independent replication or a test of general superiority.")
  para('All reported standardized fits passed the declared chain checks and the independent rank-normalized R-hat / bulk and tail ESS screen. Shorter failed attempts are retained and counted in inference cost. Exact diagnostics and their limits appear below.')
  para('The historical prefix-scale sampler failed architecture exploration even at 64,000 retained draws per chain; it issued no forecasts. The revised sampler uses layerwise auxiliary slots and an exact product-preserving global/local update. Both preserve the normalized RHS marginal target. This change was made using training-chain diagnostics only.','Small')
+ para('The first layerwise proposal also failed the declared between-chain architecture-frequency screen. Its training occupancy was used once to freeze a new proposal: 20% original architecture prior plus 80% training occupancy. Fresh production chains then passed. Every architecture retains positive proposal probability, and the exact Hastings ratio preserves the same posterior. No held-out scores entered this change.','Small')
  para('This is an exploratory sensitivity analysis. No further tau0/slab search used held-out errors. Overlapping rolling-origin pairs are dependent. Native AutoGP and original-basis outputs are reused, verified references; their inference is not represented as a new run.','Small')
  page();title('Pooled predictive scores')
  para('Every row contains exactly 14,130 origin-horizon pairs. RMSE, MAE, CRPS and negative log predictive density (NLL) are in original response units or the corresponding log-density scale. Smaller is better for these four scores.')
@@ -112,10 +113,10 @@ def main():
  page();title('Rolling forecasts and predictive intervals');image('forecasts.png',500)
  para('These panels show horizon 30 at every rolling origin. Observed reservoir states are updated between forecast origins. Inside each issued forecast, future responses are simulated recursively, never read from the held-out series.','Small')
  page();title('Architecture averaging and shrinkage');image('architectures.png',500)
- rows=[['Scenario','Leading model','Probability','tau median [5%,95%]','c^2 median [5%,95%]','Diagonal effective slopes']]
+ rows=[['Scenario','Leading model','Mass','tau median [5%,95%]','c^2 median [5%,95%]','Diagonal effective slopes']]
  for sc in study['scenarios']:
   g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()]
-  row=[sc['id'],f"{int(lead.model)}: {lead.candidate}",f'{lead.posterior_probability:.5f}']
+  row=[sc['id'].replace('ridge_standardized','Ridge standardized'),f"{int(lead.model)}: {lead.candidate}",f'{lead.posterior_probability:.5f}']
   if sc['method']=='rhs':
    q=pd.read_csv(a.data/sc['id']/sc['method']/'shrinkage_quantiles.csv').set_index('parameter')
    for nm in ['global_tau','slab_variance','effective_slopes_diagonal']:
@@ -133,10 +134,13 @@ def main():
   rows.append([sc['id'],f'{z.rhat.max():.5f}',f'{z.bulk_ess.min():.1f}',f'{z.tail_ess.min():.1f}',int(sel.n_mcmc)])
  table(rows,[128,90,90,90,102])
  para('The independent screen includes continuous parameters and model indicators with posterior probability >=1%. Continuous rank-normalized split/folded R-hat must be <=1.01, bulk/tail ESS >=400. Binary model indicators use rank R-hat and frequency ESS; that ESS is shown in both ESS columns because a binary tail quantile can be constant. The R screen also checks spectral ESS and between-chain architecture frequency differences. These diagnostics provide evidence for monitored quantities; they do not prove convergence or estimate rare-model probabilities precisely.','Small')
+ exploration=pd.read_csv(a.data/'requested/rhs/exploration.csv');md=models['requested']
+ para(f"Requested RHS chains visited {', '.join(map(str,exploration.unique_models))} distinct architectures and made {', '.join(map(str,exploration.switches))} retained-iteration architecture switches. Maximum between-chain architecture-frequency range: {md.chain_range.max():.5f}. All architectures with posterior mass >=1% passed the architecture R-hat and ESS screen.",'Small')
  page();title('Sampling-budget sensitivity')
  rows=[['Scenario','Burn / chain','Kept / chain','Max R-hat','Min spectral ESS','Pass']]
  for _,r in budgets.iterrows():rows.append([r.scenario,int(r.n_burn),int(r.n_mcmc),f'{r.max_rhat:.5f}',f'{r.min_ess:.1f}',str(bool(r.qualified))])
  table(rows,[132,72,72,76,88,60])
+ para('The displayed R-hat and spectral ESS columns concern continuous parameters. Pass additionally requires the architecture R-hat/ESS and absolute chain-frequency range gates.','Small')
  title('Predictive Monte Carlo sensitivity')
  sensitivity=[]
  sys.path.insert(0,str(HERE.parent/'rhs_comparison'));from support import aggregate
@@ -152,6 +156,7 @@ def main():
    r=z[(z.N==n)&(z.K==k)].iloc[0];rows.append([sc['id'],f'{n} x {k}',f'{r.RMSE:.5f}',f'{r.CRPS:.5f}',f'{r.NLL:.5f}'])
  table(rows,[170,75,85,85,85])
  para('The full CSV contains all 24 settings per model: origins 2500, 2735, 2970; N=192/384; K=4/8/16/32. These reuse one qualified posterior per model. The 90 scored pairs in a setting are dependent and are not the full 14,130-pair comparison.','Small')
+ para('The two standardized RHS priors differ in full-comparison RMSE by about 0.00015. Predictive-budget changes on these three origins produce larger shifts. This sensitivity does not support ranking the two RHS settings at that precision.','Small')
  page();title('Measured runtime and reproducibility')
  build=json.loads((a.data/'raw_bank/status.json').read_text())
  para(f"Shared raw reservoir construction: {build['invocation_wall_seconds']:.2f} s wall time ({build['candidate_compute_seconds_sum']:.2f} s summed candidate compute). Frozen readout preparation, including column standardization and sufficient statistics: {bank['standardization_seconds']:.2f} s. Bank loading, compilation and reporting are not inference.")
@@ -168,6 +173,9 @@ def main():
  legacy=a.data/'legacy_prefix_requested/rhs/status.json'
  if legacy.exists():
   lt=json.loads(legacy.read_text())['timings'];para(f"Additional failed prefix-sampler development cost: {lt['inference_seconds_all_attempts']:.2f} s inference plus {lt['training_pilot_seconds']:.2f} s pilot computation. These produced no forecasts and are retained in the budget/diagnostic evidence.",'Small')
+ initial=a.data/'requested_initial_proposal/rhs/status.json'
+ if initial.exists():
+  it=json.loads(initial.read_text())['timings'];para(f"The requested fit additionally used {it['inference_seconds_all_attempts']:.2f} s of completed training-chain computation with the initial layerwise proposal, plus {it['training_pilot_seconds']:.2f} s of pilot computation. These failed attempts supplied the frozen proposal and produced no forecasts. They are additional to the qualified-fit inference row, not a new prior or a selection on forecast errors. Interrupted partial work is recorded in invocation logs and is excluded from completed-chain compute totals.",'Small')
  with zipfile.ZipFile(HERE.parent/'rhs_comparison/evidence/C1_numeric_evidence.zip') as z:gp=json.loads(z.read('gp/status.json'))
  gt=gp['timings']
  para(f"Reused Native AutoGP reference: two runs with eight SMC particles each; summed training time {gt['smc_training_seconds_sum']:.2f} s; original native run/export time {gt['native_run_elapsed_seconds_sum']:.2f} s. Its later rolling conditioning/scoring/export replay took {gt['replayed_rolling_conditioning_scoring_export_seconds']:.2f} s with peak RSS {gt['replayed_peak_rss_kib']/2**20:.3f} GiB. A pure GP forecasting timer and native-training peak memory were unavailable. These are different timer scopes and cannot support a clean end-to-end speedup claim.", 'Small')
@@ -177,11 +185,12 @@ def main():
  page()
  title('Audit details')
  para(f"All 428 admitted architectures have the same raw reservoirs and candidate identities in all three new cases. Maximum absolute training feature mean: {bank['max_abs_mean']:.3g}; maximum sample-SD error: {bank['max_sd_error']:.3g}. No constant columns were found in this bank. The API freezes a constant-column exclusion mask when necessary.")
+ para('Inference conditions on these frozen training transformations. Uncertainty in the estimated feature means and scales is not jointly inferred. The intercept is unscaled and has a proper prior; transport to raw reservoir coordinates includes its centering correction.','Small')
  para('Validation covers shared Q-DESN scaling parity, frozen transforms, intercept transport, direct/batched recursive forecast parity, backward-compatible ridge draws, normalized RHS densities, Gaussian integrated likelihoods, scale updates, architecture ratios, and R/C++ agreement. Saved path snapshots independently reproduce scores at the first, middle and last origins. See validation_status.json and the archived test logs for actual pass/skip counts.')
  validation=json.loads((a.data/'validation/validation_status.json').read_text())
  para(f"Current installed regression assertions: {validation['installed_regression']['passed']} passed, zero failures/errors/warnings, one loaded-DLL context skip covered separately by the source-only checks. The 32 independent small-posterior reference checks passed. Prior-preserving interweaving has independent conditional quadrature and no-information prior-CDF checks; the historical default sampler reproduces the earlier draws exactly.")
  para('Release status remains draft. The earlier scoped R CMD check recorded one inherited nonportable-path error, three existing documentation/non-ASCII warnings and two notes. This update installs and passes the focused checks; a clean repository-wide release check is not claimed.','Small')
- para('Reproduce from feature/autodesn-rhs-20261022: run standardized_rhs/run.R for requested, scaling_only and ridge_standardized sequentially; then rhs_comparison/sensitivity.R for each output, standardized_rhs/export.R, analysis.py and report.py. configuration.json fixes all budgets and seeds. Hash-guarded checkpoints reject changed inputs or production sources.','Small')
+ para('Reproduce from feature/autodesn-rhs-20261022 using README.md: build the shared bank, run the initial training attempts with run.R, then run_rebalanced.R for the requested production fit. Run scaling_only and ridge_standardized sequentially, forecast_serial.R as needed, sensitivity.R, export.R, archive.R, replay.R, analysis.py and report.py. Configuration and saved contracts fix budgets, seeds and source hashes. Restore the numeric evidence for analysis without recomputing inference.','Small')
  para('Code and draft PR: https://github.com/AntonioAPDL/exdqlm/pull/3. Original report and reproducibility evidence remain under validation/autodesn/rhs_comparison/evidence/. This supplement preserves those results.','Small')
  out=HERE/'evidence';out.mkdir(exist_ok=True);pdf=out/'AutoDESN_Standardized_RHS_C1_Report.pdf'
  def footer(c,doc):

@@ -43,6 +43,12 @@ def main():
   records.append(dict(scenario=sc['id'],**aggregate(rows)))
   for ad in sorted(d.glob('attempt_*')):
    s=json.loads((ad/'status.json').read_text());dd=pd.read_csv(ad/'diagnostics.csv');mm=pd.read_csv(ad/'model_probabilities.csv')
+   # The shared RHS runner stores budgets in its guarded configuration rather
+   # than duplicating them in each status file. Recover the executed values.
+   controls=saved['attempts'][int(s['attempt'])-1]
+   for key in ['n_burn','n_mcmc']:
+    if key in s:assert s[key]==controls[key]
+    else:s[key]=controls[key]
    dd=dd[dd.sampled]
    budgets.append(dict(scenario=sc['id'],**s,max_rhat=dd.rhat.max(),min_ess=dd.ess_spectral.min(),
     leading_model=int(mm.loc[mm.posterior_probability.idxmax(),'model']),leading_probability=mm.posterior_probability.max()))

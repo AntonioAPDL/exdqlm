@@ -71,12 +71,22 @@ From the repository root, run large-bank jobs sequentially:
 
 ```bash
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
-Rscript validation/autodesn/standardized_rhs/run.R --scenario requested
+Rscript validation/autodesn/standardized_rhs/run.R --scenario requested --stage fit
+# This first fit is expected to exit nonzero at the documented diagnostic gate.
+# Preserve it before the fresh, training-only rebalanced production fit:
+mv validation/autodesn/standardized_rhs/artifacts/requested validation/autodesn/standardized_rhs/artifacts/requested_initial_proposal
+Rscript validation/autodesn/standardized_rhs/run_rebalanced.R
+Rscript validation/autodesn/standardized_rhs/forecast_serial.R requested
 Rscript validation/autodesn/standardized_rhs/run.R --scenario scaling_only
 Rscript validation/autodesn/standardized_rhs/run.R --scenario ridge_standardized
+# Repeat for scaling_only and ridge_standardized (using --method ridge):
+Rscript validation/autodesn/rhs_comparison/sensitivity.R --method rhs --out validation/autodesn/standardized_rhs/artifacts/requested
 Rscript validation/autodesn/standardized_rhs/export.R
+Rscript validation/autodesn/standardized_rhs/archive.R
+Rscript validation/autodesn/standardized_rhs/replay.R requested scaling_only ridge_standardized
 python validation/autodesn/standardized_rhs/analysis.py
 python validation/autodesn/standardized_rhs/report.py
+python validation/autodesn/standardized_rhs/archive.py
 ```
 
 The runner rebuilds the original causal raw bank once, fits the shared scaling
@@ -110,3 +120,16 @@ are three chains of 1,000 burn +2,000 retained draws, as its saved fits confirm.
 sequentially and records measured exit codes, wall time and parent peak RSS.
 `archive.R` retains the 384 joint predictive draws and required reservoir
 templates; `archive.py` packs numeric evidence with SHA256 verification.
+
+The commands above describe a fresh checkout with no local inference outputs.
+An existing artifact directory is guarded by its original source and harness
+hashes; use the saved checkpoints or a fresh output directory rather than
+overwriting their contracts. Restored compact forecast checkpoints can be
+replayed without rebuilding the multi-gigabyte inference bank. The historical
+prefix-layout development attempts are archived evidence and are not required
+to reproduce the final layerwise fit.
+
+`export.R` requires the standard `gzip` executable and publishes compressed
+traces atomically from closed regular CSV files. All compressed evidence is
+read to EOF and hash checked before delivery. This fixed two truncated CSV
+exports; their original RDS chain files were intact and were re-exported.
