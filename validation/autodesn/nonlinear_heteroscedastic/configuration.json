@@ -1,0 +1,75 @@
+{
+  "series": "NHS1",
+  "source_protocol": "Frozen C1 temporal protocol, fresh data and fresh fits",
+  "source_commit": "d67aabe912e7a81b02d3d19920bfcb2b8cb6d9d1",
+  "washout": 500,
+  "fit_start": 501,
+  "fit_end": 2500,
+  "n_train": 2000,
+  "test_start": 2501,
+  "test_end": 3000,
+  "n_test": 500,
+  "first_origin": 2500,
+  "last_origin": 2970,
+  "origins": 471,
+  "H": 30,
+  "refit_per_origin": false,
+  "update_model_weights": false,
+  "outer_draws": 192,
+  "inner_paths": 8,
+  "checkpoint_draws": 384,
+  "innovation_seed": 1066020,
+  "ridge_seed": 1066020,
+  "rhs_seed": 2066020,
+  "chains": 3,
+  "feature_workers": 1,
+  "origin_workers": 1,
+  "washout_tolerance": 0.001,
+  "rhs_control": {
+    "tau0": 1,
+    "slab_scale": 2,
+    "slab_df": 4
+  },
+  "model_control": {
+    "method": "mh",
+    "moves": 2
+  },
+  "attempts": [
+    {
+      "n_burn": 2000,
+      "n_mcmc": 6000
+    },
+    {
+      "n_burn": 4000,
+      "n_mcmc": 16000
+    },
+    {
+      "n_burn": 6000,
+      "n_mcmc": 32000
+    }
+  ],
+  "diagnostic_gates": {
+    "rhat_max": 1.01,
+    "ess_min": 400,
+    "model_chain_range_max": 0.050000000000000003
+  },
+  "pilot": {
+    "n_burn": 100,
+    "n_mcmc": 200,
+    "chains": 3
+  },
+  "smoke": {
+    "n_burn": 15,
+    "n_mcmc": 40,
+    "chains": 3
+  },
+  "input_sha256": {
+    "dgp_manifest.json": "01a2ff708d777a6dfa4ebc6e9f169eba2172ae4177a67dc270dee327be50cb6a",
+    "dgp_truth.csv": "287ab0f438f47d134bd18a21a41e08c825aa03112436ce8436a0a2e5db7077b3",
+    "series.csv": "a0896bdcdb8478098f12221864803194f539b17dde234bbdf179d4ab1d46146c",
+    "specification_grid.csv": "67cc91c598cd012d4a8a2613490035deabb3473ba94a21c8ddddf7c69aee8d3f",
+    "specification_recovery_audit.json": "77e73c044295d70cb3518600a2c0b83488b5068ce3452dab53a2e21db3907dd6",
+    "specifications.rds": "b4fb99bc0f7ad6cec4367fedc2487e91fc47a552e59ddb9c985f0c57ca3b74cc"
+  },
+  "dgp_source_sha256": "947eba756b42cddf80f379f3da301c9f306fa5c742d998e8222e7ad6c37a1516"
+}

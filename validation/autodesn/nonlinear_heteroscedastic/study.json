@@ -1,0 +1,73 @@
+{
+  "study": "NHS1 nonlinear, heteroscedastic seasonal comparison",
+  "interpretation": "One new predeclared custom DGP realization; dependent rolling pairs, not independent replications.",
+  "standardize_features": true,
+  "normalize_features": false,
+  "feature_sd_tol": 1e-08,
+  "fit_rows": [
+    501,
+    2500
+  ],
+  "unit_variance_at_prior_input": true,
+  "chains": 3,
+  "forecast_workers": 1,
+  "model_moves": 4,
+  "rb_every": 200,
+  "proposal_prior_fraction": 0.2,
+  "sampler": {
+    "local_layout": "layerwise",
+    "interweave_global": true
+  },
+  "pilot": {
+    "n_burn": 1000,
+    "n_mcmc": 2000
+  },
+  "attempts": [
+    {
+      "n_burn": 2000,
+      "n_mcmc": 6000
+    },
+    {
+      "n_burn": 4000,
+      "n_mcmc": 16000
+    },
+    {
+      "n_burn": 6000,
+      "n_mcmc": 32000
+    },
+    {
+      "n_burn": 10000,
+      "n_mcmc": 64000
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "requested",
+      "method": "rhs",
+      "tau0": 0.001,
+      "slab_scale": 1,
+      "slab_df": 4,
+      "seed": 7066020
+    },
+    {
+      "id": "scaling_only",
+      "method": "rhs",
+      "tau0": 1,
+      "slab_scale": 2,
+      "slab_df": 4,
+      "seed": 8066020
+    },
+    {
+      "id": "ridge_standardized",
+      "method": "ridge",
+      "seed": 9066020
+    }
+  ],
+  "proposal_recovery": {
+    "rule": "After all initial RHS budgets fail, freeze q=0.2*prior+0.8*last_training_occupancy, then fresh chains; no test scores used",
+    "n_burn": 10000,
+    "n_mcmc": 64000,
+    "seed_offset": 50000,
+    "maximum_recoveries": 1
+  }
+}
