@@ -50,6 +50,17 @@ change alters the normalized RHS marginal target. Both are checked
 independently; derivations are in `docs/autodesn/RHS.md`. This sampler revision
 uses training diagnostics only, before any requested-prior test forecasts.
 
+The layerwise run's four original budgets also failed the absolute
+architecture-frequency range gate (0.07016 at 64,000 draws, despite acceptable
+R-hat/ESS). Those attempts are preserved as `requested_initial_proposal`.
+`run_rebalanced.R` is an explicit training-only computational extension: it
+freezes `q=0.2*model_prior+0.8*attempt_4_occupancy` before a fresh three-chain
+10,000-burn/64,000-draw fit. It uses fresh predeclared seeds separate from the
+proposal-training chains and retains all
+428 candidates, the exact Hastings correction, the same normalized RHS target
+and unchanged forecast budgets. No requested-prior test forecasts had been
+issued when this decision was made. Prior training cost is reported separately.
+
 These are **exploratory sensitivity analyses** because the original C1 test
 outcomes have already been inspected. Neither lower test errors nor this one
 series establish general superiority. No additional search over tau0/slab

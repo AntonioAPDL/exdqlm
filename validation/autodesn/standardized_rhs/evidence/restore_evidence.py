@@ -1,6 +1,6 @@
 """Reassemble, verify and extract the committed standardized C1 evidence."""
 from pathlib import Path
-import hashlib,json,zipfile
+import hashlib,json,zipfile,gzip
 root=Path(__file__).resolve().parent;meta=json.loads((root/'archive_manifest.json').read_text())
 archive=root/meta['archive']
 with archive.open('wb') as f:
@@ -13,4 +13,6 @@ with zipfile.ZipFile(archive) as z:
  assert z.testzip() is None
  for name,expected in json.loads(z.read('SHA256.json')).items():assert hashlib.sha256(z.read(name)).hexdigest()==expected,name
  z.extractall(root/'restored')
+for p in (root/'restored').rglob('*.csv.gz'):
+ p.with_suffix('').write_bytes(gzip.decompress(p.read_bytes()))
 print('Verified and restored',meta['numeric_files'],'numeric evidence files')

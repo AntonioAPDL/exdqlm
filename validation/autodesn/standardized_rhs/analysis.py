@@ -46,11 +46,12 @@ def main():
    dd=dd[dd.sampled]
    budgets.append(dict(scenario=sc['id'],**s,max_rhat=dd.rhat.max(),min_ess=dd.ess_spectral.min(),
     leading_model=int(mm.loc[mm.posterior_probability.idxmax(),'model']),leading_probability=mm.posterior_probability.max()))
- legacy=a.data/'legacy_prefix_requested/rhs'
- if legacy.exists():
+ for legacy_case in ['legacy_prefix_requested','requested_initial_proposal']:
+  legacy=a.data/legacy_case/'rhs'
+  if not legacy.exists():continue
   for ad in sorted(legacy.glob('attempt_*')):
    s=json.loads((ad/'status.json').read_text());dd=pd.read_csv(ad/'diagnostics.csv');mm=pd.read_csv(ad/'model_probabilities.csv');dd=dd[dd.sampled]
-   budgets.append(dict(scenario='legacy_prefix_requested',**s,max_rhat=dd.rhat.max(),min_ess=dd.ess_spectral.min(),
+   budgets.append(dict(scenario=legacy_case,**s,max_rhat=dd.rhat.max(),min_ess=dd.ess_spectral.min(),
     max_architecture_rhat=mm.loc[mm.posterior_probability>=.01,'rhat_indicator'].max(),
     model_chain_range=mm.chain_range.max(),leading_model=int(mm.loc[mm.posterior_probability.idxmax(),'model']),leading_probability=mm.posterior_probability.max()))
  diagnostics_table=pd.DataFrame(diagnostic_rows);diagnostics_table.to_csv(out/'independent_diagnostics.csv',index=False)

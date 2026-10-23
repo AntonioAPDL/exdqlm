@@ -7,7 +7,8 @@ if(length(at)) {
  stopifnot(length(at)==1L,at<length(args),args[at+1L]%in%cfg$scenarios$id)
  selected<-args[at+1L];cfg$scenarios<-cfg$scenarios[cfg$scenarios$id==selected,,drop=FALSE]
 }
-legacy<-file.path(base,"legacy_prefix_requested","rhs")
+for(legacy_case in c("legacy_prefix_requested","requested_initial_proposal")) {
+legacy<-file.path(base,legacy_case,"rhs")
 if(dir.exists(legacy) && is.null(selected)) for(ad in list.dirs(legacy,full.names=TRUE,recursive=FALSE)) {
  if(!grepl("attempt_[0-9]+$",ad)) next
  old<-lapply(1:3,function(k) readRDS(file.path(ad,paste0("chain_",k,".rds"))))
@@ -17,6 +18,7 @@ if(dir.exists(legacy) && is.null(selected)) for(ad in list.dirs(legacy,full.name
   controls=x$fit$controls,sampler_stats=x$fit$sampler_stats)),file.path(ad,"chain_metadata.rds"),compress="xz")
  rm(old,tr);gc(FALSE)
 }
+}
 for(i in seq_len(nrow(cfg$scenarios))) {
  sc<-cfg$scenarios[i,];d<-file.path(base,sc$id,sc$method)
  st<-jsonlite::fromJSON(file.path(d,"status.json"));stopifnot(isTRUE(st$fit_complete))
@@ -25,7 +27,7 @@ for(i in seq_len(nrow(cfg$scenarios))) {
  metadata<-lapply(r,function(x) list(contract_id=x$contract_id,inference_seconds=x$inference_seconds,
    controls=x$fit$controls,sampler_stats=x$fit$sampler_stats))
  saveRDS(metadata,file.path(d,"chain_metadata.rds"),compress="xz")
- if(sc$method=="rhs") {
+ if(sc$method=="rhs" && dir.exists(file.path(d,"pilot"))) {
   pilots<-lapply(1:3,function(k) readRDS(file.path(d,"pilot",paste0("chain_",k,".rds"))))
   saveRDS(lapply(pilots,function(x) list(contract_id=x$contract_id,inference_seconds=x$inference_seconds,
    controls=x$fit$controls,sampler_stats=x$fit$sampler_stats)),file.path(d,"pilot_metadata.rds"),compress="xz")
