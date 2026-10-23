@@ -4,7 +4,7 @@
 #' Controls for the independent regularized horseshoe AutoDESN readout
 #'
 #' The common auxiliary global scale is u ~ half-Cauchy(0,1), and model m
-#' uses tau_m = tau0[m] * u. Slopes have variance
+#' uses `tau_m = tau0[m] * u`. Slopes have variance
 #' (1 / (tau_m^2 * lambda_j^2) + 1 / c^2)^(-1), independently of
 #' observation variance. The intercept retains its separate proper prior.
 #' Local scales have independent standard half-Cauchy priors, and
