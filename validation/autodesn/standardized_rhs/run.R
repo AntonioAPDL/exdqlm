@@ -27,8 +27,20 @@ rhs_json(study,file.path(base,"configuration.json"))
 
 standardized_bank <- function() {
  # Production code and input hashes participate in the raw bank contract.
- raw <- rhs_build_bank(cfg,raw_dir)
- id <- rhs_guard(scaled_dir,list(raw_bank_id=raw$id,
+ raw_contract_path <- file.path(raw_dir,"contract.rds")
+ if(file.exists(raw_contract_path)) {
+  saved <- readRDS(raw_contract_path);scs <- rhs_specifications(cfg)
+  old <- saved$contract
+  stopifnot(identical(old$input_sha256,cfg$input_sha256),
+   isTRUE(all.equal(old$specifications,scs$specs,check.environment=FALSE)),old$fit_start==cfg$fit_start,
+   old$fit_end==cfg$fit_end,old$washout==cfg$washout,old$tolerance==cfg$washout_tolerance)
+  hashes <- vapply(names(old$builder_sha256),function(p) digest::digest(file=p,algo="sha256"),"")
+  stopifnot(identical(hashes,old$builder_sha256))
+  raw_id <- saved$id
+ } else {
+  raw <- rhs_build_bank(cfg,raw_dir);raw_id <- raw$id
+ }
+ id <- rhs_guard(scaled_dir,list(raw_bank_id=raw_id,
    standardize_features=TRUE,normalize_features=FALSE,feature_sd_tol=study$feature_sd_tol,
    scaling_sha256=digest::digest(file="R/autodesn_scaling.R",algo="sha256")))
  path <- file.path(scaled_dir,"bank.rds")
@@ -36,6 +48,7 @@ standardized_bank <- function() {
   bank <- readRDS(path);stopifnot(identical(attr(bank,"comparison_bank_id"),id))
   return(list(bank=bank,id=id,load_seconds=0))
  }
+ if(!exists("raw",inherits=FALSE)) raw <- rhs_build_bank(cfg,raw_dir)
  began <- proc.time()[3];b <- raw$bank
  features <- lapply(b$models,function(m) m$X[,-1L,drop=FALSE]*m$divisor)
  normalized <- autodesn_prepare_bank(b$y,features,model_info=b$model_info,

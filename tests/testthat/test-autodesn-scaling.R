@@ -7,7 +7,7 @@ test_that("AutoDESN readout z-scores match the shared Q-DESN helper", {
  y <- sin(x)
  b <- autodesn_prepare_bank(y,list(H),normalize_features=FALSE,standardize_features=TRUE)
  m <- b$models[[1]]
- shared <- readout_scale_fit(cbind(1,H[,1:2]),has_intercept=TRUE)
+ shared <- scaling_internal("readout_scale_fit")(cbind(1,H[,1:2]),has_intercept=TRUE)
  expect_equal(unname(m$X),unname(shared$X),tolerance=1e-12)
  expect_equal(colMeans(m$X[,-1]),c(0,0),tolerance=1e-12,ignore_attr=TRUE)
  expect_equal(apply(m$X[,-1],2,sd),c(1,1),tolerance=1e-12,ignore_attr=TRUE)
