@@ -130,7 +130,7 @@ def main():
   z=diag[diag.scenario==sc['id']];st=json.loads((a.data/sc['id']/sc['method']/'status.json').read_text());sel=budgets[(budgets.scenario==sc['id'])&(budgets.attempt==st['selected_attempt'])].iloc[0]
   rows.append([sc['id'],f'{z.rhat.max():.5f}',f'{z.bulk_ess.min():.1f}',f'{z.tail_ess.min():.1f}',int(sel.n_mcmc)])
  table(rows,[128,90,90,90,102])
- para('The independent screen includes continuous parameters and model indicators with posterior probability >=1%. Rank-normalized split/folded R-hat must be <=1.01, bulk/tail ESS >=400. The R screen also checks spectral ESS and between-chain architecture frequency differences. These diagnostics provide evidence of adequate exploration for monitored quantities; they do not prove convergence or quantify rare-model probabilities precisely.','Small')
+ para('The independent screen includes continuous parameters and model indicators with posterior probability >=1%. Continuous rank-normalized split/folded R-hat must be <=1.01, bulk/tail ESS >=400. Binary model indicators use rank R-hat and frequency ESS; that ESS is shown in both ESS columns because a binary tail quantile can be constant. The R screen also checks spectral ESS and between-chain architecture frequency differences. These diagnostics provide evidence for monitored quantities; they do not prove convergence or estimate rare-model probabilities precisely.','Small')
  page();title('Sampling-budget sensitivity')
  rows=[['Scenario','Burn / chain','Kept / chain','Max R-hat','Min spectral ESS','Pass']]
  for _,r in budgets.iterrows():rows.append([r.scenario,int(r.n_burn),int(r.n_mcmc),f'{r.max_rhat:.5f}',f'{r.min_ess:.1f}',str(bool(r.qualified))])

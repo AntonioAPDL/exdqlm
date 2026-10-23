@@ -23,5 +23,11 @@ def ess(x):
  return m*n/max(-1+2*np.minimum.accumulate(paired).sum(),1/np.log10(m*n))
 def diagnostics(x):
  x=split(x);z=rank(x);lo,hi=np.quantile(x,[.05,.95])
+ # A binary indicator's 5% or 95% quantile can be constant even when it
+ # mixes well. Its relevant ESS is the ESS of the architecture frequency,
+ # not an undefined constant tail-quantile indicator.
+ if len(np.unique(x))==2:
+  bulk=ess(z)
+  return dict(rhat=rhat(z),bulk_ess=bulk,tail_ess=bulk)
  return dict(rhat=max(rhat(z),rhat(rank(abs(x-np.median(x))))),bulk_ess=ess(z),
   tail_ess=min(ess((x<=lo).astype(float)),ess((x>=hi).astype(float))))

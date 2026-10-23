@@ -18,5 +18,12 @@ class DiagnosticTests(unittest.TestCase):
  def test_chain_shift(self):
   x=np.random.default_rng(423).normal(size=(4,12000));x[0]+=1
   self.assertGreater(diagnostics(x)['rhat'],1.03)
+ def test_binary_indicators(self):
+  rng=np.random.default_rng(424)
+  for p in [.01,.99]:
+   r=diagnostics((rng.uniform(size=(4,12000))<p).astype(float))
+   self.assertLess(r['rhat'],1.005)
+   self.assertGreater(r['bulk_ess'],30000)
+   self.assertEqual(r['bulk_ess'],r['tail_ess'])
 
 if __name__=='__main__':unittest.main()
