@@ -1,0 +1,10 @@
+series,dgp,repetition,seed,n_washout,n_train,n_test,H,rolling_origins
+A1,smooth_scale,1,864020,500,2000,500,30,471
+A2,smooth_scale,2,864040,500,2000,500,30,471
+A3,smooth_scale,3,864060,500,2000,500,30,471
+B1,threshold_gjr,1,865020,500,2000,500,30,471
+B2,threshold_gjr,2,865040,500,2000,500,30,471
+B3,threshold_gjr,3,865060,500,2000,500,30,471
+C1,switching_seasonal,1,866020,500,2000,500,30,471
+C2,switching_seasonal,2,866040,500,2000,500,30,471
+C3,switching_seasonal,3,866060,500,2000,500,30,471

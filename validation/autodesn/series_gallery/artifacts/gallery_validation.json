@@ -1,0 +1,24 @@
+{
+  "purpose": "Select one series before fitting and comparing forecasting models",
+  "series": 9,
+  "days_per_series": 3000,
+  "washout": 500,
+  "training": 2000,
+  "test": 500,
+  "prefix_checks_passed": 9,
+  "archived_observations_checked": 23400,
+  "max_y_difference": 8.881784197001252e-15,
+  "normal_quantile": "SciPy ndtri, R-compatible MT/inversion inputs; numerical-prefix parity checked",
+  "original_data_sha256": "af8ba69a994799c7e412abcf37548f2bcd0409ed3653e29e2ea6ea0d936ea3e9",
+  "original_dgp_sha256": "962a7dec70c4d8f5fdd72375f0e97cffccac3de000f2f99809ba2269ad97e420",
+  "source_head": "34835459d794a2c9ac88983629ed429370147ff5",
+  "no_forecasting_models_run": true,
+  "plots": [
+    "all_nine_overview.png",
+    "A_smooth_scale.png",
+    "B_threshold_gjr.png",
+    "C_switching_seasonal.png"
+  ],
+  "pdf_name": "AutoDESN_Time_Series_Gallery.pdf",
+  "pdf_sha256": "c9deb4dcb50c7da016f5039f74d725883800a97141db16f0f17265000a72d243"
+}
