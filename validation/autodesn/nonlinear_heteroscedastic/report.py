@@ -89,7 +89,7 @@ def main():
  title('Data-generating process')
  para('Write y(t)=s(t)+x(t). The centered period-60 seasonal offset combines two asymmetric triangular pulses, a ramp and a 12-step block pattern. The residual conditional mean is a(x1)*x1 +0.28*tanh(1.4*x2) -0.25*tanh(x12) +0.22*tanh(x60) +0.20*tanh(1.5*x1*x2), where xk=x(t-k), a(x)=0.58 for x&lt;0 and 0.22 otherwise.')
  para('The innovation is epsilon(t)=sqrt(h(t))*z(t), z(t) standard Gaussian. h(t)=omega(t)+0.06*epsilon(t-1)^2+0.10*epsilon(t-1)^2*I[epsilon(t-1)&lt;0]+0.82*h(t-1). The baseline omega(t) is positive, periodic and dependent on the previous residual; exact pulse definitions are in dgp.R. It is bounded by 0.046 and expected volatility persistence is 0.93. The residual linear coefficient is bounded by 0.58 and other location terms are bounded. These bounds prevent a trend or explosive second moments; the seasonal process is periodic rather than covariance-stationary.')
- table([['Setting','Frozen value'],['DGP','Seed 1766021; 6,000-step burn-in; 3,000 retained observations'],['Split and forecast grid','500 washout; 2,000 training; 500 test; 471 origins x30 leads'],['Requested normalized RHS','tau0=0.001; slab_scale=1; slab_df=4; c^2~IG(2,2)'],['Other priors','Unit half-Cauchy global multiplier/local scales; intercept N(0,10 variance); observation variance IG(3,1)'],['Readout basis','Training-only column z-scores on rows 501:2500; no division by sqrt(d)'],['Primary forecast budget','192 joint posterior draws x8 recursive innovation paths']], [130,370])
+ table([['Setting','Frozen value'],['DGP','Seed 1766021; 6,000-step burn-in; 3,000 retained observations'],['Split and forecast grid','500 washout; 2,000 training; 500 test; 471 origins x30 leads'],['Requested normalized RHS','tau0=0.001; slab_scale=1; slab_df=4; c^2~IG(2,2)'],['Other priors','Unit half-Cauchy global multiplier/local scales; intercept N(0,10 variance); observation variance IG(3,1); ridge precision Gamma(2, rate 2)'],['Readout basis','Training-only column z-scores on rows 501:2500; no division by sqrt(d)'],['Primary forecast budget','192 joint posterior draws x8 recursive innovation paths']], [130,370])
  para('All fitted likelihoods retain constant observation-variance parameters. This is a calibration stress test under misspecification, not a claim that their conditional variance models match the DGP. Truth quantities are isolated from the observed-only training interface.','Small')
  page();title('The single frozen realization');image(HERE/'evidence/NHS1_DGP.png')
  para('The seed was not selected by inspecting forecast errors. DGP truth is used for these plots and post-fit calibration assessment only. Models receive the two-column time/response file. There is no full-series centering, and no held-out response is used to fit a scaler.','Small')
@@ -110,16 +110,17 @@ def main():
  page();title('Bayesian architecture averaging and shrinkage')
  para('For slopes, beta_j | tau,lambda_j,c² ~ N(0,v_j), v_j=c²*tau²*lambda_j²/(c²+tau²*lambda_j²), independently of observation variance sigma². The global multiplier u and local lambda_j have unit half-Cauchy priors; tau=tau0*u. The intercept has variance10. Architecture moves integrate every coefficient using C_m=sigma²*I+X_m*diag(10,v)*X_mᵀ, retaining its determinant and normalized Gaussian density. This is the normalized RHS, not the augmented rhs_ns prior.','Small')
  image(figures/'architectures.png')
- rows=[['Scenario','Leading candidate','Mass','tau median [5%,95%]','c^2 median [5%,95%]']]
+ rows=[['Scenario','Leading candidate','Mass (MC SE)','tau median [5%,95%]','c^2 median [5%,95%]']]
  for sc in study['scenarios']:
-  g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()];row=[sc['id'],f'{int(lead.model)}: {lead.candidate}',f'{lead.posterior_probability:.5f}']
+  g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()];indicator=diag[(diag.scenario==sc['id'])&(diag.parameter==f'model_{int(lead.model)}')].iloc[0];se=np.sqrt(lead.posterior_probability*(1-lead.posterior_probability)/indicator.bulk_ess);row=[sc['id'],f'{int(lead.model)}: {lead.candidate}',f'{lead.posterior_probability:.3f} ({se:.3f})']
   if sc['method']=='rhs':
    q=pd.read_csv(b/sc['id']/sc['method']/'shrinkage_quantiles.csv').set_index('parameter')
    for name in ['global_tau','slab_variance']:
     z=q.loc[name];row.append(f'{z["median"]:.4g} [{z.q05:.4g}, {z.q95:.4g}]')
   else:row+=['-','-']
   rows.append(row)
- table(rows,[90,110,50,125,125])
+ table(rows,[90,100,70,120,120])
+ para('Mass MC SE uses the leading architecture indicator frequency ESS. It estimates numerical sampling error, not uncertainty across independent time-series realizations.','Small')
  for sc in study['scenarios'][:2]:
   q=pd.read_csv(b/sc['id']/sc['method']/'shrinkage_quantiles.csv').set_index('parameter').loc['effective_slopes_diagonal']
   para(f"{sc['id']} diagonal effective-slopes proxy: median {q['median']:.3f}, 5%-95% [{q.q05:.3f}, {q.q95:.3f}]. This sums d_j*(X'X)_jj / (sigma²+d_j*(X'X)_jj), using slope prior variances d_j; it ignores feature correlations and is not a count of selected coefficients.",'Small')
@@ -130,7 +131,7 @@ def main():
   z=diag[diag.scenario==sc['id']];st=json.loads((b/sc['id']/sc['method']/'status.json').read_text());n=budgets[(budgets.scenario==sc['id'])&(budgets.attempt==st['selected_attempt'])].n_mcmc.iloc[0]
   rows.append([sc['id'],f'{z.rhat.max():.5f}',f'{z.bulk_ess.min():.1f}',f'{z.tail_ess.min():.1f}',int(n)])
  table(rows,[125,90,90,100,95])
- para('Three chains; continuous split rank/folded R-hat<=1.01 and bulk/tail ESS>=400. Six fixed training-row fitted means are additionally monitored across architectures with different coefficient dimensions. Architecture indicators with posterior mass>=1% also pass rank R-hat/frequency ESS, plus the R spectral-ESS and absolute chain-frequency-range gates. Binary frequency ESS is shown in both ESS columns. Checks pass before forecasting. These monitored diagnostics do not prove convergence or accurate rare-model probabilities. Full traces, controls, chain exploration and all failed budgets are archived.','Small')
+ para('Three chains; continuous split rank/folded R-hat<=1.01 and bulk/tail ESS>=400. Six fixed training-row fitted means are additionally monitored across architectures with different coefficient dimensions. The mean_log_local monitor averages the common auxiliary vector, including inactive prior coordinates; it is not an active-coefficient shrinkage summary. Architecture indicators with posterior mass>=1% also pass rank R-hat/frequency ESS, plus the R spectral-ESS and absolute chain-frequency-range gates. Binary frequency ESS is shown in both ESS columns. Checks pass before forecasting. These monitored diagnostics do not prove convergence or accurate rare-model probabilities. Full traces, controls, chain exploration and all failed budgets are archived.','Small')
  title('Architecture exploration')
  rows=[['Scenario','Models visited (chains 1/2/3)','Retained switches (chains 1/2/3)']]
  for sc in study['scenarios']:
