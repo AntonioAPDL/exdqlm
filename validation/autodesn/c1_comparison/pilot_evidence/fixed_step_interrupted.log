@@ -1,0 +1,80 @@
+C1 AUTOGP NATIVE CONTRACTS PASSED
+AutoGP run 1 training rows 0 ESS 7.999999999999998
+Running SMC round 32/2000
+Particle Weights: [3.07e-04, 8.10e-01, 3.27e-15, 1.67e-17, 2.49e-17, 5.45e-15, 1.86e-01, 4.48e-03]
+Particle ESS: 0.1812034582478388
+resampled true
+accepted MCMC[23/40] HMC[62/71]
+accepted MCMC[6/40] HMC[21/22]
+accepted MCMC[15/40] HMC[51/54]
+accepted MCMC[5/40] HMC[19/20]
+accepted MCMC[10/40] HMC[34/36]
+accepted MCMC[17/40] HMC[58/62]
+accepted MCMC[4/40] HMC[16/16]
+accepted MCMC[19/40] HMC[46/57]
+AutoGP run 1 training rows 32 ESS 7.999999999999998
+Running SMC round 64/2000
+Particle Weights: [3.51e-03, 7.34e-03, 4.47e-03, 1.20e-03, 5.08e-03, 2.43e-03, 3.42e-03, 9.73e-01]
+Particle ESS: 0.13213868544987323
+resampled true
+accepted MCMC[8/40] HMC[1/9]
+accepted MCMC[11/40] HMC[0/11]
+accepted MCMC[10/40] HMC[1/11]
+accepted MCMC[14/40] HMC[0/14]
+accepted MCMC[11/40] HMC[0/11]
+accepted MCMC[15/40] HMC[0/15]
+accepted MCMC[11/40] HMC[0/11]
+accepted MCMC[18/40] HMC[14/30]
+AutoGP run 1 training rows 64 ESS 7.999999999999998
+Running SMC round 128/2000
+Particle Weights: [3.54e-02, 1.82e-02, 2.79e-07, 3.79e-01, 6.98e-02, 1.46e-01, 5.63e-02, 2.96e-01]
+Particle ESS: 0.4774504963234133
+resampled true
+accepted MCMC[4/40] HMC[0/4]
+accepted MCMC[10/40] HMC[0/10]
+accepted MCMC[12/40] HMC[0/12]
+accepted MCMC[10/40] HMC[0/10]
+accepted MCMC[12/40] HMC[1/13]
+accepted MCMC[11/40] HMC[2/13]
+accepted MCMC[8/40] HMC[0/8]
+accepted MCMC[11/40] HMC[0/11]
+AutoGP run 1 training rows 128 ESS 7.999999999999998
+Running SMC round 256/2000
+Particle Weights: [1.27e-03, 5.58e-06, 4.44e-01, 4.02e-02, 1.27e-02, 6.37e-04, 4.93e-01, 8.03e-03]
+Particle ESS: 0.2827231018633259
+resampled true
+accepted MCMC[7/30] HMC[0/7]
+accepted MCMC[5/30] HMC[0/5]
+accepted MCMC[1/30] HMC[0/1]
+accepted MCMC[4/30] HMC[0/4]
+accepted MCMC[6/30] HMC[1/7]
+accepted MCMC[9/30] HMC[0/9]
+accepted MCMC[10/30] HMC[0/10]
+accepted MCMC[13/30] HMC[0/13]
+AutoGP run 1 training rows 256 ESS 7.999999999999998
+Running SMC round 512/2000
+Particle Weights: [1.56e-01, 1.65e-01, 3.30e-03, 1.25e-01, 2.13e-02, 1.64e-01, 3.35e-01, 3.01e-02]
+Particle ESS: 0.6018433547529352
+resampled false
+accepted MCMC[6/20] HMC[0/6]
+accepted MCMC[2/20] HMC[0/2]
+accepted MCMC[0/20] HMC[0/0]
+accepted MCMC[8/20] HMC[0/8]
+accepted MCMC[3/20] HMC[0/3]
+accepted MCMC[4/20] HMC[0/4]
+accepted MCMC[6/20] HMC[0/6]
+accepted MCMC[2/20] HMC[0/2]
+AutoGP run 1 training rows 512 ESS 4.814746838023481
+Running SMC round 1000/2000
+Particle Weights: [2.26e-09, 2.72e-09, 1.40e-16, 1.57e-09, 1.25e-10, 3.64e-09, 1.02e-08, 1.00e+00]
+Particle ESS: 0.12500000511636253
+resampled true
+accepted MCMC[5/15] HMC[0/5]
+accepted MCMC[6/15] HMC[0/6]
+accepted MCMC[5/15] HMC[0/5]
+accepted MCMC[2/15] HMC[0/2]
+accepted MCMC[2/15] HMC[0/2]
+accepted MCMC[4/15] HMC[0/4]
+accepted MCMC[1/15] HMC[0/1]
+accepted MCMC[3/15] HMC[1/4]
+AutoGP run 1 training rows 1000 ESS 7.999999999999998

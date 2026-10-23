@@ -4,21 +4,23 @@ dir.create(out,recursive=TRUE,showWarnings=FALSE);started <- proc.time()[3]
 writeLines(capture.output(sessionInfo()),file.path(out,"session.txt"))
 cpfile <- file.path(out,"posterior_checkpoint.rds")
 if(file.exists(cpfile)) cp <- readRDS(cpfile) else {
-  bank <- c1_build_bank(y[1:cfg$fit_end],cfg,out);sampler <- c1_sampler(bank)
+  bank <- c1_build_bank(y[1:cfg$fit_end],cfg,out);sampler <- c1_sampler(bank);gc()
   for(attempt in seq_len(nrow(cfg$desn_attempts))) {
     controls <- cfg$desn_attempts[attempt,];adir <- file.path(out,paste0("attempt_",attempt))
     dir.create(adir,showWarnings=FALSE)
     run <- function(k) {
       path <- file.path(adir,paste0("chain_",k,".rds"))
-      if(file.exists(path)) {f <- readRDS(path);f$bank <- bank;return(f)}
+      if(file.exists(path)) return(readRDS(path))
       f <- sampler(bank,n_burn=controls$n_burn,n_mcmc=controls$n_mcmc,
         initial_variance=c(.1,1,5)[k],ridge_precision=c(.1,1,10)[k],
         seed=cfg$desn_seed+10000L*(attempt-1L)+k)
-      small <- f;small$bank <- NULL;c1_save(small,path);f
+      small <- f;small$bank <- NULL;c1_save(small,path);small
     }
     cat("Gibbs attempt",attempt,"3 chains,",controls$n_burn,"burn +",controls$n_mcmc,"retained\n");flush.console()
     fits <- parallel::mclapply(1:3,run,mc.cores=cfg$desn_chain_workers,mc.set.seed=FALSE)
-    if(any(vapply(fits,inherits,FALSE,"try-error"))) stop("Gibbs chain failed")
+    if(any(vapply(fits,function(x) inherits(x,"try-error")||!inherits(x,"autodesn_fit"),FALSE)))
+      stop("Gibbs chain failed; resume from the completed individual chain checkpoints")
+    fits <- lapply(fits,function(f) {f$bank <- bank;f})
     dg <- autodesn_diagnostics(fits)
     write.csv(dg$parameters,file.path(adir,"diagnostics.csv"),row.names=FALSE)
     write.csv(dg$models,file.path(adir,"model_probabilities.csv"),row.names=FALSE)

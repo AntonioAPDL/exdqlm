@@ -33,6 +33,9 @@ jobs:
         run: Rscript validation/autodesn/c1_comparison/test_contracts.R
       - name: Fit and evaluate C1
         run: Rscript validation/autodesn/c1_comparison/run_${{ matrix.method }}.R
+      - name: Export independent AutoDESN audit samples
+        if: matrix.method == 'desn'
+        run: Rscript validation/autodesn/c1_comparison/audit_desn.R
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -94,6 +97,7 @@ jobs:
           cp -r validation/autodesn/c1_comparison/downloads/c1-arima validation/autodesn/c1_comparison/artifacts/arima
           cp -r validation/autodesn/c1_comparison/downloads/c1-gp validation/autodesn/c1_comparison/artifacts/gp
       - run: python -m unittest discover -s validation/autodesn/c1_comparison -p test_scoring.py -v
+      - run: python validation/autodesn/c1_comparison/audit_desn.py
       - run: python validation/autodesn/c1_comparison/report.py
       - uses: actions/upload-artifact@v4
         if: always()

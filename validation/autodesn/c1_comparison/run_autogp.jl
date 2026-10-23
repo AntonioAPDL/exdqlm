@@ -68,20 +68,32 @@ for (run,seed) in enumerate(cfg["autogp_seeds"])
     else
         model=AutoGP.GPModel(times,y[times];n_particles=cfg["autogp_particles_per_run"],
             config=AutoGP.GP.GPConfig(max_depth=cfg["autogp_depth"]))
+        hmc=Dict(:n_exit=>cfg["autogp_hmc_exit"],:L_param=>cfg["autogp_leapfrog"],
+            :L_noise=>cfg["autogp_leapfrog"],:eps_param=>cfg["autogp_hmc_base_step"],
+            :eps_noise=>cfg["autogp_hmc_base_step"])
         fn=(;model,step,elapsed,rejuvenated,resampled,kw...)->begin
             weights=AutoGP.particle_weights(model)
             row=DataFrame(step=step,elapsed=elapsed,ess=AutoGP.effective_sample_size(model),
-                unique_kernels=length(unique(string.(AutoGP.covariance_kernels(model)))),
-                max_weight=maximum(weights),resampled=resampled,rejuvenated=rejuvenated)
+                unique_kernel_states=length(unique(string.(AutoGP.covariance_kernels(model)))),
+                max_weight=maximum(weights),resampled=resampled,rejuvenated=rejuvenated,
+                hmc_step=hmc[:eps_param])
             CSV.write(joinpath(dir,"smc_progress.csv"),row;append=isfile(joinpath(dir,"smc_progress.csv")))
             println("AutoGP run ",run," training rows ",step," ESS ",row.ess[1]);flush(stdout)
+            println(stderr,"AutoGP run ",run," training rows ",step," ESS ",row.ess[1]);flush(stderr)
+            next=filter(n->n>step,cfg["autogp_schedule"])
+            if !isempty(next)
+                hmc[:eps_param]=cfg["autogp_hmc_base_step"]*cfg["autogp_hmc_reference_n"]/first(next)
+                hmc[:eps_noise]=hmc[:eps_param]
+            end
         end
         callback=AutoGP.Callbacks.make_smc_callback(fn,model)
-        AutoGP.fit_smc!(model;schedule=cfg["autogp_schedule"],n_mcmc=cfg["autogp_mcmc"],
-            n_hmc=cfg["autogp_hmc"],biased=false,shuffle=true,adaptive_resampling=true,
-            adaptive_rejuvenation=false,hmc_config=(n_exit=1,L_param=cfg["autogp_leapfrog"],
-                L_noise=cfg["autogp_leapfrog"],eps_param=.02,eps_noise=.02),
-            verbose=true,check=false,callback_fn=callback)
+        open(joinpath(dir,"native_smc.log"),"w") do io
+            redirect_stdout(io) do
+                AutoGP.fit_smc!(model;schedule=cfg["autogp_schedule"],n_mcmc=cfg["autogp_mcmc"],
+                    n_hmc=cfg["autogp_hmc"],biased=false,shuffle=true,adaptive_resampling=true,
+                    adaptive_rejuvenation=false,hmc_config=hmc,verbose=true,check=false,callback_fn=callback)
+            end
+        end
         save_model(model,path)
     end
     dist=AutoGP.predict_mvn(model,future);parts=components(dist);weights=probs(dist)

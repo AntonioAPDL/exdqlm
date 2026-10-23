@@ -19,7 +19,7 @@
   "inner_paths": 8,
   "checkpoint_draws": 384,
   "desn_feature_workers": 2,
-  "desn_chain_workers": 2,
+  "desn_chain_workers": 1,
   "desn_origin_workers": 2,
   "desn_seed": 1066020,
   "desn_attempts": [
@@ -90,5 +90,9 @@
     "C1.csv": "a13a9256a8f5dec10625d0011be131285b7dcdb9f9a4558c67c877a53d1bfc4d",
     "specifications.rds": "b4fb99bc0f7ad6cec4367fedc2487e91fc47a552e59ddb9c985f0c57ca3b74cc",
     "specification_grid.csv": "67cc91c598cd012d4a8a2613490035deabb3473ba94a21c8ddddf7c69aee8d3f"
-  }
+  },
+  "autogp_hmc_base_step": 0.02,
+  "autogp_hmc_reference_n": 32,
+  "autogp_hmc_exit": 2,
+  "autogp_hmc_step_rule": "base_step * reference_n / next_stage_n"
 }

@@ -39,6 +39,12 @@ Three origins are checked against the authors' native API. Native `add_data!`
 updates weights, so those checks restore the training weights explicitly. A
 serialization adapter removes the library's included numerical jitter before
 reconstruction to prevent adding it a second time; round-trip tests verify it.
+The initial fixed HMC step of .02 had essentially no accepted parameter moves
+after the early stages. A retained training-only pilot verified that a step
+of `.02 * 32 / n_stage`, with two rejections allowed before early exit, restores
+parameter moves. This schedule is frozen before test forecasts/scoring; it
+changes proposal tuning, not the SMC target. Pilot logs are kept separately and
+are not pooled into the final posterior or selected by test performance.
 
 AutoARIMA uses forecast 8.21.1, training-only `findfrequency`, unit-root and
 seasonal differencing tests and exhaustive AICc search within recorded bounds,
@@ -58,6 +64,8 @@ comparison job requires all three successful methods and independent index,
 target, interval and score audits. Feature-bank parts are local resume files
 and excluded from uploaded artifacts to limit size. The compact posterior and
 each chain's numerical draws are retained.
+Chains return only draws across worker boundaries, and the default sequential
+chain execution avoids serializing the full feature bank to a parent process.
 
 Reported metrics: RMSE, MAE, CRPS, negative log predictive density, central 50/90%
 coverage and widths, overall and by lead. GP/ARIMA scores and quantiles are

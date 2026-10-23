@@ -19,10 +19,8 @@ test_that("grouped integrated scores preserve dense Gaussian target and Gibbs RN
 })
 test_that("shared recursive API matches builder and never reads future targets", {
   set.seed(72);y <- rnorm(180)
-  specs <- autodesn_candidates(D=1:2,n=5,m=3,alpha=.6,rho=.4,seed=11,washout=30,
-    act_k="identity",nonsense_unused=NULL)
-  # Remove deliberately unneeded extra: exercise only valid public arguments.
-  specs <- lapply(specs,function(x) {x$nonsense_unused <- NULL;x$n_tilde <- x$n[seq_len(x$D-1L)];x})
+  specs <- autodesn_candidates(D=1:2,n=5,m=3,alpha=.6,rho=.4,seed=11,washout=30,act_k="identity")
+  specs <- lapply(specs,function(x) {x$n_tilde <- x$n[seq_len(x$D-1L)];x})
   b <- autodesn_build_bank(y[1:150],specs,conditioning=30,washout=30)
   for(t in b$templates) expect_lt(c1_warmup(t,b$history_scaled,30L),1e-3)
   f <- autodesn_fit_bank(b,n_burn=10,n_mcmc=50,seed=5)
@@ -38,5 +36,17 @@ test_that("shared recursive API matches builder and never reads future targets",
   s2 <- hr_origin_states(cp,changed,150:160)
   f2 <- hr_auto(cp,s2$states[[1]],s2$history_scaled[1:150],3,2,z)
   expect_identical(fc$yrep,f2$yrep)
+})
+test_that("AutoARIMA fixed-parameter updates agree at the initial origin", {
+  set.seed(73);y <- as.numeric(arima.sim(list(ar=.65),n=100))
+  f <- forecast::Arima(y[1:80],order=c(1,0,0),method="ML")
+  updated <- forecast::Arima(y[1:80],model=f);updated$sigma2 <- f$sigma2
+  expect_identical(coef(f),coef(updated))
+  expect_equal(forecast::forecast(f,h=3)$mean,forecast::forecast(updated,h=3)$mean,tolerance=1e-9)
+  changed <- y;changed[81:100] <- 1e8
+  u2 <- forecast::Arima(changed[1:80],model=f);u2$sigma2 <- f$sigma2
+  expect_equal(forecast::forecast(updated,h=3)$upper,forecast::forecast(u2,h=3)$upper,tolerance=1e-10)
+  u3 <- forecast::Arima(y[1:81],model=f)
+  expect_identical(coef(f),coef(u3))
 })
 cat("C1 R CONTRACTS PASSED\n")
