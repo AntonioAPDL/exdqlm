@@ -1,0 +1,45 @@
+"file","context","test","nb","failed","skipped","error","warning","user","system","real","passed"
+"test-autodesn-gaussian.R","autodesn-gaussian","candidate grids and the series facade follow the Q-DESN argument contract",9,0,FALSE,FALSE,0,0.34,0,0.360000000000014,9
+"test-autodesn-gaussian.R","autodesn-gaussian","collapsed scores match dense Gaussian integration across design ranks",36,0,FALSE,FALSE,0,0.331,0,0.330999999999989,36
+"test-autodesn-gaussian.R","autodesn-gaussian","split prior mass leaves duplicate candidate posterior mass invariant",3,0,FALSE,FALSE,0,0.0409999999999995,0,0.0409999999999968,3
+"test-autodesn-gaussian.R","autodesn-gaussian","Gaussian coefficient conditional uses the correct precision factor",4,1,FALSE,FALSE,0,1.756,0,1.756,3
+"test-autodesn-gaussian.R","autodesn-gaussian","bank uses Q-DESN designs, common rows and prefix-only scaling",14,0,FALSE,FALSE,0,0.907,0,0.944000000000017,14
+"test-autodesn-gaussian.R","autodesn-gaussian","depth prior is independent of the number of specifications at that depth",2,0,FALSE,FALSE,0,0.131,0,0.149000000000001,2
+"test-autodesn-gaussian.R","autodesn-gaussian","Gibbs and prediction restore RNG and preserve joint draw dimensions",15,0,FALSE,FALSE,0,0.583,0,0.588999999999999,15
+"test-autodesn-gaussian.R","autodesn-gaussian","one-step recursive rows match the next shared-builder feature",2,0,FALSE,FALSE,0,0.244,0,0.296000000000021,2
+"test-autodesn-gaussian.R","autodesn-gaussian","one-step simulation matches joint posterior predictive mixture moments",2,0,FALSE,FALSE,0,1.321,0.27,1.61700000000002,2
+"test-autodesn-gaussian.R","autodesn-gaussian","recursive paths exactly reuse the Normal Q-DESN forecast with external draws",2,0,FALSE,FALSE,0,0.141999999999999,0.00300000000000011,0.155000000000001,2
+"test-autodesn-gaussian.R","autodesn-gaussian","later forecast means use their own sampled feedback histories",6,0,FALSE,FALSE,0,0.274999999999999,0.016,0.355000000000018,6
+"test-autodesn-gaussian.R","autodesn-gaussian","identity bridges, zero lag input and single draws retain forecast dimensions",4,0,FALSE,FALSE,0,0.0790000000000006,0,0.0879999999999939,4
+"test-autodesn-gaussian.R","autodesn-gaussian","validation rejects unsupported modes and malformed controls explicitly",20,0,FALSE,FALSE,0,0.333,0,0.346000000000004,20
+"test-autodesn-gaussian.R","autodesn-gaussian","diagnostics identify equivalent targets and fixed-precision edge cases",7,0,FALSE,FALSE,0,0.453000000000001,0,0.457999999999998,7
+"test-qdesn-forecast-recursion-diagnostic.R","qdesn-forecast-recursion-diagnostic","conditional-mean lattice recursion preserves draw identity and lead one",6,0,FALSE,FALSE,0,1.273,0,1.273,6
+"test-qdesn-forecast-recursion-diagnostic.R","qdesn-forecast-recursion-diagnostic","MCMC posterior subsampling records exact source rows",4,0,FALSE,FALSE,0,0.0540000000000003,0,0.054000000000002,4
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state records and validates exact ridge fits",10,0,FALSE,FALSE,0,0.145999999999999,0,0.156000000000006,10
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state distinguishes exact chunked fits",3,0,FALSE,FALSE,0,0.0449999999999999,0,0.0630000000000166,3
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state labels RHS-family sources as approximate",4,0,FALSE,FALSE,0,0.0559999999999992,0,0.0690000000000168,4
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start state validates Q-DESN metadata and serialization",5,0,FALSE,FALSE,0,0.0760000000000005,0,0.121999999999986,5
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start validation rejects corrupted states",4,0,FALSE,FALSE,0,0.183,0,0.228000000000009,4
+"test-qdesn-normal-warm-start.R","qdesn-normal-warm-start","Normal DESN warm-start converters preserve moments and source metadata",10,0,FALSE,FALSE,0,0.138000000000002,0,0.190000000000026,10
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit scaled ridge matches closed-form posterior algebra",11,0,FALSE,FALSE,0,0.112,0,0.125,11
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit exact chunked scaled ridge matches unchunked",48,0,FALSE,FALSE,0,0.561,0,0.597000000000008,48
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit validates scaled ridge inputs",7,0,FALSE,FALSE,0,0.112,0,0.111999999999995,7
+"test-qdesn-normal.R","qdesn-normal","normal_desn_fit RHS-family priors are finite approximate VB fits",23,0,FALSE,FALSE,0,0.478999999999999,0,0.504999999999995,23
+"test-qdesn-normal.R","qdesn-normal","Normal DESN posterior draws and predictions are reproducible",5,0,FALSE,FALSE,0,0.0850000000000009,0,0.0929999999999893,5
+"test-qdesn-normal.R","qdesn-normal","qdesn_fit_normal reuses Q-DESN design construction and returns Normal class",9,0,FALSE,FALSE,0,0.0920000000000005,0,0.106999999999999,9
+"test-qdesn-normal.R","qdesn-normal","qdesn_fit_normal forwards exact chunking to scaled-ridge readout",9,0,FALSE,FALSE,0,0.206,0,0.240000000000009,9
+"test-qdesn-normal.R","qdesn-normal","qdesn_fit_normal supports RHS-family approximate readouts",6,0,FALSE,FALSE,0,0.0839999999999996,0,0.113,6
+"test-qdesn-normal.R","qdesn-normal","forecast_paths.qdesn_normal_fit produces reproducible recursive paths",9,0,FALSE,FALSE,0,0.111999999999998,0,0.13300000000001,9
+"test-qdesn-normal.R","qdesn-normal","forecast_paths.qdesn_normal_fit fails early for unsupported settings",2,0,FALSE,FALSE,0,0.0449999999999982,0,0.0740000000000123,2
+"test-qdesn-normal.R","qdesn-normal","qdesn_normal_to_vb_init carries beta moments and metadata",7,0,FALSE,FALSE,0,0.0940000000000012,0,0.127999999999986,7
+"test-qdesn-normal.R","qdesn-normal","Normal DESN initializers seed AL/exAL VB and MCMC contracts",8,0,FALSE,FALSE,0,0.119,0,0.14700000000002,8
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","exact-fan-in reservoirs honor row degree and input normalization",11,0,FALSE,FALSE,0,0.118000000000002,0,0.117999999999995,11
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","spectral normalization preserves the failed 300-unit fan-in case",5,0,FALSE,FALSE,0,0.41,0,0.411999999999978,5
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","large approximate spectral radii require a verified eigenpair",2,1,FALSE,FALSE,0,0.981999999999999,0,0.994999999999976,1
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","Normal recursive forecasts accept an explicit teacher-forced origin state",2,0,FALSE,FALSE,0,0.041999999999998,0,0.0649999999999977,2
+"test-qdesn-redesign-topology.R","qdesn-redesign-topology","Woodbury Normal-RHS moments match the full covariance solver",4,0,FALSE,FALSE,0,0.0730000000000004,0,0.0910000000000082,4
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","qdesn_vb_make_warm_start records state and validates dimensions",17,0,FALSE,FALSE,0,0.253,0,0.252999999999986,17
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","Q-DESN warm start routes to the same init as explicit engine init",5,0,FALSE,FALSE,0,0.193000000000001,0,0.212999999999994,5
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","warm-started exact chunking remains equivalent to warm-started unchunked AL",4,0,FALSE,FALSE,0,0.241,0,0.256,4
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","Q-DESN warm starts support exAL and RHS_NS finite states",9,0,FALSE,FALSE,0,1.228,0,1.25899999999999,9
+"test-qdesn-vb-warm-start.R","qdesn-vb-warm-start","Q-DESN warm starts fail early on mismatches and stochastic mode",4,0,FALSE,FALSE,0,0.196999999999999,0,0.211000000000013,4

@@ -1,0 +1,2 @@
+"dgp","repetition","max_rhat","min_spectral_ess","max_model_chain_range","diagnostic_screen_pass","model_probability_total_variation","original_rmse","confirmation_rmse","original_crps","confirmation_crps","mean_location_RMS_difference"
+"nonlinear",1,1.00107553557788,1777.85744793988,0.00559447106342991,TRUE,0.00500459774765718,0.502188994621883,0.506102814953494,0.270439716036816,0.272384439074225,0.00804153680176373

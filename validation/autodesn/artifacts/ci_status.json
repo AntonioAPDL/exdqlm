@@ -1,0 +1,49 @@
+{
+  "commit": "d70d01f5c899ed74e4f1f787b85b4ad78b0fab73",
+  "run_url": "https://github.com/AntonioAPDL/exdqlm/actions/runs/39585810059",
+  "jobs": [
+    {
+      "name": "macos-latest (release)",
+      "status": "completed",
+      "conclusion": "failure",
+      "checkout": "success",
+      "failed_steps": [
+        "Run r-lib/actions/check-r-package@v2"
+      ]
+    },
+    {
+      "name": "windows-latest (release)",
+      "status": "completed",
+      "conclusion": "failure",
+      "checkout": "success",
+      "failed_steps": [
+        "Run r-lib/actions/check-r-package@v2"
+      ]
+    },
+    {
+      "name": "ubuntu-latest (release)",
+      "status": "completed",
+      "conclusion": "failure",
+      "checkout": "success",
+      "failed_steps": [
+        "Run r-lib/actions/check-r-package@v2"
+      ]
+    },
+    {
+      "name": "ubuntu-latest (devel)",
+      "status": "in_progress",
+      "conclusion": null,
+      "checkout": "success",
+      "failed_steps": []
+    },
+    {
+      "name": "ubuntu-latest (oldrel-1)",
+      "status": "completed",
+      "conclusion": "failure",
+      "checkout": "success",
+      "failed_steps": [
+        "Run r-lib/actions/check-r-package@v2"
+      ]
+    }
+  ]
+}

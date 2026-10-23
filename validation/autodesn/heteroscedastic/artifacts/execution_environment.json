@@ -1,0 +1,13 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "numpy": "2.3.5",
+  "pandas": "2.2.3",
+  "matplotlib": "3.10.8",
+  "memory_limit_bytes": 8589934592,
+  "cpu_quota": "800000 100000",
+  "sampler_chain_workers": 1,
+  "BLAS_OMP_MKL_thread_limits": 1,
+  "R_session_information": "session.txt",
+  "R_source_files": 145,
+  "scope": "Custom synthetic validation, not a public benchmark leaderboard; no production likelihood or prior changes."
+}

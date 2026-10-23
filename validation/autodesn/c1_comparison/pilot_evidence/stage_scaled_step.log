@@ -1,0 +1,74 @@
+PILOT STEP 0 elapsed 0.030524061
+NEXT HMC EPS 0.02
+Running SMC round 32/2000
+Particle Weights: [3.07e-04, 8.10e-01, 3.27e-15, 1.67e-17, 2.49e-17, 5.45e-15, 1.86e-01, 4.48e-03]
+Particle ESS: 0.1812034582478388
+resampled true
+accepted MCMC[21/40] HMC[79/84]
+accepted MCMC[14/40] HMC[46/54]
+accepted MCMC[4/40] HMC[16/16]
+accepted MCMC[7/40] HMC[27/28]
+accepted MCMC[8/40] HMC[30/32]
+accepted MCMC[14/40] HMC[48/56]
+accepted MCMC[26/40] HMC[86/104]
+accepted MCMC[10/40] HMC[34/40]
+PILOT STEP 32 elapsed 13.405644321999999
+NEXT HMC EPS 0.01
+Running SMC round 64/2000
+Particle Weights: [1.68e-01, 5.05e-02, 3.41e-01, 3.14e-02, 2.52e-01, 5.30e-03, 9.54e-02, 5.61e-02]
+Particle ESS: 0.5579618031929604
+resampled false
+accepted MCMC[13/40] HMC[10/34]
+accepted MCMC[12/40] HMC[44/48]
+accepted MCMC[4/40] HMC[15/16]
+accepted MCMC[5/40] HMC[18/20]
+accepted MCMC[27/40] HMC[93/105]
+accepted MCMC[18/40] HMC[71/72]
+accepted MCMC[9/40] HMC[35/36]
+accepted MCMC[7/40] HMC[18/26]
+PILOT STEP 64 elapsed 18.652474315
+NEXT HMC EPS 0.005
+Running SMC round 128/2000
+Particle Weights: [9.34e-03, 6.83e-02, 7.51e-02, 7.49e-04, 6.21e-01, 2.64e-03, 2.22e-01, 4.73e-04]
+Particle ESS: 0.28048198760465853
+resampled true
+accepted MCMC[16/40] HMC[43/62]
+accepted MCMC[10/40] HMC[16/33]
+accepted MCMC[9/40] HMC[9/26]
+accepted MCMC[14/40] HMC[5/31]
+accepted MCMC[24/40] HMC[90/95]
+accepted MCMC[0/40] HMC[0/0]
+accepted MCMC[6/40] HMC[5/16]
+accepted MCMC[13/40] HMC[34/48]
+PILOT STEP 128 elapsed 31.338614767
+NEXT HMC EPS 0.0025
+Running SMC round 256/2000
+Particle Weights: [7.02e-12, 1.90e-11, 9.57e-02, 9.04e-01, 4.60e-15, 1.92e-15, 2.05e-04, 8.47e-13]
+Particle ESS: 0.15121951317478438
+resampled true
+accepted MCMC[6/30] HMC[1/13]
+accepted MCMC[5/30] HMC[2/11]
+accepted MCMC[11/30] HMC[1/23]
+accepted MCMC[8/30] HMC[0/16]
+accepted MCMC[12/30] HMC[4/27]
+accepted MCMC[1/30] HMC[0/2]
+accepted MCMC[7/30] HMC[2/15]
+accepted MCMC[5/30] HMC[3/13]
+PILOT STEP 256 elapsed 42.75266913
+NEXT HMC EPS 0.00125
+Running SMC round 512/2000
+Particle Weights: [4.48e-06, 4.12e-01, 1.78e-01, 1.39e-02, 2.15e-01, 4.23e-03, 1.68e-01, 9.11e-03]
+Particle ESS: 0.45319270027753344
+resampled true
+accepted MCMC[8/20] HMC[6/21]
+accepted MCMC[0/20] HMC[0/0]
+accepted MCMC[4/20] HMC[1/9]
+accepted MCMC[3/20] HMC[2/8]
+accepted MCMC[1/20] HMC[0/2]
+accepted MCMC[5/20] HMC[2/12]
+accepted MCMC[7/20] HMC[4/16]
+accepted MCMC[4/20] HMC[1/9]
+PILOT STEP 512 elapsed 76.221052173
+┌ Warning: Using more particles than available threads.
+└ @ AutoGP /workspace/scratch/14192e7528d4/deps/AutoGP.jl/src/api.jl:226
+TRAINING-ONLY HMC PILOT COMPLETE

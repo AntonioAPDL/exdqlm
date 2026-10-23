@@ -8,30 +8,30 @@
 #'
 #' @section Scenarios:
 #' \itemize{
-#' \item \code{"ar1_exal"}:\; \eqn{y_t = \phi_1 y_{t-1} + \epsilon_t^{exAL}(p_0,\sigma,\gamma)}.
-#' \item \code{"sin_exal"}:\; \eqn{y_t = a_1 y_{t-1} + b_1 \sin(2\pi t/P) + c + \epsilon_t^{exAL}}.
-#' \item \code{"hetero_exal"}:\; \eqn{y_t = a_1 y_{t-1} + \epsilon_t^{exAL}(\sigma_t)},
-#'   with \(\sigma_t = \sigma_0 + \sigma_1\,\mathrm{logit}^{-1}(\kappa y_{t-1})\).
-#' \item \code{"regime_exal"}:\; \eqn{y_t = a_1 y_{t-1} + b\,\max(0,\sin(2\pi t/P)) + \epsilon_t^{exAL}}.
-#' \item \code{"ar1_t"}:\; \eqn{y_t = \phi_1 y_{t-1} + \tau\,t_\nu} (Student-t noise).
-#' \item \code{"dlm_constV_smallW"}:\; Gaussian DLM (linear trend + two harmonics) with
-#'   constant observation variance \(V\) and small state noise \(W=\alpha\,\Sigma\).
-#' \item \code{"dlm_constV_bigW"}:\; same DLM, larger \(\alpha\).
-#' \item \code{"dlm_ar1V"}:\; same DLM but \(\log V_t\) follows AR(1), so quantiles are via MC.
+#' \item \code{"ar1_exal"}: \eqn{y_t = \phi_1 y_{t-1} + \epsilon_t^{exAL}(p_0,\sigma,\gamma)}.
+#' \item \code{"sin_exal"}: \eqn{y_t = a_1 y_{t-1} + b_1 \sin(2\pi t/P) + c + \epsilon_t^{exAL}}.
+#' \item \code{"hetero_exal"}: \eqn{y_t = a_1 y_{t-1} + \epsilon_t^{exAL}(\sigma_t)},
+#'   with \eqn{\sigma_t = \sigma_0 + \sigma_1\,\mathrm{logit}^{-1}(\kappa y_{t-1})}.
+#' \item \code{"regime_exal"}: \eqn{y_t = a_1 y_{t-1} + b\,\max(0,\sin(2\pi t/P)) + \epsilon_t^{exAL}}.
+#' \item \code{"ar1_t"}: \eqn{y_t = \phi_1 y_{t-1} + \tau\,t_\nu} (Student-t noise).
+#' \item \code{"dlm_constV_smallW"}: Gaussian DLM (linear trend + two harmonics) with
+#'   constant observation variance \eqn{V} and small state noise \eqn{W=\alpha\,\Sigma}.
+#' \item \code{"dlm_constV_bigW"}: same DLM, larger \eqn{\alpha}.
+#' \item \code{"dlm_ar1V"}: same DLM but \eqn{\log V_t} follows AR(1), so quantiles are via MC.
 #' }
 #'
 #' @details
-#' \strong{exAL noise.} For \code{*_exal} scenarios, exAL\((p_0,\sigma,\gamma)\) is sampled via the
-#' Gaussian mean–variance mixture with \(s\sim \mathcal N^+(0,1)\) and \(v\sim \mathrm{Exp}(1/\sigma)\),
-#' yielding draws from \(\mathcal N\bigl(\mu_t + \lambda(\gamma)\sigma s + A(\gamma)v,\; B(\gamma)\sigma v\bigr)\).
+#' \strong{exAL noise.} For \code{*_exal} scenarios, exAL\eqn{(p_0,\sigma,\gamma)} is sampled via the
+#' Gaussian mean and variance mixture with \eqn{s\sim \mathcal N^+(0,1)} and \eqn{v\sim \mathrm{Exp}(1/\sigma)},
+#' yielding draws from \eqn{\mathcal N\bigl(\mu_t + \lambda(\gamma)\sigma s + A(\gamma)v,\; B(\gamma)\sigma v\bigr)}.
 #'
 #' \strong{DLM specification.} The state is a 6-vector
 #' \code{(level, slope, cos1, sin1, cos2, sin2)} with
-#' \(F=(1,0,1,0,1,0)^\top\) and \(G=\mathrm{bdiag}\big((1,1;0,1), R(\lambda_1), R(\lambda_2)\big)\).
-#' R(\lambda_1),R(\lambda_2)\bigr)\), \(R(\lambda)=\begin{smallmatrix}(\cos\lambda,\sin\lambda;-\sin\lambda,\cos\lambda)\end{smallmatrix}\).
-#' \(\theta_t \mid \theta_{t-1}\sim\mathcal N(G\theta_{t-1},W)\), \(y_t\mid\theta_t,V_t\sim\mathcal N(F^\top\theta_t,V_t)\).
-#' For \code{dlm_constV_*}, \(V_t\equiv V\) and quantiles are analytic; for \code{dlm_ar1V},
-#' \(\log V_t = \mu_v + \phi_v(\log V_{t-1}-\mu_v) + s_v\eta_t\) with \(\eta_t\sim\mathcal N(0,1)\) (quantiles via MC).
+#' \eqn{F=(1,0,1,0,1,0)^\top} and \eqn{G=\mathrm{bdiag}\big((1,1;0,1), R(\lambda_1), R(\lambda_2)\big)}.
+#' \eqn{R(\lambda) = ((\cos\lambda, \sin\lambda), (-\sin\lambda, \cos\lambda))}.
+#' \eqn{\theta_t \mid \theta_{t-1}\sim\mathcal N(G\theta_{t-1},W)}, \eqn{y_t\mid\theta_t,V_t\sim\mathcal N(F^\top\theta_t,V_t)}.
+#' For \code{dlm_constV_*}, \eqn{V_t\equiv V} and quantiles are analytic; for \code{dlm_ar1V},
+#' \eqn{\log V_t = \mu_v + \phi_v(\log V_{t-1}-\mu_v) + s_v\eta_t} with \eqn{\eta_t\sim\mathcal N(0,1)} (quantiles via MC).
 #'
 #' \strong{Defaults (override via \code{params}).}
 #' \itemize{
@@ -45,17 +45,17 @@
 #' }
 #'
 #' @param T Integer; desired post-burn-in length.
-#' @param p_grid Numeric vector of quantile levels in \((0,1)\). Duplicates are removed,
-#'   sorted, and used for each \eqn{t}. Default: \code{c(0.10, 0.15, ..., 0.95, 0.50)}.
+#' @param p_grid Numeric vector of quantile levels in \eqn{(0,1)}. Duplicates are removed,
+#'   sorted, and used for each \eqn{t}. Default: \code{seq(0.5, 0.95, by = 0.05)}.
 #' @param R_mc Integer; Monte Carlo draws per time step for quantiles when needed.
 #' @param scenario Character; one of
 #'   \code{c("ar1_exal","sin_exal","hetero_exal","regime_exal","ar1_t",
 #'           "dlm_constV_smallW","dlm_constV_bigW","dlm_ar1V")}.
 #' @param params Named list of scenario parameters (see Details for defaults).
-#' @param burnin Integer; extra steps simulated and discarded as washout (default \code{500}).
+#' @param burnin Integer; extra steps simulated and discarded as washout (default \code{2000}).
 #' @param seed Integer; RNG seed.
 #' @param keep_latents Logical; if \code{TRUE}, returns conditional means \eqn{\mu_t}
-#'   (and, for exAL scenarios, \(\sigma_t\)).
+#'   (and, for exAL scenarios, \eqn{\sigma_t}).
 #' @param keep_draws Logical; if \code{TRUE}, returns the per-time Monte Carlo draws (large).
 #'
 #' @return A list with:
@@ -69,8 +69,8 @@
 #' }
 #'
 #' @note For \code{dlm_constV_*}, the one-step predictive is Normal with variance
-#' \(F^\top R_t F + V\) (quantiles via \code{qnorm}). For \code{dlm_ar1V}, the predictive
-#' is a Normal scale-mixture due to random \(V_t\) (quantiles via Monte Carlo).
+#' \eqn{F^\top R_t F + V} (quantiles via \code{qnorm}). For \code{dlm_ar1V}, the predictive
+#' is a Normal scale-mixture due to random \eqn{V_t} (quantiles via Monte Carlo).
 #'
 #' @references
 #' West, M. & Harrison, J. (1997). \emph{Bayesian Forecasting and Dynamic Models}.

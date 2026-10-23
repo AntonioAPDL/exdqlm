@@ -1,0 +1,16 @@
+file,context,test,nb,failed,skipped,error,warning,user,system,real,passed
+test-autodesn-gaussian.R,autodesn-gaussian,candidate grids and the series facade follow the Q-DESN argument contract,9,0,False,False,0,3.205,0.0,3.233,9
+test-autodesn-gaussian.R,autodesn-gaussian,collapsed scores match dense Gaussian integration across design ranks,36,0,False,False,0,0.618,0.0,0.628,36
+test-autodesn-gaussian.R,autodesn-gaussian,split prior mass leaves duplicate candidate posterior mass invariant,3,0,False,False,0,0.227,0.0,0.227,3
+test-autodesn-gaussian.R,autodesn-gaussian,Gaussian coefficient conditional uses the correct precision factor,4,0,False,False,0,2.147,0.0,2.147,4
+test-autodesn-gaussian.R,autodesn-gaussian,"bank uses Q-DESN designs, common rows and prefix-only scaling",14,0,False,False,0,0.183000000000002,0.0,0.225999999999999,14
+test-autodesn-gaussian.R,autodesn-gaussian,depth prior is independent of the number of specifications at that depth,2,0,False,False,0,0.0440000000000005,0.0,0.0680000000000014,2
+test-autodesn-gaussian.R,autodesn-gaussian,Gibbs and prediction restore RNG and preserve joint draw dimensions,15,0,False,False,0,0.497999999999999,0.0,0.508000000000001,15
+test-autodesn-gaussian.R,autodesn-gaussian,one-step recursive rows match the next shared-builder feature,2,0,False,False,0,0.125,0.0,0.196999999999999,2
+test-autodesn-gaussian.R,autodesn-gaussian,one-step simulation matches joint posterior predictive mixture moments,2,0,False,False,0,0.287000000000001,0.0,0.321,2
+test-autodesn-gaussian.R,autodesn-gaussian,recursive paths exactly reuse the Normal Q-DESN forecast with external draws,2,0,False,False,0,0.0870000000000015,0.0,0.0989999999999984,2
+test-autodesn-gaussian.R,autodesn-gaussian,later forecast means use their own sampled feedback histories,6,0,False,False,0,0.161999999999999,0.0,0.298999999999999,6
+test-autodesn-gaussian.R,autodesn-gaussian,"identity bridges, zero lag input and single draws retain forecast dimensions",4,0,False,False,0,0.0980000000000008,0.0,0.107999999999997,4
+test-autodesn-gaussian.R,autodesn-gaussian,a one-unit reservoir retains time rows in the shared builder,4,0,False,False,0,0.0400000000000009,0.0,0.0489999999999995,4
+test-autodesn-gaussian.R,autodesn-gaussian,validation rejects unsupported modes and malformed controls explicitly,20,0,False,False,0,0.180000000000001,0.0,0.202000000000002,20
+test-autodesn-gaussian.R,autodesn-gaussian,diagnostics identify equivalent targets and fixed-precision edge cases,7,0,False,False,0,0.335999999999999,0.0,0.335999999999999,7

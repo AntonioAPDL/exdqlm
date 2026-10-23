@@ -57,6 +57,9 @@ forecast_paths.qdesn_normal_fit(
   y_future_obs = NULL,
   origin_state = NULL,
   return_design = FALSE,
+  innovations = NULL,
+  recursion_mode = c("posterior_predictive", "conditional_mean_plugin"),
+  backend = c("serial", "batched"),
   ...
 )
 
@@ -149,6 +152,12 @@ forecast origin. This permits teacher-forced rolling origins without replaying
 or incorrectly reusing the terminal state.}
 \item{return_design}{Logical; if \code{TRUE}, return per-draw forecast design
 rows when available.}
+\item{innovations}{Optional finite \code{H} by number-of-draws matrix of
+standard Normal innovations, scaled by each draw's observation-noise SD.}
+\item{recursion_mode}{Simulated-observation feedback for posterior prediction,
+or conditional-mean feedback for a separately labeled plug-in diagnostic.}
+\item{backend}{Serial paths (default, preserving existing RNG order) or
+batched matrix propagation using the same reservoir transition.}
 \item{likelihood_family}{Target AL/exAL family recorded in initialization
 metadata.}
 \item{p0}{Target quantile level recorded in initialization metadata.}

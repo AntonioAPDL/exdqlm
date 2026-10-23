@@ -1,0 +1,2 @@
+"D","width","m","H","total_paths","serial_seconds","batched_seconds","speed_ratio","max_absolute_difference","qualification"
+3,50,90,100,512,4.756,1.095,4.34337899543379,7.105427357601e-14,"Single timing on this R/BLAS/host; numerical parity audit, not a general speed guarantee."

@@ -1,0 +1,20 @@
+* installing *source* package ‘exdqlm’ ...
+** using staged installation
+** libs
+using C++ compiler: ‘g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0’
+make: Nothing to be done for 'all'.
+installing to /workspace/scratch/14192e7528d4/autodesn_runtime/long_library/00LOCK-qdesn/00new/exdqlm/libs
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** preparing package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (exdqlm)

@@ -25,7 +25,10 @@ Description: Bayesian quantile-regression routines for dynamic state-space
     static shrinkage priors including ridge, regularized horseshoe, and
     'rhs_ns', evidence lower bound (ELBO) diagnostics, optional C++
     accelerators, and posterior predictive synthesis across separately fitted
-    quantiles through 'quantileSynthesis()'. Dynamic exDQLM methods are
+    quantiles through 'quantileSynthesis()'. A Gaussian DESN extension supports
+    finite-bank Bayesian specification selection with independent ridge
+    priors, blocked Gibbs sampling, and recursive predictive averaging.
+    Dynamic exDQLM methods are
     described in Barata et al. (2020) <doi:10.1214/21-AOAS1497>.
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -57,6 +60,8 @@ Imports:
     tibble,
     yaml
 Suggests:
+    Matrix,
+    RSpectra,
     brms,
     data.table,
     forecast,

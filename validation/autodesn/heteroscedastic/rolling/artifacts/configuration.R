@@ -1,0 +1,10 @@
+list(schema = "autodesn_rolling_no_refit_500_2000_h30_v1", washout = 500L,
+    n_train = 2000L, initial_origin = 2500L, origins = 2500:2570,
+    H = 30L, outer_draws = 192L, inner_paths = 16L, sensitivity_inner = c(8L,
+    16L, 32L), origin_workers = 2L, case_workers = 2L, refit_per_origin = FALSE,
+    preprocessing_updates = FALSE, posterior_model_weight_updates = FALSE,
+    teacher_forced_between_origins = TRUE, recursive_within_origin = TRUE,
+    future_observations_within_origin = FALSE, inference = "Exact replay of the final diagnostic-selected sampler duration/seeds from the recorded fixed-origin study; no new model selection/tuning on the test period.",
+    design_history = "Rolling H=30 requested after the original fixed-origin run. DGPs, candidate bank, priors and fit window unchanged.",
+    protocol = "docs/implementation_notes/independent_qdesn_corrected_forecast_v3_20260930.md",
+    source_revision_at_launch = "c718a620a24f1dec9a65b9bf29ad19c654a9bfcd")

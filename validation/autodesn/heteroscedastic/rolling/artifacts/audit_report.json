@@ -1,0 +1,2287 @@
+{
+  "passed": 569,
+  "failed": 0,
+  "origins_per_series": 71,
+  "horizon": 30,
+  "refit_per_origin": false,
+  "score_rows": 134190,
+  "independent_series_per_dgp": 3,
+  "checks": [
+    {
+      "check": "smooth_scale_r01 complete",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 seven methods",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/fit_start",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/fit_end",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/n_train",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/washout",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/first_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/last_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/origins",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/H",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/total_paths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 original path replay",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 final ESS",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 model chain range",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 target lattice",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 squared errors",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 90% widths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 50% widths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 finite scores",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r01/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 complete",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 seven methods",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/fit_start",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/fit_end",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/n_train",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/washout",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/first_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/last_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/origins",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/H",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/total_paths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 original path replay",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 final ESS",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 model chain range",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 target lattice",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 squared errors",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 90% widths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 50% widths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 finite scores",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r02/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 complete",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 seven methods",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/fit_start",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/fit_end",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/n_train",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/washout",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/first_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/last_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/origins",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/H",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/total_paths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 original path replay",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 final ESS",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 model chain range",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 target lattice",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 squared errors",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 90% widths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 50% widths",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 finite scores",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "smooth_scale_r03/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 complete",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 seven methods",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/fit_start",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/fit_end",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/n_train",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/washout",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/first_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/last_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/origins",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/H",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/total_paths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 original path replay",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 final ESS",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 model chain range",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 target lattice",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 squared errors",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 90% widths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 50% widths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 finite scores",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r01/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 complete",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 seven methods",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/fit_start",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/fit_end",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/n_train",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/washout",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/first_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/last_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/origins",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/H",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/total_paths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 original path replay",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 final ESS",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 model chain range",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 target lattice",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 squared errors",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 90% widths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 50% widths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 finite scores",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r02/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 complete",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 seven methods",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/fit_start",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/fit_end",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/n_train",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/washout",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/first_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/last_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/origins",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/H",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/total_paths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 original path replay",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 final ESS",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 model chain range",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 target lattice",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 squared errors",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 90% widths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 50% widths",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 finite scores",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "threshold_gjr_r03/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 complete",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 seven methods",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/fit_start",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/fit_end",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/n_train",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/washout",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/first_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/last_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/origins",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/H",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/total_paths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 original path replay",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 final ESS",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 model chain range",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 target lattice",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 squared errors",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 90% widths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 50% widths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 finite scores",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r01/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 complete",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 seven methods",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/fit_start",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/fit_end",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/n_train",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/washout",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/first_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/last_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/origins",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/H",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/total_paths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 original path replay",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 final ESS",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 model chain range",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 target lattice",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 squared errors",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 90% widths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 50% widths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 finite scores",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r02/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 complete",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 14910 unique origin-lead scores",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 seven methods",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/fit_start",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/fit_end",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/n_train",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/washout",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/first_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/last_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/origins",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/H",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/total_paths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/refit_per_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/posterior_model_weights_updated",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/preprocessing_updated",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/future_values_within_origin",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 original model mass replay",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 original path replay",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 final Rhat",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 final ESS",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 model chain range",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 target lattice",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 targets are actual observed values",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 squared errors",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 absolute errors",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 90% widths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 50% widths",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 90% coverage",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 50% coverage",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 ordered quantiles",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 positive predictive SD",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 finite scores",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03 nonnegative CRPS",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/AR1_GJR_GARCH same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/AutoDESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/AutoDESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/Constant same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/Fixed_DESN same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/Fixed_DESN fixed innovation variance across origins/leads",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/Gaussian_AR1 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/Gaussian_AR12 same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/Oracle_DGP same 71 origins at every lead",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/auto_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "switching_seasonal_r03/fixed_checkpoint.rds compact forecast checkpoint",
+      "passed": true
+    },
+    {
+      "check": "all nine cases",
+      "passed": true
+    },
+    {
+      "check": "134190 scored rows",
+      "passed": true
+    },
+    {
+      "check": "17280 restored checkpoint path values",
+      "passed": true
+    },
+    {
+      "check": "restored on-disk checkpoints reproduce original paths",
+      "passed": true
+    },
+    {
+      "check": "all 648 model probabilities replayed",
+      "passed": true
+    },
+    {
+      "check": "exact posterior model probability replay",
+      "passed": true
+    },
+    {
+      "check": "3456 retained joint draws",
+      "passed": true
+    },
+    {
+      "check": "positive variance/precision",
+      "passed": true
+    },
+    {
+      "check": "('smooth_scale', np.int64(1), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('smooth_scale', np.int64(1), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('smooth_scale', np.int64(2), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('smooth_scale', np.int64(2), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('smooth_scale', np.int64(3), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('smooth_scale', np.int64(3), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('switching_seasonal', np.int64(1), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('switching_seasonal', np.int64(1), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('switching_seasonal', np.int64(2), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('switching_seasonal', np.int64(2), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('switching_seasonal', np.int64(3), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('switching_seasonal', np.int64(3), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('threshold_gjr', np.int64(1), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('threshold_gjr', np.int64(1), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('threshold_gjr', np.int64(2), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('threshold_gjr', np.int64(2), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('threshold_gjr', np.int64(3), 'AutoDESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "('threshold_gjr', np.int64(3), 'Fixed_DESN') complete outer IDs",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/00_utils.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/autodesn_diagnostics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/autodesn_gaussian.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/autodesn.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_analysis.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_build.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_download.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_parse.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_baselines.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_calibration.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_collapse_audit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_data.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_diagnostics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_fixed_debug.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_metrics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_one_step_audit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_pathology_audit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_quantile_debug.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_quantiles.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_report.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_results.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_rhs_debug.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_runner.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_qdesn_shoulder_audit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/benchmark_utils.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/BTflow.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/climateIndices.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/combineMods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/compPlot.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/dlmMod.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/ELIanoms.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_alias_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_inference_config.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_ldvb_engine.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_ldvb_fit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_mcmc_collapsed_scale_shape.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_mcmc_fit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_online_stage0.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_online_state.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_online_step.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_online_vbld.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal_sigmagam_structured.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exal.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exalStaticDiagnostic_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exalStaticDiagnostics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exalStaticFit_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exalStaticLDVB.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exalStaticMCMC.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlm_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlm-package.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmDiagnostic_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmDiagnostics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmFit_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmForecast_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmForecast.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmForecastDiagnostic_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmForecastDiagnostics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmISVB.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmLDVB.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmMCMC.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmPlot.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmSynthesis_methods.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmTransferISVB.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmTransferLDVB.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/exdqlmTransferMCMC.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/gamma_bounds.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/generics_etc.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/kl_diagnostics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/model_selection_distribution_first.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/model_selection_utils_v2.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/nino34.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/optionA_alias.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/pipeline_inference_validation.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/polytrendMod.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/priors_beta.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_design_only.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dlm_decomposition.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_candidate_dataset_audit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_candidate_datasets.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_candidate_last5000_last500_audit.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_dataset_audit_plots.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_final_analysis_pack.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_fit_fail_closure_wave.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_fit_plot_pack.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_main_comparison_analysis.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_rowfaithful_replay.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy_study_facing_analysis.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_exdqlm_crossstudy.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_dynamic_p90_steepertrend_closeout_analysis.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_fitforecast_launch_plan.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_fitforecast_screening.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_mcmc_experiment_matrix.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_mcmc_followup.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_mcmc_validation_compare.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_mcmc_validation.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_mcmc.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_mean_readout_state_forecast.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_model_selection_facade.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_model_selection_v2.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_model_selection.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_normal_warm_start.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_normal.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_rhs_mcmc_repair.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_rhs_ns_prior.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_rhs_prior.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_rhs_stageg_stageh_gate.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_rhs_stagei_gate.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_rhs_stagejk_gate.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_static_exdqlm_crossstudy_debt_wave.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_static_exdqlm_crossstudy_fit_fail_closure_wave.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_static_exdqlm_crossstudy_residual_mcmc_closure_wave.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_static_exdqlm_crossstudy.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_train_only_preprocessing.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_validation_common_shift_intervention.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_validation_interval_dispersion.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_validation_metric_intervals.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_validation_origin_horizon_attribution.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_validation_runtime.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_vb_rolling_window.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_vb_warm_start.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/qdesn_vb.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/quantileSynthesis.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/RcppExports.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/readout_scale.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/readout_transform.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/regMod.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/run_esn_pipeline.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/scIVTmag.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/seasMod.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/simulate_ts_mc_quantiles.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/static_beta_prior.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/tfRegMod.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/transfer_function_helpers.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/update_theta_bridge.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/utils_require_fun.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/utils-debug.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/utils.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/vb_diagnostics.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source R/zzz.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/load_checkout.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/long_horizon/helpers.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/heteroscedastic/dgp.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/heteroscedastic/forecasting.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/heteroscedastic/rolling/helpers.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/heteroscedastic/rolling/init.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/heteroscedastic/rolling/run_case.R",
+      "passed": true
+    },
+    {
+      "check": "frozen rolling source validation/autodesn/heteroscedastic/rolling/test_contracts.R",
+      "passed": true
+    }
+  ]
+}

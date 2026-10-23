@@ -1,0 +1,11 @@
+switching_seasonal_r01 AutoDESN: replay 3 serial chains, 2000 burn + 6000 retained
+switching_seasonal_r01 Fixed_DESN: replay 3 serial chains, 2000 burn + 6000 retained
+switching_seasonal_r01 compact checkpoint bytes 1017352 409872 ; forecasting 71 origins
+switching_seasonal_r01 scored origin 2509
+switching_seasonal_r01 scored origin 2519
+switching_seasonal_r01 scored origin 2529
+switching_seasonal_r01 scored origin 2539
+switching_seasonal_r01 scored origin 2549
+switching_seasonal_r01 scored origin 2559
+switching_seasonal_r01 scored origin 2569
+switching_seasonal_r01 complete in 210.1 seconds

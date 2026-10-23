@@ -1,0 +1,10 @@
+{
+  "expanded_study_complete": false,
+  "expanded_report_available": false,
+  "recovered_checkpoint_git_blob": "30823b4ddebacad9af12767266edeb756dd04db3",
+  "recovered_checkpoint_revalidated": false,
+  "last_confirmed_complete_cases": 4,
+  "earlier_study_commit": "e5c3c3c4d1b22e69c297d4a14474326f530e63ea",
+  "cause_of_file_loss": "automated workspace cleanup of uncommitted files",
+  "durable_expanded_workflow_launched": false
+}

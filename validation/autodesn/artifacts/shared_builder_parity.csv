@@ -1,0 +1,7 @@
+"D","standardize_inputs","design_identical","reservoir_identical","states_identical"
+1,FALSE,TRUE,TRUE,TRUE
+1,TRUE,TRUE,TRUE,TRUE
+2,FALSE,TRUE,TRUE,TRUE
+2,TRUE,TRUE,TRUE,TRUE
+3,FALSE,TRUE,TRUE,TRUE
+3,TRUE,TRUE,TRUE,TRUE

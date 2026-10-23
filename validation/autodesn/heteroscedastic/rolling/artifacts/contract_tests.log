@@ -1,0 +1,206 @@
+expression(source("validation/autodesn/load_checkout.R"), source("validation/autodesn/long_horizon/helpers.R"),
+    source("validation/autodesn/heteroscedastic/dgp.R"), source("validation/autodesn/heteroscedastic/forecasting.R"),
+    source("validation/autodesn/heteroscedastic/rolling/helpers.R"),
+    main <- function() {
+        root <- "validation/autodesn/heteroscedastic/rolling"
+        out <- Sys.getenv("AUTODESN_ROLLING_OUT", file.path(root,
+            "artifacts"))
+        cfg <- dget(file.path(out, "configuration.R"))
+        args <- commandArgs(TRUE)
+        kind <- args[1L]
+        r <- as.integer(args[2L])
+        id <- sprintf("%s_r%02d", kind, r)
+        case <- read.csv(file.path(out, "cases.csv"))
+        case <- case[case$dgp == kind & case$repetition == r,
+            ]
+        stopifnot(nrow(case) == 1L)
+        seed <- case$dgp_seed
+        dest <- file.path(out, id)
+        dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+        if (file.exists(file.path(dest, "complete.json"))) {
+            cat(id, "already complete\n")
+            return(invisible(NULL))
+        }
+        started <- proc.time()[[3L]]
+        dgp <- hh_simulate(kind, 2600L, seed)
+        history <- dgp$y[1:2500]
+        specs <- lh_specs()
+        old_diag <- read.csv("validation/autodesn/heteroscedastic/artifacts/diagnostics.csv")
+        make_checkpoint <- function(bank, method, offset, sample_offset,
+            path) {
+            selected <- old_diag[old_diag$dgp == kind & old_diag$repetition ==
+                r & old_diag$method == method, ]
+            attempt <- max(selected$attempt)
+            selected <- selected[selected$attempt == attempt,
+                ]
+            control <- list(chains = 3L, n_burn = selected$n_burn[1L],
+                n_mcmc = selected$retained_per_chain[1L])
+            cat(sprintf("%s %s: replay 3 serial chains, %d burn + %d retained\n",
+                id, method, control$n_burn, control$n_mcmc))
+            flush.console()
+            full <- hh_fit(bank, control, seed + offset + (attempt -
+                1L) * 10000L, 1L)
+            stopifnot(hh_qualify(full$diagnostics))
+            ids <- .autodesn_seed(seed + sample_offset, function() sample.int(nrow(full$fit$draws),
+                cfg$outer_draws, replace = TRUE))
+            cp <- hr_checkpoint(full$fit, ids, full$diagnostics)
+            cp$inference <- list(seed = seed + offset + (attempt -
+                1L) * 10000L, attempt = attempt, control = control)
+            saveRDS(cp, path, compress = "xz")
+            stopifnot(file.info(path)$size < 5e+06)
+            cp
+        }
+        auto_path <- file.path(dest, "auto_checkpoint.rds")
+        fixed_path <- file.path(dest, "fixed_checkpoint.rds")
+        if (!file.exists(auto_path)) {
+            bank <- autodesn_build_bank(history, specs$specifications,
+                conditioning = 500L, washout = 500L)
+            auto <- make_checkpoint(bank, "AutoDESN", 100L, 300L,
+                auto_path)
+            rm(bank)
+            invisible(gc(full = TRUE))
+        }
+        else auto <- readRDS(auto_path)
+        if (!file.exists(fixed_path)) {
+            bank <- autodesn_build_bank(history, specs$specifications[specs$fixed_index],
+                conditioning = 500L, washout = 500L)
+            fixed <- make_checkpoint(bank, "Fixed_DESN", 200L,
+                301L, fixed_path)
+            rm(bank)
+            invisible(gc(full = TRUE))
+        }
+        else fixed <- readRDS(fixed_path)
+        old_prob <- read.csv("validation/autodesn/heteroscedastic/artifacts/probability.csv")
+        old_prob <- old_prob[old_prob$dgp == kind & old_prob$repetition ==
+            r, ]
+        probability_difference <- max(abs(old_prob$posterior_probability -
+            auto$model_summary$posterior_probability))
+        stopifnot(probability_difference < 1e-12, identical(auto$bank$keep_idx,
+            501:2500), auto$bank$n == 2000L)
+        H <- cfg$H
+        N <- cfg$outer_draws * cfg$inner_paths
+        origins <- cfg$origins
+        auto_states <- hr_origin_states(auto, dgp$y[1:max(origins)],
+            origins)
+        fixed_states <- hr_origin_states(fixed, dgp$y[1:max(origins)],
+            origins)
+        gaussian <- list(Gaussian_AR1 = hh_gaussian_fit(auto$bank,
+            1L, N, seed + 701L), Gaussian_AR12 = hh_gaussian_fit(auto$bank,
+            12L, N, seed + 712L), Constant = hh_gaussian_fit(auto$bank,
+            0L, N, seed + 700L))
+        gjr <- hh_gjr_fit(history, 501:2500)
+        gjr_states <- hr_gjr_origins(gjr, dgp$y[1:max(origins)],
+            origins)
+        old_indices <- read.csv(file.path("validation/autodesn/heteroscedastic/artifacts",
+            paste0(id, "_path_indices.csv")))
+        old_paths <- as.matrix(read.csv(file.path("validation/autodesn/heteroscedastic/artifacts",
+            paste0(id, "_paths.csv")))[, -1L])
+        keep <- which(old_indices$inner_path <= cfg$inner_paths)
+        original_columns <- (old_indices$outer_draw[keep] - 1L) *
+            cfg$inner_paths + old_indices$inner_path[keep]
+        selected_origins <- c(2500L, 2520L, 2540L, 2560L, 2570L)
+        cat(id, "compact checkpoint bytes", as.numeric(object.size(auto)),
+            as.numeric(object.size(fixed)), "; forecasting 71 origins\n")
+        flush.console()
+        work <- function(i) {
+            origin <- origins[i]
+            z <- hr_noise(seed, origin, cfg$inner_paths, H, cfg$outer_draws)
+            a <- hr_auto(auto, auto_states$states[[i]], auto_states$history_scaled[seq_len(origin)],
+                H, cfg$inner_paths, z)
+            f <- hr_auto(fixed, fixed_states$states[[i]], fixed_states$history_scaled[seq_len(origin)],
+                H, cfg$inner_paths, z)
+            reference <- hh_oracle(kind, dgp$y[seq_len(origin)],
+                H, N, seed + 200000L + origin)
+            gauss <- lapply(gaussian, function(g) {
+                g$bank$history_scaled <- auto_states$history_scaled[seq_len(origin)]
+                hh_gaussian(g, H, z)
+            })
+            forecasts <- c(list(AutoDESN = a, Fixed_DESN = f),
+                gauss, list(AR1_GJR_GARCH = hh_gjr(gjr_states[[i]],
+                  H, z), Oracle_DGP = reference))
+            rows <- lapply(names(forecasts), function(method) {
+                score <- hh_score(forecasts[[method]], dgp$y[origin +
+                  seq_len(H)], dgp$mu[origin + seq_len(H)], rowMeans(reference$mu_draws))
+                fields <- c("horizon", "actual", "mean", "median",
+                  "lower90", "lower50", "upper50", "upper90",
+                  "squared_error", "absolute_error", "crps",
+                  "covered90", "width90", "covered50", "width50",
+                  "negative_log_score", "predictive_sd", "innovation_sd")
+                cbind(dgp = kind, repetition = r, method = method,
+                  origin = origin, target_index = origin + seq_len(H),
+                  score[fields])
+            })
+            replay <- if (origin == 2500L)
+                max(abs(a$yrep[, original_columns, drop = FALSE] -
+                  old_paths[seq_len(H), keep, drop = FALSE]))
+            else NA_real_
+            if (origin == 2500L)
+                stopifnot(replay < 1e-10)
+            paths <- if (origin %in% selected_origins)
+                data.frame(origin = origin, horizon = seq_len(H),
+                  a$yrep[, round(seq(1, N, length.out = 16))])
+            else NULL
+            sensitivity <- NULL
+            if (origin == 2500L)
+                for (K in cfg$sensitivity_inner) {
+                  fc <- if (K == cfg$inner_paths)
+                    a
+                  else hr_auto(auto, auto_states$states[[i]],
+                    auto_states$history_scaled[1:2500], H, K,
+                    hr_noise(seed, origin, K, H, cfg$outer_draws))
+                  q <- t(apply(fc$yrep, 1L, quantile, c(0.05,
+                    0.5, 0.95), type = 8))
+                  sensitivity <- rbind(sensitivity, data.frame(K = K,
+                    horizon = seq_len(H), mean = rowMeans(fc$mu_draws),
+                    lower90 = q[, 1L], median = q[, 2L], upper90 = q[,
+                      3L]))
+                }
+            if (i%%10L == 0L) {
+                cat(id, "scored origin", origin, "\n")
+                flush.console()
+            }
+            list(scores = do.call(rbind, rows), paths = paths,
+                replay = replay, sensitivity = sensitivity)
+        }
+        invisible(gc(full = TRUE))
+        results <- parallel::mclapply(seq_along(origins), work,
+            mc.cores = cfg$origin_workers, mc.set.seed = FALSE)
+        stopifnot(!any(vapply(results, inherits, logical(1),
+            "try-error")))
+        scores <- do.call(rbind, lapply(results, `[[`, "scores"))
+        con <- gzfile(file.path(dest, "scores.csv.gz"), "wt",
+            compression = 6)
+        write.csv(scores, con, row.names = FALSE)
+        close(con)
+        write.csv(do.call(rbind, lapply(results, `[[`, "paths")),
+            file.path(dest, "illustrative_paths.csv"), row.names = FALSE)
+        write.csv(results[[1L]]$sensitivity, file.path(dest,
+            "sensitivity.csv"), row.names = FALSE)
+        dg <- rbind(cbind(method = "AutoDESN", auto$diagnostics$parameters),
+            cbind(method = "Fixed_DESN", fixed$diagnostics$parameters))
+        write.csv(dg, file.path(dest, "sampler_diagnostics.csv"),
+            row.names = FALSE)
+        audit <- data.frame(dgp = kind, repetition = r, fit_start = 501L,
+            fit_end = 2500L, n_train = 2000L, washout = 500L,
+            first_origin = min(origins), last_origin = max(origins),
+            origins = length(origins), H = H, total_paths = N,
+            refit_per_origin = FALSE, posterior_model_weights_updated = FALSE,
+            preprocessing_updated = FALSE, future_values_within_origin = FALSE,
+            original_path_replay_max_abs = results[[1L]]$replay,
+            posterior_probability_replay_max_abs = probability_difference,
+            max_rhat = max(dg$rhat), min_ess = min(dg$ess_spectral),
+            auto_model_chain_range = max(auto$diagnostics$models$chain_range),
+            all_finite = all(is.finite(scores$mean)), elapsed_seconds = proc.time()[[3L]] -
+                started)
+        write.csv(audit, file.path(dest, "audit.csv"), row.names = FALSE)
+        writeLines(sprintf("{\"case\":\"%s\",\"complete\":true,\"rows\":%d}",
+            id, nrow(scores)), file.path(dest, "complete.json"))
+        cat(id, "complete in", round(proc.time()[[3L]] - started,
+            1), "seconds\n")
+        flush.console()
+    }, main())
+Test passed
+Test passed
+ROLLING_CONTRACTS_COMPLETED
+Test passed
+ALL_ROLLING_CONTRACTS_COMPLETED

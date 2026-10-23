@@ -1,0 +1,19 @@
+Started smooth_scale_r01
+Started smooth_scale_r02
+Finished smooth_scale_r01: exit 0
+Started smooth_scale_r03
+Finished smooth_scale_r02: exit 0
+Started threshold_gjr_r01
+Finished smooth_scale_r03: exit 0
+Started threshold_gjr_r02
+Finished threshold_gjr_r02: exit 0
+Started threshold_gjr_r03
+Finished threshold_gjr_r01: exit 0
+Started switching_seasonal_r01
+Finished threshold_gjr_r03: exit 0
+Started switching_seasonal_r02
+Finished switching_seasonal_r01: exit 0
+Started switching_seasonal_r03
+Finished switching_seasonal_r02: exit 0
+Finished switching_seasonal_r03: exit 0
+All nine rolling cases complete.

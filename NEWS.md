@@ -1,3 +1,24 @@
+# Development: Gaussian AutoDESN
+
+- Added an explicit total washout option and nested fixed-origin forecasts
+  retaining joint posterior draws across inner paths and all forecast leads.
+- Added an opt-in batched engine to the shared Normal forecast transition,
+  paired innovation inputs, outer-draw mean locations, and a separately
+  labeled zero-innovation plug-in diagnostic. Serial defaults are preserved.
+- Added a 500-washout/500-training/100-forecast study following the corrected
+  Q-DESN identity-bridge contract, with analytic and regression checks.
+- Added finite-bank Gaussian DESN specification selection with a proper
+  independent Gaussian ridge prior and optional learned global precision.
+- Reused Q-DESN reservoir construction and Normal recursive forecasting;
+  added blocked Gibbs sampling, joint predictive draws, chain diagnostics,
+  documentation, statistical-target checks, and simulated forecast validation.
+- Existing quantile and Normal fitters retain their current behavior.
+- Preserved time-row dimensions for one-unit reservoirs in the shared feature
+  builder, declared its existing optional matrix/spectral dependencies, and
+  enabled long Windows checkout paths for repository validation.
+- Corrected math markup and documented defaults in the simulation helper's
+  manual without changing its runtime expressions.
+
 # exdqlm 1.1.1
 
 ## Reproducibility fix

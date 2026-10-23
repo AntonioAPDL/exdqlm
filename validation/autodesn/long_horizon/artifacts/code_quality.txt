@@ -1,0 +1,10 @@
+Package: /workspace/scratch/14192e7528d4/autodesn_runtime/long_library/exdqlm
+R version 4.3.3 (2024-02-29)
+autodesn_build_bank usage analysis clean
+autodesn_fit usage analysis clean
+forecast_paths.autodesn_fit usage analysis clean
+forecast_paths.qdesn_normal_fit forecast_paths.qdesn_normal_fit: no visible binding for global variable ‘.Random.seed’
+man/autodesn_build_bank.Rd parsed and checked
+man/autodesn_fit.Rd parsed and checked
+man/forecast_paths.autodesn_fit.Rd parsed and checked
+man/qdesn_normal.Rd parsed and checked
