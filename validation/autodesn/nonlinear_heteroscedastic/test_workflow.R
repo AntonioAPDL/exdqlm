@@ -42,3 +42,13 @@ test_that("forecast API uses the fitted standardized geometry",{
  expect_identical(a$yrep,b$yrep)
 })
 cat("Small NHS1 workflow checks passed; these short chains do not establish convergence.\n")
+joint<-autodesn_rhs_joint_proposal(matrix(c(log(.5),0,0),2,3,byrow=TRUE),diag(c(.5,1,1)^2))
+args$model_control$joint_proposal<-joint
+jr<-do.call(autodesn_fit_bank,c(args,list(backend="R")))
+jcpp<-do.call(autodesn_fit_bank,c(args,list(backend="cpp")))
+test_that("new-series joint architecture/scale updates agree across backends",{
+ expect_equal(as.matrix(jr$draws),as.matrix(jcpp$draws),tolerance=1e-7)
+ expect_equal(unlist(jr$beta),unlist(jcpp$beta),tolerance=1e-7)
+ expect_identical(jr$draws$model,jcpp$draws$model)
+ expect_identical(jr$controls$target,cpp$controls$target)
+})

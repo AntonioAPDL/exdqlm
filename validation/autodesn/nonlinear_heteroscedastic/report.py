@@ -141,11 +141,11 @@ def main():
  page();title('Native AutoGP and measured runtime')
  gp=json.loads((b/'gp/status.json').read_text());native=json.loads((b/'gp/native_resources.json').read_text());gt=gp['timings']
  para('Fresh authors\' AutoGP 0.1.19 at revision 2ad372db2b8bea176e3b32a769bfb5d6cff80866, Julia 1.10.10. Native grammar/priors, depth 4, two independent eight-particle SMC fits; unchanged stage-wise schedule and HMC controls. Native save/reload and three-origin Gaussian-conditioning checks passed. These verify transport, not SMC posterior exploration.')
- rows=[['Run','Particles','Final particle ESS','Unique kernels','Largest weight']]
+ rows=[['Run','Particles','Final particle ESS','Distinct kernel states','Largest weight']]
  for run in [1,2]:
   st=tomllib.loads((b/f'gp/run_{run}/status.toml').read_text());pa=pd.read_csv(b/f'gp/run_{run}/particles.csv');rows.append([run,8,f'{st["ess"]:.3f}',pa.kernel.nunique(),f'{pa.weight.max():.4f}'])
  table(rows,[70,90,115,115,110])
- para('Particle ESS can be reset by resampling; it does not establish exploration of kernel space. Run-by-run forecast sensitivity measures variation between two finite-particle approximations, not independent DGP replications.','Small')
+ para('Distinct exported kernel states include continuous parameter values, not just tree structures. Particle ESS can be reset by resampling; it does not establish exploration of kernel space. Run-by-run forecast sensitivity measures variation between two finite-particle approximations, not independent DGP replications.','Small')
  raw=json.loads((b/'raw_bank/status.json').read_text())
  para(f"Shared raw reservoir construction: {raw['invocation_wall_seconds']:.2f}s wall; frozen standardized-design preparation: {bank['standardization_seconds']:.2f}s. Reservoir candidates and state timing match across all AutoDESN priors.")
  rows=[['Scenario','Pilots(s)','Inference(s)','Forecast compute(s)','State update(s)','Parent peak GiB']]
@@ -160,6 +160,9 @@ def main():
  page();title('Validation, limits and reproducibility')
  para(f"All {bank['admitted']} admitted architectures share the raw bank and frozen feature transforms. Maximum absolute training column mean {bank['max_abs_mean']:.3g}; maximum sample-SD error {bank['max_sd_error']:.3g}. The API freezes exclusions for near-constant features; the intercept has its own proper prior and raw-coordinate transport includes its centering shift.")
  validation=json.loads((b/'validation/validation_status.json').read_text());para(validation['summary'])
+ bench=pd.read_csv(b/'validation/standardized_backend_benchmark.csv').groupby('backend').elapsed_seconds.median()
+ parity=pd.read_csv(b/'validation/standardized_backend_parity.csv')
+ para(f"Fresh short computational benchmark: median R {bench['R']:.3f}s versus native kernels {bench['cpp']:.3f}s ({bench['R']/bench['cpp']:.2f}x). Four standardized synthetic designs,200 rows, up to64 slopes,100 burn +800 retained draws,three timing repetitions; setup/compilation excluded. Maximum coupled-draw discrepancy {parity.max_paired_draw_error.max():.3g}; identical model paths. This is a computational check, not evidence of posterior convergence or a full-study speedup.",'Small')
  para('Independent path reconstruction verifies scores at the first, middle and last origins. Future-data perturbation changes every unavailable response by100 while holding posterior draws and innovations fixed; forecasts remain identical. Archived joint checkpoints are replayed against saved paths. The numeric archive has part-level, complete-archive and internal SHA256 checks, plus a restored-analysis round trip.','Small')
  para('Gaussian conditional variances are deliberately misspecified for this heteroscedastic DGP. Poor calibration in high-volatility periods motivates a future variance-model extension; such an extension would be a distinct benchmark with its own prior and validation. A single series and overlapping origin/lead pairs do not establish general superiority. Preprocessing is treated as frozen rather than jointly inferred.','Small')
  para('Release remains draft. The inherited scoped repository R CMD check has one nonportable-path error, three documentation/non-ASCII warnings and two notes. Focused tests and numerical checks are reported separately; no clean package-wide release check is claimed.','Small')

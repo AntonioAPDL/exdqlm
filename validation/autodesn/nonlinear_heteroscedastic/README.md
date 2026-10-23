@@ -30,8 +30,9 @@ unscaled. Three AutoDESN cases (requested RHS .001/1/4, scaling-only RHS 1/2/4,
 standardized ridge) and freshly fitted pinned Native AutoGP are compared.
 Existing C1 scores are not reused for the new DGP.
 
-`study.json` freezes chain/predictive budgets and seeds. A single training-only
-proposal recovery is permitted after failed RHS architecture diagnostics;
+`study.json` freezes chain/predictive budgets and seeds. The initial model-only proposals failed their training diagnostics. A full-support joint
+architecture/log-scale independence proposal is fitted to those training chains,
+frozen, and used in fresh production chains with the exact MH correction;
 all architectures retain positive proposal mass and the exact Hastings ratio.
 Unqualified chains issue no forecasts. Independent rank/ESS checks are run
 before primary forecasting. Full predictive sensitivity uses three fixed
@@ -48,7 +49,7 @@ export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 Rscript validation/autodesn/nonlinear_heteroscedastic/test_dgp.R
 Rscript validation/autodesn/nonlinear_heteroscedastic/test_workflow.R
 Rscript validation/autodesn/nonlinear_heteroscedastic/run.R --stage build
-python validation/autodesn/nonlinear_heteroscedastic/execute.py
+python validation/autodesn/nonlinear_heteroscedastic/execute_joint.py
 # Use the pinned AutoGP checkout and Julia 1.10.10:
 python validation/autodesn/nonlinear_heteroscedastic/postprocess.py --julia /path/to/julia --project /path/to/AutoGP.jl
 python validation/autodesn/nonlinear_heteroscedastic/report.py
@@ -58,10 +59,18 @@ python validation/autodesn/nonlinear_heteroscedastic/analysis.py --data validati
 ```
 
 The committed input is frozen; `generate.R` is for explicitly regenerating it,
-not selecting another realization. `execute.py` resumes guarded per-chain and
+not selecting another realization. `execute_joint.py` resumes guarded per-chain and
 per-origin checkpoints. Large inference jobs run sequentially. Every failed
-sampling attempt remains available and no failed screen is waived. A single
-predeclared RHS proposal recovery is recorded as a separate training stage.
+sampling attempt remains available and no failed screen is waived. Both failed model-only proposals are recorded as separate training stages.
+The subsequent joint MH recovery uses three fresh chains and declares budgets
+of 4,000/16,000, 8,000/32,000, 12,000/64,000 and 16,000/128,000 burn/retained
+iterations per chain before any test forecasting. The original four model-only
+MH proposals per sweep are retained, with two additional joint proposals.
+The fitted proposal has full support; all priors and conditional updates retain
+their exact normalized target. The scaling-only case transports proposal centers,
+then uses its own exact target. This changes computation, not the model.
+Any failed independent screen rejects that retained budget and advances to the
+next declared budget. Shared proposal-training costs are reported separately.
 Pure parameter/architecture tests and independent rank/ESS checks precede test
 forecasting. Postprocessing additionally perturbs unavailable future responses
 and replays compact archived checkpoints at the first, middle and last origins.
@@ -69,8 +78,10 @@ Native GP inference and its own save/reload/conditioning checks run fresh on
 this dataset. Its finite-particle SMC diagnostics are reported separately from
 AutoDESN MCMC diagnostics.
 
-Previously executed production-code checks are explicitly identified in
-`evidence/production_validation_reference.json`. They may be reused only when
-every R/src source hash matches. Fresh DGP/workflow tests and full-size posterior
-screens supplement that reference. Package-wide inherited release-check issues
+The optional joint sampler is checked against independent normalized densities,
+acceptance ratios and small-posterior integration; disabled-option draws match
+the previous source exactly. Focused production regressions and posterior
+oracles are rerun for this source. `evidence/production_validation_reference.json`
+is a historical C1 reference, not proof for changed production code. Fresh
+DGP/workflow tests and full-size posterior screens are separate requirements. Package-wide inherited release-check issues
 remain documented; a clean repository-wide R CMD check is not claimed.

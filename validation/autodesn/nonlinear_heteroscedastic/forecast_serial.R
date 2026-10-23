@@ -11,6 +11,9 @@ d<-file.path(base,method);cfg<-jsonlite::fromJSON(file.path(base,"configuration.
 st<-jsonlite::fromJSON(file.path(d,"status.json"));stopifnot(isTRUE(st$qualified))
 stopifnot(identical(digest::digest(file=file.path(nh_root,"helpers.R"),algo="sha256"),cfg$dataset_adapter_sha256))
 stopifnot(isTRUE(jsonlite::fromJSON(file.path(d,"independent_screen.json"))$passed))
+if(!is.null(cfg$extra_harness_source)) for(i in seq_len(nrow(cfg$extra_harness_source))) {
+ p<-cfg$extra_harness_source[i,];stopifnot(identical(digest::digest(file=p$path,algo="sha256"),p$sha256))
+}
 prov<-jsonlite::fromJSON(file.path(d,"provenance.json"))
 for(key in c("input_sha256","fit_start","fit_end","first_origin","last_origin","H","outer_draws","inner_paths","innovation_seed"))
  stopifnot(identical(cfg[[key]],prov$configuration[[key]]))

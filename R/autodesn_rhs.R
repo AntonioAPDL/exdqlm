@@ -78,7 +78,7 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
 .autodesn_rhs_model_control <- function(x, prior) {
   if (is.null(x)) x <- list()
   .autodesn_rhs_named_list(x, "model_control")
-  unknown <- setdiff(names(x), c("method", "moves", "proposal", "rb_every", "initial_model"))
+  unknown <- setdiff(names(x), c("method", "moves", "proposal", "rb_every", "initial_model", "joint_proposal"))
   if (length(unknown)) stop("Unknown model_control arguments: ", paste(unknown, collapse = ", "), call. = FALSE)
   defaults <- list(method = "mh", moves = 2L, proposal = prior,
     rb_every = 0L, initial_model = NULL)
@@ -99,6 +99,13 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
     z$initial_model <- as.integer(z$initial_model)
   }
   if (z$method == "categorical") z$moves <- 1L
+  if(!is.null(z$joint_proposal)) {
+    if(z$method!="mh") stop("joint_proposal requires model_control$method='mh'.",call.=FALSE)
+    .autodesn_rhs_named_list(z$joint_proposal,"joint_proposal")
+    z$joint_proposal<-do.call(autodesn_rhs_joint_proposal,unclass(z$joint_proposal))
+    if(nrow(z$joint_proposal$center)!=length(prior))
+      stop("Joint proposal must have one center per bank architecture.",call.=FALSE)
+  }
   z
 }
 
@@ -336,6 +343,8 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
   initial_slab <- if (is.null(rc$initial_slab)) rc$slab_scale^2 else rc$initial_slab
   .autodesn_positive(initial_slab, "initial slab variance")
   mc <- .autodesn_rhs_model_control(model_control, bank$prior)
+  if(!is.null(mc$joint_proposal)&&(!rc$learn_global||!rc$learn_slab))
+    stop("joint_proposal requires sampled global and slab scales.",call.=FALSE)
   iterations <- n_burn + n_mcmc
   .autodesn_integer(iterations, "total iterations")
   retained <- seq.int(n_burn + 1L, iterations, by = thin)
@@ -371,6 +380,7 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
     cp <- if (mc$method == "categorical") matrix(NA_real_, K, M) else NULL
     rb <- list(); rb_iterations <- integer(0)
     proposals <- acceptances <- transitions <- matrix(0L, M, M)
+    joint_proposals <- joint_acceptances <- matrix(0L,M,M)
     evaluations <- 0L; local_attempts <- 0L; local_updates <- 0L
     slice_proposals <- c(global = 0L, slab = 0L)
     slice_steps_out <- c(global = 0L, slab = 0L)
@@ -378,11 +388,11 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
       slice_proposals <- c(slice_proposals,interweave=0L)
       slice_steps_out <- c(slice_steps_out,interweave=0L)
     }
-    evaluate <- function(j) {
+    evaluate <- function(j,variance_arg=variance,log_u_arg=log_u,log_c2_arg=log_c2) {
       evaluations <<- evaluations + 1L
       lv <- c(log(intercept_variance), .autodesn_rhs_log_variance(
-        ell[index[[j]]], log_u, log_c2, tau0[j]))
-      engine$gaussian(bank$models[[j]], bank$y, variance, lv)
+        ell[index[[j]]], log_u_arg, log_c2_arg, tau0[j]))
+      engine$gaussian(bank$models[[j]], bank$y, variance_arg, lv)
     }
     k <- 0L
     for (it in seq_len(iterations)) {
@@ -414,6 +424,27 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
           }
           transitions[old, model_id] <- transitions[old, model_id] + 1L
         }
+      }
+      if(!is.null(mc$joint_proposal)) for(move in seq_len(mc$joint_proposal$moves)) {
+        proposed<-sample.int(M,1L,prob=mc$proposal);old<-model_id
+        joint_proposals[old,proposed]<-joint_proposals[old,proposed]+1L
+        current<-c(log(variance),log_u,log_c2)
+        candidate_z<-.autodesn_rhs_joint_draw(proposed,mc$joint_proposal)
+        prior_new<-.autodesn_rhs_joint_log_target(log(bank$prior[proposed]),0,candidate_z,
+          a_sigma,b_sigma,rc$slab_df,rc$slab_scale)
+        if(is.finite(prior_new)) {
+          if(any(!is.finite(exp(candidate_z)))||any(exp(candidate_z)==0))
+            stop("Joint proposal exceeded representable scales; inspect its spread.",call.=FALSE)
+          candidate<-evaluate(proposed,exp(candidate_z[1]),candidate_z[2],candidate_z[3])
+          ratio<-.autodesn_rhs_joint_log_ratio(model_id,proposed,current,candidate_z,
+            gaussian$log_evidence,candidate$log_evidence,bank$prior,mc$proposal,mc$joint_proposal,
+            a_sigma,b_sigma,rc$slab_df,rc$slab_scale)
+          if(log(stats::runif(1))<min(0,ratio)) {
+            model_id<-proposed;variance<-exp(candidate_z[1]);log_u<-candidate_z[2];log_c2<-candidate_z[3]
+            gaussian<-candidate;joint_acceptances[old,proposed]<-joint_acceptances[old,proposed]+1L
+          }
+        }
+        transitions[old,model_id]<-transitions[old,model_id]+1L
       }
       if (keep[it] && mc$rb_every > 0L && ((k + 1L) %% mc$rb_every == 0L)) {
         if (is.null(full_p)) {
@@ -501,6 +532,11 @@ autodesn_rhs_control <- function(tau0 = 1, slab_scale = 2, slab_df = 4,
       local_rejection_attempts = local_attempts, local_updates = local_updates,
       slice_proposals = slice_proposals, slice_steps_out = slice_steps_out,
       numerical_failures = 0L, iteration_scope = "all_sweeps_including_burnin")
+    if(!is.null(mc$joint_proposal)) {
+      stats$joint_proposals<-joint_proposals;stats$joint_acceptances<-joint_acceptances
+      stats$nonself_proposals<-stats$nonself_proposals+sum(joint_proposals[off_diagonal])
+      stats$nonself_acceptances<-stats$nonself_acceptances+sum(joint_acceptances[off_diagonal])
+    }
     structure(list(bank = bank, draws = draws, beta = beta,
       conditional_probabilities = cp, rb_probabilities = rb_matrix,
       rb_iterations = rb_iterations, local_scales = local_saved,

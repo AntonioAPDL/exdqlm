@@ -1,5 +1,6 @@
 """Measured fresh Native GP, audits and compact evidence after AutoDESN finishes."""
 import argparse,importlib.util,json,sys,shutil
+import pandas as pd
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('measured',HERE.parent/'standardized_rhs/execute.py')
@@ -36,6 +37,10 @@ def main():
  current=json.loads((b/'requested/rhs/provenance.json').read_text())['production_source']
  assert current==reference['production_source'],'Production source changed; inherited tests cannot be reused'
  validation=reference['validation']
+ validation.pop('standardized_backend_benchmark',None)
+ bench=pd.read_csv(b/'validation/standardized_backend_benchmark.csv').groupby('backend').elapsed_seconds.median()
+ parity=pd.read_csv(b/'validation/standardized_backend_parity.csv')
+ validation['fresh_computational_backend_benchmark']=dict(median_R_seconds=float(bench['R']),median_cpp_seconds=float(bench['cpp']),ratio=float(bench['R']/bench['cpp']),max_coupled_draw_error=float(parity.max_paired_draw_error.max()),identical_model_paths=bool(parity.identical_model_path.all()),short_synthetic_designs_not_convergence_evidence=True)
  validation['production_test_reuse_explicit']=True
  validation['fresh_DGP_assertions_passed']=12;validation['fresh_workflow_assertions_passed']=20
  validation['fresh_Python_contracts_passed']=6
