@@ -1,0 +1,60 @@
+{
+  "feature_scaling": {
+    "complete": true,
+    "fit_start": 501,
+    "fit_end": 2500,
+    "unit_variance": true,
+    "dimension_normalization": false,
+    "admitted": 428,
+    "max_abs_mean": 7.093794388707275e-14,
+    "max_sd_error": 2.220446049250313e-16,
+    "excluded_constant_columns": 0,
+    "standardization_seconds": 18.115999999999985,
+    "feature_geometry_sha256": "a3dd33e0627a1306fa027dad8d998f78cea8fb35f65fd4314fe4036b9e6a8eab"
+  },
+  "reservoir_build": {
+    "complete": true,
+    "bank_id": "ee2962cd173416f1256d97ede37df3e05ba6912d041403f947563e8c256553be",
+    "candidates": 456,
+    "admitted": 428,
+    "invocation_wall_seconds": 145.454,
+    "candidate_compute_seconds_sum": 180.61299999999997,
+    "timing_note": "Invocation wall time can include reused parts; summed candidate compute covers all parts and is not parallel wall time."
+  },
+  "validation": {
+    "complete": true,
+    "installed_regression": {
+      "passed": 639,
+      "failed": 0,
+      "errors": 0,
+      "warnings": 0,
+      "context_skips": 1
+    },
+    "source_unloaded_native": {
+      "passed": 76,
+      "failed": 0,
+      "warnings": 0,
+      "skipped": 0
+    },
+    "R_contracts_passed": 73,
+    "Python_contract_tests_passed": 6,
+    "independent_diagnostic_tests_passed": 4,
+    "independent_posterior_checks": {
+      "passed": 32,
+      "checks": 32
+    },
+    "note": "Unit and small posterior oracle checks do not establish convergence of the large C1 chains.",
+    "exact_default_rhs_backward_draw_parity": true,
+    "new_exact_sampler_checks_passed": 25
+  },
+  "failed_prefix_sampler": {
+    "qualified": false,
+    "forecasts_issued": false,
+    "chains": 3,
+    "retained_per_chain": 64000,
+    "max_architecture_rhat": 1.03274964402847,
+    "min_architecture_ess": 65.1150560512137,
+    "max_architecture_chain_range": 0.054125
+  },
+  "note": "Verified training/implementation evidence. This checkpoint makes no claim that the revised C1 comparison has finished."
+}

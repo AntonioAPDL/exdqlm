@@ -1,5 +1,16 @@
 # Development: Gaussian AutoDESN
 
+- Added the normalized regularized horseshoe readout with an independent
+  proper intercept and observation-variance prior. `beta_prior = "rhs"`
+  activates global/local/slab shrinkage through `autodesn_rhs_control()`;
+  ridge remains the default with its existing numerical path and RNG order.
+- Added coefficient-collapsed Metropolis architecture moves, a categorical
+  reference kernel, exact local rejection updates, log-scale slice updates,
+  optional Rao--Blackwell scans, and C++ Gaussian/local kernels with an R reference.
+- Extended joint-draw forecasting and multi-chain diagnostics to RHS,
+  including target compatibility, model occupancy, and deliberately fixed scales.
+- Added independent normalized-prior and marginal-evidence validation and a
+  restartable frozen C1 comparison for ridge AutoDESN, RHS AutoDESN, and AutoGP.
 - Added an explicit total washout option and nested fixed-origin forecasts
   retaining joint posterior draws across inner paths and all forecast leads.
 - Added an opt-in batched engine to the shared Normal forecast transition,

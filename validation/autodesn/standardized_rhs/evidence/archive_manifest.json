@@ -1,0 +1,98 @@
+{
+  "archive": "Standardized_C1_numeric_evidence.zip",
+  "archive_bytes": 121919197,
+  "archive_sha256": "55f518cd826439d593306810c475840d53f520c5714a3733a9e7762d3db7337f",
+  "parts": [
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-01",
+      "bytes": 7000000,
+      "sha256": "ed2dcd7c24bb47d717dbcdf2321cbdaba716ef2f242cb63a2aff0421f0481f0c"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-02",
+      "bytes": 7000000,
+      "sha256": "89211e139e9a522ea3e5f5886dfa37efc09716090f3eabe2be656db7c82c7368"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-03",
+      "bytes": 7000000,
+      "sha256": "0f8dc046e5122a76c0ee7be77b32d05e16e14097059d3758886c00a6bb9927f0"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-04",
+      "bytes": 7000000,
+      "sha256": "d7b46a25eb5ee7fbb8f19b84234d3f82eb791cf5586510d3414e077c8886f9c2"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-05",
+      "bytes": 7000000,
+      "sha256": "77818b5087b134eae7fed76769fc8b9cad3f418a0f74a25a46b1a9be9857bf30"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-06",
+      "bytes": 7000000,
+      "sha256": "3652906f9e6b054ea4ca7eaa3df151d588a20c471c910e46383932a1fd3a124a"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-07",
+      "bytes": 7000000,
+      "sha256": "af71b910b7fafcde2b77d45954bb0914cb0151983bef62f3533ce8a853762ef5"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-08",
+      "bytes": 7000000,
+      "sha256": "60558d628176496133b29db3894bf3938cf815b9de073f878507599cf8930cee"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-09",
+      "bytes": 7000000,
+      "sha256": "60838c9f5c34fc8a9e8843b95b8f66069e466a82bcf4da77317af693ded236df"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-10",
+      "bytes": 7000000,
+      "sha256": "c333cd38ae6b3f9819e3922abf0a93c9dc432eddbee7325de6c829bb8d8ccb81"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-11",
+      "bytes": 7000000,
+      "sha256": "33d24358859ce7584b6738abfafd4c4b78e7796f5b8239fd9a6f7f9c444ca2e0"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-12",
+      "bytes": 7000000,
+      "sha256": "61ddf9ca162fb17e6ef034c831f39d73eb1d9caabeedeaabe3a769912843973e"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-13",
+      "bytes": 7000000,
+      "sha256": "8c7063167e7d6272de75e57bf5e194b2aea608dcc36685da507a5cc0fed7f746"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-14",
+      "bytes": 7000000,
+      "sha256": "6213c191ead018cd41dba95c388b767e65a6e61773e2d0857b83665020a74cb1"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-15",
+      "bytes": 7000000,
+      "sha256": "a9a2d01d554790ca9caf835e1b66b4ea834ecaefafd2b97b5828c9fc1f878f97"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-16",
+      "bytes": 7000000,
+      "sha256": "175cc53bfb571adf3f05488bb201ceb2d37237794a577ee8aa38569a25c2ba1e"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-17",
+      "bytes": 7000000,
+      "sha256": "7a680ddab574bf20be46f8bd393724ca42bef9a29efdb2d28c298dec06680c75"
+    },
+    {
+      "name": "Standardized_C1_numeric_evidence.zip.part-18",
+      "bytes": 2919197,
+      "sha256": "7e5ee02b020e753959720ca4183159606b17db9705f155cab24a44048d2ef7bf"
+    }
+  ],
+  "numeric_files": 241
+}

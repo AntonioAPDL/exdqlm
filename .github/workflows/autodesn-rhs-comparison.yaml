@@ -1,0 +1,186 @@
+name: AutoDESN RHS C1 comparison
+
+on:
+  pull_request:
+    paths:
+      - 'R/autodesn*.R'
+      - 'R/qdesn_normal.R'
+      - 'src/autodesn_rhs.cpp'
+      - 'validation/autodesn/rhs_comparison/**'
+      - 'validation/autodesn/standardized_rhs/**'
+      - '.github/workflows/autodesn-rhs-comparison.yaml'
+  workflow_dispatch:
+    inputs:
+      run_full:
+        description: 'Run fresh full C1 ridge, RHS and pinned AutoGP fits'
+        type: boolean
+        default: false
+      run_sensitivity:
+        description: 'After qualified full fits, run the 24 fixed MC sensitivity settings'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  OPENBLAS_NUM_THREADS: 1
+  OMP_NUM_THREADS: 1
+  MKL_NUM_THREADS: 1
+
+jobs:
+  contracts-and-smoke:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install source-runner dependencies
+        run: Rscript -e 'install.packages(c("testthat", "jsonlite", "digest", "coda", "Matrix", "Rcpp", "RcppArmadillo", "RcppEigen", "BH", "matrixStats", "RSpectra"))'
+      - run: python -m pip install numpy scipy pandas==2.2.3 matplotlib
+      - name: Alignment, recursion, scoring and gate contracts
+        run: |
+          Rscript --vanilla validation/autodesn/rhs_comparison/test_contracts.R
+          python -m unittest discover -s validation/autodesn/rhs_comparison -p test_contracts.py -v
+          python -m unittest discover -s validation/autodesn/standardized_rhs -p test_diagnostics.py -v
+      - name: Frozen readout scaling and normalized RHS contracts
+        run: |
+          Rscript --vanilla -e 'source("validation/autodesn/load_checkout.R"); Rcpp::sourceCpp("src/autodesn_rhs.cpp"); testthat::test_dir("tests/testthat", filter="autodesn-rhs|autodesn-scaling", stop_on_failure=TRUE)'
+      - name: Execute explicitly unqualified smoke pipelines
+        run: |
+          Rscript --vanilla validation/autodesn/rhs_comparison/run.R --mode smoke --method ridge
+          Rscript --vanilla validation/autodesn/rhs_comparison/run.R --mode smoke --method rhs --backend cpp
+          python validation/autodesn/rhs_comparison/report.py --mode smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rhs-smoke-unqualified
+          path: |
+            validation/autodesn/rhs_comparison/artifacts/smoke/
+            !validation/autodesn/rhs_comparison/artifacts/smoke/bank/
+            !validation/autodesn/rhs_comparison/artifacts/smoke/rhs/cpp_cache/
+          retention-days: 14
+          if-no-files-found: warn
+
+  full-r:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_full
+    needs: contracts-and-smoke
+    runs-on: ubuntu-22.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        method: [ridge, rhs]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+      - name: Install source-runner dependencies
+        run: Rscript -e 'install.packages(c("jsonlite", "digest", "coda", "Matrix", "Rcpp", "RcppArmadillo", "RcppEigen", "BH", "matrixStats", "RSpectra"))'
+      - name: Build, fit, qualify and forecast
+        run: Rscript --vanilla validation/autodesn/rhs_comparison/run.R --mode full --method ${{ matrix.method }} --backend auto
+      - name: Fixed Monte Carlo sensitivity
+        if: inputs.run_sensitivity
+        run: Rscript --vanilla validation/autodesn/rhs_comparison/sensitivity.R --method ${{ matrix.method }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rhs-c1-${{ matrix.method }}
+          path: |
+            validation/autodesn/rhs_comparison/artifacts/full/${{ matrix.method }}/
+            !validation/autodesn/rhs_comparison/artifacts/full/${{ matrix.method }}/cpp_cache/
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rhs-c1-bank-evidence-${{ matrix.method }}
+          path: |
+            validation/autodesn/rhs_comparison/artifacts/full/bank/status.json
+            validation/autodesn/rhs_comparison/artifacts/full/bank/specification_audit.csv
+            validation/autodesn/rhs_comparison/artifacts/full/bank/contract.rds
+          retention-days: 30
+          if-no-files-found: warn
+
+  full-gp:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_full
+    needs: contracts-and-smoke
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    env:
+      JULIA_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 2
+      OMP_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10.10'
+      - uses: julia-actions/cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy scipy pandas==2.2.3 matplotlib
+      - name: Prepare pinned authors implementation
+        run: |
+          git clone https://github.com/probsys/AutoGP.jl /tmp/AutoGP.jl
+          git -C /tmp/AutoGP.jl checkout 2ad372db2b8bea176e3b32a769bfb5d6cff80866
+          julia --project=/tmp/AutoGP.jl -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+      - name: Native SMC, state conditioning and exact mixture scores
+        run: python validation/autodesn/rhs_comparison/run_gp.py --project /tmp/AutoGP.jl
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rhs-c1-gp
+          path: validation/autodesn/rhs_comparison/artifacts/full/gp/
+          retention-days: 30
+          if-no-files-found: error
+
+  full-comparison:
+    needs: [full-r, full-gp]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy scipy pandas==2.2.3 matplotlib
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rhs-c1-*
+          path: validation/autodesn/rhs_comparison/downloads/
+      - name: Assemble complete model outputs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          root = Path('validation/autodesn/rhs_comparison')
+          for method in ('ridge', 'rhs', 'gp'):
+              shutil.copytree(root/'downloads'/f'rhs-c1-{method}', root/'artifacts/full'/method)
+          PY
+      - name: Audit and aggregate qualified runs
+        run: python validation/autodesn/rhs_comparison/report.py --mode full
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rhs-c1-comparison
+          path: validation/autodesn/rhs_comparison/artifacts/full/comparison/
+          retention-days: 30
+          if-no-files-found: warn

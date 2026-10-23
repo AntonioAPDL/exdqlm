@@ -39,7 +39,7 @@
   z / sum(z)
 }
 
-#' Prepare a finite bank of Gaussian ridge readout designs
+#' Prepare a finite bank of Gaussian readout designs
 #'
 #' The matrices contain slopes only; one proper Gaussian intercept is added.
 #' Autoregressive designs define a conditional likelihood. The caller must use
@@ -50,11 +50,17 @@
 #' @param model_info Optional data frame with one row per candidate.
 #' @param model_prior Positive prior masses, normalized to sum to one.
 #' @param normalize_features Divide slopes by the square root of their count.
+#' @param standardize_features Center and scale each slope using the supplied training rows.
+#'   Constant columns (SD <= feature_sd_tol) are excluded with a frozen mask.
+#' @param feature_sd_tol Positive threshold for constant training columns.
 #' @return An `autodesn_bank`. Use [autodesn_build_bank()] for recursive forecasts.
 #' @export
 autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = NULL,
-                                  normalize_features = TRUE) {
+                                  normalize_features = TRUE, standardize_features = FALSE,
+                                  feature_sd_tol = 1e-8) {
   .autodesn_flag(normalize_features, "normalize_features")
+  .autodesn_flag(standardize_features, "standardize_features")
+  .autodesn_positive(feature_sd_tol, "feature_sd_tol")
   y <- as.numeric(y)
   if (length(y) < 2L || any(!is.finite(y))) stop("y must be finite, length >= 2.")
   if (!is.list(features) || !length(features)) stop("features must be a nonempty list.")
@@ -64,6 +70,8 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
     if (!is.numeric(H)) stop("Feature matrices must be numeric.", call. = FALSE)
     if (nrow(H) != n || any(!is.finite(H)))
       stop("Every feature matrix must be finite and have length(y) rows.")
+    geometry <- .autodesn_feature_fit(H, standardize_features, feature_sd_tol)
+    H <- geometry$features
     d <- ncol(H)
     divisor <- if (normalize_features && d > 0L) sqrt(d) else 1
     F <- H / divisor
@@ -81,10 +89,11 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
       ry <- y
       r1 <- rep(1, n)
     }
-    list(X = X, d = d, divisor = divisor, XtX = crossprod(X),
+    geometry$features <- NULL
+    c(list(X = X, d = d, divisor = divisor, XtX = crossprod(X),
          Xty = as.vector(crossprod(X, y)), spectrum = spectrum,
          uy = uy, u1 = u1, ry2 = sum(ry^2), r12 = sum(r1^2),
-         r1y = sum(r1 * ry), n = n)
+         r1y = sum(r1 * ry), n = n), geometry)
   })
   M <- length(models)
   if (is.null(model_prior)) model_prior <- rep(1 / M, M)
@@ -100,7 +109,8 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
   if (is.null(model_info)) model_info <- data.frame(model = seq_len(M))
   if (!is.data.frame(model_info) || nrow(model_info) != M) stop("model_info must have one row per candidate.")
   structure(list(y = y, models = models, model_info = model_info,
-                 prior = prior, n = n, normalize_features = normalize_features),
+                 prior = prior, n = n, normalize_features = normalize_features,
+                 standardize_features = standardize_features, feature_sd_tol = feature_sd_tol),
             class = "autodesn_bank")
 }
 
@@ -147,11 +157,13 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
   as.vector(mu + backsolve(R, stats::rnorm(length(mu))))
 }
 
-#' Fit a Gaussian AutoDESN bank with blocked Gibbs sampling
+#' Fit a Gaussian AutoDESN bank with a ridge or RHS readout
 #'
 #' Each sweep jointly updates model and coefficients by sampling the model
 #' with coefficients integrated out, then immediately redrawing coefficients.
-#' Variance and optionally global ridge precision follow. Coefficient priors
+#' Variance and prior scales follow. Ridge uses a full categorical model scan;
+#' RHS uses collapsed Metropolis model moves by default, with a full categorical
+#' scan available as a reference. Coefficient priors
 #' are independent of observation variance, unlike `normal_desn_fit()`'s
 #' scaled-ridge prior. No reversible-jump or particle approximation is used.
 #'
@@ -166,6 +178,17 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
 #' @param ridge_precision Initial or fixed slope precision.
 #' @param initial_variance Optional starting observation variance.
 #' @param seed Optional seed, with the caller's RNG state restored.
+#' @param beta_prior Readout prior: `"ridge"` (the unchanged default) or the
+#'   normalized regularized horseshoe `"rhs"`. Both are independent of the
+#'   observation variance; the intercept retains its own proper Gaussian prior.
+#' @param rhs_control Named controls from [autodesn_rhs_control()], or a named
+#'   list of its arguments. Used only with `beta_prior = "rhs"`.
+#' @param model_control RHS architecture sampler controls: `method` (`"mh"` or
+#'   `"categorical"`), `moves`, full-support `proposal` probabilities,
+#'   `rb_every`, and `initial_model`. See the RHS guide for their meaning.
+#' @param backend RHS linear algebra backend: `"auto"`, `"R"`, or `"cpp"`.
+#'   Auto uses the compiled implementation when available. Ridge retains its
+#'   existing SVD implementation and accepts `"auto"` or `"R"`.
 #' @return An `autodesn_fit` with joint draws and model probability estimates.
 #' @export
 autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
@@ -173,7 +196,27 @@ autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
                          a_sigma = 3, b_sigma = 1,
                          a_lambda = 2, b_lambda = 2,
                          learn_ridge = TRUE, ridge_precision = 1,
-                         initial_variance = NULL, seed = NULL) {
+                         initial_variance = NULL, seed = NULL,
+                         beta_prior = c("ridge", "rhs"), rhs_control = list(),
+                         model_control = list(), backend = c("auto", "R", "cpp")) {
+  beta_prior <- match.arg(beta_prior)
+  if (identical(backend, "r")) backend <- "R"
+  backend <- match.arg(backend)
+  if (beta_prior == "rhs") {
+    if (!missing(a_lambda) || !missing(b_lambda) || !missing(learn_ridge) ||
+        !missing(ridge_precision)) {
+      stop("Ridge-specific controls are not used by RHS; set rhs_control instead.", call. = FALSE)
+    }
+    return(.autodesn_fit_rhs_bank(bank = bank, n_burn = n_burn,
+      n_mcmc = n_mcmc, thin = thin, intercept_variance = intercept_variance,
+      a_sigma = a_sigma, b_sigma = b_sigma, initial_variance = initial_variance,
+      seed = seed, rhs_control = rhs_control, model_control = model_control,
+      backend = backend))
+  }
+  if (length(rhs_control) || length(model_control)) {
+    stop("rhs_control and model_control require beta_prior = 'rhs'.", call. = FALSE)
+  }
+  if (backend == "cpp") stop("The ridge sampler uses its existing R/SVD backend; use backend = 'auto' or 'R'.", call. = FALSE)
   if (!inherits(bank, "autodesn_bank")) stop("Use autodesn_prepare_bank() or autodesn_build_bank() first.")
   .autodesn_flag(learn_ridge, "learn_ridge")
   .autodesn_integer(n_burn, "n_burn", 0L)

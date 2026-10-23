@@ -12,6 +12,39 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// autodesn_rhs_gaussian_cpp
+Rcpp::List autodesn_rhs_gaussian_cpp(const arma::mat& XtX, const arma::vec& Xty, double yty, double variance, const arma::vec& log_prior_variance, const arma::mat& X, const arma::vec& y);
+RcppExport SEXP _exdqlm_autodesn_rhs_gaussian_cpp(SEXP XtXSEXP, SEXP XtySEXP, SEXP ytySEXP, SEXP varianceSEXP, SEXP log_prior_varianceSEXP, SEXP XSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type XtX(XtXSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Xty(XtySEXP);
+    Rcpp::traits::input_parameter< double >::type yty(ytySEXP);
+    Rcpp::traits::input_parameter< double >::type variance(varianceSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type log_prior_variance(log_prior_varianceSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(autodesn_rhs_gaussian_cpp(XtX, Xty, yty, variance, log_prior_variance, X, y));
+    return rcpp_result_gen;
+END_RCPP
+}
+// autodesn_rhs_local_cpp
+Rcpp::List autodesn_rhs_local_cpp(Rcpp::NumericVector log_local, Rcpp::NumericVector log_aux, Rcpp::NumericVector beta, double log_tau, double log_slab, int max_attempts);
+RcppExport SEXP _exdqlm_autodesn_rhs_local_cpp(SEXP log_localSEXP, SEXP log_auxSEXP, SEXP betaSEXP, SEXP log_tauSEXP, SEXP log_slabSEXP, SEXP max_attemptsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type log_local(log_localSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type log_aux(log_auxSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double >::type log_tau(log_tauSEXP);
+    Rcpp::traits::input_parameter< double >::type log_slab(log_slabSEXP);
+    Rcpp::traits::input_parameter< int >::type max_attempts(max_attemptsSEXP);
+    rcpp_result_gen = Rcpp::wrap(autodesn_rhs_local_cpp(log_local, log_aux, beta, log_tau, log_slab, max_attempts));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_build_polytrend_FF_GG
 Rcpp::List cpp_build_polytrend_FF_GG(int order);
 RcppExport SEXP _exdqlm_cpp_build_polytrend_FF_GG(SEXP orderSEXP) {
@@ -463,6 +496,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_exdqlm_autodesn_rhs_gaussian_cpp", (DL_FUNC) &_exdqlm_autodesn_rhs_gaussian_cpp, 7},
+    {"_exdqlm_autodesn_rhs_local_cpp", (DL_FUNC) &_exdqlm_autodesn_rhs_local_cpp, 6},
     {"_exdqlm_cpp_build_polytrend_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_polytrend_FF_GG, 1},
     {"_exdqlm_cpp_build_seas_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_seas_FF_GG, 2},
     {"_exdqlm_get_gamma_bounds", (DL_FUNC) &_exdqlm_get_gamma_bounds, 1},
