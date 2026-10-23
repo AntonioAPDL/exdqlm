@@ -13,6 +13,7 @@ nh_configuration <- function() {
   for(name in names(cfg$input_sha256))
     stopifnot(identical(digest::digest(file=file.path(nh_root,"input",name),algo="sha256"),cfg$input_sha256[[name]]))
   stopifnot(identical(digest::digest(file=file.path(nh_root,"dgp.R"),algo="sha256"),cfg$dgp_source_sha256))
+  cfg$dataset_adapter_sha256 <- digest::digest(file=file.path(nh_root,"helpers.R"),algo="sha256")
   cfg$mode <- "full";cfg
 }
 rhs_configuration <- function(options) {

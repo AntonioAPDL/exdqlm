@@ -62,7 +62,16 @@ def main():
     started = time.perf_counter()
     command = [args.julia, "--startup-file=no", f"--project={args.project.resolve()}", str(LEGACY_CODE / "run_autogp.jl")]
     with (d / "native_launcher.log").open("a") as log:
-        subprocess.run(command, cwd=workspace, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+        native = subprocess.Popen(command,cwd=workspace,env=env,stdout=log,stderr=subprocess.STDOUT)
+        _, wait_status, usage = os.wait4(native.pid,0)
+        native.returncode = os.waitstatus_to_exitcode(wait_status)
+        write_json(dict(complete=True,exit_code=native.returncode,
+            native_peak_rss_kib=usage.ru_maxrss,user_seconds=usage.ru_utime,
+            system_seconds=usage.ru_stime,
+            scope='Native Julia training plus export and conditioning contracts; Linux wait4 child rusage'),
+            d/'native_resources.json')
+        if native.returncode:
+            raise subprocess.CalledProcessError(native.returncode,command)
     native_seconds = time.perf_counter() - started
     native_audit = validate_gp_evidence(d)
     # Reuse the independently checked, exact Gaussian-mixture conditioning and

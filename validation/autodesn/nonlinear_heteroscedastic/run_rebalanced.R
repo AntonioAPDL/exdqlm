@@ -7,6 +7,7 @@ study<-jsonlite::fromJSON(file.path(root,"study.json"));sc<-study$scenarios[stud
 source_dir<-file.path(base,paste0(scenario,"_initial_proposal"),"rhs")
 source_contract<-readRDS(file.path(source_dir,"contract.rds"))
 cfg<-source_contract$contract$configuration
+stopifnot(identical(digest::digest(file=file.path(root,"helpers.R"),algo="sha256"),cfg$dataset_adapter_sha256))
 st<-jsonlite::fromJSON(file.path(source_dir,"status.json"))
 stopifnot(isTRUE(st$fit_complete),!isTRUE(st$qualified),!file.exists(file.path(source_dir,"scores.csv")),
  cfg$fit_start==501L,cfg$fit_end==2500L,cfg$rhs_control$tau0==sc$tau0,

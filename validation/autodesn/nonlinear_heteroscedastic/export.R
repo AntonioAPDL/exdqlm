@@ -19,7 +19,7 @@ if(length(at)) {
  stopifnot(length(at)==1L,at<length(args),args[at+1L]%in%cfg$scenarios$id)
  selected<-args[at+1L];cfg$scenarios<-cfg$scenarios[cfg$scenarios$id==selected,,drop=FALSE]
 }
-for(legacy_case in c("legacy_prefix_requested","requested_initial_proposal")) {
+for(legacy_case in list.files(base,pattern="_initial_proposal$")) {
 legacy<-file.path(base,legacy_case,"rhs")
 if(dir.exists(legacy) && is.null(selected)) for(ad in list.dirs(legacy,full.names=TRUE,recursive=FALSE)) {
  if(!grepl("attempt_[0-9]+$",ad)) next

@@ -9,6 +9,8 @@ method<-study$scenarios$method[match(sc,study$scenarios$id)]
 base<-file.path("validation/autodesn/nonlinear_heteroscedastic/artifacts",sc)
 d<-file.path(base,method);cfg<-jsonlite::fromJSON(file.path(base,"configuration.json"))
 st<-jsonlite::fromJSON(file.path(d,"status.json"));stopifnot(isTRUE(st$qualified))
+stopifnot(identical(digest::digest(file=file.path(nh_root,"helpers.R"),algo="sha256"),cfg$dataset_adapter_sha256))
+stopifnot(isTRUE(jsonlite::fromJSON(file.path(d,"independent_screen.json"))$passed))
 prov<-jsonlite::fromJSON(file.path(d,"provenance.json"))
 for(key in c("input_sha256","fit_start","fit_end","first_origin","last_origin","H","outer_draws","inner_paths","innovation_seed"))
  stopifnot(identical(cfg[[key]],prov$configuration[[key]]))
