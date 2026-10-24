@@ -1,0 +1,20 @@
+{
+  "prior_unchanged": true,
+  "tau0": 1,
+  "slab_scale": 2,
+  "slab_df": 4,
+  "source": "scaling_only_joint_initial/rhs/attempt_4",
+  "source_qualified": false,
+  "source_forecasts_issued": false,
+  "chains": 3,
+  "burn_per_chain": 16000,
+  "retained_per_chain": 128000,
+  "base_seed": 8266020,
+  "model_moves": 4,
+  "joint_moves": 2,
+  "proposal_rule": "0.2 prior +0.8 same-prior completed training occupancy; fitted model-conditional three-scale Student-t mixture",
+  "full_support": true,
+  "exact_Hastings_correction": true,
+  "model_candidates_unchanged": true,
+  "no_test_scores_used": true
+}

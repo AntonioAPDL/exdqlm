@@ -6,6 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import findfont
+from scipy.stats import invgamma
 from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,Image,PageBreak
 from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
@@ -68,9 +69,13 @@ def main():
  for j,sc in enumerate(study['scenarios'][:2]):
   tr=pd.read_csv(b/sc['id']/sc['method']/'traces.csv.gz')
   values=[(np.log(sc['tau0'])+tr.log_global)/np.log(10),tr.log_slab/np.log(10),tr.effective_slopes_diagonal]
-  for ax,val in zip(axes,values):ax.hist(val,bins=70,density=True,histtype='step',lw=1.5,label=sc['id'],color=list(PALETTE.values())[j])
+  for ax,val in zip(axes,values):ax.hist(val,bins=70,density=True,histtype='step',lw=1.5,label=sc['id']+' posterior',color=list(PALETTE.values())[j])
+  tau_grid=np.linspace(-5,1,500);t=10**tau_grid;a=sc['tau0']
+  axes[0].plot(tau_grid,2*np.log(10)/np.pi*a*t/(a*a+t*t),ls='--',lw=1,color=list(PALETTE.values())[j],label=sc['id']+' prior')
+  c_grid=np.linspace(-2,3,500);v=10**c_grid
+  axes[1].plot(c_grid,np.log(10)*v*invgamma.pdf(v,a=sc['slab_df']/2,scale=sc['slab_df']*sc['slab_scale']**2/2),ls='--',lw=1,color=list(PALETTE.values())[j],label=sc['id']+' prior')
  for ax,label in zip(axes,['log10(tau)','log10(c squared)','Diagonal effective-slopes proxy']):
-  ax.set(xlabel=label,ylabel='Posterior density');ax.legend(frameon=False);ax.grid(alpha=.15)
+  ax.set(xlabel=label,ylabel='Posterior density');ax.legend(frameon=False,fontsize=8,ncol=2);ax.grid(alpha=.15)
  fig.savefig(figures/'shrinkage.png',dpi=170);plt.close(fig)
  pdfmetrics.registerFont(TTFont('DV',findfont('DejaVu Sans')));pdfmetrics.registerFont(TTFont('DVB',findfont('DejaVu Sans:weight=bold')))
  pdfmetrics.registerFontFamily('DV',normal='DV',bold='DVB',italic='DV',boldItalic='DVB')
@@ -141,6 +146,7 @@ def main():
   para(f"{sc['id']} diagonal effective-slopes proxy: median {q['median']:.3f}, 5%-95% [{q.q05:.3f}, {q.q95:.3f}]. This sums d_j*(X'X)_jj / (sigma²+d_j*(X'X)_jj), using slope prior variances d_j; it ignores feature correlations and is not a count of selected coefficients.",'Small')
  para('tau0 is a prior multiplier, not a fixed posterior tau. Global, local and slab scales are sampled. The normalized Gaussian slope density and every architecture-dependent Gaussian determinant are retained. Layerwise common auxiliary coordinates and product-preserving interweaving preserve the same normalized RHS target; inactive proper priors integrate to one. No test-error screening substitutes for architecture averaging.','Small')
  image(figures/'shrinkage.png')
+ para('Solid histograms are posterior densities; dashed curves are the normalized half-Cauchy global-scale and inverse-gamma slab priors after the log10 coordinate transformation. The effective-slopes panel is an approximation, with no implied variable-selection threshold.','Small')
  page();title('Retained-chain diagnostics');image(figures/'traces.png')
  rows=[['Scenario','Max rank R-hat','Min bulk ESS','Min tail/frequency ESS','Kept/chain']]
  for sc in study['scenarios']:
@@ -156,10 +162,10 @@ def main():
  table(rows,[125,185,190])
  para('Visits and switches describe exploration; they are not convergence criteria. Proposal/acceptance counts include burn-in and are retained with the exact controls. Architecture indicator diagnostics concern the retained chains.','Small')
  page();title('Sampling and predictive budgets')
- rows=[['Scenario','Burn/chain','Kept/chain','Max R-hat','Min spectral ESS','Pass']]
- for _,r in budgets.iterrows():rows.append([r.scenario,int(r.n_burn),int(r.n_mcmc),f'{r.max_rhat:.5f}',f'{r.min_ess:.1f}',str(bool(r.qualified))])
- table(rows,[145,68,68,74,85,60])
- para('The displayed R-hat/ESS columns concern continuous parameters. Pass additionally requires architecture diagnostics. After two failed model-only proposals, a joint architecture/log-scale Student-t mixture is fitted to completed training chains and frozen before fresh production. Four original model-only moves and two joint moves per sweep retain exact Gaussian coefficient-collapsed targets, prior/Jacobian constants and Hastings corrections. Declared production budgets are 16k/32k/64k/128k kept per chain. Shared training is reported once below. No failed screen is waived. No test scores inform recovery.','Small')
+ rows=[['Scenario','Burn/chain','Kept/chain','Max R-hat','Min ESS','Max mass range','Pass']]
+ for _,r in budgets.iterrows():rows.append([r.scenario,int(r.n_burn),int(r.n_mcmc),f'{r.max_rhat:.5f}',f'{r.min_ess:.1f}',f'{r.max_model_frequency_range:.3f}',str(bool(r.qualified))])
+ table(rows,[135,55,60,65,70,65,50])
+ para('The displayed R-hat/ESS columns concern continuous parameters. Pass additionally requires architecture diagnostics. After two failed model-only proposals, a joint architecture/log-scale Student-t mixture is fitted to completed training chains and frozen before fresh production. Four original model-only moves and two joint moves per sweep retain exact Gaussian coefficient-collapsed targets, prior/Jacobian constants and Hastings corrections. Initial production budgets are 16k/32k/64k/128k kept per chain. After the scaling-only final budget failed the 5-point architecture-frequency-range gate, a same-prior proposal recovery declares one fresh 3x128k budget. Shared training is reported once below. No failed screen is waived. No test scores inform recovery.','Small')
  title('Predictive Monte Carlo sensitivity')
  sens=pd.read_csv(c/'mc_sensitivity_summary.csv');rows=[['Scenario','N x K','RMSE (3 origins)','CRPS','NLL']]
  for sc in study['scenarios']:
@@ -183,8 +189,8 @@ def main():
   st=json.loads((b/sc['id']/sc['method']/'status.json').read_text());t=st['timings'];m=json.loads((b/sc['id']/'process_memory.json').read_text())
   rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{m["fit_invocation_wall_seconds_sum"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',f'{m["process_peak_rss_kib"]/2**20:.2f}'])
  table(rows,[100,50,70,70,70,60,80])
- for d in sorted(x for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k'))):
-  t=json.loads((d/'rhs/status.json').read_text())['timings'];para(f"Additional failed training cost ({d.name}): {t['inference_seconds_all_attempts']:.2f}s completed inference plus {t.get('training_pilot_seconds',0):.2f}s pilots. These supplied one shared training-only proposal and issued no forecasts; do not add this shared cost twice for the two RHS priors.",'Small')
+ for d in sorted(x for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k','_joint_initial'))):
+  t=json.loads((d/'rhs/status.json').read_text())['timings'];para(f"Additional failed training cost ({d.name}): {t['inference_seconds_all_attempts']:.2f}s completed inference plus {t.get('training_pilot_seconds',0):.2f}s pilots. These training fits issued no forecasts. The requested-prior source is shared across RHS cases; the scaling-only joint source is additional recovery cost for that control.",'Small')
  for ledger in sorted((b/'validation').glob('execution_interruption_*.json')):
   lost=json.loads(ledger.read_text());t=lost['last_memory_record']['invocation_wall_seconds']
   para(f"Execution interruption ({lost.get('scenario','unknown')}): last observed invocation wall {t:.2f}s. Its completed chains are counted once in chain compute; the unfinished chain was recomputed. The first interrupted invocation's stdout was overwritten before backup; its last timing observation and resume logs are retained. Fit wall sums recorded invocations, including this observation, and includes repeated cache loading and diagnostics.",'Small')

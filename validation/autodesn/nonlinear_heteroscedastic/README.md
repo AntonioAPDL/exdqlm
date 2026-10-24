@@ -58,7 +58,10 @@ Rscript validation/autodesn/nonlinear_heteroscedastic/test_dgp.R
 Rscript validation/autodesn/nonlinear_heteroscedastic/test_workflow.R
 Rscript validation/autodesn/nonlinear_heteroscedastic/run.R --stage build
 python validation/autodesn/nonlinear_heteroscedastic/execute_joint.py
-# Use the pinned AutoGP checkout and Julia 1.10.10:
+# The recorded scaling-control architecture-range failure stops that stage.
+# This next stage fits ridge/NativeGP and declares a same-prior control recovery:
+python validation/autodesn/nonlinear_heteroscedastic/execute_remaining.py --julia /path/to/julia --project /path/to/AutoGP.jl
+# With all model forecasts complete, audit and package the study:
 python validation/autodesn/nonlinear_heteroscedastic/postprocess.py --julia /path/to/julia --project /path/to/AutoGP.jl
 python validation/autodesn/nonlinear_heteroscedastic/report.py
 python validation/autodesn/nonlinear_heteroscedastic/archive.py
@@ -100,3 +103,13 @@ objects with `checkpoint_parts.json`; smaller ones are committed whole.
 before restoring the numeric archive. Every one of the 384 predictive joint
 draws is retained. `prepare_delivery.py` prepares these objects after the
 completed forecast checkpoints have been pruned and losslessly compressed.
+
+The first scaling-only joint fit exhausted its 128k budget with a 9.8-point
+between-chain architecture-frequency range (the frozen limit is 5 points),
+even though its continuous-parameter screens passed. It issued no forecasts.
+`fit_control_recovery.R` freezes a new full-support model/three-scale proposal
+from those same-prior training chains and declares a single fresh three-chain
+16k burn +128k retained recovery, with fresh base seed 8266020. This changes
+only the computational proposal. The exact posterior, prior controls,
+reservoirs and forecast protocol are retained. All failed training costs and
+any interrupted invocation observations remain part of the execution record.

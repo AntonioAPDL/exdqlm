@@ -19,7 +19,7 @@ if(length(at)) {
  stopifnot(length(at)==1L,at<length(args),args[at+1L]%in%cfg$scenarios$id)
  selected<-args[at+1L];cfg$scenarios<-cfg$scenarios[cfg$scenarios$id==selected,,drop=FALSE]
 }
-for(legacy_case in list.files(base,pattern="_(initial_proposal|rebalanced_64k)$")) {
+for(legacy_case in list.files(base,pattern="_(initial_proposal|rebalanced_64k|joint_initial)$")) {
 legacy<-file.path(base,legacy_case,"rhs")
 if(is.null(selected) && dir.exists(file.path(legacy,"pilot"))) {
  pilots<-lapply(1:3,function(k) readRDS(file.path(legacy,"pilot",paste0("chain_",k,".rds"))))

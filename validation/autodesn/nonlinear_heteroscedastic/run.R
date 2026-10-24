@@ -180,6 +180,9 @@ if(file.exists(cp_path)) {
    all(is.finite(dg$models$ess_indicator_spectral[big])) &&
    max(dg$models$rhat_indicator[big])<=1.01 && min(dg$models$ess_indicator_spectral[big])>=400
   passed <- rhs_diagnostic_gate(dg,config) && architecture_pass
+  rejected_path<-file.path(directory,"independent_rejected_budgets.json")
+  if(sc$method=="ridge" && file.exists(rejected_path) &&
+     attempt%in%jsonlite::fromJSON(rejected_path)$attempts) passed<-FALSE
   write.csv(dg$parameters,file.path(adir,"diagnostics.csv"),row.names=FALSE)
   write.csv(dg$models,file.path(adir,"model_probabilities.csv"),row.names=FALSE)
   rhs_json(list(complete=TRUE,qualified=passed,attempt=attempt,n_burn=ctl$n_burn,n_mcmc=ctl$n_mcmc,

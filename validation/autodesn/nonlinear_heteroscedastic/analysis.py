@@ -34,7 +34,7 @@ def main():
   causality=json.loads((d/'causality_audit.json').read_text());assert causality['complete'] and causality['max_path_error']==0
   rows=validate_scores(pd.read_csv(d/'scores.csv'),cfg,'AutoDESN RHS' if sc['method']=='rhs' else 'AutoDESN ridge')
   audits[sc['id']]=audit_paths(d,rows,cfg);rows['model']=LABELS[sc['id']];scores.append(rows)
- for case in list(study['scenarios'])+[dict(id=x.name,method='rhs') for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k'))]:
+ for case in list(study['scenarios'])+[dict(id=x.name,method='rhs') for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k','_joint_initial'))]:
   d=b/case['id']/case['method']
   if not d.exists():continue
   controls=json.loads((d/'provenance.json').read_text())['configuration']['attempts']

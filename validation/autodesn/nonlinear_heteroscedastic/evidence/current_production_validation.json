@@ -44,7 +44,8 @@
       "chains": 3,
       "retained_per_chain": 20000,
       "inactive_local_prior_integrated_exactly": true
-    }
+    },
+    "execution_log_preservation_contract_tests_passed": 2
   },
   "production_source": [
     {
