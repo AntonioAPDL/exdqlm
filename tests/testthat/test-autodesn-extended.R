@@ -5,6 +5,56 @@ ext_example <- function() {
  autodesn_build_bank(y,specs,conditioning=5,washout=10,standardize_features=TRUE,normalize_features=FALSE)
 }
 
+test_that('frozen local-scale proposals normalize and retain exact product-space ratios', {
+ constructor<-autodesn_extended_local_proposal
+ logq<-ext_internal('.ext_local_logq');correction<-ext_internal('.ext_local_correction')
+ hc<-function(z)log(2/pi)-abs(z)-log1p(exp(-2*abs(z)))
+ proposal<-constructor(list(matrix(c(-2,.5,2),3,1),matrix(c(-1,.7,2,.1,-.4,.8),3,2)),list(.6,c(.4,.7)),slope=list(-.5,c(-.3,-.8)),reference_log_global=c(1,-1),weight=c(.8,.7),bank_id='fixture')
+ mass<-integrate(function(x)vapply(x,function(z)exp(logq(z,1,2,proposal)),0),-35,35,rel.tol=1e-10)$value
+ expect_equal(mass,1,tolerance=1e-10)
+ value<-c(-.6,1.2);u<-.3;shift<-proposal$slope[[2]]*(u+1)
+ product<-prod(vapply(1:2,function(j)mean(dnorm(value[j],proposal$centers[[2]][,j]+shift[j],proposal$bandwidth[[2]][j])),0))
+ expect_equal(exp(logq(value,2,u,proposal)),.3*exp(sum(hc(value)))+.7*product,tolerance=1e-13)
+ # Full-space prior and proposal, including inactive dimensions, independently.
+ old<-c(.7,-1.1,.3);new<-c(-.2,1.4,-.8);pm<-c(.4,.6);qm<-c(.8,.2)
+ likelihood_old<--1.7;likelihood_new<--.8
+ full<-likelihood_new-likelihood_old+log(pm[2]/pm[1])+sum(hc(new))-sum(hc(old))+
+   log(qm[1])+logq(old[1],1,u,proposal)+sum(hc(old[2:3]))-
+   log(qm[2])-logq(new[1:2],2,u,proposal)-hc(new[3])
+ active<-likelihood_new-likelihood_old+log(pm[2]/pm[1])+log(qm[1]/qm[2])+
+   correction(new[1:2],2,u,proposal)-correction(old[1],1,u,proposal)
+ expect_equal(active,full,tolerance=1e-13)
+ expect_lte(correction(value,2,u,proposal),-log1p(-proposal$weight[2]))
+ expect_equal(logq(1e200,1,u,proposal),log1p(-proposal$weight[1])+hc(1e200))
+ expect_error(constructor(list(matrix(0,1,1)),list(1),weight=1,bank_id='x'),'prior component')
+ expect_error(constructor(list(matrix(0,1,1)),list(0),bank_id='x'),'dimensions or scales')
+})
+
+test_that('local-scale moves preserve prior-only architecture masses across dimensions', {
+ proposal<-autodesn_extended_local_proposal(list(matrix(c(-1,0,1),3,1),matrix(c(-1,0,1,.2,.5,1.2),3,2)),list(.7,c(.5,.8)),weight=.75,bank_id='fixture')
+ logq<-ext_internal('.ext_local_logq');draw<-ext_internal('.ext_local_draw');hc<-ext_internal('.autodesn_rhs_log_hc_log')
+ # Independent full-space transition calculation, with three total slots.
+ set.seed(7729);pm<-c(.3,.7);qm<-c(.7,.3);m<-1L;ell<-rep(0,3);out<-numeric(20000)
+ for(i in 1:22000){a<-sample.int(2,1,prob=qm);z<-log(abs(rcauchy(3)));z[seq_len(a)]<-draw(a,.5,proposal)
+  logproposal<-function(v,model)log(qm[model])+logq(v[seq_len(model)],model,.5,proposal)+sum(hc(v[-seq_len(model)]))
+  ratio<-log(pm[a]/pm[m])+sum(hc(z))-sum(hc(ell))+logproposal(ell,m)-logproposal(z,a)
+  if(log(runif(1))<min(0,ratio)){m<-a;ell<-z};if(i>2000)out[i-2000]<-as.numeric(m==2)
+ }
+ se<-ext_internal('.autodesn_batch_mcse')(list(out));expect_lt(abs(mean(out)-pm[2]),7*se)
+ expect_lt(abs(mean(out)-pm[2]),.04)
+})
+
+test_that('optional local-scale moves are full-support and explicit in computation metadata', {
+ b<-autodesn_extend_bank(ext_example(),list(lags=1:2,prior='grouped'),list(periods=c(12,18),harmonics=1))
+ p<-autodesn_extended_local_proposal(lapply(b$models,function(m)matrix(0,2,m$d)),lapply(b$models,function(m)rep(1,m$d)),bank_id=b$extension$id)
+ f<-autodesn_fit_bank(b,n_burn=5,n_mcmc=20,beta_prior='rhs',rhs_control=list(tau0=.001),model_control=list(local_proposal=p,joint_moves=1,save_draws=5),seed=93,backend='R')
+ expect_equal(f$computation$local_proposals,25);expect_gte(f$computation$local_acceptances,0)
+ expect_true(all(is.finite(f$trace$log_likelihood)));expect_true(all(is.finite(unlist(f$local))))
+ bad<-p;bad$bank_id<-'other';expect_error(autodesn_fit_bank(b,n_burn=1,n_mcmc=2,beta_prior='rhs',model_control=list(local_proposal=bad)),'does not match')
+ expect_error(autodesn_fit_bank(b,n_burn=1,n_mcmc=2,beta_prior='rhs',rhs_control=list(fixed_local_scales=1),model_control=list(local_proposal=p)),'learned RHS')
+ expect_error(autodesn_fit_bank(b,n_burn=1,n_mcmc=2,model_control=list(local_moves=1)),'requires a frozen')
+})
+
 test_that('augmented controls reject ambiguous or unsupported inputs', {
  expect_error(autodesn_readout_control(lags=c(1,1)),'distinct')
  expect_error(autodesn_readout_control(lags=0),'positive')
@@ -16,6 +66,7 @@ test_that('augmented controls reject ambiguous or unsupported inputs', {
  b<-ext_example();bad<-b;bad$normalize_features<-TRUE
  expect_error(autodesn_extend_bank(bad),'standardize')
  expect_error(autodesn_extend_bank(b,list(lags=20)),'history')
+ e<-autodesn_extend_bank(b,list(lags=1:2));expect_error(autodesn_fit_bank(e,n_burn=1,n_mcmc=2,beta_prior='rhs',rhs_control=list(local_layout='layerwise')),'family-indexed')
 })
 
 test_that('augmentation preserves bank mass and frozen training geometry', {
@@ -27,6 +78,30 @@ test_that('augmentation preserves bank mass and frozen training geometry', {
  expect_equal(sum(outer(e$prior,e$extension$period_prior)),1)
  d<-ext_internal('.ext_design')(e,2,1)
  expect_identical(length(unique(d$slots)),length(d$slots));expect_equal(ncol(d$X),1+2+e$models[[2]]$d+8)
+})
+
+test_that('raw coefficient transport includes all block and response intercept corrections', {
+ b<-ext_example();e<-autodesn_extend_bank(b,list(lags=c(1,3)),list(periods=c(12,18),harmonics=2))
+ f<-autodesn_fit_bank(e,n_burn=4,n_mcmc=12,beta_prior='ridge',model_control=list(moves=2,joint_moves=0),seed=172)
+ for(k in seq_len(nrow(f$draws))) {
+  m<-f$draws$model[k];p<-f$draws$period_index[k];r<-b$models[[m]]
+  R<-matrix(rep(r$feature_center,each=b$n),b$n,r$raw_d)
+  R[,r$active_features]<-sweep(sweep(r$X[,-1,drop=FALSE],2,r$feature_scale[r$active_features],'*'),2,r$feature_center[r$active_features],'+')
+  L<-vapply(e$extension$readout$lags,function(lag)b$history_scaled[b$keep_idx-lag],numeric(b$n))
+  S<-ext_internal('.ext_fourier')(b$keep_idx,e$extension$periods[p],2)
+  expected<-as.vector(ext_internal('.ext_design')(e,m,p)$X%*%f$beta[[k]])
+  raw<-autodesn_readout_coefficients(f,k,FALSE)[[1]]$coefficients
+  expect_equal(as.vector(cbind(1,L,R,S)%*%raw),expected,tolerance=1e-11)
+  original<-autodesn_readout_coefficients(f,k,TRUE)[[1]]$coefficients
+  original_L<-b$preprocessing$center+b$preprocessing$scale*L
+  expect_equal(as.vector(cbind(1,original_L,R,S)%*%original),b$preprocessing$center+b$preprocessing$scale*expected,tolerance=1e-11)
+ }
+ # Matrix-only banks have identity response geometry and dropped constants.
+ a<-autodesn_extend_bank(autodesn_prepare_bank(rep(0,8),list(matrix(0,8,1)),normalize_features=FALSE,standardize_features=TRUE))
+ z<-autodesn_fit_bank(a,n_burn=2,n_mcmc=4,beta_prior='ridge',seed=14)
+ raw<-autodesn_readout_coefficients(z,1)[[1]]$coefficients
+ expect_identical(names(raw),c('intercept','reservoir_1'));expect_equal(raw[2],c(reservoir_1=0))
+ pp<-posterior_predict(z,nd=3,seed=32);expect_equal(dim(pp$sd_draws),c(8L,3L));expect_true(all(pp$sd_draws>0))
 })
 
 test_that('weighted Gaussian integral and coefficient covariance match dense independent reference', {
@@ -107,6 +182,24 @@ test_that('augmented forecasts use simulated lags and observed updates match cau
  expect_identical(forecast_paths(f,3,draw_index=1,innovations=z,inner_paths=1,seed=17)$yrep,a$yrep)
 })
 
+test_that('H_last-only reservoir templates reproduce complete-state causal forecasts', {
+ b<-ext_example();compact<-b
+ compact$templates<-lapply(b$templates,function(t){t$states<-list(H_last=ext_internal('.ext_template_initial')(t));t})
+ e<-autodesn_extend_bank(b,list(lags=1:2),list(periods=12,harmonics=2))
+ ec<-autodesn_extend_bank(compact,list(lags=1:2),list(periods=12,harmonics=2))
+ expect_identical(e$extension$initial_states,ec$extension$initial_states)
+ args<-list(n_burn=3,n_mcmc=6,beta_prior='ridge',seed=818,backend='R')
+ f<-do.call(autodesn_fit_bank,c(list(bank=e),args));g<-do.call(autodesn_fit_bank,c(list(bank=ec),args))
+ expect_identical(f$trace,g$trace);expect_identical(f$beta,g$beta)
+ expect_identical(forecast_paths(f,5,draw_index=1:3,seed=32)$yrep,forecast_paths(g,5,draw_index=1:3,seed=32)$yrep)
+ u<-autodesn_update_history(f,c(.1,.3));v<-autodesn_update_history(g,c(.1,.3))
+ expect_identical(u$bank$extension$current_states,v$bank$extension$current_states)
+ expect_identical(forecast_paths(u,3,draw_index=1:3,seed=41)$yrep,forecast_paths(v,3,draw_index=1:3,seed=41)$yrep)
+ # Old augmented checkpoints used empty lists with compact recovered templates.
+ old<-g;old$bank$extension$initial_states<-rep(list(list()),length(b$models))
+ expect_identical(forecast_paths(old,3,draw_index=1:3,seed=45)$yrep,forecast_paths(g,3,draw_index=1:3,seed=45)$yrep)
+})
+
 test_that('conditional SV filtering preserves weights and rejects stale states', {
  b<-autodesn_extend_bank(ext_example(),list(lags=1:2),list(periods=12,harmonics=2))
  f<-autodesn_fit_bank(b,n_burn=10,n_mcmc=20,beta_prior='ridge',variance_control=list(type='sv',seasonal=TRUE),seed=51)
@@ -134,6 +227,8 @@ test_that('frozen general-dimensional proposal uses normalized t-mixture densiti
  p<-autodesn_extended_proposal(matrix(rep(c(0,2,2,0),each=2),2),diag(4))
  f<-autodesn_fit_bank(b,n_burn=10,n_mcmc=30,beta_prior='rhs',rhs_control=list(tau0=.001),model_control=list(joint_proposal=p,save_draws=6),seed=39)
  expect_equal(nrow(f$trace),30);expect_equal(nrow(f$draws),6);expect_equal(length(f$beta),6)
+ expect_equal(rowSums(f$trace[paste0('edf_',c('intercept','lag','reservoir','calendar'))]),f$trace$edf,tolerance=1e-10)
+ expect_true(all(is.finite(as.matrix(f$trace[c('norm_lag','norm_reservoir','norm_calendar','log_likelihood','terminal_log_variance')]))))
  expect_true(all(is.finite(unlist(f$beta))));expect_true(all(is.finite(predict_mu(f))))
  one<-autodesn_update_history(f,.2);expect_equal(length(one$bank$history),length(f$bank$history)+1)
 })
@@ -201,4 +296,12 @@ test_that('SV conditional targets keep stationary and transformed density consta
  }
  expect_identical(ext_internal('.ext_sv_loglik')(rep(-1000,5),rep(0,5),.4),2500)
  expect_identical(ext_internal('.ext_sv_omega_log_target')(1000,u,rep(0,5),.4,rep(0,5),.5),-Inf)
+})
+
+
+test_that('inference-only caches cannot be used as reservoir forecast templates', {
+ e<-autodesn_extend_bank(ext_example(),list(lags=1:2));f<-autodesn_fit_bank(e,n_burn=2,n_mcmc=3,beta_prior='ridge',seed=63)
+ f$bank$meta$inference_only<-TRUE
+ expect_error(forecast_paths(f,2,nd=2),'inference matrix cache')
+ expect_error(autodesn_update_history(f,.2),'inference matrix cache')
 })

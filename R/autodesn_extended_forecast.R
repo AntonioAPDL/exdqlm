@@ -28,13 +28,15 @@ autodesn_update_history <- function(object, y) {
   if (!inherits(object, "autodesn_extended_fit")) stop("This updater requires an augmented fit.", call. = FALSE)
   y <- .normal_desn_assert_response(y)
   b <- object$bank
+  if (!identical(b$extension$id, object$controls$target$bank_id)) stop("Attached bank does not match the conditional posterior.", call. = FALSE)
+  if (isTRUE(b$meta$inference_only)) stop("Reattach the matching original reservoir bank; this object uses an inference matrix cache.", call. = FALSE)
   e <- b$extension
   if (is.null(b$templates)) stop("Observed state updates require reservoir templates.", call. = FALSE)
   old <- length(b$history)
   newz <- (y - b$preprocessing$center) / b$preprocessing$scale
   z <- c(b$history_scaled, newz)
   times <- old + seq_along(y)
-  hstates <- if (is.null(e$current_states)) e$initial_states else e$current_states
+  hstates <- .ext_origin_states(b)
   features <- vector("list", length(b$models))
   for (m in seq_along(b$models)) {
     engine <- .normal_desn_transition_engine(b$templates[[m]], "serial")
@@ -81,7 +83,7 @@ autodesn_update_history <- function(object, y) {
   list(particles = u, logw = log(w), ess = ess, log_increment = normalizer)
 }
 
-.ext_draw_identity <- function(fit, ids) digest::digest(list(fit$controls$target_id, fit$draws[ids, , drop = FALSE], fit$beta[ids], lapply(fit$volatility[ids], `[[`, "gamma")), algo = "sha256")
+.ext_draw_identity <- function(fit, ids) digest::digest(list(fit$controls$target_id, fit$draws[ids, , drop = FALSE], fit$beta[ids], lapply(fit$volatility[ids], `[[`, "gamma"), .ext_forecast_map_id(fit$bank, unique(fit$draws$model[ids]))), algo = "sha256")
 
 #' Conditional volatility filtering with frozen parameter weights
 #' @param object Augmented SV fit, possibly updated with new observations.
@@ -98,6 +100,7 @@ autodesn_filter <- function(object, draw_index, particles = 1024L, previous = NU
   if (!length(ids) || anyNA(ids) || any(ids < 1 | ids > nrow(object$draws)) || any(draw_index != as.integer(draw_index))) stop("Invalid posterior draw indices.", call. = FALSE)
   b <- object$bank
   e <- b$extension
+  if (!identical(e$id, object$controls$target$bank_id)) stop("Attached bank does not match the conditional posterior.", call. = FALSE)
   identity <- .ext_draw_identity(object, ids)
   if (!is.null(previous)) {
     if (!identical(previous$draw_identity, identity) || !identical(previous$ids, ids) || previous$particles != particles ||
@@ -168,8 +171,11 @@ forecast_paths.autodesn_extended_fit <- function(object, H, nd = 192L, seed = NU
   .autodesn_integer(nd, "nd")
   .autodesn_integer(inner_paths, "inner_paths")
   b <- object$bank
+  if (isTRUE(b$meta$inference_only)) stop("Reattach the matching original reservoir bank; this object uses an inference matrix cache.", call. = FALSE)
   e <- b$extension
+  if (!identical(e$id, object$controls$target$bank_id)) stop("Attached bank does not match the conditional posterior.", call. = FALSE)
   if (is.null(b$templates)) stop("Recursive forecasts require reservoir templates.", call. = FALSE)
+  origin_states <- .ext_origin_states(b)
   .autodesn_seed(seed, function() {
     ids <- if (is.null(draw_index)) sample.int(nrow(object$draws), nd, replace = TRUE) else draw_index
     if (!is.numeric(ids) || !length(ids) || any(!is.finite(ids) | ids != floor(ids) | ids < 1 | ids > nrow(object$draws))) stop("Invalid posterior draw indices.", call. = FALSE)
@@ -209,7 +215,7 @@ forecast_paths.autodesn_extended_fit <- function(object, H, nd = 192L, seed = NU
       B <- do.call(rbind, object$beta[selected])
       count <- length(cols)
       engine <- .normal_desn_transition_engine(b$templates[[m]], "batched")
-      h0 <- if (is.null(e$current_states)) e$initial_states[[m]] else e$current_states[[m]]
+      h0 <- origin_states[[m]]
       h <- lapply(h0, function(x) matrix(x, length(x), count))
       lag_count <- max(c(engine$m, e$readout$lags, 0L))
       lag <- if (lag_count) matrix(rev(tail(b$history_scaled, lag_count)), lag_count, count) else matrix(numeric(0), 0, count)
@@ -298,7 +304,8 @@ posterior_predict.autodesn_extended_fit <- function(object, nd = 1000L, seed = N
     }
 
     y <- mu + matrix(stats::rnorm(length(mu)), nrow(mu)) * sd
-    list(mu_draws = .autodesn_unscale(object$bank, mu), yrep = .autodesn_unscale(object$bank, y), sd_draws = sd * object$bank$preprocessing$scale, draw_index = ids, replication = "conditional_fixed_training_design", recursive_replication = FALSE)
+    response_sd <- if (is.null(object$bank$preprocessing)) 1 else object$bank$preprocessing$scale
+    list(mu_draws = .autodesn_unscale(object$bank, mu), yrep = .autodesn_unscale(object$bank, y), sd_draws = sd * response_sd, draw_index = ids, replication = "conditional_fixed_training_design", recursive_replication = FALSE)
   }
 
   )

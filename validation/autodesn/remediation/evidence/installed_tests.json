@@ -1,10 +1,10 @@
 {
   "complete": true,
-  "tests": 15,
-  "assertions": 132,
+  "tests": 21,
+  "assertions": 188,
   "failed": 0,
   "errors": 0,
   "warnings": 0,
-  "passed": 132,
+  "passed": 188,
   "library": "/workspace/scratch/9cf6195923f9/exdqlm/validation/autodesn/remediation/artifacts/library/exdqlm"
 }

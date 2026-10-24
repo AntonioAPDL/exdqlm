@@ -1,0 +1,7 @@
+{
+  "complete": false,
+  "exit_code": 1,
+  "reason": "Recovered raw-part files do not cover all 426 admitted candidates; part_0072.rds was missing. No output template checkpoint or forecasts were written. The complete original standardized bank remains available.",
+  "next_step": "Use the complete original bank in a separate memory-gated invocation after the large posterior job finishes.",
+  "runtime_or_memory_measured": false
+}

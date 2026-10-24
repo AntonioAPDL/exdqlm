@@ -1,0 +1,14 @@
+{
+  "complete": true,
+  "replications": 8,
+  "prior_integration_counts": [
+    65536,
+    262144
+  ],
+  "maximum_reference_mcse": 1.9019814100968854e-05,
+  "maximum_refinement_difference": 0.00020623062025115768,
+  "fixture_sha256": "abfe6d3bb7ef055e494faf96e959bb034f4e1f6fae8be60b141a867d8b0ea1d7",
+  "elapsed_seconds": 13.560879814001964,
+  "production_qualified": false,
+  "scope": "Learned local and independent global scales, shared slab, proper Gaussian calendar, unknown noise, architecture/period averaging; seven-dimensional conditional posterior, not recursive calibration"
+}

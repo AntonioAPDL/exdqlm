@@ -9,7 +9,7 @@
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
     "Weighted Gaussian C++ and shared causal reservoir engine",
     "Conditional SV sampler, optional bounded smoothing paths and frozen-static-weight causal filtering",
-    "132 numerical and small-target assertions across 15 tests, source and installed package",
+    "188 numerical and small-target assertions across 21 tests, source and installed package",
     "804 legacy regression assertions passed, one context skip separately covered by source-only checks",
     "17 independent SV conditional-density/normalization/moment checks",
     "Native GP period-move detailed-balance checks and 36 small-conditional reference checks",
@@ -17,11 +17,21 @@
     "Four-chain F1 and F2 training pilots, checkpoint validation and full-support frozen proposals; both fail convergence screens",
     "200-replication fixed-design RHS SBC; simultaneous rank envelope passed but computational calibration remains unresolved due low case ESS",
     "Synthetic paired weighted-Gaussian and batched-forecast benchmarks",
-    "Bank-free numerical checkpoint archive with part and internal SHA256 verification"
+    "Bank-free numerical checkpoint archive with part and internal SHA256 verification",
+    "Four-chain full F1 32k retained budget completed on an exact matrix cache; checkpoint/CSV parity verifies, convergence screen fails",
+    "Exact original/cached same-seed production chains 2 and 4 agree bit for bit",
+    "200-case ridge fixed-design calibration resolved at its monitored spectral-ESS/rank resolution",
+    "Independent full two-response SV quadrature versus four chains: 13 functionals agree; max Rhat 1.00048, min tail ESS 6979",
+    "Independent grouped fixed-local four-dimensional prior integration versus four chains: ten quantities agree; max Rhat 1.00030",
+    "Independent learned-local seven-dimensional prior integration versus four chains using the optional exact local proposal: twelve quantities agree; max Rhat 1.00219, min bulk ESS 1829",
+    "188 installed extension assertions pass",
+    "Raw augmented coefficient transport with full response/lag/intercept corrections",
+    "Recovered compact H_last initialization defect corrected before new benchmark forecasts; fixture causal forecast/update parity passes",
+    "Successive-budget stability checker implemented; no passing cross-budget certificate yet"
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
-    "Resolve low-ESS fixed-design RHS calibration; complete ridge and recursive/SV calibration",
+    "Complete 24k-retained fixed-design RHS calibration and recursive/SV calibration",
     "Additional independent full-grammar GP reference integration and four full-size runs at successive budgets",
     "Chronological fold refits, family selection and conditional prior-predictive/representation audits",
     "Predictive Monte Carlo and conditional state-filter budget qualification",
@@ -33,11 +43,28 @@
   "maximum_memory_bytes": 8589934592,
   "scientific_claims_allowed": false,
   "limitations": {
-    "fork_production": "One worker was lost with a cgroup OOM-kill increment. The two-worker short preflight did not establish long-run headroom. Large jobs are now sequential.",
+    "fork_production": "Full-bank construction environments caused the original fork OOM. Exact matrix/augmentation caches passed a longer four-worker preflight and completed all four 32k chains under the memory cap; original/cached completed chains reproduce exactly.",
     "F2_pilot_launcher": "All four saved chains verify, but the driver exited 1 after a live-script edit; this failed invocation is preserved separately.",
     "full_size_GP": "An intended 2000-row/16-particle run was explicitly interrupted after the R memory failure, with native stages through 256 saved; no final posterior exists.",
-    "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture."
+    "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture.",
+    "forecast_templates": "Compact H_last initialization is fixed in source and fixture tests. Full 426-template reconstruction/parity must wait for low measured memory; only 50 part-based maps were checked before encountering a missing restored raw part. The complete original bank remains available."
   },
   "production_posterior_qualified": false,
-  "new_benchmark_forecasts_issued": false
+  "new_benchmark_forecasts_issued": false,
+  "execution_context_date": "2026-10-24",
+  "running_at_this_checkpoint": [
+    {
+      "family": "F1",
+      "phase": "production_128000_cache1",
+      "source_snapshot": "6a3620fe344c862e59ffef8ef9e99c9ff63393cc7ade3d22207dba34a0aa2c8e",
+      "status": "observed running; not qualified"
+    },
+    {
+      "family": "fixed_design_RHS_SBC",
+      "retained": 24000,
+      "cases_requested": 200,
+      "source_snapshot": "10d17b3c7c1d8a4fbbf6cb733e6422857f6a5ca254f8e8e9ca575e587432733d",
+      "status": "observed running; partial atomic cases"
+    }
+  ]
 }

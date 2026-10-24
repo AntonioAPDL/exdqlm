@@ -5,6 +5,7 @@ for(k in 1:4) {
  p<-file.path(d,paste0('chain_',k,'.rds'));x<-readRDS(p);st<-jsonlite::fromJSON(file.path(d,paste0('chain_',k,'_status.json')))
  stopifnot(identical(x$contract_id,contract$id),identical(st$contract_id,contract$id),identical(digest::digest(file=p,algo='sha256'),st$checkpoint_sha256),nrow(x$fit$trace)==contract$configuration$retained,all(is.finite(as.matrix(x$fit$trace))))
  csv<-read.csv(file.path(d,paste0('trace_',k,'.csv')));stopifnot(nrow(csv)==nrow(x$fit$trace),isTRUE(all.equal(as.matrix(csv[,names(x$fit$trace)]),as.matrix(x$fit$trace),tolerance=1e-12,check.attributes=FALSE)))
+ metadata_path<-file.path(d,'model_metadata.csv');if(file.exists(metadata_path)){metadata<-read.csv(metadata_path);stopifnot(isTRUE(all.equal(metadata,x$fit$model_summary[,names(metadata),drop=FALSE],check.attributes=FALSE,tolerance=1e-12)))}
  targets[k]<-x$fit$controls$target_id
 }
 stopifnot(length(unique(targets))==1L)
