@@ -3,7 +3,7 @@
   "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
   "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
   "branch": "feature/autodesn-remediation-20261023",
-  "status": "implementation_in_progress",
+  "status": "blocked_execution_environment_unavailable",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
@@ -38,7 +38,8 @@
     "Complete native depth-one leaf grammar reference: nine integrated tree/parameter/predictive functionals pass, max Rhat 1.00051, min tail ESS 4487; not depth-four SMC qualification",
     "200-case recursive constant-variance calibration complete: ranks pass; one case ESS 301.55, computational recovery pending; no production qualification",
     "Recursive frozen-map 200-case constant-variance calibration resolves after ESS-selected recomputation of case 11 at 96k; same data/source/target identities verify, min ESS 643.47, rank envelope passes, no extra replications",
-    "Distinct-outer CRPS correction and Rao-Blackwellized marginal mean/density/quantile scorer pass independent direct-pair and analytic Gaussian checks; no new benchmark forecast"
+    "Distinct-outer CRPS correction and Rao-Blackwellized marginal mean/density/quantile scorer pass independent direct-pair and analytic Gaussian checks; no new benchmark forecast",
+    "Environment-loss checkpoint preserves all 61 archive005 parts and a separate verified Git-blob inventory; 320/343 archive006 parts are explicitly incomplete. Latest observed tests and failed production diagnostics are recorded separately without claiming raw-output recovery."
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
@@ -58,25 +59,35 @@
     "F2_pilot_launcher": "All four saved chains verify, but the driver exited 1 after a live-script edit; this failed invocation is preserved separately.",
     "full_size_GP": "An intended 2000-row/16-particle run was explicitly interrupted after the R memory failure, with native stages through 256 saved; no final posterior exists.",
     "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture.",
-    "forecast_templates": "Resolved for all 426 original reservoirs: exact before/after serial and batched transitions, terminal-feature error <=1.8e-13, controlled full-bank recursive and observed-update parity. No new benchmark forecast issued."
+    "forecast_templates": "Resolved for all 426 original reservoirs: exact before/after serial and batched transitions, terminal-feature error <=1.8e-13, controlled full-bank recursive and observed-update parity. No new benchmark forecast issued.",
+    "execution_environment": "Unavailable on 2026-10-24; even pwd is rejected with 'No usable execution environment is available.' Latest normal-tree edits, machine evidence and local PDF are inaccessible. Recovery inventory identifies fully uploaded archive005 and incomplete archive006. No active computation or successful termination is asserted."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
-  "running_at_this_checkpoint": [
+  "running_at_this_checkpoint": [],
+  "jobs_with_unknown_state_after_environment_loss": [
     {
-      "family": "F1_joint_scale_local_trial",
-      "retained": 128000,
-      "chains": 4,
-      "source_snapshot": "859ec96d7a19059cd4b8b6008f144da162b7e29e2b37cf44d4a90cb69ddba304",
-      "status": "Observed fresh 32k warmup/128k retained; same frozen proposals as joint 32k"
+      "requested_cases": 200,
+      "retained_per_case": 24000,
+      "last_log_observed_completed_cases": 89,
+      "verified_atomic_cases_in_archive005": 62,
+      "aggregate_completed": false,
+      "source_snapshot": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
+      "process_state": "unknown_after_environment_loss",
+      "terminal_session_id": 13431
     },
     {
-      "family": "recursive_frozen_map_SV_RHS_SBC",
-      "retained": 24000,
-      "cases_requested": 200,
-      "source_snapshot": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
-      "status": "Observed running after 67.68-second two-case subset; all 200 still required"
+      "rows": 2000,
+      "particles": 16,
+      "seed": 7366021,
+      "period_moves": 0,
+      "source_snapshot": "1537c19c55dde1d9979d0b84d136340fdd2d384da14127341395bb17035800e5",
+      "observed_launched": true,
+      "completion_observed": false,
+      "process_state": "unknown_after_environment_loss",
+      "terminal_session_id": 25828
     }
-  ]
+  ],
+  "latest_observations_record": "validation/autodesn/remediation/evidence/environment_loss_recovery_inventory.json"
 }
