@@ -34,7 +34,17 @@
     },
     "exact_default_rhs_backward_draw_parity": true,
     "production_test_reuse_explicit": false,
-    "summary": "Fresh checks for the changed production source passed 652 focused assertions (one loaded-DLL context skip covered by 76 source-only checks), 77 R study contracts, 6 Python scoring/causality contracts, 4 independent diagnostic tests and 32 independent posterior-reference checks. Fresh NHS1 tests passed 12 DGP assertions, 24 workflow assertions and 6 dataset/scoring/conditioning contracts. The optional joint sampler passed 6 independent normalized-density states, 36 ordered acceptance ratios and 4 posterior functionals against independent integration; disabling it preserves previous draws exactly. Native GP transport/conditioning contracts and R/C++ small-chain parity are separately checked. These checks do not establish full-size posterior convergence: all production chains must pass their own parameter/architecture and independent rank/ESS screens before forecasting."
+    "summary": "Fresh checks for the changed production source passed 652 focused assertions (one loaded-DLL context skip covered by 76 source-only checks), 77 R study contracts, 6 Python scoring/causality contracts, 4 independent diagnostic tests and 32 independent posterior-reference checks. Fresh NHS1 tests passed 12 DGP assertions, 24 workflow assertions and 6 dataset/scoring/conditioning contracts. The optional joint sampler passed 6 independent normalized-density states, 36 ordered acceptance ratios and 4 posterior functionals against independent integration; disabling it preserves previous draws exactly. Native GP transport/conditioning contracts and R/C++ small-chain parity are separately checked. These checks do not establish full-size posterior convergence: all production chains must pass their own parameter/architecture and independent rank/ESS screens before forecasting. Five further learned-local/interwoven joint-kernel posterior functionals agree with independent four-dimensional normalized-prior integration (three chains; inactive local priors integrated exactly).",
+    "joint_local_combination_independent": {
+      "complete": true,
+      "learned_local_interweave_joint_functionals": 5,
+      "normalized_prior_dimensions": 4,
+      "sobol_points_per_scramble": 262144,
+      "scrambles": 4,
+      "chains": 3,
+      "retained_per_chain": 20000,
+      "inactive_local_prior_integrated_exactly": true
+    }
   },
   "production_source": [
     {

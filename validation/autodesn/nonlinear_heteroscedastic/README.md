@@ -48,6 +48,11 @@ Run from the repository root with project-local R and Julia on PATH:
 
 ```bash
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+R CMD INSTALL .
+Rscript validation/autodesn/nonlinear_heteroscedastic/test_joint.R
+python validation/autodesn/nonlinear_heteroscedastic/test_joint.py
+Rscript validation/autodesn/nonlinear_heteroscedastic/test_joint_local.R
+python validation/autodesn/nonlinear_heteroscedastic/test_joint_local.py
 Rscript validation/autodesn/nonlinear_heteroscedastic/test_dgp.R
 Rscript validation/autodesn/nonlinear_heteroscedastic/test_workflow.R
 Rscript validation/autodesn/nonlinear_heteroscedastic/run.R --stage build
@@ -87,3 +92,10 @@ oracles are rerun for this source. `evidence/production_validation_reference.jso
 is a historical C1 reference, not proof for changed production code. Fresh
 DGP/workflow tests and full-size posterior screens are separate requirements. Package-wide inherited release-check issues
 remain documented; a clean repository-wide R CMD check is not claimed.
+
+Large compressed predictive checkpoints, when needed, are split into 7 MB Git
+objects with `checkpoint_parts.json`; smaller ones are committed whole.
+`evidence/restore_evidence.py` reconstructs and verifies all complete checkpoints
+before restoring the numeric archive. Every one of the 384 predictive joint
+draws is retained. `prepare_delivery.py` prepares these objects after the
+completed forecast checkpoints have been pruned and losslessly compressed.

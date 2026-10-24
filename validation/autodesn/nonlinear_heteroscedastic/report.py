@@ -110,7 +110,7 @@ def main():
  page();title('Bayesian architecture averaging and shrinkage')
  para('For slopes, beta_j | tau,lambda_j,c² ~ N(0,v_j), v_j=c²*tau²*lambda_j²/(c²+tau²*lambda_j²), independently of observation variance sigma². The global multiplier u and local lambda_j have unit half-Cauchy priors; tau=tau0*u. The intercept has variance10. Architecture moves integrate every coefficient using C_m=sigma²*I+X_m*diag(10,v)*X_mᵀ, retaining its determinant and normalized Gaussian density. This is the normalized RHS, not the augmented rhs_ns prior.','Small')
  image(figures/'architectures.png')
- rows=[['Scenario','Leading candidate','Mass (MC SE)','tau median [5%,95%]','c^2 median [5%,95%]']]
+ rows=[['Scenario','Leading candidate','Mass (indicator SE)','tau median [5%,95%]','c^2 median [5%,95%]']]
  for sc in study['scenarios']:
   g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()];indicator=diag[(diag.scenario==sc['id'])&(diag.parameter==f'model_{int(lead.model)}')].iloc[0];se=np.sqrt(lead.posterior_probability*(1-lead.posterior_probability)/indicator.bulk_ess);row=[sc['id'],f'{int(lead.model)}: {lead.candidate}',f'{lead.posterior_probability:.3f} ({se:.3f})']
   if sc['method']=='rhs':
@@ -120,7 +120,7 @@ def main():
   else:row+=['-','-']
   rows.append(row)
  table(rows,[90,100,70,120,120])
- para('Mass MC SE uses the leading architecture indicator frequency ESS. It estimates numerical sampling error, not uncertainty across independent time-series realizations.','Small')
+ para('The indicator-based SE uses the leading model frequency ESS as an approximate sampling-error diagnostic; conditional probability mass estimates have their own batch MCSE in the archived tables. Neither estimates variation across independent time-series realizations.','Small')
  for sc in study['scenarios'][:2]:
   q=pd.read_csv(b/sc['id']/sc['method']/'shrinkage_quantiles.csv').set_index('parameter').loc['effective_slopes_diagonal']
   para(f"{sc['id']} diagonal effective-slopes proxy: median {q['median']:.3f}, 5%-95% [{q.q05:.3f}, {q.q95:.3f}]. This sums d_j*(X'X)_jj / (sigma²+d_j*(X'X)_jj), using slope prior variances d_j; it ignores feature correlations and is not a count of selected coefficients.",'Small')
@@ -169,7 +169,7 @@ def main():
  for d in sorted(x for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k'))):
   t=json.loads((d/'rhs/status.json').read_text())['timings'];para(f"Additional failed training cost ({d.name}): {t['inference_seconds_all_attempts']:.2f}s completed inference plus {t.get('training_pilot_seconds',0):.2f}s pilots. These supplied one shared training-only proposal and issued no forecasts; do not add this shared cost twice for the two RHS priors.",'Small')
  para(f"Native AutoGP summed SMC callback training: {gt['smc_training_seconds_sum']:.2f}s. Native invocation including startup, training, export and conditioning contracts: {gt['native_launcher_seconds_this_invocation']:.2f}s. Rolling conditioning/scoring/export: {gt['rolling_conditioning_scoring_seconds']:.2f}s. Native-process peak RSS: {native['native_peak_rss_kib']/2**20:.3f}GiB. Timer scopes differ from AutoDESN per-origin compute; no clean end-to-end speedup claim follows.",'Small')
- para('Inference totals include completed failed budgets; interrupted partial work is retained separately in wall-time logs. Forecast compute sums per-origin calls and excludes state preparation, scoring/export and sensitivity. Parent VmHWM excludes forked workers; Native Julia memory uses Linux wait4 child rusage. R uses one BLAS thread; the original native AutoGP script uses two BLAS threads and one Julia thread. Large inference/forecast jobs run sequentially. Hardware quota and memory limits are archived. Dependency setup may overlap early AutoDESN work; these are observed runtimes, not isolated hardware benchmarks.','Small')
+ para('Inference totals include completed failed budgets; interrupted partial work is retained separately in wall-time logs. Forecast compute sums per-origin calls and excludes state preparation, scoring/export and sensitivity. Parent VmHWM excludes forked workers; Native Julia memory uses Linux wait4 child rusage. R uses one BLAS thread; the original native AutoGP script uses two BLAS threads and one Julia thread. Large inference/forecast jobs run sequentially. Hardware quota and memory limits are archived. Light validation/integrity checks and initial dependency setup may overlap inference; these are observed runtimes, not isolated hardware benchmarks.','Small')
  page();title('Validation, limits and reproducibility')
  para(f"All {bank['admitted']} admitted architectures share the raw bank and frozen feature transforms. Maximum absolute training column mean {bank['max_abs_mean']:.3g}; maximum sample-SD error {bank['max_sd_error']:.3g}. The API freezes exclusions for near-constant features; the intercept has its own proper prior and raw-coordinate transport includes its centering shift.")
  validation=json.loads((b/'validation/validation_status.json').read_text());para(validation['summary'])

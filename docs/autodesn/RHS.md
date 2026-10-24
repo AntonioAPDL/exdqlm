@@ -410,3 +410,12 @@ ordered acceptance-ratio pairs, and independent Sobol integration of a small
 posterior with different readout dimensions. Disabled-kernel draws and
 coefficients match the previous sampler exactly. These checks do not replace
 full-size multiple-chain diagnostics.
+
+A separate learned-local/interwoven joint-kernel check integrates four
+normalized priors independently with scrambled Sobol quadrature, including
+the local half-Cauchy. Five posterior functionals agree across three small
+chains. The inactive local prior is integrated exactly in the reported local
+indicator. Its one-dimensional prefix embedding isolates the update
+composition; layerwise reservoir mapping and R/C++ agreement are checked
+separately on the new-series reservoir bank. These small checks still do not
+establish full-size posterior convergence.
