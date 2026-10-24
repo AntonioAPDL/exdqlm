@@ -64,6 +64,14 @@ def main():
   for chain,g in tr.groupby('chain'):ax.plot(np.arange(len(g))[::30],g.log_global.iloc[::30],lw=.5,alpha=.7,label=f'Chain {chain}')
   ax.set(title=f"{sc['id']}: log(u); tau = {sc['tau0']} u",xlabel='Retained iteration',ylabel='log(u)');ax.legend(ncol=3,frameon=False)
  fig.savefig(figures/'traces.png',dpi=170);plt.close(fig)
+ fig,axes=plt.subplots(3,1,figsize=(10,7),layout='constrained')
+ for j,sc in enumerate(study['scenarios'][:2]):
+  tr=pd.read_csv(b/sc['id']/sc['method']/'traces.csv.gz')
+  values=[(np.log(sc['tau0'])+tr.log_global)/np.log(10),tr.log_slab/np.log(10),tr.effective_slopes_diagonal]
+  for ax,val in zip(axes,values):ax.hist(val,bins=70,density=True,histtype='step',lw=1.5,label=sc['id'],color=list(PALETTE.values())[j])
+ for ax,label in zip(axes,['log10(tau)','log10(c squared)','Diagonal effective-slopes proxy']):
+  ax.set(xlabel=label,ylabel='Posterior density');ax.legend(frameon=False);ax.grid(alpha=.15)
+ fig.savefig(figures/'shrinkage.png',dpi=170);plt.close(fig)
  pdfmetrics.registerFont(TTFont('DV',findfont('DejaVu Sans')));pdfmetrics.registerFont(TTFont('DVB',findfont('DejaVu Sans:weight=bold')))
  pdfmetrics.registerFontFamily('DV',normal='DV',bold='DVB',italic='DV',boldItalic='DVB')
  styles=getSampleStyleSheet()
@@ -110,6 +118,13 @@ def main():
  page();title('Bayesian architecture averaging and shrinkage')
  para('For slopes, beta_j | tau,lambda_j,c² ~ N(0,v_j), v_j=c²*tau²*lambda_j²/(c²+tau²*lambda_j²), independently of observation variance sigma². The global multiplier u and local lambda_j have unit half-Cauchy priors; tau=tau0*u. The intercept has variance10. Architecture moves integrate every coefficient using C_m=sigma²*I+X_m*diag(10,v)*X_mᵀ, retaining its determinant and normalized Gaussian density. This is the normalized RHS, not the augmented rhs_ns prior.','Small')
  image(figures/'architectures.png')
+ rows=[['Scenario','D','Layer widths','Input lags','Layer leaks','Layer radii','Seed']]
+ for sc in study['scenarios']:
+  g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()]
+  rows.append([sc['id'],int(lead.D),str(lead.widths),int(lead.m),str(lead.layer_leaks),str(lead.layer_radii),int(lead.seed)])
+ table(rows,[90,25,105,35,110,110,25])
+ para('Leading architectures are identified by the posterior mass, without changing the predictive mixture. Full candidate definitions, all 426 architecture probabilities and numerical uncertainty summaries are archived.','Small')
+ page();title('RHS scales and shrinkage')
  rows=[['Scenario','Leading candidate','Mass (indicator SE)','tau median [5%,95%]','c^2 median [5%,95%]']]
  for sc in study['scenarios']:
   g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()];indicator=diag[(diag.scenario==sc['id'])&(diag.parameter==f'model_{int(lead.model)}')].iloc[0];se=np.sqrt(lead.posterior_probability*(1-lead.posterior_probability)/indicator.bulk_ess);row=[sc['id'],f'{int(lead.model)}: {lead.candidate}',f'{lead.posterior_probability:.3f} ({se:.3f})']
@@ -125,6 +140,7 @@ def main():
   q=pd.read_csv(b/sc['id']/sc['method']/'shrinkage_quantiles.csv').set_index('parameter').loc['effective_slopes_diagonal']
   para(f"{sc['id']} diagonal effective-slopes proxy: median {q['median']:.3f}, 5%-95% [{q.q05:.3f}, {q.q95:.3f}]. This sums d_j*(X'X)_jj / (sigma²+d_j*(X'X)_jj), using slope prior variances d_j; it ignores feature correlations and is not a count of selected coefficients.",'Small')
  para('tau0 is a prior multiplier, not a fixed posterior tau. Global, local and slab scales are sampled. The normalized Gaussian slope density and every architecture-dependent Gaussian determinant are retained. Layerwise common auxiliary coordinates and product-preserving interweaving preserve the same normalized RHS target; inactive proper priors integrate to one. No test-error screening substitutes for architecture averaging.','Small')
+ image(figures/'shrinkage.png')
  page();title('Retained-chain diagnostics');image(figures/'traces.png')
  rows=[['Scenario','Max rank R-hat','Min bulk ESS','Min tail/frequency ESS','Kept/chain']]
  for sc in study['scenarios']:
@@ -160,14 +176,18 @@ def main():
  table(rows,[70,90,115,115,110])
  para('Distinct exported kernel states include continuous parameter values, not just tree structures. Particle ESS can be reset by resampling; it does not establish exploration of kernel space. Run-by-run forecast sensitivity measures variation between two finite-particle approximations, not independent DGP replications.','Small')
  raw=json.loads((b/'raw_bank/status.json').read_text())
- para(f"Shared raw reservoir construction: {raw['invocation_wall_seconds']:.2f}s wall; frozen standardized-design preparation: {bank['standardization_seconds']:.2f}s. Reservoir candidates and state timing match across all AutoDESN priors.")
- rows=[['Scenario','Pilots(s)','Inference(s)','Forecast compute(s)','State update(s)','Parent peak GiB']]
+ bm=json.loads((b/"bank_memory.json").read_text())
+ para(f"Shared raw builder: {raw['invocation_wall_seconds']:.2f}s wall; frozen standardized-design preparation: {bank['standardization_seconds']:.2f}s. The complete bank-building command, including startup and serialization, took {bm['invocation_wall_seconds']:.2f}s with parent peak RSS {bm['process_peak_rss_kib']/2**20:.2f}GiB. Reservoir candidates and state timing match across all AutoDESN priors.")
+ rows=[['Scenario','Pilots(s)','Completed chain(s)','Observed fit wall(s)','Forecast compute(s)','State update(s)','Peak GiB']]
  for sc in study['scenarios']:
   st=json.loads((b/sc['id']/sc['method']/'status.json').read_text());t=st['timings'];m=json.loads((b/sc['id']/'process_memory.json').read_text())
-  rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',f'{m["process_peak_rss_kib"]/2**20:.2f}'])
- table(rows,[100,70,80,90,80,80])
+  rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{m["fit_invocation_wall_seconds_sum"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',f'{m["process_peak_rss_kib"]/2**20:.2f}'])
+ table(rows,[100,50,70,70,70,60,80])
  for d in sorted(x for x in b.iterdir() if x.name.endswith(('_initial_proposal','_rebalanced_64k'))):
   t=json.loads((d/'rhs/status.json').read_text())['timings'];para(f"Additional failed training cost ({d.name}): {t['inference_seconds_all_attempts']:.2f}s completed inference plus {t.get('training_pilot_seconds',0):.2f}s pilots. These supplied one shared training-only proposal and issued no forecasts; do not add this shared cost twice for the two RHS priors.",'Small')
+ for ledger in sorted((b/'validation').glob('execution_interruption_*.json')):
+  lost=json.loads(ledger.read_text());t=lost['last_memory_record']['invocation_wall_seconds']
+  para(f"Execution interruption ({lost.get('scenario','unknown')}): last observed invocation wall {t:.2f}s. Its completed chains are counted once in chain compute; the unfinished chain was recomputed. The first interrupted invocation's stdout was overwritten before backup; its last timing observation and resume logs are retained. Fit wall sums recorded invocations, including this observation, and includes repeated cache loading and diagnostics.",'Small')
  para(f"Native AutoGP summed SMC callback training: {gt['smc_training_seconds_sum']:.2f}s. Native invocation including startup, training, export and conditioning contracts: {gt['native_launcher_seconds_this_invocation']:.2f}s. Rolling conditioning/scoring/export: {gt['rolling_conditioning_scoring_seconds']:.2f}s. Native-process peak RSS: {native['native_peak_rss_kib']/2**20:.3f}GiB. Timer scopes differ from AutoDESN per-origin compute; no clean end-to-end speedup claim follows.",'Small')
  para('Inference totals include completed failed budgets; interrupted partial work is retained separately in wall-time logs. Forecast compute sums per-origin calls and excludes state preparation, scoring/export and sensitivity. Parent VmHWM excludes forked workers; Native Julia memory uses Linux wait4 child rusage. R uses one BLAS thread; the original native AutoGP script uses two BLAS threads and one Julia thread. Large inference/forecast jobs run sequentially. Hardware quota and memory limits are archived. Light validation/integrity checks and initial dependency setup may overlap inference; these are observed runtimes, not isolated hardware benchmarks.','Small')
  page();title('Validation, limits and reproducibility')
@@ -177,7 +197,7 @@ def main():
  parity=pd.read_csv(b/'validation/standardized_backend_parity.csv')
  para(f"Fresh short computational benchmark: median R {bench['R']:.3f}s versus native kernels {bench['cpp']:.3f}s ({bench['R']/bench['cpp']:.2f}x). Four standardized synthetic designs,200 rows, up to64 slopes,100 burn +800 retained draws,three timing repetitions; setup/compilation excluded. Maximum coupled-draw discrepancy {parity.max_paired_draw_error.max():.3g}; identical model paths. Joint proposals are disabled in this short kernel benchmark; production timings include them. This is a computational check, not evidence of posterior convergence or a full-study speedup.",'Small')
  para('Independent path reconstruction verifies scores at the first, middle and last origins. Future-data perturbation changes every unavailable response by100 while holding posterior draws and innovations fixed; forecasts remain identical. Archived joint checkpoints are replayed against saved paths. The numeric archive has part-level, complete-archive and internal SHA256 checks, plus a restored-analysis round trip.','Small')
- para('Gaussian conditional variances are deliberately misspecified for this heteroscedastic DGP. Poor calibration in high-volatility periods motivates a future variance-model extension; such an extension would be a distinct benchmark with its own prior and validation. A single series and overlapping origin/lead pairs do not establish general superiority. Preprocessing is treated as frozen rather than jointly inferred.','Small')
+ para('The frozen reservoir grid includes input lag60, matching the DGP season and lag60 term. Broader stress studies should vary periods and independent seeds. Gaussian conditional variances are deliberately misspecified for this heteroscedastic DGP. Poor calibration in high-volatility periods motivates a future variance-model extension; such an extension would be a distinct benchmark with its own prior and validation. A single series and overlapping origin/lead pairs do not establish general superiority. Preprocessing is treated as frozen rather than jointly inferred.','Small')
  para('Release remains draft. The inherited scoped repository R CMD check has one nonportable-path error, three documentation/non-ASCII warnings and two notes. Focused tests and numerical checks are reported separately; no clean package-wide release check is claimed.','Small')
  para('See README.md and RESULTS.md in validation/autodesn/nonlinear_heteroscedastic. generate.R freezes the DGP; run.R/fit_joint.R/execute_joint.py fit the three AutoDESN cases; run_gp.py fits pinned Native AutoGP; export.R, archive.R, replay.R, analysis.py and report.py reproduce evidence and reporting. Existing C1 artifacts are preserved. Draft PR: https://github.com/AntonioAPDL/exdqlm/pull/4.','Small')
  out=HERE/'evidence/NHS1_AutoDESN_AutoGP_Report.pdf'

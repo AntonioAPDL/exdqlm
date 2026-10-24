@@ -7,22 +7,15 @@ changing the target or bypassing diagnostics.
 import importlib.util,json,shutil,sys
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
+from execution_logging import run_measured
 spec=importlib.util.spec_from_file_location('measured',HERE.parent/'standardized_rhs/execute.py')
 measured=importlib.util.module_from_spec(spec);spec.loader.exec_module(measured)
 def main():
  b=HERE/'artifacts';b.mkdir(exist_ok=True);state=b/'execution_status.json'
  records=json.loads(state.read_text()) if state.exists() else {}
  def run(name,cmd):
-  if name in records:
-   i=1
-   while f'{name}_previous_{i}' in records:i+=1
-   previous=f'{name}_previous_{i}';records[previous]=records[name]
-   for suffix in ['.log','_memory.json']:
-    src=b/(name+suffix)
-    if src.exists():shutil.copyfile(src,b/(previous+suffix))
-  result=measured.run(cmd,b/(name+'.log'),b/(name+'_memory.json'));records[name]=result
-  state.write_text(json.dumps(records,indent=2));print(name,json.dumps(result),flush=True)
-  return result['exit_code']
+  result=run_measured(measured,records,state,b,name,cmd)
+  print(name,json.dumps(result),flush=True);return result['exit_code']
  def R(script,*args):return ['Rscript','--vanilla',str(HERE/script),*args]
  # A clean reproduction first recreates the two documented failed training
  # proposals. Never silently substitute old-DGP training chains.

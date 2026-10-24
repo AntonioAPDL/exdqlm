@@ -44,6 +44,7 @@ This is one DGP realization. Its rolling forecast pairs are dependent and are
 not independent simulation replications. No general superiority claim follows.
 
 
+See ENVIRONMENT.md for executed versions, binary checksums and runtime reconstruction.
 Run from the repository root with project-local R and Julia on PATH:
 
 ```bash

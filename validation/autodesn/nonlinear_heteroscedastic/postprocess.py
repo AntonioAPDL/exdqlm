@@ -3,6 +3,7 @@ import argparse,importlib.util,json,sys,shutil
 import pandas as pd
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
+from execution_logging import run_measured
 spec=importlib.util.spec_from_file_location('measured',HERE.parent/'standardized_rhs/execute.py')
 measured=importlib.util.module_from_spec(spec);spec.loader.exec_module(measured)
 def main():
@@ -10,15 +11,8 @@ def main():
  b=HERE/'artifacts';records={};record_path=b/'postprocessing_execution.json'
  if record_path.exists():records=json.loads(record_path.read_text())
  def run(name,command):
-  if name in records:
-   i=1
-   while f'{name}_previous_{i}' in records:i+=1
-   previous=f'{name}_previous_{i}';records[previous]=records[name]
-   for suffix in ['.log','_memory.json']:
-    src=b/(name+suffix)
-    if src.exists():shutil.copyfile(src,b/(previous+suffix))
-  result=measured.run(command,b/(name+'.log'),b/(name+'_memory.json'));records[name]=result
-  record_path.write_text(json.dumps(records,indent=2));print(name,json.dumps(result),flush=True)
+  result=run_measured(measured,records,record_path,b,name,command)
+  print(name,json.dumps(result),flush=True)
   if result['exit_code']:raise SystemExit(f'{name} failed; evidence and checkpoints retained')
  def R(script,*args):return ['Rscript','--vanilla',str(HERE/script),*args]
  for case,method in [('requested','rhs'),('scaling_only','rhs'),('ridge_standardized','ridge')]:
@@ -43,10 +37,21 @@ def main():
  validation['fresh_computational_backend_benchmark']=dict(median_R_seconds=float(bench['R']),median_cpp_seconds=float(bench['cpp']),ratio=float(bench['R']/bench['cpp']),max_coupled_draw_error=float(parity.max_paired_draw_error.max()),identical_model_paths=bool(parity.identical_model_path.all()),short_synthetic_designs_not_convergence_evidence=True)
  (b/'validation/validation_status.json').write_text(json.dumps(validation,indent=2))
  execution=json.loads((b/'execution_status.json').read_text())
+ # The first lost session predates orphan-log preservation. Its last timing
+ # observation survives in an explicit interruption ledger, not the live log.
+ for ledger in sorted((b/'validation').glob('execution_interruption_*.json')):
+  lost=json.loads(ledger.read_text());case=lost.get('scenario')
+  if case:
+   key=case+'_joint_fit_'+ledger.stem
+   execution[key]=dict(lost['last_memory_record'],source_interruption_record=ledger.name,
+    last_observation_only=True,stdout_preserved=lost.get('original_incomplete_invocation_log_preserved',False))
+ (b/'execution_with_interruptions.json').write_text(json.dumps(execution,indent=2))
  for case in ['requested','scaling_only','ridge_standardized']:
   measured_cases={k:v for k,v in execution.items() if k.startswith(case+'_')}
   peak=max(v.get('process_peak_rss_kib') or 0 for v in measured_cases.values())
-  (b/case/'process_memory.json').write_text(json.dumps(dict(complete=True,process_peak_rss_kib=peak,measured_invocations=measured_cases),indent=2))
+  fit_prefix=case+('_fit' if case=='ridge_standardized' else '_joint_fit')
+  fit_wall=sum(v.get('invocation_wall_seconds') or 0 for k,v in measured_cases.items() if k.startswith(fit_prefix))
+  (b/case/'process_memory.json').write_text(json.dumps(dict(complete=True,process_peak_rss_kib=peak,fit_invocation_wall_seconds_sum=fit_wall,measured_invocations=measured_cases),indent=2))
  env=b/'validation/julia_environment';env.mkdir(exist_ok=True)
  for name in ['Project.toml','Manifest.toml']:shutil.copyfile(a.project/name,env/name)
  print('Audited numeric evidence is ready for final report generation and visual review.',flush=True)

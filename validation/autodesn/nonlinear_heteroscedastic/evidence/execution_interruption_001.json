@@ -1,0 +1,28 @@
+{
+  "observed_UTC": "2026-10-24T00:37:58.105467+00:00",
+  "execution_session_lost": true,
+  "process_still_running": false,
+  "previous_unified_session": 4546,
+  "last_memory_record": {
+    "complete": false,
+    "exit_code": null,
+    "invocation_wall_seconds": 2725.4588536690026,
+    "process_peak_rss_kib": 6252124,
+    "cgroup_max_bytes_during_observation": 8590778368,
+    "samples": 5443,
+    "memory_note": "Parent R VmHWM resolved using PID-namespace inode and NSpid; forked workers excluded. Cgroup includes file cache and other jobs."
+  },
+  "completed_requested_forecast_origins": 471,
+  "completed_scaling_final_chains": [
+    "chain_1_status.json"
+  ],
+  "interruption_not_a_statistical_gate_failure": true,
+  "note": "Exec cell and unified execution session disappeared; /proc showed no active R process. Resume completed per-chain checkpoints; incomplete chain recomputed from its frozen seed.",
+  "memory_events_after_resume": "low 0\nhigh 0\nmax 273604\noom 288\noom_kill 94\noom_group_kill 0\n",
+  "memory_event_cause_not_attributable_without_pre_interruption_baseline": true,
+  "observed_log_after_restart": "          used (Mb) gc trigger (Mb) max used (Mb)\nNcells  970615 51.9    1603898 85.7  1603898 85.7\nVcells 2477489 19.0    9727656 74.3  9145061 69.8\nDiagnostic gates: failed (mode: full )\n",
+  "original_incomplete_invocation_log_overwritten_before_backup": true,
+  "scenario": "scaling_only",
+  "method": "rhs",
+  "stage": "joint_fit"
+}
