@@ -20,9 +20,9 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 ROOT=Path('validation/autodesn/remediation');E=ROOT/'evidence';OUT=ROOT/'output';FIG=OUT/'figures';PDF=OUT/'pdf'
 FIG.mkdir(parents=True,exist_ok=True);PDF.mkdir(parents=True,exist_ok=True)
 HISTORY=ROOT.parent/'nonlinear_heteroscedastic'
-NAVY='#17324b';BLUE='#2275a5';TEAL='#228877';AMBER='#b57920';RED='#a84242';PALETTE=[BLUE,TEAL,AMBER,'#8a65a3']
+NAVY='#17324b';BLUE='#2275a5';TEAL='#228877';AMBER='#b57920';RED='#a84242';PALETTE=[BLUE,TEAL,AMBER,'#8a65a3','#59636d']
 plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.spines.top':False,'axes.spines.right':False,'axes.labelcolor':NAVY,'text.color':NAVY,'axes.titleweight':'bold','savefig.facecolor':'white'})
-inputs={}
+inputs={};partial_observations={}
 def read_json(path,default=None):
     path=Path(path)
     if not path.exists():return default
@@ -32,6 +32,15 @@ def read_csv(path,**kwargs):
 def fmt(x,d=3):return 'not measured' if x is None else f'{x:,.{d}f}'
 def save_plot(fig,name):
     path=FIG/(name+'.png');fig.savefig(path,dpi=180,bbox_inches='tight');plt.close(fig);return path
+
+def archived_case_count(directory):
+    manifests=sorted((E/'checkpoints').glob('remediation_checkpoint_*.manifest.json'))
+    if not manifests:return 0
+    manifest_path=manifests[-1];manifest=read_json(manifest_path)
+    prefix=str(directory)+'/case_'
+    cases={r['path']:r for r in manifest.get('inherited_members',[])+manifest['members'] if r['path'].startswith(prefix) and r['path'].endswith('.rds')}
+    partial_observations[str(directory)]=dict(manifest=str(manifest_path),members=list(cases.values()))
+    return len(cases)
 
 tests=read_json(E/'extended_tests.json',{});installed=read_json(E/'installed_tests.json',{});legacy=read_json(E/'legacy_tests.json',{})
 qualifications=[]
@@ -65,13 +74,27 @@ if latest:
     bx.set_xlabel('Lag coefficient norm');bx.set_ylabel('Reservoir coefficient norm');bx.set_title('Readout allocation',loc='left',fontsize=9);fig.tight_layout();occupancy_figure=save_plot(fig,'F1_occupancy_and_norms')
 
 references=[]
-for stem,label in [('grouped','Grouped, fixed locals'),('local','Grouped, learned locals'),('local_joint','Joint scale/local proposal'),('sv_joint','Full two-response SV')]:
+for stem,label in [('grouped','Grouped, fixed locals'),('local','Grouped, learned locals'),('local_joint','Joint scale/local proposal'),('sv_joint','Full two-response SV'),('gp_leaf','Complete GP leaf grammar')]:
     s=read_json(E/f'{stem}_mcmc_reference.json')
     if s:references.append((stem,label,s,read_csv(E/f'{stem}_mcmc_reference_checks.csv')))
 fig,ax=plt.subplots(figsize=(7,3.2))
 for i,(stem,label,s,t) in enumerate(references):
     ratio=t.absolute_error/t.tolerance;ax.scatter(ratio,np.arange(len(t))*.02+i,s=18,color=PALETTE[i],label=label)
 ax.axvline(1,color=RED,ls='--',lw=1);ax.set_xlim(0,1.12);ax.set_yticks(range(len(references)),[v[1] for v in references]);ax.set_xlabel('Absolute moment error / registered numerical-MC tolerance');ax.grid(axis='x',alpha=.18);fig.tight_layout();reference_figure=save_plot(fig,'independent_reference_agreement')
+
+calibration_figure=None
+calibration_paths=[('Fixed exogenous design',ROOT/'artifacts/sbc_rhs_24000/ranks.csv'),('Recursive frozen map',ROOT/'artifacts/recursive_sbc_constant_n200_k24000_recovered96000/ranks.csv')]
+if all(path.exists() for _,path in calibration_paths):
+    fig,axes=plt.subplots(1,2,figsize=(7,2.8))
+    for ax,(label,path) in zip(axes,calibration_paths):
+        ranks=read_csv(path);n=len(ranks);bound=np.sqrt(np.log(2*ranks.shape[1]/.01)/(2*n));grid=np.linspace(0,1,201)
+        ax.fill_between(grid,np.maximum(0,grid-bound),np.minimum(1,grid+bound),color='#e9f0f5')
+        ax.plot(grid,grid,color=NAVY,lw=.8,ls='--')
+        for column in ranks:
+            display={'variance':'Noise variance','fitted_mean':'Fitted mean','joint_likelihood':'Log likelihood','architecture':'Architecture','period':'Period','global':'Global','slab':'Slab'}.get(column,column)
+            x=np.sort(ranks[column]);ax.step(np.r_[0,x,1],np.r_[0,np.arange(1,n+1)/n,1],where='post',label=display,lw=.8)
+        ax.set(xlabel='Randomized posterior rank',ylabel='Empirical CDF',title=label,xlim=(0,1),ylim=(0,1));ax.legend(fontsize=7,ncol=2,frameon=False,loc='lower right');ax.grid(alpha=.12)
+    fig.tight_layout();calibration_figure=save_plot(fig,'calibration_rank_ecdf')
 
 historical=read_csv(HISTORY/'evidence/pooled_metrics.csv');horizon=read_csv(HISTORY/'evidence/horizon_metrics.csv')
 models=['AutoDESN RHS: 0.001 / 1','AutoDESN ridge','Native AutoGP']
@@ -124,6 +147,7 @@ for stem,label,s,t in references:rows.append([label,str(s['joint_functionals']),
 table(rows,[170,80,95,135]);image(reference_figure,max_height=3.3*inch)
 add('References use dense response-space Gaussian covariances and integration over normalized scale priors. The learned-local check integrates seven dimensions and tests nonuniform architecture/period proposals, variable active dimensions and the added reservoir-local proposal. SV uses independent full two-response quadrature, not only scalar conditional identities.')
 add('The grouped RHS references use tau0=0.2 for tractable small-target checks; production uses the requested tau0=0.001. The two-response SV target is intercept-only. These checks do not certify the complete production workflow.',True)
+add('The GP reference integrates all three supported leaves and all four latent parameters under the pinned default depth-one grammar. It checks native normalized scores and prior-independence MH, rather than qualifying depth-four SMC or composite-tree multiplicities.',True)
 add(f"The source suite has {tests.get('tests','?')} tests and {tests.get('passed','?')} passing assertions; the installed suite records {installed.get('passed','?')} passing assertions. Earlier legacy regression evidence records 804 passes with one separately covered context skip. Passing these checks is not proof of convergence on the 426-reservoir bank.",True)
 
 page();title('Production convergence: all gates still apply')
@@ -151,22 +175,26 @@ for name,label in [('sbc_ridge','Fixed-design ridge'),('sbc_rhs','Fixed-design R
     s=read_json(E/(name+'.json'))
     if s:rows.append([label,f"{s['replications']} cases; rank envelope {'passed' if s['uniformity_envelope_passed'] else 'FAILED'}; minimum monitored spectral ESS {s['minimum_case_spectral_ess']:.1f}; {s['cases_below_400_ess']} cases below 400."])
     else:
-        directory=ROOT/'artifacts'/name;count=len(list(directory.glob('case_*.rds'))) if directory.exists() else 0
-        rows.append([label,f'{count} atomic case checkpoints observed; no completed aggregate calibration result.'])
+        directory=ROOT/'artifacts'/name;count=archived_case_count(directory)
+        rows.append([label,f'{count} archived atomic case checkpoints; no completed aggregate calibration result.'])
 pilot=read_json(E/'recursive_sbc_constant_n12_k3000.json')
 if pilot:rows.append(['Recursive feasibility pilot',f"12 cases; simultaneous rank bound {pilot['simultaneous_DKW_bound']:.3f}, observed deviation {pilot['maximum_uniform_ecdf_deviation']:.3f}; {pilot['cases_below_400_ess']} cases below ESS 400. Too small and computationally unresolved."])
 for variance in ['constant','sv']:
     path=E/f'recursive_sbc_{variance}_n200_k24000.json';s=read_json(path);directory=ROOT/'artifacts'/f'recursive_sbc_{variance}_n200_k24000'
     if s:rows.append([f'Recursive {variance}, 24k',f"{s['replications']} cases; rank envelope {'passed' if s['uniformity_envelope_passed'] else 'FAILED'}; minimum ESS {s['minimum_case_spectral_ess']:.1f}; {s['cases_below_400_ess']} cases below 400."])
-    else:rows.append([f'Recursive {variance}, 24k',f"{len(list(directory.glob('case_*.rds')))} case checkpoints; no completed calibration conclusion."])
+    else:rows.append([f'Recursive {variance}, 24k',f"{archived_case_count(directory)} archived case checkpoints; no completed calibration conclusion."])
+recovered=read_json(E/'recursive_sbc_constant_n200_k24000_recovered96000.json')
+if recovered:rows.append(['Recursive constant, recovery',f"Same 200 cases; case 11 recomputed at 96k retained after ESS-only selection. Rank envelope {'passed' if recovered['uniformity_envelope_passed'] else 'FAILED'}; minimum monitored ESS {recovered['minimum_case_spectral_ess']:.1f}; no cases below 400."])
 table(rows,[150,330])
+if calibration_figure:image(calibration_figure,max_height=2.8*inch)
 add('Fixed-design SBC holds candidate matrices exogenous. Recursive-model SBC freezes weights, projections, input/response transforms and readout scalers on an independent prefix, then generates and reconstructs only causal paths. Neither validates unconditional calibration of a production pipeline that estimates its transformations from each observed response series.')
 add('The pilot is retained, not pooled into a larger batch or counted as confirmation. Calibration and confirmation seed namespaces are recorded separately. No NHS1 confirmatory series has been generated or unblinded. A seed-block assignment change before confirmation is documented in seed_namespace_decision.json.',True)
 add('Fixed-design and recursive RHS calibration use tau0=0.2 and slab_scale=1, slab_df=4. Their priors and independently frozen feature maps differ from the production fit and their conclusions have that scope.',True)
+add('The initial and larger fixed-design budgets use the same 200 prior-predictive cases. Recursive recovery also adds no independent cases. The fixed-design noise-variance ranks have the largest deviation (0.117 versus the registered simultaneous bound 0.135); passing an envelope is not proof of exact calibration.',True)
 
 page();title('Runtime, memory and engineering checks')
 rows=[['Observed process','Wall (s)','Aggregate PSS (GiB)','Exit / status']]
-for file,label in [('F1_production_32000_resources.json','Original full-bank fork'),('F1_production_32000_cache1_resources.json','Exact cache, F1 32k'),('F1_production_128000_cache1_resources.json','Exact cache, F1 128k'),('F1_production_32000_local128_resources.json','Exact local move, F1 32k'),('compact_forecast_templates_resources.json','Recover compact forecast maps')]:
+for file,label in [('F1_production_32000_resources.json','Original full-bank fork'),('F1_production_32000_cache1_resources.json','Exact cache, F1 32k'),('F1_production_128000_cache1_resources.json','Exact cache, F1 128k'),('F1_production_32000_local128_resources.json','Exact local move, F1 32k'),('F1_production_32000_joint128_resources.json','Joint scale/local policy, F1 32k'),('compact_forecast_templates_resources.json','Recover compact forecast maps')]:
     s=read_json(E/file)
     if s:
         pss=s.get('sampled_peak_process_tree_pss_kib');valid='unreliable early scope' if file=='F1_production_32000_resources.json' else fmt(pss/1048576 if pss else None,2)
@@ -200,6 +228,6 @@ def footer(canvas,doc):
 path=PDF/'AutoDESN_Remediation_Execution_Report.pdf'
 doc=SimpleDocTemplate(str(path),pagesize=(595.28,841.89),rightMargin=42,leftMargin=42,topMargin=44,bottomMargin=53,title='AutoDESN remediation: execution and validation checkpoint',author='AntonioAPDL / reproducible execution')
 doc.build(story,onFirstPage=footer,onLaterPages=footer)
-for file in [Path('R/autodesn_extended.R'),Path('R/autodesn_extended_bank.R'),Path('R/autodesn_extended_forecast.R'),Path('R/autodesn_extended_local.R'),Path(__file__)]:inputs[str(file)]=hashlib.sha256(file.read_bytes()).hexdigest()
-record=dict(complete=True,report=str(path),report_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),execution_context_date='2026-10-24',last_committed_base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),inputs=inputs,scientific_study_complete=False,new_forecast_comparison_complete=False)
+for file in [Path('R/autodesn_extended.R'),Path('R/autodesn_extended_bank.R'),Path('R/autodesn_extended_forecast.R'),Path('R/autodesn_extended_local.R'),ROOT/'execution.json',ROOT/'development_registry.json',Path(__file__)]:inputs[str(file)]=hashlib.sha256(file.read_bytes()).hexdigest()
+record=dict(complete=True,report=str(path),report_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),execution_context_date='2026-10-24',last_committed_base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),inputs=inputs,partial_observations=partial_observations,scientific_study_complete=False,new_forecast_comparison_complete=False)
 (OUT/'report_inputs.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps({k:record[k] for k in ['complete','report','report_sha256','scientific_study_complete']}))

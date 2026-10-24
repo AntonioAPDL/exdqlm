@@ -153,5 +153,22 @@
     "confirmation_generated": false,
     "baseline_256k_status": "not yet run; computational repair evaluated before further escalation",
     "qualification": "Require two successive individually qualified fresh budgets under a common frozen proposal policy and cross-budget stability; existing failed budgets remain failed."
+  },
+  "predictive_quantile_monitor_registration": {
+    "date": "2026-10-24",
+    "freeze_stage": "Before any passing production screen or cross-budget comparison",
+    "probabilities": [
+      0.05,
+      0.25,
+      0.5,
+      0.75,
+      0.95
+    ],
+    "design": "Existing fixed training probes, constant-noise Gaussian mixture",
+    "MCSE": "Rao-Blackwellized CDF influence function with independent-chain batch means",
+    "practical_absolute_tolerance_response_sd": 0.02,
+    "simultaneous_MC_consistency": true,
+    "scope": "Supplementary gate; recursive predictive MC qualification still required",
+    "heldout_data_used": false
   }
 }

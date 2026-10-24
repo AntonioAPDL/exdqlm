@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
+from scipy.optimize import brentq
 
 ROOT = Path(__file__).resolve().parent
 
@@ -35,6 +36,27 @@ def summary(values, kind="mean", noise=None):
         # Influence function of sqrt(E[mu^2 + sigma^2] - E[mu]^2).
         batches = ((xb * xb + nb).mean(1) - 2 * mean * xb.mean(1)) / (2 * value)
     return value, float(batches.std(ddof=1) / np.sqrt(len(batches)))
+
+
+def quantile_summary(means, variances, probability):
+    """Rao-Blackwellized Gaussian-mixture quantile and batch influence MCSE.
+
+    This is a fixed-training-design marginal, not a recursive multi-step
+    forecast. Normal CDFs integrate conditional innovations analytically.
+    """
+    mu=np.asarray(means,dtype=float);variance=np.asarray(variances,dtype=float)
+    if mu.ndim!=2 or variance.shape!=mu.shape or not (0<probability<1) or not np.isfinite(mu).all() or not np.isfinite(variance).all() or np.any(variance<=0):
+        raise ValueError('Supply finite chain-by-draw means and positive matched variances')
+    sd=np.sqrt(variance)
+    lower=float(np.min(mu-10*sd));upper=float(np.max(mu+10*sd))
+    def equation(q):return float(norm.cdf((q-mu)/sd).mean()-probability)
+    q=float(brentq(equation,lower,upper,xtol=1e-12,rtol=1e-12))
+    z=(q-mu)/sd;density=float((norm.pdf(z)/sd).mean())
+    if not np.isfinite(density) or density<=0:raise ValueError('Unresolved mixture density at the quantile')
+    influence=-(norm.cdf(z)-probability)/density
+    n=mu.shape[1];size=int(np.sqrt(n));count=n//size
+    batches=influence[:,:count*size].reshape(-1,size).mean(1)
+    return q,float(batches.std(ddof=1)/np.sqrt(len(batches)))
 
 
 def compare(family, left_name, right_name):
@@ -68,8 +90,8 @@ def compare(family, left_name, right_name):
     assert sd is not None and np.isfinite(sd) and sd > 0
     rows = []
 
-    def add(name, arrays, practical, kind="mean", noises=None, relative=False):
-        estimates = [summary(arrays[i], kind, None if noises is None else noises[i]) for i in range(2)]
+    def add(name, arrays, practical, kind="mean", noises=None, relative=False, probability=None):
+        estimates = [quantile_summary(arrays[i],noises[i],probability) if probability is not None else summary(arrays[i], kind, None if noises is None else noises[i]) for i in range(2)]
         difference = abs(estimates[1][0] - estimates[0][0])
         tolerance = practical * np.mean([estimates[0][0], estimates[1][0]]) if relative else practical
         rows.append(dict(quantity=name, left=estimates[0][0], right=estimates[1][0],
@@ -85,6 +107,8 @@ def compare(family, left_name, right_name):
         arrays = [np.array([t[probe].to_numpy() for t in ts]) for ts in traces]
         add(probe + "_mean", arrays, .01 * sd)
         add(probe + "_predictive_sd", arrays, .02, "sd", noises, relative=True)
+        for probability in [.05,.25,.5,.75,.95]:
+            add(probe+f'_predictive_q{probability:g}',arrays,.02*sd,noises=noises,probability=probability)
     for field in ["model", "period_index"]:
         values = sorted(set(np.concatenate([t[field].to_numpy() for ts in traces for t in ts])))
         for value in values:
@@ -107,7 +131,7 @@ def compare(family, left_name, right_name):
                   familywise_normal_critical_value=critical, checked_quantities=len(table),
                   response_sd=sd, qualified=False, forecast_allowed=False,
                   validation_contract_ids=[v["contract_id"] for v in validations],
-                  scope="Successive fresh posterior budgets; fixed training-probe means and marginal constant-noise predictive SDs, major model/period masses; no held-out outcomes read",
+                  scope="Successive fresh posterior budgets; fixed training-probe means, marginal constant-noise predictive SDs and 5/25/50/75/95 percent quantiles, major model/period masses; no held-out outcomes read",
                   pending=["independent calibration/mode review", "predictive Monte Carlo sensitivity", "full scientific promotion"])
     (ROOT / "evidence" / (label + "_stability.json")).write_text(json.dumps(record, indent=2) + "\n")
     return record

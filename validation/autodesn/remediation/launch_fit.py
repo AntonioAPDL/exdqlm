@@ -1,6 +1,7 @@
 """Content-addressed, immutable source launch; checkpoints never share a live driver."""
 import argparse,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
+from large_job import single_large_job
 p=argparse.ArgumentParser();p.add_argument('family',choices=['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']);p.add_argument('phase',choices=['pilot','production']);p.add_argument('budget',type=int,nargs='?',default=32000);p.add_argument('--workers',type=int,choices=[1,2,4],default=1);p.add_argument('--snapshot',help='Existing immutable snapshot key, required to resume its contract');p.add_argument('--cache',action='store_true');p.add_argument('--run-label',default='');p.add_argument('--chains',default='1,2,3,4');p.add_argument('--local-proposal',default='',help='Frozen training-only optional exact local proposal checkpoint');p.add_argument('--global-proposal',default='',help='Frozen scale/model/period proposal checkpoint');p.add_argument('--local-scales',action='store_true',help='Jointly propose scales and reservoir locals with exact corrections');a=p.parse_args()
 root=Path('validation/autodesn/remediation');files=sorted(Path('R').glob('*.R'))+[Path('src/autodesn_rhs.cpp'),Path('src/RcppExports.cpp'),root/'fit.R']
 if a.snapshot:
@@ -22,9 +23,14 @@ if a.global_proposal:assert 'AUTODESN_FROZEN_PROPOSAL' in (snapshot/root/'fit.R'
 if a.local_scales:assert a.local_proposal and 'AUTODESN_LOCAL_SCALE_PROPOSAL' in (snapshot/root/'fit.R').read_text()
 if a.cache:assert 'AUTODESN_INFERENCE_CACHE' in (snapshot/root/'fit.R').read_text()
 label=f'{a.family}_{a.phase}_{a.budget}'+('_'+a.run_label if a.run_label else '')
+invocation=root/'artifacts'/a.family/('pilot' if a.phase=='pilot' else f'production_{a.budget}'+('_'+a.run_label if a.run_label else ''))
 record=root/'evidence'/f'{label}_resources.json';attempt=1
-while record.exists():
+while record.exists() or (invocation/f'invocation_{attempt}.json').exists():
  attempt+=1;record=root/'evidence'/f'{label}_attempt{attempt}_resources.json'
+invocation_data=dict(snapshot=key,workers=a.workers,cache=a.cache,chains=a.chains,local_proposal=a.local_proposal,global_proposal=a.global_proposal,local_scales=a.local_scales,launcher_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),resource_runner_sha256=hashlib.sha256((root/'run_process.py').read_bytes()).hexdigest())
 command=[sys.executable,str(root/'run_process.py'),'--record',str(record),'--log',str(root/'artifacts'/f'{label}_attempt{attempt}.log'),'--max-seconds','7200','--max-cgroup-anon-bytes','6400000000','Rscript','--vanilla',str(snapshot/root/'fit.R'),a.family,a.phase,str(a.budget)]
-print(json.dumps(dict(snapshot=key,workers=a.workers,family=a.family,phase=a.phase,budget=a.budget)),flush=True)
-raise SystemExit(subprocess.call(command,env=env))
+with single_large_job(root,f'{a.family} {a.phase} {a.budget}'):
+ invocation.mkdir(parents=True,exist_ok=True)
+ (invocation/f'invocation_{attempt}.json').write_text(json.dumps(invocation_data,indent=2)+'\n')
+ print(json.dumps(dict(snapshot=key,workers=a.workers,family=a.family,phase=a.phase,budget=a.budget)),flush=True)
+ raise SystemExit(subprocess.call(command,env=env))

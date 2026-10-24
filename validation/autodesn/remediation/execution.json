@@ -33,12 +33,17 @@
     "Bit-identical matrix trace storage and bounded deterministic Gaussian reuse reduce small-target sampler overhead",
     "First recursive frozen-map calibration feasibility pilot completed; 12 cases, 9 below spectral ESS 400; no calibration conclusion",
     "Independent learned-local joint noise/global/slab and reservoir-local move: 12 numerical reference quantities pass, max Rhat 1.00251, min bulk ESS 1959",
-    "Completed 200-case fixed-design RHS SBC at 24k retained: simultaneous rank envelope passes, minimum case spectral ESS 1080.79, all 200 exceed 400; conditional scope only"
+    "Completed 200-case fixed-design RHS SBC at 24k retained: simultaneous rank envelope passes, minimum case spectral ESS 1080.79, all 200 exceed 400; conditional scope only",
+    "Fresh F1 joint scale/local 32k run complete and all checkpoints verify: min ESS 1033, max Rhat 1.00682, but major-category MCSE/ranges still fail; no forecasts",
+    "Complete native depth-one leaf grammar reference: nine integrated tree/parameter/predictive functionals pass, max Rhat 1.00051, min tail ESS 4487; not depth-four SMC qualification",
+    "200-case recursive constant-variance calibration complete: ranks pass; one case ESS 301.55, computational recovery pending; no production qualification",
+    "Recursive frozen-map 200-case constant-variance calibration resolves after ESS-selected recomputation of case 11 at 96k; same data/source/target identities verify, min ESS 643.47, rank envelope passes, no extra replications",
+    "Distinct-outer CRPS correction and Rao-Blackwellized marginal mean/density/quantile scorer pass independent direct-pair and analytic Gaussian checks; no new benchmark forecast"
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
-    "Complete 24k-retained fixed-design RHS calibration and recursive/SV calibration",
-    "Additional independent full-grammar GP reference integration and four full-size runs at successive budgets",
+    "Complete 200-case recursive SV calibration; fixed-design RHS and recursive constant targets passed at their recorded monitored resolution",
+    "Composite/depth-four native GP stress references and four full-size runs at successive budgets",
     "Chronological fold refits, family selection and conditional prior-predictive/representation audits",
     "Predictive Monte Carlo and conditional state-filter budget qualification",
     "Independent confirmatory replications, stress cases and complete scoring/plots",
@@ -60,18 +65,18 @@
   "execution_context_date": "2026-10-24",
   "running_at_this_checkpoint": [
     {
-      "family": "recursive_frozen_map_RHS_SBC",
-      "retained": 24000,
-      "cases_requested": 200,
-      "source_snapshot": "becf3b7e82a9273a464805b9408a360123ba554971c7885292549057cf99a404",
-      "status": "Observed running after verified two-case subset/resumption"
-    },
-    {
       "family": "F1_joint_scale_local_trial",
-      "retained": 32000,
+      "retained": 128000,
       "chains": 4,
       "source_snapshot": "859ec96d7a19059cd4b8b6008f144da162b7e29e2b37cf44d4a90cb69ddba304",
-      "status": "Observed running; fresh 8k warmup, full-support frozen training-only proposals; no forecasts"
+      "status": "Observed fresh 32k warmup/128k retained; same frozen proposals as joint 32k"
+    },
+    {
+      "family": "recursive_frozen_map_SV_RHS_SBC",
+      "retained": 24000,
+      "cases_requested": 200,
+      "source_snapshot": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
+      "status": "Observed running after 67.68-second two-case subset; all 200 still required"
     }
   ]
 }

@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-24",
+  "full_size_training_rows": 2000,
+  "particle_ladder": [
+    16,
+    32,
+    64
+  ],
+  "native_only_first": true,
+  "invariant_period_proposal_followup_moves": 10,
+  "development_seeds": [
+    7366021,
+    7366022,
+    7366023,
+    7366024
+  ],
+  "small_feasibility_seeds": [
+    7366001,
+    7366002
+  ],
+  "target": "Pinned native AutoGP 0.1.19 revision 2ad372db2b8bea176e3b32a769bfb5d6cff80866, grammar/depth/prior unchanged",
+  "per_invocation_caps": {
+    "seconds": 7200,
+    "environment_anon_bytes": 6100000000
+  },
+  "large_jobs_sequential": true,
+  "qualification": "Four full-size independent runs, two successive budgets, training probe mean/SD/quantile and structure-mass stability; no test-score tuning",
+  "confirmation_generated": false,
+  "complete_small_grammar_reference": "Complete native depth-one leaf grammar, all normalized continuous priors/noise, native prior-independence MH and independent dense prior integration; not depth-four SMC",
+  "failed_reference_attempt": "First Julia attempt failed because logpdf was ambiguous between Gen/Distributions; no completed chains. Explicit Distributions.logpdf fixes namespace; both source snapshots/logs preserved."
+}
