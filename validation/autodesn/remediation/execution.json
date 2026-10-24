@@ -3,7 +3,7 @@
   "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
   "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
   "branch": "feature/autodesn-remediation-20261023",
-  "status": "blocked_execution_environment_unavailable",
+  "status": "implementation_in_progress_after_verified_recovery",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
@@ -60,34 +60,33 @@
     "full_size_GP": "An intended 2000-row/16-particle run was explicitly interrupted after the R memory failure, with native stages through 256 saved; no final posterior exists.",
     "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture.",
     "forecast_templates": "Resolved for all 426 original reservoirs: exact before/after serial and batched transitions, terminal-feature error <=1.8e-13, controlled full-bank recursive and observed-update parity. No new benchmark forecast issued.",
-    "execution_environment": "Unavailable on 2026-10-24; even pwd is rejected with 'No usable execution environment is available.' Latest normal-tree edits, machine evidence and local PDF are inaccessible. Recovery inventory identifies fully uploaded archive005 and incomplete archive006. No active computation or successful termination is asserted."
+    "execution_environment": "Shell and pinned R runtime restored in a fresh checkout. Recovery observations supersede earlier inaccessible-file status; original manifests were not recovered, newly constructed manifests explicitly retain the truncated archive.",
+    "old_job_states": "Prior environment process exits cannot be recovered. The fresh environment has new observed invocations; prior jobs are not represented as continuing."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
-  "running_at_this_checkpoint": [],
-  "jobs_with_unknown_state_after_environment_loss": [
+  "running_at_this_checkpoint": [
     {
-      "requested_cases": 200,
-      "retained_per_case": 24000,
-      "last_log_observed_completed_cases": 89,
-      "verified_atomic_cases_in_archive005": 62,
-      "aggregate_completed": false,
-      "source_snapshot": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
-      "process_state": "unknown_after_environment_loss",
-      "terminal_session_id": 13431
+      "family": "recursive_SV_calibration",
+      "snapshot": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
+      "status": "Observed new resumption from62 verified cases under original source; see invocation collision repair record"
     },
     {
-      "rows": 2000,
-      "particles": 16,
-      "seed": 7366021,
-      "period_moves": 0,
-      "source_snapshot": "1537c19c55dde1d9979d0b84d136340fdd2d384da14127341395bb17035800e5",
-      "observed_launched": true,
-      "completion_observed": false,
-      "process_state": "unknown_after_environment_loss",
-      "terminal_session_id": 25828
+      "family": "bank_cache_reconstruction",
+      "status": "Original frozen builder completed all426 admitted candidates; exact conditional identities being checked before inference"
     }
   ],
-  "latest_observations_record": "validation/autodesn/remediation/evidence/environment_loss_recovery_inventory.json"
+  "jobs_with_unknown_state_after_environment_loss": [],
+  "latest_observations_record": "validation/autodesn/remediation/evidence/environment_loss_recovery_inventory.json",
+  "latest_recovery": {
+    "archive005_members_verified": 360,
+    "archive006_complete_members_recovered": 12,
+    "all_four_joint128_checkpoints_verified": true,
+    "trace4_regenerated_from_matching_RDS": true,
+    "original_archive006_complete": false,
+    "source_test_sha256": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
+    "source_and_outside_git_installed_assertions": 210,
+    "full_qualified_posterior": false
+  }
 }

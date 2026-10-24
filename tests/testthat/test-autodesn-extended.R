@@ -44,6 +44,34 @@ test_that('local-scale moves preserve prior-only architecture masses across dime
  expect_lt(abs(mean(out)-pm[2]),.04)
 })
 
+test_that('kernel-coordinate proposals retain normalized priors in every other coordinate', {
+ hc<-function(z)log(2/pi)-abs(z)-log1p(exp(-2*abs(z)))
+ p<-autodesn_extended_local_proposal(list(matrix(c(-1,0,1),3,1),matrix(c(-1,.3,1,.1,.6,1.2),3,2)),list(.6,c(.7,.5)),slope=list(-.2,c(-.3,-.4)),reference_log_global=.2,weight=.75,bank_id='fixture',kernel_coordinates=list(integer(0),2L))
+ logq<-ext_internal('.ext_local_logq');corr<-ext_internal('.ext_local_correction');draw<-ext_internal('.ext_local_draw')
+ value<-c(-.5,.8);u<-.7;centers<-p$centers[[2]][,2]+p$slope[[2]][2]*(u-.2)
+ mixture<-.25*exp(hc(value[2]))+.75*mean(dnorm(value[2],centers,.5))
+ expect_equal(logq(value,2,u,p),hc(value[1])+log(mixture),tolerance=1e-13)
+ expect_equal(corr(value,2,u,p),hc(value[2])-log(mixture),tolerance=1e-13)
+ mass<-integrate(function(z)vapply(z,function(x)exp(logq(c(.4,x),2,u,p)),0),-35,35,rel.tol=1e-10)$value
+ expect_equal(mass,exp(hc(.4)),tolerance=1e-10)
+ expect_equal(logq(.3,1,u,p),hc(.3));expect_equal(corr(.3,1,u,p),0)
+ old<-c(.4,-.2,.1);new<-c(-.5,.8,-1);pm<-c(.4,.6);qm<-c(.7,.3)
+ full<-log(pm[2]/pm[1])+sum(hc(new))-sum(hc(old))+log(qm[1])+logq(old[1],1,u,p)+sum(hc(old[2:3]))-log(qm[2])-logq(new[1:2],2,u,p)-hc(new[3])
+ reduced<-log(pm[2]/pm[1])+log(qm[1]/qm[2])+corr(new[1:2],2,u,p)-corr(old[1],1,u,p)
+ expect_equal(full,reduced,tolerance=1e-12)
+ set.seed(440);samples<-replicate(5000,draw(2,u,p));prob<-.25*.5+.75*mean(pnorm(0,centers,.5))
+ expect_lt(abs(mean(samples[2,]<=0)-prob),7*sqrt(prob*(1-prob)/5000))
+ expect_lt(abs(mean(samples[1,]<=0)-.5),7*sqrt(.25/5000))
+ expect_error(autodesn_extended_local_proposal(list(matrix(0,2,2)),list(c(1,1)),bank_id='fixture',kernel_coordinates=list(c(1,1))),'distinct')
+ expect_error(autodesn_extended_local_proposal(list(matrix(0,2,2)),list(c(1,1)),bank_id='fixture',kernel_coordinates=list(3)),'distinct')
+ # Disabled option retains the complete previous object, density and RNG path.
+ ref<-new.env(parent=environment(autodesn_fit_bank));sys.source(testthat::test_path('fixtures','local_proposal_pre_coordinates.R'),ref)
+ a<-autodesn_extended_local_proposal(list(matrix(c(-1,0,1),3,1)),list(.6),bank_id='fixture')
+ b<-ref$autodesn_extended_local_proposal(list(matrix(c(-1,0,1),3,1)),list(.6),bank_id='fixture')
+ expect_identical(a,b);expect_identical(logq(.4,1,.7,a),ref$.ext_local_logq(.4,1,.7,b))
+ set.seed(119);x<-draw(1,.7,a);set.seed(119);y<-ref$.ext_local_draw(1,.7,b);expect_identical(x,y)
+})
+
 test_that('optional local-scale moves are full-support and explicit in computation metadata', {
  b<-autodesn_extend_bank(ext_example(),list(lags=1:2,prior='grouped'),list(periods=c(12,18),harmonics=1))
  p<-autodesn_extended_local_proposal(lapply(b$models,function(m)matrix(0,2,m$d)),lapply(b$models,function(m)rep(1,m$d)),bank_id=b$extension$id)
@@ -187,8 +215,7 @@ test_that('Gaussian-prior elliptical updates have independent exact Gaussian mom
 
 test_that('legacy shared reservoir transition is bit-identical after extraction', {
  b<-ext_example();t<-b$templates[[2]];t$fit<-list(target_label='reference');class(t)<-c('qdesn_normal_fit','list')
- tmp<-tempfile(fileext='.R');writeLines(system2('git',c('show','fea371f:R/qdesn_normal.R'),stdout=TRUE),tmp);on.exit(unlink(tmp))
- env<-new.env(parent=environment(autodesn_fit_bank));sys.source(tmp,env)
+ env<-new.env(parent=environment(autodesn_fit_bank));sys.source(testthat::test_path('fixtures','qdesn_normal_pre_engine.R'),env)
  set.seed(42);B<-matrix(rnorm(3*ncol(t$X)),3);z<-matrix(rnorm(15),5,3)
  args<-list(object=t,H=5,y_hist=b$history_scaled,draws=list(beta=B,omega2=c(.1,.3,.8)),innovations=z,backend='batched',return_design=TRUE)
  expect_identical(do.call(forecast_paths.qdesn_normal_fit,args),do.call(env$forecast_paths.qdesn_normal_fit,args))
@@ -298,8 +325,7 @@ test_that('constant responses and short-period boundaries are handled explicitly
 })
 
 test_that('batched forecasts preserve previous path assignments and conditional SV draws', {
- tmp<-tempfile(fileext='.R');writeLines(system2('git',c('show','9a0f512:R/autodesn_extended_forecast.R'),stdout=TRUE),tmp);on.exit(unlink(tmp))
- ref<-new.env(parent=environment(autodesn_fit_bank));sys.source(tmp,ref)
+ ref<-new.env(parent=environment(autodesn_fit_bank));sys.source(testthat::test_path('fixtures','forecast_pre_batch.R'),ref)
  # Identity hashing changed with optional smoothing storage; freeze that helper.
  ref$.ext_draw_identity<-ext_internal('.ext_draw_identity')
  b<-autodesn_extend_bank(ext_example(),list(lags=1:2),list(periods=c(12,18),harmonics=2))

@@ -47,3 +47,28 @@ Recursive calibration recovery never resamples a difficult truth or removes a ca
 Bounded joint checkpoints can optionally retain complete latent smoothing paths and generate conditional fixed-training-design replicates. Current limitations include no unconditional response-adaptive recursive PPC calibration, no completed full-size posterior qualification, and no completed independent confirmatory comparison. Numerical tests, successful installation and short feasibility pilots do not remove these limitations.
 
 SV conditional targets are factored into shared private helpers and checked against independently built dense stationary AR(1) covariances, raw/transformed numerical normalizers, and invariant slice moments. Exact zero residuals contribute zero quadratic even if an extreme log variance would overflow a naive exponential; nonfinite proposed log variances have zero density. Forecast batching groups only deterministic reservoir work. Terminal filtering draws are sampled in original outer-draw order, and full path/draw assignments are retained.
+# Coordinate-restricted computational proposals
+
+For active reservoir local log-scales ell and an optional set J of active
+coefficient positions, the frozen proposal is
+
+    q_m(ell | u) = product_{j not in J} h(ell_j) *
+      [(1-w_m) product_{j in J} h(ell_j)
+       + w_m product_{j in J} {K_m^-1 sum_k Normal(ell_j; a_mkj + b_mj(u-u0_m), s_mj^2)}].
+
+Here h is the normalized log-half-Cauchy density. An empty J gives the full
+proper prior. The complete coefficient-integrated Gaussian likelihood still
+contains every active predictor. Inactive reservoir pseudo-priors and the
+unselected active h factors cancel against the corresponding proposal factors;
+the remaining correction is sum_{j in J} log h(ell_j) minus the log bracket.
+The noise/global/slab transformations retain their existing Jacobians and
+prior/proposal corrections. Reservoir auxiliaries and coefficients are restored
+before any conditioned update. With w_m < 1 there is full prior support for all
+models and scales. NULL preserves the previous constructor, density and RNG
+path exactly. This is a proposal change, not a smaller model or a new prior.
+
+The independent seven-dimensional reference checks this transition against
+normalized-prior integration. The complete 32k full-bank coordinate trial still
+failed architecture exploration; small-target validity does not qualify that
+trial. Its original observations are retained in the interruption inventory.
+

@@ -1,0 +1,14 @@
+{
+  "complete": true,
+  "tests": 23,
+  "assertions": 210,
+  "failed": 0,
+  "errors": 0,
+  "warnings": 0,
+  "passed": 210,
+  "outside_git_working_tree": true,
+  "fixture_sources_manifest_sha256": "e527cbb86d159f87e6c3bb13b87f575ab809d0751c0f96889cdd821fba4f5541",
+  "test_source_sha256": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
+  "installed_database_sha256": "49bb5e1e8945fa1b88069d50a75fde5618a371711ea79f3390bf410936550d76",
+  "scope": "Installed extension tests with bundled frozen references outside Git history; not a package-wide CRAN check"
+}

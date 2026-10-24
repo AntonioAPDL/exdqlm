@@ -1,0 +1,36 @@
+{
+  "complete": true,
+  "chains": 4,
+  "contract_id": "894a69fa73ec10513260e6038cb51da255e84e68e33f96fb722c699f69d50884",
+  "records": [
+    {
+      "chain": 1,
+      "checkpoint_sha256": "10e4d36915888b4d7aba459a8526227b3535c14081f4fcc8eec92ba9a42c5b35",
+      "csv_sha256": "dfcfe7c4264a06959e2749ea0e606720dfc626a1bf7e0bdd8fef179fe25d10bd",
+      "original_csv_recovered": true,
+      "existing_csv_bit_identical": true
+    },
+    {
+      "chain": 2,
+      "checkpoint_sha256": "1c110cd88b0f1b7c885dd4d8369f448811fab2d4ec5109e017f95a6957530795",
+      "csv_sha256": "21c89413bf0d1913cf0ce40dfd362e873184d83120244a6e4caaadefe7a45146",
+      "original_csv_recovered": true,
+      "existing_csv_bit_identical": true
+    },
+    {
+      "chain": 3,
+      "checkpoint_sha256": "ce7ef530048d246ab05d562e78596b5554c7235f0d74bfc2ad60bdf07fa18d93",
+      "csv_sha256": "0d0a4406066f81c8a16067c24409b7fb5bfdda0786cb786f2470116a60e51723",
+      "original_csv_recovered": true,
+      "existing_csv_bit_identical": true
+    },
+    {
+      "chain": 4,
+      "checkpoint_sha256": "9558b93aa91340bed892499703567d12bec1373c5ee5e639400840ee8147d51a",
+      "csv_sha256": "8d63ba4da4d3e7e8fdef96f05f640c5a92b9a10279a55bc3b17898645aaf1c83",
+      "original_csv_recovered": false,
+      "existing_csv_bit_identical": {}
+    }
+  ],
+  "scope": "All four original RDS hashes and contracts verify; existing CSVs 1-3 reproduce byte for byte; missing CSV4 regenerated from its matching saved trace/probes. This does not alter inference or establish convergence."
+}

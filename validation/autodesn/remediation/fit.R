@@ -23,7 +23,15 @@ burn<-if(phase=='pilot')1000L else if(budget==32000L)8000L else if(budget==12800
 retained<-if(phase=='pilot')2000L else budget
 config<-list(family=family,beta_prior=prior_kind,storage_label=run_label,inference_cache_sha256=if(use_cache)cache_manifest$sha256 else NULL,cache_manifest_sha256=if(use_cache)digest::digest(file=file.path(root,'artifacts/inference_cache_manifest.json'),algo='sha256') else NULL,augmentation_sha256=if(use_cache)entry$sha256 else NULL,proposal_sha256=if(phase=='production')digest::digest(file=scale_path,algo='sha256') else NULL,priors=list(intercept_variance=10,observation_variance=list(shape=3,rate=1),rhs=if(prior_kind=='rhs')list(tau0=.001,slab_scale=1,slab_df=4,global='unit half-Cauchy',local='unit half-Cauchy') else NULL,ridge_precision=if(prior_kind=='ridge')list(shape=2,rate=2) else NULL),phase=phase,burn=burn,retained=retained,chains=4L,rows=c(501L,2500L),training_response_sd=sd(bank$y),source_sha256=as.list(source_sha),input_bank_sha256=digest::digest(file=basepath,algo='sha256'),bank_id=bank$extension$id,confirmation=FALSE,test_data_read=FALSE,forecast_allowed=FALSE)
 if(phase=='production'){config$proposal_sha256<-digest::digest(file=scale_path,algo='sha256');config$proposal_path<-scale_path}
-if(nzchar(local_path)){stopifnot(prior_kind=='rhs',phase=='production');config$local_proposal_path<-local_path;config$local_proposal_sha256<-digest::digest(file=local_path,algo='sha256')}
+if(nzchar(local_path)){
+ stopifnot(prior_kind=='rhs',phase=='production');config$local_proposal_path<-local_path;config$local_proposal_sha256<-digest::digest(file=local_path,algo='sha256')
+ lp<-readRDS(local_path)$proposal
+ if(!is.null(lp$kernel_coordinates)){
+  stopifnot('kernel_coordinates'%in%names(formals(autodesn_extended_local_proposal)))
+  config$local_kernel_coordinates<-lp$kernel_coordinates
+ }
+ rm(lp)
+}
 if(local_scales){stopifnot(nzchar(local_path),phase=='production');config$local_scale_proposal<-TRUE}
 contract_id<-digest::digest(config,algo='sha256');contract_path<-file.path(directory,'contract.rds')
 if(file.exists(contract_path))stopifnot(identical(readRDS(contract_path)$id,contract_id)) else saveRDS(list(id=contract_id,configuration=config),contract_path)

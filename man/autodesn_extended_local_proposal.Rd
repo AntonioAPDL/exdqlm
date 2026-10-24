@@ -10,7 +10,8 @@ autodesn_extended_local_proposal(
   slope = NULL,
   reference_log_global = 0,
   weight = 0.8,
-  bank_id
+  bank_id,
+  kernel_coordinates = NULL
 )
 }
 \arguments{
@@ -25,6 +26,11 @@ autodesn_extended_local_proposal(
 \item{weight}{Kernel-product mixture weight, scalar or per reservoir, in [0,1).}
 
 \item{bank_id}{Exact augmented bank identity used to prepare the proposal.}
+
+\item{kernel_coordinates}{Optional list of distinct integer positions among
+each model's active reservoir coefficients to use in the kernel density.
+Remaining local scales are proposed from their proper half-Cauchy priors.
+This changes only the proposal; no feature or architecture is removed.}
 }
 \value{
 A serializable normalized proposal. Freeze it before production.

@@ -1,0 +1,9 @@
+{
+  "source_manifest_sha256": "c37b77c436a150f10ba1bab4a53956ef8568777ad1f07a9997cddaa1679cd39b",
+  "frozen_revision": "fea371fbfa73c425a6f98407095194c1e8098a24",
+  "output": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/nonlinear_heteroscedastic/artifacts",
+  "stage": "build",
+  "test_data_used": false,
+  "source_files": 300,
+  "launcher_sha256": "df8fee1770a6935e1d87261f273c5f7ae4fbfcd5e22bb2805d860ea67ed88a2e"
+}

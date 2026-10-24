@@ -15,7 +15,11 @@ else:
  (snapshot/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 env=os.environ.copy();env['AUTODESN_SOURCE_SNAPSHOT']=str(snapshot.resolve());label=f'recursive_sbc_{a.variance}_n{a.cases}_k{a.retained}';record=root/'evidence'/f'{label}_resources.json';attempt=1
 env['AUTODESN_RECURSIVE_CASE_SET']=a.case_set
-while record.exists():attempt+=1;record=root/'evidence'/f'{label}_attempt{attempt}_resources.json'
-out=root/'artifacts'/label;out.mkdir(parents=True,exist_ok=True);(out/f'invocation_{attempt}.json').write_text(json.dumps(dict(snapshot=key,workers=a.workers,selected_cases=a.case_set or 'all',all_declared_cases_required=True),indent=2)+'\n')
+out=root/'artifacts'/label
+while record.exists() or (root/'artifacts'/f'{label}_attempt{attempt}.log').exists() or (out/f'invocation_{attempt}.json').exists():
+ attempt+=1;record=root/'evidence'/f'{label}_attempt{attempt}_resources.json'
+out.mkdir(parents=True,exist_ok=True)
+invocation=dict(snapshot=key,workers=a.workers,selected_cases=a.case_set or 'all',all_declared_cases_required=True,launcher_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),resource_runner_sha256=hashlib.sha256((root/'run_process.py').read_bytes()).hexdigest())
+with (out/f'invocation_{attempt}.json').open('x') as f:f.write(json.dumps(invocation,indent=2)+'\n')
 cmd=[sys.executable,str(root/'run_process.py'),'--record',str(record),'--log',str(root/'artifacts'/f'{label}_attempt{attempt}.log'),'--max-seconds','7200','--max-cgroup-anon-bytes','6100000000','Rscript','--vanilla',str(snapshot/root/'recursive_sbc.R'),str(a.cases),str(a.retained),a.variance,str(a.workers)]
 print(json.dumps(dict(snapshot=key,variance=a.variance,cases=a.cases,retained=a.retained,workers=a.workers)),flush=True);raise SystemExit(subprocess.call(cmd,env=env))

@@ -34,13 +34,22 @@ def restore(manifest, destination=None, seen=None, git_ref="HEAD"):
     b = b"".join(chunks)
     assert len(b) == m["archive_bytes"] and hashlib.sha256(b).hexdigest() == m["archive_sha256"]
     combined = {} if parent_record is None else parent_record["members"].copy()
-    with zipfile.ZipFile(io.BytesIO(b)) as z:
-        assert z.testzip() is None
-        assert set(z.namelist()) == {r["path"] for r in m["members"]}
-        for member in m["members"]:
+    is_prefix = m.get("archive_complete") is False
+    if is_prefix:
+        from recover_uploaded_archives import prefix_members
+        recovered, stop = prefix_members(b)
+        assert stop == m["prefix_stop"]
+        assert [{k: row[k] for k in ("path", "bytes", "sha256")} for row, _ in recovered] == m["members"]
+        values = {row["path"]: value for row, value in recovered}
+    else:
+        with zipfile.ZipFile(io.BytesIO(b)) as z:
+            assert z.testzip() is None
+            assert set(z.namelist()) == {r["path"] for r in m["members"]}
+            values = {row["path"]: z.read(row["path"]) for row in m["members"]}
+    for member in m["members"]:
             path = PurePosixPath(member["path"])
             assert not path.is_absolute() and ".." not in path.parts
-            data = z.read(member["path"])
+            data = values[member["path"]]
             assert len(data) == member["bytes"] and hashlib.sha256(data).hexdigest() == member["sha256"]
             combined[member["path"]] = member
             if destination is not None:
@@ -48,7 +57,8 @@ def restore(manifest, destination=None, seen=None, git_ref="HEAD"):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
     return dict(members=combined, parts=len(m["parts"]) + (0 if parent_record is None else parent_record["parts"]),
-                archives=1 + (0 if parent_record is None else parent_record["archives"]))
+                archives=1 + (0 if parent_record is None else parent_record["archives"]),
+                prefix_archives=int(is_prefix) + (0 if parent_record is None else parent_record["prefix_archives"]))
 
 
 if __name__ == "__main__":
@@ -61,4 +71,5 @@ if __name__ == "__main__":
         assert not a.destination.exists() or not any(a.destination.iterdir()), "Use an empty destination"
     record = restore(a.manifest, a.destination, git_ref=a.git_ref)
     print(json.dumps(dict(complete=True, verified_parts=record["parts"], verified_members=len(record["members"]),
-                         verified_archives=record["archives"], extracted=a.destination is not None)))
+                         verified_archives=record["archives"], verified_prefix_archives=record["prefix_archives"],
+                         all_archive_payloads_complete=record["prefix_archives"] == 0, extracted=a.destination is not None)))

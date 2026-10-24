@@ -1,0 +1,20 @@
+[
+  {
+    "path": "local_proposal_pre_coordinates.R",
+    "commit": "dd9f220ee4de4a4d022cde757cc0b5235f215099",
+    "source_path": "R/autodesn_extended_local.R",
+    "sha256": "8cf1bb6d3bcd8425212f9feb4abbe907fc1a345e67036d77a6b3765e23abc78a"
+  },
+  {
+    "path": "forecast_pre_batch.R",
+    "commit": "9a0f5127c44aaab999f7ee362682afe3c4763f97",
+    "source_path": "R/autodesn_extended_forecast.R",
+    "sha256": "d1add2fa61c5d804768c6a9a2bf1112060fa2c8bc7c4506e6b237343e0c5d15e"
+  },
+  {
+    "path": "qdesn_normal_pre_engine.R",
+    "commit": "fea371fbfa73c425a6f98407095194c1e8098a24",
+    "source_path": "R/qdesn_normal.R",
+    "sha256": "4383d9e0de20a468ae1900923acdae4eb23f183ecfbef6a6b78d5f0551c07a9b"
+  }
+]

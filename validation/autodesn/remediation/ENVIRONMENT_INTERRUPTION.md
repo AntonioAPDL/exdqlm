@@ -1,5 +1,25 @@
 # AutoDESN execution interruption — 24 October 2026
 
+**Recovery update:** a fresh checkout and the pinned R runtime are now available.
+Archive005's 360 members verify, and 12 complete members were recovered from
+archive006's prefix, including all four original 128k chain RDS files and status
+hashes. Trace4 was regenerated from its saved RDS; traces1–3 reproduce byte for
+byte. The same failed qualification result reproduces. Both source and installed
+tests outside Git pass all210 assertions again, with the exact previous test
+source hash. New reconstruction manifests support a fresh six-stage replay,
+explicitly counting one incomplete ZIP prefix. The missing original manifests
+are not claimed recovered. See `evidence/archive005_recovery.json`,
+`evidence/archive006_prefix_recovery.json`, `evidence/joint128_trace_recovery.json`
+and `evidence/source_recovery.json`.
+
+The frozen original builder rebuilt all426 admitted training reservoirs; cache
+and conditional-target identities are being checked before new inference.
+Recursive SV calibration has a new observed resumption from62 verified cases
+under the same original source. These are new invocations. The earlier process
+exit states remain unavailable. **Scientific qualification and the full
+comparison remain unfinished.** The remainder of this document records the
+original interruption as history.
+
 The compute environment became unavailable while work was in progress. The implementation and comparison are **not complete**. No new production posterior qualified, no new benchmark forecasts were issued, and no confirmation data were generated.
 
 The last fully verified ordinary source/evidence checkpoint before this interruption is commit `dd9f220ee4de4a4d022cde757cc0b5235f215099`. Later local changes were not fully committed before access was lost. This recovery commit preserves uploaded binary objects and an explicit inventory; it does not claim the lost working tree was recovered.

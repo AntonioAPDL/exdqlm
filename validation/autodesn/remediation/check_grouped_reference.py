@@ -15,9 +15,11 @@ from diagnostics import diagnostics
 parser = argparse.ArgumentParser()
 parser.add_argument("--learned-local", action="store_true")
 parser.add_argument("--joint-local-scales", action="store_true")
+parser.add_argument("--coordinate-kernels", action="store_true")
 args = parser.parse_args()
-label = "local_joint" if args.joint_local_scales else "local" if args.learned_local else "grouped"
-learned = args.learned_local or args.joint_local_scales
+assert not args.coordinate_kernels or not (args.learned_local or args.joint_local_scales)
+label = "local_partial" if args.coordinate_kernels else "local_joint" if args.joint_local_scales else "local" if args.learned_local else "grouped"
+learned = args.learned_local or args.joint_local_scales or args.coordinate_kernels
 reference = pd.read_csv(root / f"evidence/{'local' if learned else 'grouped'}_prior_integration.csv")
 directory = root / f"artifacts/{label}_reference"
 status = json.loads((directory / "status.json").read_text())
@@ -57,6 +59,7 @@ record = dict(complete=True, passed=passed, chains=4, retained_per_chain=24000,
               chain_sha256={p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                             for p in directory.glob("chain_*.rds")},
               scope=("Learned-local conditional grouped-RHS with exact additional local-scale independence moves" + (" jointly proposing noise/global/slab scales; " if args.joint_local_scales else "; ") if learned else "Fixed-local conditional grouped-RHS; ") + "learned independent globals, shared slab, proper calendar, unknown noise, variable readout dimension and nonuniform architecture/period proposals; not recursive SBC or production convergence",
+              coordinate_kernel_reference=args.coordinate_kernels,
               production_qualified=False)
 (root / f"evidence/{label}_mcmc_reference.json").write_text(json.dumps(record, indent=2) + "\n")
 print(table.to_string(index=False))

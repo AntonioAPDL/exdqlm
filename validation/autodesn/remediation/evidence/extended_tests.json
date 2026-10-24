@@ -1,9 +1,9 @@
 {
   "complete": true,
-  "tests": 22,
-  "assertions": 197,
+  "tests": 23,
+  "assertions": 210,
   "failed": 0,
   "errors": 0,
   "warnings": 0,
-  "passed": 197
+  "passed": 210
 }

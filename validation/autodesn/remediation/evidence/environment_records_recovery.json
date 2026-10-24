@@ -1,0 +1,64 @@
+{
+  "complete": true,
+  "selected_members": [
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/Julia_runtime.json",
+      "sha256": "916d77bd8d2d88d5afe8eac8ed636bcdbf020b531720928ac3adb1f22bb38716",
+      "bytes": 411
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/Python_environment.json",
+      "sha256": "9b78b85505367b40a69c9b1829578c9f2a7f49987e1bb0f4d33529f00a552e3b",
+      "bytes": 252
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/R_environment.txt",
+      "sha256": "d10441735cf92b442870d9bb1862385966f0fc3ae993f50e53272ead996a51f5",
+      "bytes": 810
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/conda_explicit.txt",
+      "sha256": "a088e01d178eae360cb9886eb89d252f4b44508502242b554f9ab6760aeeec3a",
+      "bytes": 15245
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/hardware.json",
+      "sha256": "3cb1b58411341c004767c015d2d00b08ef548966833f9bb64922b8bd5c4b01fc",
+      "bytes": 462
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/julia_environment/Manifest.toml",
+      "sha256": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+      "bytes": 27088
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/julia_environment/Project.toml",
+      "sha256": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+      "bytes": 1204
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/validation/manual_dependency_sources.json",
+      "sha256": "dd126844b4eef280a8b58d8df71cd9b6f8320dfe803331cfdea0c6764f4a1ab4",
+      "bytes": 452
+    },
+    {
+      "path": "validation/autodesn/nonlinear_heteroscedastic/evidence/restored/SHA256.json",
+      "sha256": "16012e1112018416f4357711af5aadb137c016066df237054a819a3c8ca162e7",
+      "bytes": 47009
+    }
+  ],
+  "verified_parts": [
+    {
+      "name": "NHS1_numeric_evidence.zip.part-43",
+      "bytes": 7000000,
+      "sha256": "d6b704fd929e8babd9a6f0122feb4a442babd72055971458bd7da674a6dc9360"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-44",
+      "bytes": 3316162,
+      "sha256": "ac4f7470d779fd526a3556a4d6522f269a0d043ac8cce7c443ae5d5331bb90bb"
+    }
+  ],
+  "full_archive_sha256_checked": false,
+  "scope": "Selected frozen runtime members against internal SHA256 manifest, ZIP CRC and touched committed-part hashes"
+}
