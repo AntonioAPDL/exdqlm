@@ -49,8 +49,8 @@ def main():
  for case in ['requested','scaling_only','ridge_standardized']:
   measured_cases={k:v for k,v in execution.items() if k.startswith(case+'_')}
   peak=max(v.get('process_peak_rss_kib') or 0 for v in measured_cases.values())
-  fit_prefix=case+('_fit' if case=='ridge_standardized' else '_joint_fit')
-  fit_wall=sum(v.get('invocation_wall_seconds') or 0 for k,v in measured_cases.items() if k.startswith(fit_prefix))
+  fit_prefixes=(case+'_fit',) if case=='ridge_standardized' else (case+'_joint_fit',case+'_same_prior_recovery_fit')
+  fit_wall=sum(v.get('invocation_wall_seconds') or 0 for k,v in measured_cases.items() if k.startswith(fit_prefixes))
   (b/case/'process_memory.json').write_text(json.dumps(dict(complete=True,process_peak_rss_kib=peak,fit_invocation_wall_seconds_sum=fit_wall,measured_invocations=measured_cases),indent=2))
  env=b/'validation/julia_environment';env.mkdir(exist_ok=True)
  for name in ['Project.toml','Manifest.toml']:shutil.copyfile(a.project/name,env/name)
