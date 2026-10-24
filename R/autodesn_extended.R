@@ -207,7 +207,7 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
   if (rc$local_layout != "prefix") stop("Augmented readouts use family-indexed prefix slots; local_layout='layerwise' applies to legacy reservoir-only banks.", call. = FALSE)
   groups_count <- if (bank$extension$readout$prior == "flat") 1L else 2L
   if (!length(rc$tau0) %in% c(1L, groups_count)) stop("Extended tau0 must be scalar or one per RHS group (lag, reservoir).", call. = FALSE)
-  .ext_named(model_control, c("method", "moves", "proposal", "period_proposal", "initial_model", "initial_period", "joint_moves", "joint_scale_sd", "rb_every", "save_draws", "joint_proposal", "local_proposal", "local_moves"), "extended model")
+  .ext_named(model_control, c("method", "moves", "proposal", "period_proposal", "initial_model", "initial_period", "joint_moves", "joint_scale_sd", "rb_every", "save_draws", "joint_proposal", "local_proposal", "local_moves", "local_scale_proposal"), "extended model")
   mc <- utils::modifyList(list(method = "mh", moves = 2L, proposal = bank$prior, period_proposal = bank$extension$period_prior, initial_model = 1L, initial_period = 1L, joint_moves = 1L, joint_scale_sd = .4, rb_every = 0L, save_draws = Inf, local_moves = if (is.null(model_control$local_proposal)) 0L else 1L, local_proposal = NULL), model_control)
   if (!mc$method %in% c("mh", "categorical")) stop("Unknown architecture method.", call. = FALSE)
   if (length(mc$save_draws) != 1L || is.na(mc$save_draws) || mc$save_draws < 1 || (!is.infinite(mc$save_draws) && mc$save_draws != floor(mc$save_draws))) stop("save_draws must be a positive integer or Inf.", call. = FALSE)
@@ -240,6 +240,9 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
   if (tolower(backend) == "auto") backend <- if (available) "cpp" else "R"
   if (backend == "cpp" && !available) stop("The weighted C++ backend is unavailable; compile/install this checkout or use backend='R'.", call. = FALSE)
   if (mc$local_moves && is.null(mc$local_proposal)) stop("local_moves requires a frozen local_proposal.", call. = FALSE)
+  local_scales <- if (is.null(mc$local_scale_proposal)) FALSE else mc$local_scale_proposal
+  .autodesn_flag(local_scales, "local_scale_proposal")
+  if (local_scales && (!mc$local_moves || is.null(mc$joint_proposal))) stop("local_scale_proposal requires local moves and a frozen joint_proposal.", call. = FALSE)
   if (!is.null(mc$local_proposal)) {
     if (beta_prior != "rhs" || !is.null(rc$fixed_local_scales)) stop("Reservoir-local proposals require learned RHS local scales.", call. = FALSE)
     mc$local_proposal <- do.call(autodesn_extended_local_proposal, unclass(mc$local_proposal))
@@ -316,9 +319,12 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
     K <- length(retained)
     keep <- logical(n_burn + n_mcmc)
     keep[retained] <- TRUE
-    draws <- data.frame(iteration = retained, model = integer(K), period_index = integer(K), variance = numeric(K), ridge_precision = numeric(K), log_slab = numeric(K), phi = numeric(K), omega = numeric(K), intercept = numeric(K), fitted_rms = numeric(K), edf = numeric(K))
-    for (g in seq_len(G)) draws[[paste0("log_global_", g)]] <- numeric(K)
-    for (nm in c("norm_lag", "norm_reservoir", "norm_calendar", "edf_intercept", "edf_lag", "edf_reservoir", "edf_calendar", "log_likelihood", "volatility_rms", "terminal_log_variance")) draws[[nm]] <- numeric(K)
+    trace_names <- c("iteration", "model", "period_index", "variance", "ridge_precision", "log_slab", "phi", "omega", "intercept", "fitted_rms", "edf", paste0("log_global_", seq_len(G)),
+      "norm_lag", "norm_reservoir", "norm_calendar", "edf_intercept", "edf_lag", "edf_reservoir", "edf_calendar", "log_likelihood", "volatility_rms", "terminal_log_variance")
+    # Matrix writes avoid repeated data.frame replacement dispatch in each sweep.
+    # Convert back with the original column types only after all random updates.
+    draws <- matrix(0, K, length(trace_names), dimnames = list(NULL, trace_names))
+    draws[, "iteration"] <- retained
     probe <- unique(as.integer(round(seq(1, bank$n, length.out = min(8L, bank$n)))))
     snapshots <- unique(as.integer(round(seq(1, K, length.out = min(K, mc$save_draws)))))
     saved_slot <- integer(K)
@@ -331,15 +337,22 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
       cur <- evaluate(m, p)
       if (mc$method == "categorical") {
         w <- matrix(0, M, NP)
-        for (a in seq_len(M)) for (b in seq_len(NP)) w[a, b] <- log(bank$prior[a]) + log(bank$extension$period_prior[b]) + evaluate(a, b)$g$log_evidence
+        # A small exact scan can reuse its selected conditional. Bound storage
+        # by the declared cache size rather than retaining a whole large bank.
+        scanned <- if (M * NP <= bank$extension$readout$cache_size) vector("list", M * NP) else NULL
+        for (a in seq_len(M)) for (b in seq_len(NP)) {
+          value <- if (a == m && b == p) cur else evaluate(a, b)
+          w[a, b] <- log(bank$prior[a]) + log(bank$extension$period_prior[b]) + value$g$log_evidence
+          if (!is.null(scanned)) scanned[[a + M * (b - 1L)]] <- value
+        }
         index <- sample.int(M * NP, 1, prob = .autodesn_softmax(as.vector(w)))
         m <- ((index - 1L) %% M) + 1L
         p <- ((index - 1L) %/% M) + 1L
-        cur <- evaluate(m, p)
+        cur <- if (is.null(scanned)) evaluate(m, p) else scanned[[index]]
       } else if (mc$moves) for (j in seq_len(mc$moves)) {
         a <- sample.int(M, 1, prob = mc$proposal)
         b <- sample.int(NP, 1, prob = mc$period_proposal)
-        nxt <- evaluate(a, b)
+        nxt <- if (a == m && b == p) cur else evaluate(a, b)
         ratio <- nxt$g$log_evidence - cur$g$log_evidence + log(bank$prior[a] / bank$prior[m]) + log(bank$extension$period_prior[b] / bank$extension$period_prior[p]) + log(mc$proposal[m] / mc$proposal[a]) + log(mc$period_proposal[p] / mc$period_proposal[b])
         proposed <- proposed + 1L
         if (log(stats::runif(1)) < min(0, ratio)) {
@@ -386,15 +399,27 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
         for (j in seq_len(mc$local_moves)) {
           a <- sample.int(M, 1, prob = mc$proposal)
           b <- sample.int(NP, 1, prob = mc$period_proposal)
+          ls <- log(s2)
+          lu <- logu
+          lc <- logc2
+          scale_change <- 0
+          if (local_scales) {
+            zz <- .ext_joint_draw(a, mc$joint_proposal)
+            ls <- zz[1L]
+            lu <- zz[1L + seq_len(G)]
+            lc <- zz[G + 2L]
+            scale_change <- scaleprior(ls, lu, lc) - scaleprior(log(s2), logu, logc2) +
+              .ext_joint_logq(c(log(s2), logu, logc2), m, mc$joint_proposal) - .ext_joint_logq(zz, a, mc$joint_proposal)
+          }
           proposed_local <- ell
           proposed_local[reservoir_slots] <- log(abs(stats::rcauchy(length(reservoir_slots))))
           old_active <- cur$d$slots[cur$d$groups == "reservoir"]
           new_active <- design(a, b)$slots[design(a, b)$groups == "reservoir"]
-          proposed_local[new_active] <- .ext_local_draw(a, logu[reservoir_group], mc$local_proposal)
-          nxt <- evaluate(a, b, le = proposed_local)
-          correction <- .ext_local_correction(proposed_local[new_active], a, logu[reservoir_group], mc$local_proposal) -
+          proposed_local[new_active] <- .ext_local_draw(a, lu[reservoir_group], mc$local_proposal)
+          nxt <- evaluate(a, b, ls, lu, lc, le = proposed_local)
+          correction <- .ext_local_correction(proposed_local[new_active], a, lu[reservoir_group], mc$local_proposal) -
             .ext_local_correction(ell[old_active], m, logu[reservoir_group], mc$local_proposal)
-          ratio <- nxt$g$log_evidence - cur$g$log_evidence + correction +
+          ratio <- nxt$g$log_evidence - cur$g$log_evidence + correction + scale_change +
             log(bank$prior[a] / bank$prior[m]) + log(bank$extension$period_prior[b] / bank$extension$period_prior[p]) +
             log(mc$proposal[m] / mc$proposal[a]) + log(mc$period_proposal[p] / mc$period_proposal[b])
           proposed <- proposed + 1L
@@ -404,6 +429,11 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
             m <- a
             p <- b
             ell <- proposed_local
+            if (local_scales) {
+              s2 <- exp(ls)
+              logu <- lu
+              logc2 <- lc
+            }
             cur <- nxt
             accepted <- accepted + 1L
             local_accepted <- local_accepted + 1L
@@ -488,7 +518,7 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
         for (g in seq_len(G)) draws[k, paste0("log_global_", g)] <- logu[g]
         # The smoother trace is conditional on the Gaussian step's scales, labeled accordingly.
         smoother_squared <- backsolve(cur$g$chol, diag(length(B))) ^ 2
-        draws$edf[k] <- length(B) - sum(smoother_squared)
+        draws[k, "edf"] <- length(B) - sum(smoother_squared)
         contribution <- 1 - rowSums(smoother_squared)
         labels <- c("intercept", cur$d$groups)
         for (label in c("intercept", "lag", "reservoir", "calendar")) {
@@ -497,9 +527,9 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
           if (label != "intercept") draws[k, paste0("norm_", label)] <- sqrt(sum(B[indices] ^ 2))
         }
         relative_variance <- offset(p) + omega * u
-        draws$log_likelihood[k] <- -bank$n / 2 * log(2 * pi * s2) + .ext_sv_loglik(relative_variance, residual, s2)
-        draws$volatility_rms[k] <- sqrt(mean((omega * u) ^ 2))
-        draws$terminal_log_variance[k] <- log(s2) + tail(relative_variance, 1L)
+        draws[k, "log_likelihood"] <- -bank$n / 2 * log(2 * pi * s2) + .ext_sv_loglik(relative_variance, residual, s2)
+        draws[k, "volatility_rms"] <- sqrt(mean((omega * u) ^ 2))
+        draws[k, "terminal_log_variance"] <- log(s2) + tail(relative_variance, 1L)
         slot <- saved_slot[k]
         if (slot) {
           beta[[slot]] <- B
@@ -511,6 +541,8 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
       }
     }
 
+    draws <- as.data.frame(draws)
+    draws$iteration <- retained
     # edf is only a Gaussian-step diagnostic; recompute in validation at matching states.
     summary <- cbind(bank$model_info, prior_probability = bank$prior, posterior_probability = tabulate(draws$model, M) / K)
     structure(list(bank = bank, draws = draws[snapshots, , drop = FALSE], trace = draws, beta = beta, local = local, volatility = states, probes = probes, probe_rows = probe, model_summary = summary,

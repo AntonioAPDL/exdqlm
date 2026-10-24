@@ -3,11 +3,12 @@ import argparse
 import hashlib
 import io
 import json
+import subprocess
 import zipfile
 from pathlib import Path, PurePosixPath
 
 
-def restore(manifest, destination=None, seen=None):
+def restore(manifest, destination=None, seen=None, git_ref="HEAD"):
     seen = set() if seen is None else seen
     assert manifest.resolve() not in seen, "Cyclic archive ancestry"
     seen.add(manifest.resolve())
@@ -17,13 +18,17 @@ def restore(manifest, destination=None, seen=None):
     if parent:
         path = Path(parent["path"])
         assert hashlib.sha256(path.read_bytes()).hexdigest() == parent["sha256"]
-        parent_record = restore(path, destination, seen)
+        parent_record = restore(path, destination, seen, git_ref)
         newest = {r["path"] for r in m["members"]}
         inherited = {r["path"]: r for r in m["inherited_members"]}
         assert inherited == {p: r for p, r in parent_record["members"].items() if p not in newest}
     chunks = []
     for part in m["parts"]:
-        b = Path(part["path"]).read_bytes()
+        path = Path(part["path"])
+        assert not path.is_absolute() and ".." not in path.parts
+        # Verified committed archives need not also occupy the working tree.
+        b = path.read_bytes() if path.exists() else subprocess.check_output(
+            ["git", "cat-file", "blob", f"{git_ref}:{path.as_posix()}"])
         assert len(b) == part["bytes"] and hashlib.sha256(b).hexdigest() == part["sha256"]
         chunks.append(b)
     b = b"".join(chunks)
@@ -50,9 +55,10 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("manifest", type=Path)
     p.add_argument("--destination", type=Path)
+    p.add_argument("--git-ref", default="HEAD", help="Read omitted committed parts from this local Git revision; no network fetch")
     a = p.parse_args()
     if a.destination:
         assert not a.destination.exists() or not any(a.destination.iterdir()), "Use an empty destination"
-    record = restore(a.manifest, a.destination)
+    record = restore(a.manifest, a.destination, git_ref=a.git_ref)
     print(json.dumps(dict(complete=True, verified_parts=record["parts"], verified_members=len(record["members"]),
                          verified_archives=record["archives"], extracted=a.destination is not None)))

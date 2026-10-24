@@ -1,7 +1,7 @@
 # Export only already-saved matching local states; do not reconstruct marginals.
-root<-'validation/autodesn/remediation';d<-file.path(root,'artifacts/local_reference')
+root<-'validation/autodesn/remediation';args<-commandArgs(TRUE);label<-if(length(args))args[1] else 'local';stopifnot(label%in%c('local','local_joint'));d<-file.path(root,'artifacts',paste0(label,'_reference'))
 stopifnot(isTRUE(jsonlite::fromJSON(file.path(d,'status.json'))$complete))
-fixture<-jsonlite::fromJSON(file.path(root,'artifacts/local_reference_fixture.json'),simplifyVector=FALSE)
+fixture<-jsonlite::fromJSON(file.path(root,'artifacts',paste0(label,'_reference_fixture.json')),simplifyVector=FALSE)
 for(design in fixture$designs)stopifnot(identical(unlist(design$groups)[2:3],c('lag','reservoir')))
 for(k in 1:4){
  f<-readRDS(file.path(d,paste0('chain_',k,'.rds')))

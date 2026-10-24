@@ -53,6 +53,30 @@ test_that('optional local-scale moves are full-support and explicit in computati
  bad<-p;bad$bank_id<-'other';expect_error(autodesn_fit_bank(b,n_burn=1,n_mcmc=2,beta_prior='rhs',model_control=list(local_proposal=bad)),'does not match')
  expect_error(autodesn_fit_bank(b,n_burn=1,n_mcmc=2,beta_prior='rhs',rhs_control=list(fixed_local_scales=1),model_control=list(local_proposal=p)),'learned RHS')
  expect_error(autodesn_fit_bank(b,n_burn=1,n_mcmc=2,model_control=list(local_moves=1)),'requires a frozen')
+ joint<-autodesn_extended_proposal(matrix(rep(c(log(.3),0,0,0),each=2),2,4),diag(4))
+ g<-autodesn_fit_bank(b,n_burn=5,n_mcmc=20,beta_prior='rhs',rhs_control=list(tau0=.001),model_control=list(local_proposal=p,joint_proposal=joint,local_scale_proposal=TRUE,joint_moves=1,save_draws=5),seed=93,backend='R')
+ expect_true(g$controls$model_control$local_scale_proposal);expect_equal(g$computation$local_proposals,25)
+ expect_true(all(is.finite(as.matrix(g$trace))));expect_true(all(is.finite(unlist(g$local))))
+ expect_error(autodesn_fit_bank(b,n_burn=1,n_mcmc=2,beta_prior='rhs',model_control=list(local_proposal=p,local_scale_proposal=TRUE)),'frozen joint_proposal')
+})
+
+test_that('joint scale/local ratios match the complete fixed-space target and conditional proposal', {
+ lp<-autodesn_extended_local_proposal(list(matrix(c(-1,0,1),3,1),matrix(c(-1,0,1,.2,.5,1.2),3,2)),list(.7,c(.5,.8)),slope=list(-.4,c(-.5,-.2)),weight=.75,bank_id='fixture')
+ jp<-autodesn_extended_proposal(matrix(c(-1,.2,.5,.1,-.5,-.2,.4,.7),2,4),diag(c(.5,1,2,.8)),wide_center=rep(0,4))
+ logq<-ext_internal('.ext_local_logq');qz<-ext_internal('.ext_joint_logq');corr<-ext_internal('.ext_local_correction')
+ hc<-function(z)log(2/pi)-abs(z)-log1p(exp(-2*abs(z)))
+ prior<-function(z)3*log(1)-lgamma(3)-3*z[1]-exp(-z[1])+sum(hc(z[2:3]))+2*log(2)-lgamma(2)-2*z[4]-2*exp(-z[4])
+ a<-c(log(.4),-.3,.5,log(2));b<-c(log(.3),.2,-.4,log(1.5));old<-c(.7,-1.1,.3);new<-c(-.2,1.4,-.8)
+ pm<-c(.4,.6);qm<-c(.8,.2);likelihood_difference<-.93
+ # Complete proposal includes every active/inactive scale and both transformed
+ # global draws. Inactive priors cancel only after writing their full density.
+ full<-likelihood_difference+log(pm[2]/pm[1])+prior(b)-prior(a)+sum(hc(new))-sum(hc(old))+
+  log(qm[1])+qz(a,1,jp)+logq(old[1],1,a[3],lp)+sum(hc(old[2:3]))-
+  log(qm[2])-qz(b,2,jp)-logq(new[1:2],2,b[3],lp)-hc(new[3])
+ reduced<-likelihood_difference+log(pm[2]/pm[1])+log(qm[1]/qm[2])+prior(b)-prior(a)+qz(a,1,jp)-qz(b,2,jp)+corr(new[1:2],2,b[3],lp)-corr(old[1],1,a[3],lp)
+ expect_equal(full,reduced,tolerance=1e-13)
+ wrong_condition<-likelihood_difference+log(pm[2]/pm[1])+log(qm[1]/qm[2])+prior(b)-prior(a)+qz(a,1,jp)-qz(b,2,jp)+corr(new[1:2],2,a[3],lp)-corr(old[1],1,a[3],lp)
+ expect_gt(abs(wrong_condition-reduced),.01)
 })
 
 test_that('augmented controls reject ambiguous or unsupported inputs', {
@@ -96,6 +120,7 @@ test_that('raw coefficient transport includes all block and response intercept c
   original_L<-b$preprocessing$center+b$preprocessing$scale*L
   expect_equal(as.vector(cbind(1,original_L,R,S)%*%original),b$preprocessing$center+b$preprocessing$scale*expected,tolerance=1e-11)
  }
+ bad<-f;bad$bank$extension$id<-'other';expect_error(autodesn_readout_coefficients(bad,1),'does not match')
  # Matrix-only banks have identity response geometry and dropped constants.
  a<-autodesn_extend_bank(autodesn_prepare_bank(rep(0,8),list(matrix(0,8,1)),normalize_features=FALSE,standardize_features=TRUE))
  z<-autodesn_fit_bank(a,n_burn=2,n_mcmc=4,beta_prior='ridge',seed=14)
@@ -210,6 +235,8 @@ test_that('conditional SV filtering preserves weights and rejects stale states',
  z<-matrix(0,2,4);a<-forecast_paths(f2,2,draw_index=1:2,inner_paths=2,state_filter=next_filter,innovations=z,volatility_innovations=z,seed=33)
  expect_true(all(is.finite(a$yrep)));expect_true(all(a$sd_draws>0));expect_false(a$static_weights_updated)
  bad<-f2;bad$beta[[1]][1]<-bad$beta[[1]][1]+.1;expect_error(forecast_paths(bad,2,draw_index=1:2,state_filter=next_filter),'stale')
+ bad<-f2;bad$bank$templates[[f2$draws$model[1]]]$reservoir$W[[1]][1,1]<-bad$bank$templates[[f2$draws$model[1]]]$reservoir$W[[1]][1,1]+.1
+ expect_error(forecast_paths(bad,2,draw_index=1:2,state_filter=next_filter),'stale')
 })
 
 test_that('frozen general-dimensional proposal uses normalized t-mixture densities', {

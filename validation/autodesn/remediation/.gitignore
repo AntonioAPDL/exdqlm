@@ -1,4 +1,6 @@
 artifacts/
+tmp/
+__pycache__/
 *.log
 
 # Reassembled archives are reproducible from the committed split parts.

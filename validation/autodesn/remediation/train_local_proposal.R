@@ -1,6 +1,7 @@
 # Computational proposal fitting only; no held-out responses or model screening.
-source('validation/autodesn/load_checkout.R');args<-commandArgs(TRUE);stopifnot(length(args)==2L,args[1]%in%c('F1','F2','F2flat'))
+source('validation/autodesn/load_checkout.R');args<-commandArgs(TRUE);stopifnot(length(args)%in%c(2L,3L),args[1]%in%c('F1','F2','F2flat'))
 family<-args[1];phase<-args[2];root<-'validation/autodesn/remediation';directory<-file.path(root,'artifacts',family,phase)
+output_label<-if(length(args)==3L)args[3] else 'frozen_local_proposal';stopifnot(grepl('^[A-Za-z0-9_]+$',output_label))
 config<-jsonlite::fromJSON(file.path(directory,'configuration.json'));stopifnot(config$beta_prior=='rhs',!config$test_data_read)
 paths<-file.path(directory,paste0('chain_',1:4,'.rds'));fits<-lapply(paths,function(path){z<-readRDS(path);st<-jsonlite::fromJSON(sub('[.]rds$','_status.json',path));stopifnot(identical(digest::digest(file=path,algo='sha256'),st$checkpoint_sha256));z$fit})
 stopifnot(length(unique(vapply(fits,function(f)f$controls$target_id,'')))==1L)
@@ -23,6 +24,6 @@ for(m in seq_len(M)){
 }
 proposal<-autodesn_extended_local_proposal(centers,bandwidth,slopes,reference,weights,bank_id=config$bank_id)
 record<-list(proposal=proposal,frozen_before_production=TRUE,training_only=TRUE,posterior_qualification_claimed=FALSE,source_phase=phase,training_counts=counts,sources=lapply(paths,function(path)list(path=path,sha256=digest::digest(file=path,algo='sha256'))),specification=list(kernel='whole-vector prior / product marginal Gaussian KDE mixture',prior_weight=.2,maximum_centers=64L,minimum_training_states=24L,slope_range=c(-1,0),bandwidth_floor=.15))
-out<-file.path(root,'artifacts',family,'frozen_local_proposal.rds');stopifnot(!file.exists(out));saveRDS(record,out)
-jsonlite::write_json(c(record[setdiff(names(record),'proposal')],list(path=out,sha256=digest::digest(file=out,algo='sha256'),bank_id=config$bank_id,models_with_kernel=sum(weights>0),models_using_prior_only=sum(weights==0))),file.path(root,'evidence',paste0(family,'_frozen_local_proposal.json')),pretty=TRUE,auto_unbox=TRUE)
+out<-file.path(root,'artifacts',family,paste0(output_label,'.rds'));stopifnot(!file.exists(out));saveRDS(record,out)
+jsonlite::write_json(c(record[setdiff(names(record),'proposal')],list(path=out,sha256=digest::digest(file=out,algo='sha256'),bank_id=config$bank_id,models_with_kernel=sum(weights>0),models_using_prior_only=sum(weights==0))),file.path(root,'evidence',paste0(family,'_',output_label,'.json')),pretty=TRUE,auto_unbox=TRUE)
 cat('Frozen local proposal:',sum(weights>0),'kernel models;',sum(weights==0),'prior-only models; all',M,'retained\n')

@@ -1,0 +1,20 @@
+{
+  "complete": true,
+  "passed": true,
+  "chains": 4,
+  "retained_per_chain": 24000,
+  "joint_functionals": 12,
+  "maximum_rhat": 1.0025071375245107,
+  "minimum_bulk_ess": 1959.1592445409515,
+  "minimum_tail_ess": 1756.7345012797869,
+  "moments_passed": true,
+  "source_status_sha256": "1cb11ee06c7896edd75b5ed16a301583b89f28f74b8d9b67f399749651270425",
+  "chain_sha256": {
+    "chain_3.rds": "43bef99aeab1f76b18f1ccb1bd10485068d48424ba1fb04fac1d369b2c76f8e7",
+    "chain_2.rds": "6453f5e2eea9ee876ce86133f68fc256f74a1ca9be9ecc76cfe2b6fe2fe6d449",
+    "chain_4.rds": "d346d7e1269d01f80137522470f99e9461f2998a9b4a3e28e6259cac3a5d727b",
+    "chain_1.rds": "38e391ac020ecfede86ffa02f059955124eb8984598e166f07c4df1a0c3f2252"
+  },
+  "scope": "Learned-local conditional grouped-RHS with exact additional local-scale independence moves jointly proposing noise/global/slab scales; learned independent globals, shared slab, proper calendar, unknown noise, variable readout dimension and nonuniform architecture/period proposals; not recursive SBC or production convergence",
+  "production_qualified": false
+}

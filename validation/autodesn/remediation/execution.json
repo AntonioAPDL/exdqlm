@@ -9,7 +9,7 @@
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
     "Weighted Gaussian C++ and shared causal reservoir engine",
     "Conditional SV sampler, optional bounded smoothing paths and frozen-static-weight causal filtering",
-    "188 numerical and small-target assertions across 21 tests, source and installed package",
+    "197 numerical and small-target assertions pass across 22 tests in both source and installed package",
     "804 legacy regression assertions passed, one context skip separately covered by source-only checks",
     "17 independent SV conditional-density/normalization/moment checks",
     "Native GP period-move detailed-balance checks and 36 small-conditional reference checks",
@@ -24,10 +24,16 @@
     "Independent full two-response SV quadrature versus four chains: 13 functionals agree; max Rhat 1.00048, min tail ESS 6979",
     "Independent grouped fixed-local four-dimensional prior integration versus four chains: ten quantities agree; max Rhat 1.00030",
     "Independent learned-local seven-dimensional prior integration versus four chains using the optional exact local proposal: twelve quantities agree; max Rhat 1.00219, min bulk ESS 1829",
-    "188 installed extension assertions pass",
     "Raw augmented coefficient transport with full response/lag/intercept corrections",
     "Recovered compact H_last initialization defect corrected before new benchmark forecasts; fixture causal forecast/update parity passes",
-    "Successive-budget stability checker implemented; no passing cross-budget certificate yet"
+    "Successive-budget stability checker implemented; no passing cross-budget certificate yet",
+    "F1 128k retained budget completed in 2803.28 seconds with all checkpoints verified; Rhat/ESS pass but categorical frequency ranges fail",
+    "Exact reservoir-local 32k trial completed and verified: ESS improves to 441 but the overall screen still fails",
+    "All 426 compact propagation maps and terminal features verify; controlled full-bank causal recursion passes",
+    "Bit-identical matrix trace storage and bounded deterministic Gaussian reuse reduce small-target sampler overhead",
+    "First recursive frozen-map calibration feasibility pilot completed; 12 cases, 9 below spectral ESS 400; no calibration conclusion",
+    "Independent learned-local joint noise/global/slab and reservoir-local move: 12 numerical reference quantities pass, max Rhat 1.00251, min bulk ESS 1959",
+    "Completed 200-case fixed-design RHS SBC at 24k retained: simultaneous rank envelope passes, minimum case spectral ESS 1080.79, all 200 exceed 400; conditional scope only"
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
@@ -47,24 +53,25 @@
     "F2_pilot_launcher": "All four saved chains verify, but the driver exited 1 after a live-script edit; this failed invocation is preserved separately.",
     "full_size_GP": "An intended 2000-row/16-particle run was explicitly interrupted after the R memory failure, with native stages through 256 saved; no final posterior exists.",
     "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture.",
-    "forecast_templates": "Compact H_last initialization is fixed in source and fixture tests. Full 426-template reconstruction/parity must wait for low measured memory; only 50 part-based maps were checked before encountering a missing restored raw part. The complete original bank remains available."
+    "forecast_templates": "Resolved for all 426 original reservoirs: exact before/after serial and batched transitions, terminal-feature error <=1.8e-13, controlled full-bank recursive and observed-update parity. No new benchmark forecast issued."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
   "running_at_this_checkpoint": [
     {
-      "family": "F1",
-      "phase": "production_128000_cache1",
-      "source_snapshot": "6a3620fe344c862e59ffef8ef9e99c9ff63393cc7ade3d22207dba34a0aa2c8e",
-      "status": "observed running; not qualified"
-    },
-    {
-      "family": "fixed_design_RHS_SBC",
+      "family": "recursive_frozen_map_RHS_SBC",
       "retained": 24000,
       "cases_requested": 200,
-      "source_snapshot": "10d17b3c7c1d8a4fbbf6cb733e6422857f6a5ca254f8e8e9ca575e587432733d",
-      "status": "observed running; partial atomic cases"
+      "source_snapshot": "becf3b7e82a9273a464805b9408a360123ba554971c7885292549057cf99a404",
+      "status": "Observed running after verified two-case subset/resumption"
+    },
+    {
+      "family": "F1_joint_scale_local_trial",
+      "retained": 32000,
+      "chains": 4,
+      "source_snapshot": "859ec96d7a19059cd4b8b6008f144da162b7e29e2b37cf44d4a90cb69ddba304",
+      "status": "Observed running; fresh 8k warmup, full-support frozen training-only proposals; no forecasts"
     }
   ]
 }

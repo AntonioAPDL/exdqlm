@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "reservoirs": 426,
+  "source_bank_id": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63",
+  "forecast_map_id": "2b1969a51dcdf6233ad4607a13d88da322f0f6baff9df1dfac7cb191bc70ae87",
+  "maximum_manual_recursive_path_error": 2.7756e-17,
+  "all_426_first_observed_updates_independent_of_second_value": true,
+  "benchmark_forecasts_issued": false,
+  "scope": "Controlled arbitrary coefficient/innovation unit fixture on the full original bank; no unqualified posterior scores and no held-out response read"
+}

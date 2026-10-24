@@ -23,6 +23,7 @@ autodesn_readout_coefficients <- function(object,
   if (!is.numeric(ids) || !length(ids) || any(!is.finite(ids) | ids != floor(ids) | ids < 1 | ids > nrow(object$draws))) stop("Invalid posterior draw indices.", call. = FALSE)
   bank <- object$bank
   e <- bank$extension
+  if (!identical(e$id, object$controls$target$bank_id)) stop("Attached bank does not match the conditional posterior.", call. = FALSE)
   response_center <- if (is.null(bank$preprocessing)) 0 else bank$preprocessing$center
   response_sd <- if (is.null(bank$preprocessing)) 1 else bank$preprocessing$scale
   lapply(ids, function(k) {

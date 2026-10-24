@@ -14,14 +14,16 @@ from diagnostics import diagnostics
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--learned-local", action="store_true")
+parser.add_argument("--joint-local-scales", action="store_true")
 args = parser.parse_args()
-label = "local" if args.learned_local else "grouped"
-reference = pd.read_csv(root / f"evidence/{label}_prior_integration.csv")
+label = "local_joint" if args.joint_local_scales else "local" if args.learned_local else "grouped"
+learned = args.learned_local or args.joint_local_scales
+reference = pd.read_csv(root / f"evidence/{'local' if learned else 'grouped'}_prior_integration.csv")
 directory = root / f"artifacts/{label}_reference"
 status = json.loads((directory / "status.json").read_text())
 assert status["complete"] and status["chains"] == 4
 chains = [pd.read_csv(directory / f"trace_{k}.csv") for k in range(1, 5)]
-locals_ = [pd.read_csv(directory / f"locals_{k}.csv") for k in range(1, 5)] if args.learned_local else None
+locals_ = [pd.read_csv(directory / f"locals_{k}.csv") for k in range(1, 5)] if learned else None
 for c in chains:
     c["intercept_squared"] = c.intercept ** 2
     c["model_2"] = (c.model == 2).astype(float)
@@ -54,7 +56,7 @@ record = dict(complete=True, passed=passed, chains=4, retained_per_chain=24000,
               source_status_sha256=hashlib.sha256((directory / "status.json").read_bytes()).hexdigest(),
               chain_sha256={p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                             for p in directory.glob("chain_*.rds")},
-              scope=("Learned-local conditional grouped-RHS with exact additional local-scale independence moves; " if args.learned_local else "Fixed-local conditional grouped-RHS; ") + "learned independent globals, shared slab, proper calendar, unknown noise, variable readout dimension and nonuniform architecture/period proposals; not recursive SBC or production convergence",
+              scope=("Learned-local conditional grouped-RHS with exact additional local-scale independence moves" + (" jointly proposing noise/global/slab scales; " if args.joint_local_scales else "; ") if learned else "Fixed-local conditional grouped-RHS; ") + "learned independent globals, shared slab, proper calendar, unknown noise, variable readout dimension and nonuniform architecture/period proposals; not recursive SBC or production convergence",
               production_qualified=False)
 (root / f"evidence/{label}_mcmc_reference.json").write_text(json.dumps(record, indent=2) + "\n")
 print(table.to_string(index=False))

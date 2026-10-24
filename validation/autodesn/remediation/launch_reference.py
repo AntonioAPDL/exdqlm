@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 p = argparse.ArgumentParser()
-p.add_argument("name", choices=["local_reference", "grouped_reference"])
+p.add_argument("name", choices=["local_reference", "grouped_reference", "local_joint_reference"])
 a = p.parse_args()
 root = Path("validation/autodesn/remediation")
 driver = root / (a.name + ".R")

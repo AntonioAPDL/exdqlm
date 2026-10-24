@@ -1,0 +1,14 @@
+{
+  "execution_context_date": "2026-10-24",
+  "confirmation_data_generated": false,
+  "confirmation_data_unblinded": false,
+  "decision": "Assign disjoint calibration and confirmation namespaces before any confirmation data are generated.",
+  "reason": "The first 12-case frozen-map calibration feasibility pilot used 3266021:3266032, overlapping the planning document's proposed, not yet frozen, Confirmation B seed block. Preserve that pilot and use a fresh independent block for confirmation.",
+  "confirmation_A_unchanged": "2766021:2766050",
+  "confirmation_B_previously_registered": "to be separately frozen before generation",
+  "confirmation_B_assigned": "8266021:8266050",
+  "new_recursive_calibration_truth": "6266021:6266220",
+  "new_recursive_calibration_posterior": "6366021:6366220",
+  "forecast_protocol_changed": false,
+  "hyperparameters_changed": false
+}

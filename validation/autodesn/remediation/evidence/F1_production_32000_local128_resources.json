@@ -1,0 +1,22 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/artifacts/source_snapshots/5609e561f804f10281be5b165527396bfad2eea7553dac3fb535ac8be399e767/validation/autodesn/remediation/fit.R",
+    "F1",
+    "production",
+    "32000"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 7200.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 804.7362176030001,
+  "peak_child_rss_kib": 1504632,
+  "sampled_peak_process_tree_pss_kib": 4024829,
+  "sampled_peak_environment_cgroup_anon_bytes": 5457928192,
+  "user_seconds": 3076.032817,
+  "system_seconds": 7.060601,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

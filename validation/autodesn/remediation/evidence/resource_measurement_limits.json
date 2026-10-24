@@ -9,5 +9,11 @@
   "corrected_runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
   "corrected_process_tree_fixture_pss_kib": 140307,
   "fixture_allocation_bytes": 134217728,
-  "production_parallel_headroom_established": false
+  "production_parallel_headroom_established": false,
+  "additional_scope_corrections": {
+    "sbc_rhs_24000_resources.json": {
+      "aggregate_process_tree_pss_valid": false,
+      "reason": "Runner c43c75968acb predates the verified fe75f9e2ce17 PPid-tree correction; use observed wall, exit and scoped wait4 memory/CPU. Resumed attempts use the corrected recorder."
+    }
+  }
 }

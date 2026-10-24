@@ -59,6 +59,7 @@ def compare(family, left_name, right_name):
     assert qualifications[0]["target_id"] == qualifications[1]["target_id"]
     for field in ["proposal_sha256", "local_proposal_sha256", "bank_id", "priors", "beta_prior"]:
         assert configs[0].get(field) == configs[1].get(field), "Cross-budget comparison requires a common frozen target/proposal policy: " + field
+    assert configs[0].get("local_scale_proposal", False) == configs[1].get("local_scale_proposal", False)
     ladder = [32000, 128000, 256000]
     index = ladder.index(configs[0]["retained"])
     assert index + 1 < len(ladder) and configs[1]["retained"] == ladder[index + 1]

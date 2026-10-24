@@ -128,8 +128,8 @@
   },
   "confirmation_B": {
     "replications": 30,
-    "seeds": "to be separately frozen before generation",
-    "status": "not generated; separate mean/variance block"
+    "seeds": "8266021:8266050",
+    "status": "Not generated; seeds assigned before generation; method/variance freeze still required"
   },
   "confirmation_practical_goals": {
     "relative_mean_MSE_reduction": 0.05,
@@ -137,5 +137,21 @@
     "coverage": "reduce high/low volatility imbalance without indiscriminate widening"
   },
   "inferential_unit": "independent DGP realization; rolling origin-horizon pairs are dependent",
-  "scientific_claims_allowed": false
+  "scientific_claims_allowed": false,
+  "calibration_seed_namespace": {
+    "recursive_prefix": 6166020,
+    "recursive_truth": "6266021 + (case-1)",
+    "recursive_posterior": "6366021 + (case-1)",
+    "scope": "Disjoint from Confirmation A/B and stress generators"
+  },
+  "algorithm_development_after_128k": {
+    "date": "2026-10-24",
+    "trigger": "Completed F1 128k passes continuous rank/ESS thresholds but fails major-category frequency-range threshold; do not waive gate.",
+    "next": "Freeze an exact reservoir-local proposal from training-only 128k checkpoints; evaluate fresh 32k chains with one additional collapsed local move and otherwise unchanged controls.",
+    "target_or_hyperparameters_changed": false,
+    "all_426_reservoirs_retained": true,
+    "confirmation_generated": false,
+    "baseline_256k_status": "not yet run; computational repair evaluated before further escalation",
+    "qualification": "Require two successive individually qualified fresh budgets under a common frozen proposal policy and cross-budget stability; existing failed budgets remain failed."
+  }
 }

@@ -6,6 +6,10 @@
 #' proper prior. Supply it as model_control$local_proposal; local_moves defaults
 #' to one when a proposal is supplied. Coefficients and reservoir auxiliaries
 #' are marginalized in these moves and redrawn before conditioned updates.
+#' Set model_control$local_scale_proposal=TRUE to additionally propose noise,
+#' global and slab scales using the supplied frozen joint_proposal. This remains
+#' one exact joint MH move, with the local density conditioned on each state's
+#' own global scale and all transformed scale-prior/proposal terms retained.
 #'
 #' @param centers List of K_m by d_m matrices of log-local-scale kernel centers.
 #' @param bandwidth List of positive kernel SD vectors, one per reservoir.

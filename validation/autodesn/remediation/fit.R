@@ -3,7 +3,9 @@ args<-commandArgs(TRUE);family<-if(length(args))args[1] else 'F1';phase<-if(leng
 families<-c('F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge');stopifnot(family%in%families,phase%in%c('pilot','production'));prior_kind<-if(grepl('ridge$',family))'ridge' else 'rhs'
 run_label<-Sys.getenv('AUTODESN_RUN_LABEL',unset='');stopifnot(grepl('^[A-Za-z0-9_]*$',run_label));suffix<-if(nzchar(run_label))paste0('_',run_label) else ''
 local_path<-Sys.getenv('AUTODESN_LOCAL_PROPOSAL',unset='')
+local_scales<-identical(Sys.getenv('AUTODESN_LOCAL_SCALE_PROPOSAL',unset='0'),'1')
 root<-'validation/autodesn/remediation';directory<-file.path(root,'artifacts',family,if(phase=='pilot')'pilot' else paste0('production_',budget,suffix));dir.create(directory,recursive=TRUE,showWarnings=FALSE)
+scale_path<-Sys.getenv('AUTODESN_FROZEN_PROPOSAL',unset='');if(!nzchar(scale_path))scale_path<-file.path(root,'artifacts',family,'frozen_proposal.rds')
 snapshot<-Sys.getenv('AUTODESN_SOURCE_SNAPSHOT',unset='.')
 relative_paths<-c(list.files(file.path(snapshot,'R'),pattern='[.]R$',full.names=FALSE),'autodesn_rhs.cpp','RcppExports.cpp','fit.R')
 paths<-c(file.path(snapshot,'R',head(relative_paths,-3L)),file.path(snapshot,'src',c('autodesn_rhs.cpp','RcppExports.cpp')),file.path(snapshot,'validation/autodesn/remediation/fit.R'))
@@ -19,24 +21,27 @@ vc<-if(family%in%c('SV','SVseasonal'))list(type='sv',seasonal=family=='SVseasona
 rm(b);gc(FALSE)
 burn<-if(phase=='pilot')1000L else if(budget==32000L)8000L else if(budget==128000L)32000L else 64000L
 retained<-if(phase=='pilot')2000L else budget
-config<-list(family=family,beta_prior=prior_kind,storage_label=run_label,inference_cache_sha256=if(use_cache)cache_manifest$sha256 else NULL,cache_manifest_sha256=if(use_cache)digest::digest(file=file.path(root,'artifacts/inference_cache_manifest.json'),algo='sha256') else NULL,augmentation_sha256=if(use_cache)entry$sha256 else NULL,proposal_sha256=if(phase=='production')digest::digest(file=file.path(root,'artifacts',family,'frozen_proposal.rds'),algo='sha256') else NULL,priors=list(intercept_variance=10,observation_variance=list(shape=3,rate=1),rhs=if(prior_kind=='rhs')list(tau0=.001,slab_scale=1,slab_df=4,global='unit half-Cauchy',local='unit half-Cauchy') else NULL,ridge_precision=if(prior_kind=='ridge')list(shape=2,rate=2) else NULL),phase=phase,burn=burn,retained=retained,chains=4L,rows=c(501L,2500L),training_response_sd=sd(bank$y),source_sha256=as.list(source_sha),input_bank_sha256=digest::digest(file=basepath,algo='sha256'),bank_id=bank$extension$id,confirmation=FALSE,test_data_read=FALSE,forecast_allowed=FALSE)
+config<-list(family=family,beta_prior=prior_kind,storage_label=run_label,inference_cache_sha256=if(use_cache)cache_manifest$sha256 else NULL,cache_manifest_sha256=if(use_cache)digest::digest(file=file.path(root,'artifacts/inference_cache_manifest.json'),algo='sha256') else NULL,augmentation_sha256=if(use_cache)entry$sha256 else NULL,proposal_sha256=if(phase=='production')digest::digest(file=scale_path,algo='sha256') else NULL,priors=list(intercept_variance=10,observation_variance=list(shape=3,rate=1),rhs=if(prior_kind=='rhs')list(tau0=.001,slab_scale=1,slab_df=4,global='unit half-Cauchy',local='unit half-Cauchy') else NULL,ridge_precision=if(prior_kind=='ridge')list(shape=2,rate=2) else NULL),phase=phase,burn=burn,retained=retained,chains=4L,rows=c(501L,2500L),training_response_sd=sd(bank$y),source_sha256=as.list(source_sha),input_bank_sha256=digest::digest(file=basepath,algo='sha256'),bank_id=bank$extension$id,confirmation=FALSE,test_data_read=FALSE,forecast_allowed=FALSE)
+if(phase=='production'){config$proposal_sha256<-digest::digest(file=scale_path,algo='sha256');config$proposal_path<-scale_path}
 if(nzchar(local_path)){stopifnot(prior_kind=='rhs',phase=='production');config$local_proposal_path<-local_path;config$local_proposal_sha256<-digest::digest(file=local_path,algo='sha256')}
+if(local_scales){stopifnot(nzchar(local_path),phase=='production');config$local_scale_proposal<-TRUE}
 contract_id<-digest::digest(config,algo='sha256');contract_path<-file.path(directory,'contract.rds')
 if(file.exists(contract_path))stopifnot(identical(readRDS(contract_path)$id,contract_id)) else saveRDS(list(id=contract_id,configuration=config),contract_path)
 jsonlite::write_json(config,file.path(directory,'configuration.json'),pretty=TRUE,auto_unbox=TRUE)
 write.csv(bank$model_info,file.path(directory,'model_metadata.csv'),row.names=FALSE)
 model_control<-list(moves=4L,joint_moves=2L,save_draws=if(phase=='pilot')512L else 2048L)
 if(phase=='production') {
- proposal_path<-file.path(root,'artifacts',family,'frozen_proposal.rds');proposal<-readRDS(proposal_path);stopifnot(identical(digest::digest(file=proposal_path,algo='sha256'),config$proposal_sha256))
+ proposal_path<-scale_path;proposal<-readRDS(proposal_path);stopifnot(identical(digest::digest(file=proposal_path,algo='sha256'),config$proposal_sha256))
  stopifnot(identical(proposal$bank_id,bank$extension$id),isTRUE(proposal$frozen_before_production))
  model_control$proposal<-proposal$model;model_control$period_proposal<-proposal$period;if(prior_kind=='rhs')model_control$joint_proposal<-proposal$joint
 }
-if(nzchar(local_path)){proposal<-readRDS(local_path);stopifnot(isTRUE(proposal$frozen_before_production),isTRUE(proposal$training_only),identical(proposal$proposal$bank_id,bank$extension$id));model_control$local_proposal<-proposal$proposal;model_control$local_moves<-1L;rm(proposal)}
+if(nzchar(local_path)){proposal<-readRDS(local_path);stopifnot(isTRUE(proposal$frozen_before_production),isTRUE(proposal$training_only),identical(proposal$proposal$bank_id,bank$extension$id));model_control$local_proposal<-proposal$proposal;model_control$local_moves<-1L;if(local_scales)model_control$local_scale_proposal<-TRUE;rm(proposal)}
 run_chain<-function(chain) {
  path<-file.path(directory,paste0('chain_',chain,'.rds'))
  if(file.exists(path)){saved<-readRDS(path);stopifnot(identical(saved$contract_id,contract_id));rm(saved);return(list(chain=chain,complete=TRUE))}
  mc<-model_control;mc$initial_model<-as.integer(round(seq(1,426,length.out=4))[chain]);mc$initial_period<-as.integer(round(seq(1,length(bank$extension$periods),length.out=4))[chain])
  rhs<-list(tau0=.001,slab_scale=1,slab_df=4,initial_global=c(.1,1,10,100)[chain],interweave_global=TRUE)
+ if(local_scales)rhs$initial_slab<-c(.1,1,4,16)[chain]
  vc_chain<-vc
  if(!is.null(vc_chain)){vc_chain$initial_phi<-c(.1,.5,.8,.95)[chain];vc_chain$initial_omega<-c(.1,.2,.4,.8)[chain]}
  cat(family,phase,'chain',chain,'started\n');flush.console()
