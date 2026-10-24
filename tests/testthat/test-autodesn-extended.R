@@ -1,0 +1,138 @@
+ext_internal <- function(n)get(n,envir=environment(autodesn_fit_bank),inherits=TRUE)
+ext_example <- function() {
+ set.seed(610);y<-sin((1:80)/3)+rnorm(80,sd=.2)
+ specs<-list(a=list(D=1,n=4,n_tilde=integer(0),m=2,alpha=.4,rho=.5,seed=31,washout=5,pi_in=1,pi_w=1),b=list(D=2,n=c(4,3),n_tilde=2,m=3,alpha=c(.4,.6),rho=c(.5,.6),seed=39,washout=5,pi_in=1,pi_w=1))
+ autodesn_build_bank(y,specs,conditioning=5,washout=10,standardize_features=TRUE,normalize_features=FALSE)
+}
+
+test_that('augmented controls reject ambiguous or unsupported inputs', {
+ expect_error(autodesn_readout_control(lags=c(1,1)),'distinct')
+ expect_error(autodesn_readout_control(lags=0),'positive')
+ expect_error(autodesn_readout_control(other=3),'Unknown')
+ expect_error(autodesn_seasonal_control(periods=c(2,3)),'greater')
+ expect_error(autodesn_seasonal_control(periods=10,prior=0),'positive')
+ expect_error(autodesn_variance_control(initial_phi=1),'inside')
+ expect_error(autodesn_variance_control(seasonal=TRUE),'requires')
+ b<-ext_example();bad<-b;bad$normalize_features<-TRUE
+ expect_error(autodesn_extend_bank(bad),'standardize')
+ expect_error(autodesn_extend_bank(b,list(lags=20)),'history')
+})
+
+test_that('augmentation preserves bank mass and frozen training geometry', {
+ b<-ext_example();e<-autodesn_extend_bank(b,list(lags=c(1,3)),list(periods=c(12,18),harmonics=4))
+ expect_identical(e$prior,b$prior);expect_identical(e$templates,b$templates)
+ expect_equal(unname(colMeans(e$extension$lag$X)),c(0,0),tolerance=1e-13)
+ expect_equal(unname(apply(e$extension$lag$X,2,sd)),c(1,1),tolerance=1e-13)
+ for(S in e$extension$calendar)expect_equal(unname(apply(S$X,2,sd)),rep(1,ncol(S$X)),tolerance=1e-13)
+ expect_equal(sum(outer(e$prior,e$extension$period_prior)),1)
+ d<-ext_internal('.ext_design')(e,2,1)
+ expect_identical(length(unique(d$slots)),length(d$slots));expect_equal(ncol(d$X),1+2+e$models[[2]]$d+8)
+})
+
+test_that('weighted Gaussian integral and coefficient covariance match dense independent reference', {
+ set.seed(91);X<-cbind(1,matrix(rnorm(45),9,5));X<-cbind(X,X[,2]);y<-rnorm(9);d<-list(X=X,XtX=crossprod(X),Xty=as.vector(crossprod(X,y)))
+ for(lv in list(seq(-10,3,length.out=ncol(X)),rep(-.3,ncol(X))))for(ld in list(rep(log(.3),9),seq(-2,1,length.out=9))) {
+  V<-diag(exp(lv));D<-diag(exp(ld));C<-D+X%*%V%*%t(X);U<-chol(C)
+  expected<--.5*(9*log(2*pi)+2*sum(log(diag(U)))+sum(forwardsolve(t(U),y)^2))
+  g<-ext_internal('.ext_gaussian')(d,y,ld,lv,'R')
+  expect_equal(g$log_evidence,expected,tolerance=2e-9)
+  P<-solve(V)+crossprod(X,solve(D,X));Cov<-solve(P);expect_equal(g$mean,as.vector(Cov%*%crossprod(X,solve(D,y))),tolerance=1e-9)
+  T<-diag(g$sqrt_prior)%*%backsolve(g$chol,diag(ncol(X)));expect_equal(tcrossprod(T),Cov,tolerance=1e-9)
+  if(exists('autodesn_weighted_gaussian_cpp',mode='function')) {
+   z<-autodesn_weighted_gaussian_cpp(X,y,ld,lv);expect_equal(z$log_evidence,g$log_evidence,tolerance=2e-9);expect_equal(z$mean,g$mean,tolerance=2e-9)
+  }
+ }
+})
+
+test_that('grouped prior uses independent variance conventions and finite slab normalization', {
+ b<-autodesn_extend_bank(ext_example(),list(lags=c(1,3),prior='grouped'),list(periods=c(12,18),harmonics=3))
+ d<-ext_internal('.ext_design')(b,2,1);ell<-seq(-2,2,length.out=b$extension$dimension);u<-log(c(.4,.9));c2<-log(2)
+ v<-ext_internal('.ext_logv')(d,ell,u,c2,c(.001,.002),'rhs',1,10)
+ for(i in seq_len(d$d)) {
+  expected<-if(d$gaussian[i])d$gaussian_variance[i] else {g<-match(d$groups[i],c('lag','reservoir'));1/(1/2+1/(c(.001,.002)[g]*exp(u[g]+ell[d$slots[i]]))^2)}
+  expect_equal(exp(v[i+1]),expected,tolerance=1e-13)
+ }
+ expect_equal(exp(v[1]),10)
+})
+
+test_that('joint architecture and period probabilities agree with observation-space quadrature', {
+ x<-seq(-1,1,length.out=9);b<-autodesn_prepare_bank(.5*x+c(.1,-.1,.2,-.1,0,.1,-.2,.1,0),list(matrix(x),cbind(x,x*x)),normalize_features=FALSE,standardize_features=TRUE,model_prior=c(.3,.7))
+ e<-autodesn_extend_bank(b,seasonal_control=list(periods=c(8,12),harmonics=1,prior=c(.4,.6)))
+ design<-ext_internal('.ext_design');raw<-numeric(4)
+ for(p in 1:2)for(m in 1:2) {
+  d<-design(e,m,p);v<-c(10,rep(.7^2*1.2^2/(1+.7^2*1.2^2/2),d$d))
+  ld<-function(z)vapply(z,function(z){C<-exp(z)*diag(9)+d$X%*%diag(v)%*%t(d$X);U<-chol(C);-.5*(9*log(2*pi)+2*sum(log(diag(U)))+sum(forwardsolve(t(U),b$y)^2))+3*log(1)-lgamma(3)-3*z-exp(-z)},0)
+  shift<--optimize(function(z)-ld(z),c(-15,15))$objective
+  raw[m+2*(p-1)]<-log(e$prior[m]*e$extension$period_prior[p])+shift+log(integrate(function(z)exp(ld(z)-shift),-25,20,rel.tol=1e-9)$value)
+ }
+ truth<-exp(raw-max(raw));truth<-truth/sum(truth)
+ control<-list(tau0=.7,fixed_local_scales=1.2,learn_global=FALSE,initial_global=1,learn_slab=FALSE,initial_slab=2)
+ for(method in c('mh','categorical')) {
+  f<-autodesn_fit_bank(e,n_burn=1000,n_mcmc=6000,beta_prior='rhs',rhs_control=control,model_control=list(method=method,moves=2,joint_moves=1,proposal=c(.8,.2),period_proposal=c(.7,.3)),seed=83,backend='R')
+  for(j in 1:4) {
+   q<-as.numeric(f$draws$model+2*(f$draws$period_index-1)==j)
+   se<-ext_internal('.autodesn_batch_mcse')(list(q));expect_lt(abs(mean(q)-truth[j]),max(.015,7*se))
+  }
+ }
+})
+
+test_that('Gaussian-prior elliptical updates have independent exact Gaussian moments', {
+ set.seed(421);n<-3;Q<-outer(1:n,1:n,function(a,b).7^abs(a-b));prior<-chol(Q);obs<-c(.2,-.3,.6);v<-.4
+ C<-solve(solve(Q)+diag(1/v,n));mu<-as.vector(C%*%(obs/v));x<-numeric(n);B<-matrix(0,5000,n)
+ for(i in 1:5500){x<-ext_internal('.ext_ellipse')(x,as.vector(t(prior)%*%rnorm(n)),function(x)sum(dnorm(obs,x,sqrt(v),log=TRUE)));if(i>500)B[i-500,]<-x}
+ for(j in 1:n){se<-ext_internal('.autodesn_batch_mcse')(list(B[,j]));expect_lt(abs(mean(B[,j])-mu[j]),7*se)}
+ for(j in 1:n)for(k in 1:n){v<-B[,j]*B[,k];se<-ext_internal(".autodesn_batch_mcse")(list(v));expect_lt(abs(mean(v)-C[j,k]-mu[j]*mu[k]),7*se)}
+})
+
+test_that('legacy shared reservoir transition is bit-identical after extraction', {
+ b<-ext_example();t<-b$templates[[2]];t$fit<-list(target_label='reference');class(t)<-c('qdesn_normal_fit','list')
+ tmp<-tempfile(fileext='.R');writeLines(system2('git',c('show','fea371f:R/qdesn_normal.R'),stdout=TRUE),tmp);on.exit(unlink(tmp))
+ env<-new.env(parent=environment(autodesn_fit_bank));sys.source(tmp,env)
+ set.seed(42);B<-matrix(rnorm(3*ncol(t$X)),3);z<-matrix(rnorm(15),5,3)
+ args<-list(object=t,H=5,y_hist=b$history_scaled,draws=list(beta=B,omega2=c(.1,.3,.8)),innovations=z,backend='batched',return_design=TRUE)
+ expect_identical(do.call(forecast_paths.qdesn_normal_fit,args),do.call(env$forecast_paths.qdesn_normal_fit,args))
+})
+
+test_that('augmented forecasts use simulated lags and observed updates match causal designs', {
+ b<-ext_example();e<-autodesn_extend_bank(b,list(lags=1:2),list(periods=12,harmonics=2))
+ f<-autodesn_fit_bank(e,n_burn=5,n_mcmc=8,beta_prior='ridge',model_control=list(moves=1,joint_moves=0),seed=31)
+ d<-ext_internal('.ext_design')(e,1,1);B<-rep(0,ncol(d$X));B[1:3]<-c(.1,.5,-.2);f$beta[[1]]<-B;f$draws$model[1]<-1;f$draws$period_index[1]<-1
+ z<-matrix(c(.1,-.3,.2),3,1);a<-forecast_paths(f,3,draw_index=1,inner_paths=1,innovations=z,seed=17)
+ history<-b$history_scaled
+ for(h in 1:3){L<-matrix(history[length(history)+1-1:2],1);s<-.1+sum(ext_internal('.ext_apply')(e$extension$lag,L)*c(.5,-.2));expect_equal(a$mu_draws[h,1],b$preprocessing$center+b$preprocessing$scale*s,tolerance=1e-11);history<-c(history,(a$yrep[h,1]-b$preprocessing$center)/b$preprocessing$scale)}
+ oldid<-f$controls$target_id;updated<-autodesn_update_history(f,c(.12,.3));expect_identical(updated$beta,f$beta);expect_identical(updated$controls$target_id,oldid)
+ # First observed update design uses no second appended observation.
+ changed<-autodesn_update_history(f,c(.12,300));expect_identical(updated$bank$extension$last_observation_features[[1]][1,],changed$bank$extension$last_observation_features[[1]][1,])
+ expect_identical(forecast_paths(f,3,draw_index=1,innovations=z,inner_paths=1,seed=17)$yrep,a$yrep)
+})
+
+test_that('conditional SV filtering preserves weights and rejects stale states', {
+ b<-autodesn_extend_bank(ext_example(),list(lags=1:2),list(periods=12,harmonics=2))
+ f<-autodesn_fit_bank(b,n_burn=10,n_mcmc=20,beta_prior='ridge',variance_control=list(type='sv',seasonal=TRUE),seed=51)
+ fil<-autodesn_filter(f,1:2,particles=128,seed=31);expect_false(fil$static_weights_updated)
+ f2<-autodesn_update_history(f,c(.1,.2));expect_identical(f$draws,f2$draws)
+ expect_error(forecast_paths(f2,2,draw_index=1:2,state_filter=fil),'stale')
+ next_filter<-autodesn_filter(f2,1:2,particles=128,previous=fil,seed=32)
+ z<-matrix(0,2,4);a<-forecast_paths(f2,2,draw_index=1:2,inner_paths=2,state_filter=next_filter,innovations=z,volatility_innovations=z,seed=33)
+ expect_true(all(is.finite(a$yrep)));expect_true(all(a$sd_draws>0));expect_false(a$static_weights_updated)
+ bad<-f2;bad$beta[[1]][1]<-bad$beta[[1]][1]+.1;expect_error(forecast_paths(bad,2,draw_index=1:2,state_filter=next_filter),'stale')
+})
+
+test_that('frozen general-dimensional proposal uses normalized t-mixture densities', {
+ set.seed(73)
+ for(D in 3:4) {
+  C<-matrix(seq_len(2*D)/7,2,D);S<-crossprod(matrix(seq_len(D*D)/20,D))+diag(D)
+  p<-autodesn_extended_proposal(C,S,df=5,wide_weight=.2,wide_center=rep(0,D))
+  for(i in 1:6) {
+   z<-rnorm(D);direct<-function(mu,V){U<-chol(V);q<-sum(forwardsolve(t(U),z-mu)^2);exp(lgamma((5+D)/2)-lgamma(5/2)-D/2*log(5*pi)-sum(log(diag(U)))-(5+D)/2*log1p(q/5))}
+   expected<-log(.8*direct(C[1,],S)+.2*direct(rep(0,D),9*S))
+   expect_equal(ext_internal('.ext_joint_logq')(z,1,p),expected,tolerance=1e-12)
+  }
+ }
+ b<-autodesn_extend_bank(ext_example(),list(lags=1:2,prior='grouped'),list(periods=12,harmonics=1))
+ p<-autodesn_extended_proposal(matrix(rep(c(0,2,2,0),each=2),2),diag(4))
+ f<-autodesn_fit_bank(b,n_burn=10,n_mcmc=30,beta_prior='rhs',rhs_control=list(tau0=.001),model_control=list(joint_proposal=p,save_draws=6),seed=39)
+ expect_equal(nrow(f$trace),30);expect_equal(nrow(f$draws),6);expect_equal(length(f$beta),6)
+ expect_true(all(is.finite(unlist(f$beta))));expect_true(all(is.finite(predict_mu(f))))
+ one<-autodesn_update_history(f,.2);expect_equal(length(one$bank$history),length(f$bank$history)+1)
+})

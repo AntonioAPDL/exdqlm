@@ -1,0 +1,30 @@
+{
+  "authorization": "Implement the remediation plan from start to finish",
+  "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
+  "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
+  "branch": "feature/autodesn-remediation-20261023",
+  "status": "implementation_in_progress",
+  "completed": [
+    "G0 original score integrity and 51 audit-member hashes",
+    "Opt-in augmented readout/period/grouped-prior implementation",
+    "Weighted Gaussian C++ and shared causal reservoir engine",
+    "Conditional SV sampler and frozen-static-weight causal filtering implementation",
+    "105 numerical/small-target assertions across 10 tests",
+    "Native GP period-move implementation and 100-update detailed-balance test",
+    "Full-bank F1/F2/SV 130-sweep feasibility runs"
+  ],
+  "pending": [
+    "Installed package and legacy regression suites",
+    "Full numerical/SBC calibration and additional SV references",
+    "Four-chain pilots and frozen proposals",
+    "Cross-budget production posterior qualification",
+    "Native GP independent higher-budget fits",
+    "Independent confirmations and predictive sensitivity",
+    "Full smoothing/PPC support",
+    "Final comparison and PDF report"
+  ],
+  "confirmation_data_generated": false,
+  "confirmation_data_unblinded": false,
+  "maximum_memory_bytes": 8589934592,
+  "scientific_claims_allowed": false
+}

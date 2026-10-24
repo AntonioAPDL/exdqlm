@@ -1,0 +1,16 @@
+{
+  "command": [
+    "R",
+    "CMD",
+    "INSTALL",
+    "--no-multiarch",
+    "--library=validation/autodesn/remediation/artifacts/library",
+    "."
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 47.77238796900201,
+  "peak_child_rss_kib": 586132,
+  "user_seconds": 46.518317,
+  "system_seconds": 1.257801,
+  "scope": "Linux wait4 foreground child; completion observed, not a background claim"
+}

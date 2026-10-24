@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "tests": 10,
+  "assertions": 105,
+  "failed": 0,
+  "errors": 0,
+  "warnings": 0,
+  "passed": 105,
+  "qualification": "Numerical and small-target tests, not production posterior convergence"
+}

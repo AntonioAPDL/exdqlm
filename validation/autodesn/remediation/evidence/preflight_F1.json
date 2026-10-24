@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "stage": "training_only_feasibility_not_qualified",
+  "family": "F1",
+  "bank_models": 426,
+  "period_states": 1,
+  "build_seconds": 6.479,
+  "sweeps": 130,
+  "seconds": 2.269,
+  "seconds_per_sweep": 0.0175,
+  "projected_four_32k_chains_seconds": 2792.6154,
+  "object_bytes": 737162640,
+  "computation": {
+    "elapsed_seconds": 2.032,
+    "evidence_evaluations": 520,
+    "proposals": 390,
+    "acceptances": 6
+  },
+  "source_sha256": {
+    "R/autodesn_extended.R": "4117f446fc60e59a9aea18e8aba30f4d0a9ef869bc71bd5317c7771e5ed7f044",
+    "R/autodesn_extended_forecast.R": "a202d125ecceb4a48b36cd1e10ab2862885c70d411a45e78ebb35af6cde1d98c",
+    "src/autodesn_rhs.cpp": "5f6b4534eafd9414f303ce177f201e331d3800d61907e94ceda8b8d096276c4a"
+  },
+  "test_outcomes_used": false
+}

@@ -1,3 +1,74 @@
+# Shared deterministic reservoir transition used by legacy and augmented readouts.
+.normal_desn_transition_engine <- function(object, backend = "serial") {
+  meta <- object$meta
+  res <- object$reservoir
+  D <- as.integer(meta$D %||% length(res$W))[1L]
+  add_bias <- isTRUE(meta$add_bias)
+  m_res <- as.integer(meta$m_input %||% meta$m %||% 0L)[1L]
+  Q_is_identity <- res$Q_is_identity %||% rep(FALSE, max(0L, D - 1L))
+  if (length(Q_is_identity) != max(0L, D - 1L)) {
+    .normal_desn_stop("Q_is_identity length mismatch.")
+  }
+  f_act <- .normal_desn_get_act(res$act_f)
+  k_act <- .normal_desn_get_act(res$act_k)
+  lag_center <- meta$lag_center %||% 0
+  lag_scale <- meta$lag_scale %||% 1
+  standardize_inputs <- isTRUE(meta$standardize_inputs)
+  input_bound <- meta$input_bound %||% "none"
+  input_bound_divisor <- as.numeric(meta$input_bound_divisor %||% 1)[1L]
+  win_scale_global <- meta$win_scale_global %||% 1
+  win_scale_bias <- meta$win_scale_bias %||% 1
+  win_scale_lags <- meta$win_scale_lags
+
+  process_lags <- function(lags_vec) {
+    z <- lags_vec
+    if (isTRUE(standardize_inputs)) z <- (z - lag_center) / lag_scale
+    if (!is.null(win_scale_lags)) z <- z * as.numeric(win_scale_lags)
+    if (identical(input_bound, "tanh") && length(z)) {
+      z <- tanh(z / input_bound_divisor)
+    }
+    z
+  }
+  make_u <- function(y_vec) {
+    nb <- if (m_res > 0L) process_lags(rev(tail(y_vec, m_res))) else numeric(0)
+    u <- c(1, nb)
+    u[1L] <- u[1L] * win_scale_bias
+    if (length(u) > 1L) u[-1L] <- u[-1L] * win_scale_global
+    u
+  }
+  forward_one <- function(h_prev, u_vec) {
+    batched <- identical(backend, "batched")
+    h_new <- vector("list", D)
+    htilde <- if (D >= 2L) vector("list", D - 1L) else list()
+    pre1 <- res$W[[1L]] %*% h_prev[[1L]] + res$Win[[1L]] %*% u_vec
+    h_new[[1L]] <- (1 - res$alpha[1L]) * h_prev[[1L]] + res$alpha[1L] * f_act(pre1)
+    if (D >= 2L) {
+      htilde[[1L]] <- if (isTRUE(Q_is_identity[1L])) h_new[[1L]] else res$Q[[1L]] %*% h_new[[1L]]
+      for (d in 2:D) {
+        pre <- res$W[[d]] %*% h_prev[[d]] + res$Win[[d]] %*% htilde[[d - 1L]]
+        h_new[[d]] <- (1 - res$alpha[d]) * h_prev[[d]] + res$alpha[d] * f_act(pre)
+        if (d < D) {
+          htilde[[d]] <- if (isTRUE(Q_is_identity[d])) h_new[[d]] else res$Q[[d]] %*% h_new[[d]]
+        }
+      }
+      if (batched) {
+        lower <- do.call(rbind, lapply(seq_len(D - 1L), function(d) k_act(htilde[[d]])))
+        x_res <- rbind(h_new[[D]], lower)
+      } else {
+        lower <- do.call(c, lapply(seq_len(D - 1L), function(d) k_act(as.numeric(htilde[[d]]))))
+        x_res <- c(as.numeric(h_new[[D]]), lower)
+      }
+    } else {
+      x_res <- if (batched) h_new[[1L]] else as.numeric(h_new[[1L]])
+    }
+    if (add_bias) x_res <- if (batched) rbind(1, x_res) else c(1, x_res)
+    list(h = h_new, x = x_res)
+  }
+
+  list(input = make_u, step = forward_one, process_lags = process_lags, m = m_res,
+       win_scale_bias = win_scale_bias, win_scale_global = win_scale_global)
+}
+
 if (!exists("%||%", mode = "function")) {
   `%||%` <- function(x, y) if (is.null(x)) y else x
 }
@@ -764,65 +835,12 @@ forecast_paths.qdesn_normal_fit <- function(object, H, nd = 1000L,
   }
   if (length(h_origin) != D) .normal_desn_stop("Stored reservoir state length does not match D.")
 
-  Q_is_identity <- res$Q_is_identity %||% rep(FALSE, max(0L, D - 1L))
-  if (length(Q_is_identity) != max(0L, D - 1L)) {
-    .normal_desn_stop("Q_is_identity length mismatch.")
-  }
-  f_act <- .normal_desn_get_act(res$act_f)
-  k_act <- .normal_desn_get_act(res$act_k)
-  lag_center <- meta$lag_center %||% 0
-  lag_scale <- meta$lag_scale %||% 1
-  standardize_inputs <- isTRUE(meta$standardize_inputs)
-  input_bound <- meta$input_bound %||% "none"
-  input_bound_divisor <- as.numeric(meta$input_bound_divisor %||% 1)[1L]
-  win_scale_global <- meta$win_scale_global %||% 1
-  win_scale_bias <- meta$win_scale_bias %||% 1
-  win_scale_lags <- meta$win_scale_lags
-
-  process_lags <- function(lags_vec) {
-    z <- lags_vec
-    if (isTRUE(standardize_inputs)) z <- (z - lag_center) / lag_scale
-    if (!is.null(win_scale_lags)) z <- z * as.numeric(win_scale_lags)
-    if (identical(input_bound, "tanh") && length(z)) {
-      z <- tanh(z / input_bound_divisor)
-    }
-    z
-  }
-  make_u <- function(y_vec) {
-    nb <- if (m_res > 0L) process_lags(rev(tail(y_vec, m_res))) else numeric(0)
-    u <- c(1, nb)
-    u[1L] <- u[1L] * win_scale_bias
-    if (length(u) > 1L) u[-1L] <- u[-1L] * win_scale_global
-    u
-  }
-  forward_one <- function(h_prev, u_vec) {
-    batched <- identical(backend, "batched")
-    h_new <- vector("list", D)
-    htilde <- if (D >= 2L) vector("list", D - 1L) else list()
-    pre1 <- res$W[[1L]] %*% h_prev[[1L]] + res$Win[[1L]] %*% u_vec
-    h_new[[1L]] <- (1 - res$alpha[1L]) * h_prev[[1L]] + res$alpha[1L] * f_act(pre1)
-    if (D >= 2L) {
-      htilde[[1L]] <- if (isTRUE(Q_is_identity[1L])) h_new[[1L]] else res$Q[[1L]] %*% h_new[[1L]]
-      for (d in 2:D) {
-        pre <- res$W[[d]] %*% h_prev[[d]] + res$Win[[d]] %*% htilde[[d - 1L]]
-        h_new[[d]] <- (1 - res$alpha[d]) * h_prev[[d]] + res$alpha[d] * f_act(pre)
-        if (d < D) {
-          htilde[[d]] <- if (isTRUE(Q_is_identity[d])) h_new[[d]] else res$Q[[d]] %*% h_new[[d]]
-        }
-      }
-      if (batched) {
-        lower <- do.call(rbind, lapply(seq_len(D - 1L), function(d) k_act(htilde[[d]])))
-        x_res <- rbind(h_new[[D]], lower)
-      } else {
-        lower <- do.call(c, lapply(seq_len(D - 1L), function(d) k_act(as.numeric(htilde[[d]]))))
-        x_res <- c(as.numeric(h_new[[D]]), lower)
-      }
-    } else {
-      x_res <- if (batched) h_new[[1L]] else as.numeric(h_new[[1L]])
-    }
-    if (add_bias) x_res <- if (batched) rbind(1, x_res) else c(1, x_res)
-    list(h = h_new, x = x_res)
-  }
+  engine <- .normal_desn_transition_engine(object, backend)
+  process_lags <- engine$process_lags
+  win_scale_bias <- engine$win_scale_bias
+  win_scale_global <- engine$win_scale_global
+  make_u <- engine$input
+  forward_one <- engine$step
 
   yrep <- matrix(NA_real_, H, nd_eff)
   mu_draws <- matrix(NA_real_, H, nd_eff)

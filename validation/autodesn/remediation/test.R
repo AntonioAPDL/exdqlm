@@ -1,0 +1,5 @@
+source('validation/autodesn/load_checkout.R')
+Rcpp::sourceCpp('src/autodesn_rhs.cpp',cacheDir='validation/autodesn/remediation/artifacts/cpp',showOutput=FALSE)
+res<-testthat::test_file('tests/testthat/test-autodesn-extended.R',reporter='summary',stop_on_failure=TRUE)
+saveRDS(res,'validation/autodesn/remediation/artifacts/test_results.rds')
+cat('EXTENDED TESTS COMPLETE\n')

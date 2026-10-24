@@ -21,10 +21,13 @@ autodesn_fit_bank(
   beta_prior = c("ridge", "rhs"),
   rhs_control = list(),
   model_control = list(),
-  backend = c("auto", "R", "cpp")
+  backend = c("auto", "R", "cpp"),
+  variance_control = NULL
 )
 }
 \arguments{
+\item{variance_control}{Optional controls from \code{autodesn_variance_control()}. Activates the augmented weighted Gaussian sampler and requires a standardized, unnormalized bank.}
+
 \item{bank}{An \code{autodesn_bank}.}
 
 \item{n_burn}{Number of discarded sweeps.}

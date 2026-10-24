@@ -45,6 +45,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// autodesn_weighted_gaussian_cpp
+Rcpp::List autodesn_weighted_gaussian_cpp(const arma::mat& X, const arma::vec& y, const arma::vec& log_observation_variance, const arma::vec& log_prior_variance);
+RcppExport SEXP _exdqlm_autodesn_weighted_gaussian_cpp(SEXP XSEXP, SEXP ySEXP, SEXP log_observation_varianceSEXP, SEXP log_prior_varianceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type log_observation_variance(log_observation_varianceSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type log_prior_variance(log_prior_varianceSEXP);
+    rcpp_result_gen = Rcpp::wrap(autodesn_weighted_gaussian_cpp(X, y, log_observation_variance, log_prior_variance));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_build_polytrend_FF_GG
 Rcpp::List cpp_build_polytrend_FF_GG(int order);
 RcppExport SEXP _exdqlm_cpp_build_polytrend_FF_GG(SEXP orderSEXP) {
@@ -498,6 +512,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_exdqlm_autodesn_rhs_gaussian_cpp", (DL_FUNC) &_exdqlm_autodesn_rhs_gaussian_cpp, 7},
     {"_exdqlm_autodesn_rhs_local_cpp", (DL_FUNC) &_exdqlm_autodesn_rhs_local_cpp, 6},
+    {"_exdqlm_autodesn_weighted_gaussian_cpp", (DL_FUNC) &_exdqlm_autodesn_weighted_gaussian_cpp, 4},
     {"_exdqlm_cpp_build_polytrend_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_polytrend_FF_GG, 1},
     {"_exdqlm_cpp_build_seas_FF_GG", (DL_FUNC) &_exdqlm_cpp_build_seas_FF_GG, 2},
     {"_exdqlm_get_gamma_bounds", (DL_FUNC) &_exdqlm_get_gamma_bounds, 1},
