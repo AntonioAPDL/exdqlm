@@ -1,0 +1,228 @@
+{
+  "archive": "NHS1_numeric_evidence.zip",
+  "archive_bytes": 304316162,
+  "archive_sha256": "d196c5700f0334432ef31268cdac2d258417adc331f41043a5aa4d8a5809118e",
+  "parts": [
+    {
+      "name": "NHS1_numeric_evidence.zip.part-01",
+      "bytes": 7000000,
+      "sha256": "86249706f6f5598c8ab2d8178a85a35db189186729b8077acce9f4f2dfd3f03a"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-02",
+      "bytes": 7000000,
+      "sha256": "14b635a00e80fe53d372ef34dc4a431360f2691d08248de01acb913af7987bfe"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-03",
+      "bytes": 7000000,
+      "sha256": "e15a002e3f36812bba14588ba11420fd428e2291943743c274e7fd35a8329234"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-04",
+      "bytes": 7000000,
+      "sha256": "2b46a7fe6751b88ed59092ec3d9ff42b41bb0225de666ad542c517b371d254af"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-05",
+      "bytes": 7000000,
+      "sha256": "c7ce37f397abdd6689ca3a5d74e4cd53293dba856e2b9b6a3e058bc597a3d1fd"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-06",
+      "bytes": 7000000,
+      "sha256": "00a0a0c184ac440f30cbbe801e858dc230c6d15f5329dcd5cb7d3dfdb23c60e5"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-07",
+      "bytes": 7000000,
+      "sha256": "b50f9478950d7fb92dd3a216880da0b3c73f7ea7f0a672e7ebe7c41b340274da"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-08",
+      "bytes": 7000000,
+      "sha256": "bed09cc7615dc6c22112344ab30825e82777159350ea9ca8d03693ef0855be6d"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-09",
+      "bytes": 7000000,
+      "sha256": "8508aebc94e40bb6f9d5d64909a940506ee553d6c52924d5e1ae68560f8745b7"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-10",
+      "bytes": 7000000,
+      "sha256": "a98186cb3be5e590005135218a3760f5129aeac8b732a1a5907d1746e9d7c746"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-11",
+      "bytes": 7000000,
+      "sha256": "fda84b87f53cc0cf63b2b73e15894187ae2f7c876dcccf531bd141a42f8e4066"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-12",
+      "bytes": 7000000,
+      "sha256": "37e5169dea9371c434df8e9c106ad37f55c482e9ef88c57c81a4c7a2aa2e5824"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-13",
+      "bytes": 7000000,
+      "sha256": "eed78dbdd2d7c1832175c6889af67d22a013172cae81038ded9792b8e91af737"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-14",
+      "bytes": 7000000,
+      "sha256": "7317853e13c4c6f62433d15d76119c82f5c4b4ddb8de90f2954b830acb274809"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-15",
+      "bytes": 7000000,
+      "sha256": "48169ff514977fb173ec7e0b72d5544bfda8e35d5edf15051a79aedaad502d6c"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-16",
+      "bytes": 7000000,
+      "sha256": "ea527ed6b8b64bac4dd2cabc76551072cb873f4768fe13d944a1368227bf2b3c"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-17",
+      "bytes": 7000000,
+      "sha256": "32bcd5a5bd5051803e04d289c708c207636a2d5b5367d39b4da0b5ac0fb91807"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-18",
+      "bytes": 7000000,
+      "sha256": "6fcafd6eb6c0ea0d23912349de19ffe4f4c2eeafd59a709cf462e7fc6d5ead37"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-19",
+      "bytes": 7000000,
+      "sha256": "82645938185b7de88139725f1ac92f4432c6c9388c7df0e63756b74c3373822d"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-20",
+      "bytes": 7000000,
+      "sha256": "3c39c6464b5589438d672e3667e8527812463c12fa57c1170e0c979ef76856a8"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-21",
+      "bytes": 7000000,
+      "sha256": "4f17bc23d39bb37f94b2082d0b0cf31705517c9374f5094662324763bc220c9d"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-22",
+      "bytes": 7000000,
+      "sha256": "9f0ac71fb3662a4c8a6a2efaf9cc0d38afe308d19349b49769cc7c86c07048ea"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-23",
+      "bytes": 7000000,
+      "sha256": "90aff30d57fcde5ce71558a5127d1ef42ea580e864f2fe2ac615952d61f6cd2b"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-24",
+      "bytes": 7000000,
+      "sha256": "f428b21de8f9b0fa6df906f6279e57b8556794dd4e50f637e2432f304d82f253"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-25",
+      "bytes": 7000000,
+      "sha256": "5b33f4f84150bca8d02587059a345d87579c524abf552a1ccc9041471ce15b2e"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-26",
+      "bytes": 7000000,
+      "sha256": "94c525d18823782fd1539bcd1be7bb4f6f7f9a754a0b7e2d029955b5443efb83"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-27",
+      "bytes": 7000000,
+      "sha256": "40a21ca1ceab2f967e92911dbb0a9680479b3d31fd6d4662e006a1c438b4db77"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-28",
+      "bytes": 7000000,
+      "sha256": "88255f337811980118d932e7a5cf3ffcb9955eb3863b4d81c959f544619ffea6"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-29",
+      "bytes": 7000000,
+      "sha256": "6d8b60133434547e20defc5ca1ecdd05a8bd9d6871490f582499840fabbe53a2"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-30",
+      "bytes": 7000000,
+      "sha256": "683044f5bb6f99edcf807c6d97879a50b64721b61d05ceb2190f625e5b617b08"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-31",
+      "bytes": 7000000,
+      "sha256": "54fa4675aded6026ca4ee56b8093e19170052dca95eeea19d57a25fb162f0937"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-32",
+      "bytes": 7000000,
+      "sha256": "67fc63bd1346fd50f9184b2c5feafaee82de087013a6ef829600a25977eb4c18"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-33",
+      "bytes": 7000000,
+      "sha256": "25da36e80605d44b2dda3d93c4fe5c02a7ac4c4575fe0a58f7f68e5ae887c66a"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-34",
+      "bytes": 7000000,
+      "sha256": "f691c56da491cc32b0d938cc2210bc1dec4e5fbf01028852bc68e57bc0cb6eba"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-35",
+      "bytes": 7000000,
+      "sha256": "5af70f922f45aa5d54d4d3d130e22dc079288b46af92b1ade441fdee81f6aff8"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-36",
+      "bytes": 7000000,
+      "sha256": "8e15282a80586d07be556ae5a3bff460d5c0d4b04067382a70c75c6b568f0680"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-37",
+      "bytes": 7000000,
+      "sha256": "d0aec383e99f9e15dabd169d03d0c270e19370c5a87e041d0a8332550798435e"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-38",
+      "bytes": 7000000,
+      "sha256": "fece483368018bd2d4f502a77f3efbbbdaea906ad8c5ec4a75e1f5cca0405cd7"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-39",
+      "bytes": 7000000,
+      "sha256": "a8a54df461a159c29ebd711f8c5e095f75a00d3ad162283db0df60b3fe71bdb9"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-40",
+      "bytes": 7000000,
+      "sha256": "885d4d0530ae7c8d78605a7be9088748b69e12c06a169b665393cbeee8821d5c"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-41",
+      "bytes": 7000000,
+      "sha256": "21b9446ef08429d2e0a29e27d36cdeef14ef4e2cbbeac74119e0b55a8414875e"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-42",
+      "bytes": 7000000,
+      "sha256": "21f0b49f1c4c1a32db8779c4adacd8333642844a8871b2a2419996e2020f86ca"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-43",
+      "bytes": 7000000,
+      "sha256": "d6b704fd929e8babd9a6f0122feb4a442babd72055971458bd7da674a6dc9360"
+    },
+    {
+      "name": "NHS1_numeric_evidence.zip.part-44",
+      "bytes": 3316162,
+      "sha256": "ac4f7470d779fd526a3556a4d6522f269a0d043ac8cce7c443ae5d5331bb90bb"
+    }
+  ],
+  "numeric_files": 412
+}

@@ -1,0 +1,16 @@
+scenario,complete,diagnostic_gates_passed,qualified,mode,attempt,chains,gates,inference_seconds_all_attempts,n_burn,n_mcmc,max_rhat,min_ess,max_model_frequency_range,pilot_seconds
+requested,True,False,False,full,1,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",196.081,4000,16000,1.08184957861142,146.474200722293,0.3518125,
+requested,True,False,False,full,2,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",628.137,8000,32000,1.0157507136076,180.573518807919,0.14471875,
+requested,True,False,False,full,3,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",1590.482,12000,64000,1.01150789623312,404.58322930629,0.040375,
+requested,True,True,True,full,4,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",3768.3639999999996,16000,128000,1.00846584368364,698.9287331575,0.03984375,
+scaling_only,True,True,True,full,1,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",1573.807,16000,128000,1.00313142563919,1081.63677474654,0.0438359375,
+ridge_standardized,True,,True,,1,,,70.33500000000001,2000,6000,1.00036851112133,3571.88112739557,0.008790192077827,0.0
+requested_initial_proposal,True,,False,,1,,,73.60000000000002,2000,6000,1.25656441229729,91.628392356028,0.494,29.189999999999998
+requested_initial_proposal,True,,False,,2,,,254.50800000000004,4000,16000,1.05739654912028,146.733419247811,0.1206875,29.189999999999998
+requested_initial_proposal,True,,False,,3,,,615.7360000000001,6000,32000,1.0238942535652,170.344251158804,0.1369375,29.189999999999998
+requested_initial_proposal,True,,False,,4,,,1438.7780000000002,10000,64000,1.36971921204317,342.772004337143,0.81928125,29.189999999999998
+requested_rebalanced_64k,True,False,False,full,1,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",637.3059999999999,10000,64000,1.10079227200003,162.59140371009,0.18996875,
+scaling_only_joint_initial,True,False,False,full,1,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",178.50900000000001,4000,16000,1.01315857864432,135.143861798196,0.054625,
+scaling_only_joint_initial,True,False,False,full,2,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",562.625,8000,32000,1.01865028579718,246.920230419203,0.06478125,
+scaling_only_joint_initial,True,False,False,full,3,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",1425.3450000000003,12000,64000,1.0134247873115,401.23477311201,0.177984375,
+scaling_only_joint_initial,True,False,False,full,4,3.0,"{'rhat_max': 1.01, 'ess_min': 400, 'model_chain_range_max': 0.05}",3305.983,16000,128000,1.004041221973,757.96965160225,0.097828125,

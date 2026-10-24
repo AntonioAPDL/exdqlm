@@ -5,6 +5,8 @@ import numpy as np,pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from matplotlib.font_manager import findfont
 from scipy.stats import invgamma
 from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,Image,PageBreak
@@ -38,15 +40,21 @@ def main():
   ax.fill_between(g.target,g.lower90,g.upper90,color=PALETTE[lab],alpha=.15,label='90% interval')
   ax.fill_between(g.target,g.lower50,g.upper50,color=PALETTE[lab],alpha=.3,label='50% interval')
   ax.plot(g.target,g['mean'],color=PALETTE[lab],lw=1,label='30-step mean')
-  ax.set(title=lab,ylabel='Response');ax.legend(ncol=4,frameon=False,fontsize=9)
+  ax.set(title=lab,ylabel='Response')
  axes[-1].set_xlabel('Target time; observations available only through target minus 30')
+ fig.legend(handles=[Line2D([0],[0],color='#303b45',lw=.8,label='Observed'),
+  Patch(facecolor='#64748b',alpha=.15,label='90% interval'),
+  Patch(facecolor='#64748b',alpha=.3,label='50% interval'),
+  Line2D([0],[0],color='#64748b',lw=1,label='Forecast mean (panel color)')],
+  loc='outside lower center',ncol=4,frameon=False,fontsize=9)
  fig.savefig(figures/'forecasts.png',dpi=170);plt.close(fig)
  one=pd.read_csv(c/'one_step_calibration.csv');cal=pd.read_csv(c/'calibration_by_volatility.csv')
  fig,axes=plt.subplots(2,1,figsize=(10,7),layout='constrained')
  ref=one[one.model==LABELS[0]];axes[0].plot(ref.target,ref.true_conditional_sd,color='#273b4b',lw=1,label='True conditional SD')
  for lab in LABELS:
   g=one[one.model==lab];axes[0].plot(g.target,g.predictive_sd,lw=.8,c=PALETTE[lab],label=lab)
- axes[0].set(title='One-step predictive SD and true conditional innovation SD',xlabel='Target time',ylabel='SD');axes[0].legend(ncol=2,frameon=False,fontsize=9)
+ axes[0].set(title='One-step predictive SD and true conditional innovation SD',xlabel='Target time',ylabel='SD')
+ handles,labels=axes[0].get_legend_handles_labels();fig.legend(handles,labels,loc='outside lower center',ncol=3,frameon=False,fontsize=8)
  bands=['low','middle','high'];x=np.arange(3)
  for j,lab in enumerate(LABELS):
   g=cal[cal.model==lab].set_index('band').loc[bands];axes[1].bar(x+(j-1.5)*.19,g.Coverage90,width=.19,label=lab,color=PALETTE[lab])
@@ -101,8 +109,8 @@ def main():
  para('One new series combines threshold nonlinear dynamics, an asymmetric nonsinusoidal seasonal pattern and persistent, asymmetric conditional variance. No deterministic trend is present. The DGP, seed, prior controls, architecture candidates and forecasting protocol were fixed before fitting. Every model is fitted fresh; no C1 forecast output is reused.')
  title('Data-generating process')
  para('Write y(t)=s(t)+x(t). The centered period-60 seasonal offset combines two asymmetric triangular pulses, a ramp and a 12-step block pattern. The residual conditional mean is a(x1)*x1 +0.28*tanh(1.4*x2) -0.25*tanh(x12) +0.22*tanh(x60) +0.20*tanh(1.5*x1*x2), where xk=x(t-k), a(x)=0.58 for x&lt;0 and 0.22 otherwise.')
- para('The innovation is epsilon(t)=sqrt(h(t))*z(t), z(t) standard Gaussian. h(t)=omega(t)+0.06*epsilon(t-1)^2+0.10*epsilon(t-1)^2*I[epsilon(t-1)&lt;0]+0.82*h(t-1). The baseline omega(t) is positive, periodic and dependent on the previous residual; exact pulse definitions are in dgp.R. It is bounded by 0.046 and expected volatility persistence is 0.93. The residual linear coefficient is bounded by 0.58 and other location terms are bounded. These bounds prevent a trend or explosive second moments; the seasonal process is periodic rather than covariance-stationary.')
- table([['Setting','Frozen value'],['DGP','Seed 1766021; 6,000-step burn-in; 3,000 retained observations'],['Split and forecast grid','500 washout; 2,000 training; 500 test; 471 origins x30 leads'],['Requested normalized RHS','tau0=0.001; slab_scale=1; slab_df=4; c^2~IG(2,2)'],['Other priors','Unit half-Cauchy global multiplier/local scales; intercept N(0,10 variance); observation variance IG(3,1); ridge precision Gamma(2, rate 2)'],['Readout basis','Training-only column z-scores on rows 501:2500; no division by sqrt(d)'],['Primary forecast budget','192 joint posterior draws x8 recursive innovation paths']], [130,370])
+ para('The innovation is epsilon(t)=sqrt(h(t))*z(t), z(t) standard Gaussian. h(t)=omega(t)+0.06*epsilon(t-1)^2+0.10*epsilon(t-1)^2*I[epsilon(t-1)&lt;0]+0.82*h(t-1). The baseline omega(t) is positive, periodic and dependent on the previous residual; exact pulse definitions are in dgp.R. It is bounded by 0.046 and expected volatility persistence is 0.93. The residual linear coefficient is bounded by 0.58 and other location terms are bounded. The equations specify no trend, and these bounds give bounded second moments. The forcing is periodic; covariance stationarity and ergodicity are not assumed.')
+ table([['Setting','Frozen value'],['DGP','Seed 1766021; 6,000-step burn-in; 3,000 retained observations'],['Split and forecast grid','500 washout; 2,000 training; 500 test; 471 origins x 30 leads'],['Requested normalized RHS','tau0=0.001; slab_scale=1; slab_df=4; c^2~IG(2,2)'],['Other priors','Unit half-Cauchy global multiplier/local scales; intercept N(0,10 variance); observation variance IG(3,1); ridge precision Gamma(2, rate 2)'],['Readout basis','Training-only column z-scores on rows 501:2500; no division by sqrt(d)'],['Primary forecast budget','192 joint posterior draws x 8 recursive innovation paths']], [130,370])
  para('All fitted likelihoods retain constant observation-variance parameters. This is a calibration stress test under misspecification, not a claim that their conditional variance models match the DGP. Truth quantities are isolated from the observed-only training interface.','Small')
  page();title('The single frozen realization');image(HERE/'evidence/NHS1_DGP.png')
  para('The seed was not selected by inspecting forecast errors. DGP truth is used for these plots and post-fit calibration assessment only. Models receive the two-column time/response file. There is no full-series centering, and no held-out response is used to fit a scaler.','Small')
@@ -116,18 +124,18 @@ def main():
  page();title('Rolling forecasts and predictive intervals');image(figures/'forecasts.png')
  para('Horizon 30 at all 471 origins. Parameters and architecture weights are frozen at origin 2500. Observed reservoir states update only between origins. Within a forecast, simulated responses drive all later states; future observations are absent. Native GP conditioning likewise incorporates only observations available at each origin, with kernel parameters and mixture weights fixed.','Small')
  page();title('Calibration under heteroscedasticity');image(figures/'volatility.png')
- para('Only horizon1 is compared with the true conditional innovation SD. A future realized conditional SD would not equal the marginal predictive SD of a multi-step forecast. Low/middle/high bands use the two training-only true-SD tertile cutoffs and are reporting diagnostics, not features supplied to the models.','Small')
+ para('Only horizon 1 is compared with the true conditional innovation SD. A future realized conditional SD would not equal the marginal predictive SD of a multi-step forecast. Low/middle/high bands use the two training-only true-SD tertile cutoffs and are reporting diagnostics, not features supplied to the models.','Small')
  rows=[['Model','Band','Pairs','90% coverage','Predictive SD','True SD']]
  for _,r in cal.iterrows():rows.append([r.model,r.band,int(r.pairs),f'{r.Coverage90:.3f}',f'{r.mean_predictive_sd:.3f}',f'{r.mean_true_sd:.3f}'])
  table(rows,[170,55,45,80,75,75])
  page();title('Bayesian architecture averaging and shrinkage')
- para('For slopes, beta_j | tau,lambda_j,c² ~ N(0,v_j), v_j=c²*tau²*lambda_j²/(c²+tau²*lambda_j²), independently of observation variance sigma². The global multiplier u and local lambda_j have unit half-Cauchy priors; tau=tau0*u. The intercept has variance10. Architecture moves integrate every coefficient using C_m=sigma²*I+X_m*diag(10,v)*X_mᵀ, retaining its determinant and normalized Gaussian density. This is the normalized RHS, not the augmented rhs_ns prior.','Small')
+ para('For slopes, beta_j | tau,lambda_j,c² ~ N(0,v_j), v_j=c²*tau²*lambda_j²/(c²+tau²*lambda_j²), independently of observation variance sigma². The global multiplier u and local lambda_j have unit half-Cauchy priors; tau=tau0*u. The intercept has variance 10. Architecture moves integrate every coefficient using C_m=sigma²*I+X_m*diag(10,v)*X_mᵀ, retaining its determinant and normalized Gaussian density. This is the normalized RHS, not the augmented rhs_ns prior.','Small')
  image(figures/'architectures.png')
  rows=[['Scenario','D','Layer widths','Input lags','Layer leaks','Layer radii','Seed']]
  for sc in study['scenarios']:
   g=models[sc['id']];lead=g.loc[g.posterior_probability.idxmax()]
   rows.append([sc['id'],int(lead.D),str(lead.widths),int(lead.m),str(lead.layer_leaks),str(lead.layer_radii),int(lead.seed)])
- table(rows,[90,25,105,35,110,110,25])
+ table(rows,[90,25,95,55,95,95,45])
  para('Leading architectures are identified by the posterior mass, without changing the predictive mixture. Full candidate definitions, all 426 architecture probabilities and numerical uncertainty summaries are archived.','Small')
  page();title('RHS scales and shrinkage')
  rows=[['Scenario','Leading candidate','Mass (indicator SE)','tau median [5%,95%]','c^2 median [5%,95%]']]
@@ -165,7 +173,7 @@ def main():
  rows=[['Scenario','Burn/chain','Kept/chain','Max R-hat','Min ESS','Max mass range','Pass']]
  for _,r in budgets.iterrows():rows.append([r.scenario,int(r.n_burn),int(r.n_mcmc),f'{r.max_rhat:.5f}',f'{r.min_ess:.1f}',f'{r.max_model_frequency_range:.3f}',str(bool(r.qualified))])
  table(rows,[135,55,60,65,70,65,50])
- para('The displayed R-hat/ESS columns concern continuous parameters. Pass additionally requires architecture diagnostics. After two failed model-only proposals, a joint architecture/log-scale Student-t mixture is fitted to completed training chains and frozen before fresh production. Four original model-only moves and two joint moves per sweep retain exact Gaussian coefficient-collapsed targets, prior/Jacobian constants and Hastings corrections. Initial production budgets are 16k/32k/64k/128k kept per chain. After the scaling-only final budget failed the 5-point architecture-frequency-range gate, a same-prior proposal recovery declares one fresh 3x128k budget. Shared training is reported once below. No failed screen is waived. No test scores inform recovery.','Small')
+ para('The displayed R-hat/ESS columns concern continuous parameters. Pass additionally requires architecture diagnostics. After two failed model-only proposals, a joint architecture/log-scale Student-t mixture is fitted to completed training chains and frozen before fresh production. Four original model-only moves and two joint moves per sweep retain exact Gaussian coefficient-collapsed targets, prior/Jacobian constants and Hastings corrections. Initial production budgets are 16k/32k/64k/128k kept per chain. After the scaling-only final budget failed the 5-point architecture-frequency-range gate, a same-prior proposal recovery declares one fresh 3 x 128k budget. Shared training is reported once below. No failed screen is waived. No test scores inform recovery.','Small')
  title('Predictive Monte Carlo sensitivity')
  sens=pd.read_csv(c/'mc_sensitivity_summary.csv');rows=[['Scenario','N x K','RMSE (3 origins)','CRPS','NLL']]
  for sc in study['scenarios']:
@@ -190,12 +198,12 @@ def main():
  for n,mc,hmc in zip(native_cfg['autogp_schedule'],native_cfg['autogp_mcmc'],native_cfg['autogp_hmc']):
   rows.append([n,mc,hmc,f'{native_cfg["autogp_hmc_base_step"]*native_cfg["autogp_hmc_reference_n"]/n:.7f}'])
  table(rows,[100,140,120,140])
- para(f"Each run has eight particles and maximum grammar depth4. Leapfrog steps: {native_cfg['autogp_leapfrog']}; HMC exit control: {native_cfg['autogp_hmc_exit']}; seeds: 1166020 and 1166021. These are the original frozen C1 controls applied to the new data. The two-run predictive mixture uses the fitted particle weights; model weights remain fixed between origins.",'Small')
+ para(f"Each run has eight particles and maximum grammar depth 4. Leapfrog steps: {native_cfg['autogp_leapfrog']}; HMC exit control: {native_cfg['autogp_hmc_exit']}; step size=0.02*32/n; seeds: 1166020 and 1166021. These are the original frozen C1 controls applied to the new data. The two-run predictive mixture uses the fitted particle weights; model weights remain fixed between origins.",'Small')
  page();title('Measured runtime and memory')
  raw=json.loads((b/'raw_bank/status.json').read_text())
  bm=json.loads((b/"bank_memory.json").read_text())
  para(f"Shared raw builder: {raw['invocation_wall_seconds']:.2f}s wall; frozen standardized-design preparation: {bank['standardization_seconds']:.2f}s. The complete bank-building command, including startup and serialization, took {bm['invocation_wall_seconds']:.2f}s with parent peak RSS {bm['process_peak_rss_kib']/2**20:.2f}GiB. Reservoir candidates and state timing match across all AutoDESN priors.")
- rows=[['Scenario','Pilots(s)','Completed chain(s)','Observed fit wall(s)','Forecast compute(s)','State update(s)','Peak GiB']]
+ rows=[['Scenario','Pilots(s)','Completed chain(s)','Observed fit wall(s)','Forecast compute(s)','State update(s)','Observed peak GiB']]
  for sc in study['scenarios']:
   st=json.loads((b/sc['id']/sc['method']/'status.json').read_text());t=st['timings'];m=json.loads((b/sc['id']/'process_memory.json').read_text())
   rows.append([sc['id'],f'{t["training_pilot_seconds"]:.2f}',f'{t["inference_seconds_all_attempts"]:.2f}',f'{m["fit_invocation_wall_seconds_sum"]:.2f}',f'{t["forecast_compute_seconds_sum"]:.2f}',f'{t["state_preparation_seconds_this_invocation"]:.2f}',f'{m["process_peak_rss_kib"]/2**20:.2f}'])
@@ -212,9 +220,9 @@ def main():
  validation=json.loads((b/'validation/validation_status.json').read_text());para(validation['summary'])
  bench=pd.read_csv(b/'validation/standardized_backend_benchmark.csv').groupby('backend').elapsed_seconds.median()
  parity=pd.read_csv(b/'validation/standardized_backend_parity.csv')
- para(f"Fresh short computational benchmark: median R {bench['R']:.3f}s versus native kernels {bench['cpp']:.3f}s ({bench['R']/bench['cpp']:.2f}x). Four standardized synthetic designs,200 rows, up to64 slopes,100 burn +800 retained draws,three timing repetitions; setup/compilation excluded. Maximum coupled-draw discrepancy {parity.max_paired_draw_error.max():.3g}; identical model paths. Joint proposals are disabled in this short kernel benchmark; production timings include them. This is a computational check, not evidence of posterior convergence or a full-study speedup.",'Small')
- para('Independent path reconstruction verifies scores at the first, middle and last origins. Future-data perturbation changes every unavailable response by100 while holding posterior draws and innovations fixed; forecasts remain identical. Archived joint checkpoints are replayed against saved paths. The numeric archive has part-level, complete-archive and internal SHA256 checks, plus a restored-analysis round trip.','Small')
- para('The frozen reservoir grid includes input lag60, matching the DGP season and lag60 term. Broader stress studies should vary periods and independent seeds. Gaussian conditional variances are deliberately misspecified for this heteroscedastic DGP. Poor calibration in high-volatility periods motivates a future variance-model extension; such an extension would be a distinct benchmark with its own prior and validation. A single series and overlapping origin/lead pairs do not establish general superiority. Preprocessing is treated as frozen rather than jointly inferred.','Small')
+ para(f"Fresh short computational benchmark: median R {bench['R']:.3f}s versus native kernels {bench['cpp']:.3f}s ({bench['R']/bench['cpp']:.2f}x). Four standardized synthetic designs, 200 rows, up to 64 slopes, 100 burn +800 retained draws, three timing repetitions; setup/compilation excluded. Maximum coupled-draw discrepancy {parity.max_paired_draw_error.max():.3g}; identical model paths. Joint proposals are disabled in this short kernel benchmark; production timings include them. This is a computational check, not evidence of posterior convergence or a full-study speedup.",'Small')
+ para('Independent path reconstruction verifies scores at the first, middle and last origins. Future-data perturbation changes every unavailable response by 100 while holding posterior draws and innovations fixed; forecasts remain identical. Archived joint checkpoints are replayed against saved paths. The numeric archive has part-level, complete-archive and internal SHA256 checks, plus a restored-analysis round trip.','Small')
+ para('The frozen reservoir grid includes input lag 60, matching the DGP season and lag 60 term. Broader stress studies should vary periods and independent seeds. Gaussian conditional variances are deliberately misspecified for this heteroscedastic DGP. Poor calibration in high-volatility periods motivates a future variance-model extension; such an extension would be a distinct benchmark with its own prior and validation. A single series and overlapping origin/lead pairs do not establish general superiority. Preprocessing is treated as frozen rather than jointly inferred.','Small')
  para('Release remains draft. The inherited scoped repository R CMD check has one nonportable-path error, three documentation/non-ASCII warnings and two notes. Focused tests and numerical checks are reported separately; no clean package-wide release check is claimed.','Small')
  para('See README.md and RESULTS.md in validation/autodesn/nonlinear_heteroscedastic. generate.R freezes the DGP; run.R/fit_joint.R/execute_joint.py fit the three AutoDESN cases; run_gp.py fits pinned Native AutoGP; export.R, archive.R, replay.R, analysis.py and report.py reproduce evidence and reporting. Existing C1 artifacts are preserved. Draft PR: https://github.com/AntonioAPDL/exdqlm/pull/4.','Small')
  out=HERE/'evidence/NHS1_AutoDESN_AutoGP_Report.pdf'

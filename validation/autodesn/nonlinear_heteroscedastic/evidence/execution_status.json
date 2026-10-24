@@ -1,0 +1,38 @@
+{
+  "complete": true,
+  "completed_UTC": "2026-10-24T02:39:35.675855+00:00",
+  "series": "NHS1",
+  "dgp_realizations": 1,
+  "dependent_rolling_pairs": true,
+  "seed": 1766021,
+  "washout": 500,
+  "training": 2000,
+  "test": 500,
+  "origins_per_model": 471,
+  "horizons": 30,
+  "pairs_per_model": 14130,
+  "requested_rhs_controls": {
+    "tau0": 0.001,
+    "slab_scale": 1,
+    "slab_df": 4
+  },
+  "standardize_features": true,
+  "normalize_features": false,
+  "new_fits": [
+    "AutoDESN RHS .001/1",
+    "AutoDESN RHS 1/2",
+    "AutoDESN ridge",
+    "Native AutoGP"
+  ],
+  "reference_inference_reused": false,
+  "posterior_parameters_fixed_after_origin": 2500,
+  "all_AutoDESN_diagnostic_screens_passed": true,
+  "independent_functional_checks": "Six fixed training-row means, continuous scales and appreciable-mass architecture indicators",
+  "prior_or_DGP_tuned_to_test_outcomes": false,
+  "native_checks_passed": true,
+  "checkpoint_replay_windows": 9,
+  "package_release_check_clean": false,
+  "release_note": "Inherited scoped check: 1 nonportable-path error, 3 documentation/non-ASCII warnings, 2 notes. Focused checks pass.",
+  "numerical_background_work_running": false,
+  "archive_roundtrip_verified": true
+}

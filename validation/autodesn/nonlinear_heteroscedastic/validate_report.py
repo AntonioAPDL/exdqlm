@@ -14,7 +14,8 @@ def main():
  digest=hashlib.sha256(pdf.read_bytes()).hexdigest();pages=len(PdfReader(pdf).pages)
  stamp=folder/'render.json'
  if not stamp.exists() or json.loads(stamp.read_text()).get('pdf_sha256')!=digest:
-  for q in folder.glob('page-*.png'):q.unlink()
+  for pattern in ['page-*.png','contact-*.png']:
+   for q in folder.glob(pattern):q.unlink()
   subprocess.run(['pdftoppm','-r','115','-png',str(pdf),str(folder/'page')],check=True)
   pngs=sorted(folder.glob('page-*.png'));assert len(pngs)==pages
   for start in range(0,len(pngs),6):
