@@ -1,0 +1,11 @@
+{
+  "complete": true,
+  "all_family_forecast_map_ids_identical": true,
+  "numeric_templates_serialized_sha256_equal": true,
+  "before_templates_sha256": "9ab9633682c9cda6e874daae9806749136adc849d42d217986697334310cad0c",
+  "after_templates_sha256": "9ab9633682c9cda6e874daae9806749136adc849d42d217986697334310cad0c",
+  "before_source_bank_sha256": "0beca3337cda15835b1f84ff96d7f038e229158cdeb4db37820c7f3855caef1d",
+  "after_source_bank_sha256": "d039f3e6a807129d9aa5775f5223877ddfe0c2c5aba0a9111e297875c7716c7d",
+  "maximum_training_feature_error": 1.7963e-13,
+  "scope": "Full frozen-builder cold reconstruction preserves all426 numeric forecasting maps and conditional identities; source bank serialization metadata differ"
+}

@@ -139,7 +139,15 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
   gaussian <- e$readout$prior == "grouped" & groups == "calendar"
   frequency <- if (ns) rep(seq_len(S$raw_d / 2), each = 2)[S$active] else numeric(0)
   gv <- c(rep(NA_real_, nl + nr), e$readout$calendar_scale ^ 2 / (1 + (frequency / 4) ^ 4))
-  list(X = X, XtX = crossprod(X), Xty = as.vector(crossprod(X, bank$y)), d = ncol(X) - 1L, slots = slots, groups = groups, gaussian = gaussian, gaussian_variance = gv)
+  saved <- NULL
+  if (!is.null(e$statistics_cache)) {
+    if (!identical(e$statistics_cache$bank_id, e$id)) stop("Statistics cache belongs to a different conditional bank.", call. = FALSE)
+    saved <- e$statistics_cache$entries[[paste(m, p, sep = ":")]]
+    if (!is.null(saved) && (!identical(dim(saved$XtX), c(ncol(X), ncol(X))) || length(saved$Xty) != ncol(X))) stop("Statistics cache has invalid dimensions.", call. = FALSE)
+  }
+  list(X = X, XtX = if (is.null(saved)) crossprod(X) else saved$XtX,
+    Xty = if (is.null(saved)) as.vector(crossprod(X, bank$y)) else saved$Xty,
+    d = ncol(X) - 1L, slots = slots, groups = groups, gaussian = gaussian, gaussian_variance = gv)
 }
 
 .ext_logv <- function(design, ell, logu, logc2, tau0, beta_prior, ridge, intercept_variance) {

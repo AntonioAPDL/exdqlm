@@ -1,0 +1,23 @@
+{
+  "complete": true,
+  "audit_only": true,
+  "contract_id": "e6062bf2fb188cd17ced22aaeeeaed47e1b8e45d1a1056bd2b678bcd6842e80e",
+  "source": "validation/autodesn/remediation/artifacts/sbc_shards/sv_tail161_200/validation/autodesn/remediation/artifacts/recursive_sbc_sv_n200_k24000",
+  "destination": "validation/autodesn/remediation/artifacts/recursive_sbc_sv_n200_k24000",
+  "selected_cases": 1,
+  "missing_source_cases": [],
+  "destination_writers_observed": [],
+  "all_selected_cases_verified": true,
+  "records": [
+    {
+      "case": 1,
+      "action": "existing_equal",
+      "target_id": "15bbfc81c495c9208c64d38b67c3977575c8f9a72e7ad269929c2a60772113e9",
+      "source_sha256": "4b612773ba51a86fc60183fdeca7a2c2a3e0f9147d1e20078ade0a165bb44e24",
+      "destination_sha256_at_observation": "4b612773ba51a86fc60183fdeca7a2c2a3e0f9147d1e20078ade0a165bb44e24",
+      "semantic_contents_identical": true
+    }
+  ],
+  "independent_replications_added": 0,
+  "scope": "Same-case same-source/prior/map/seed/budget import. Only elapsed computation time may differ for duplicate calculations. Atomic exclusive publication; record hashes describe the observation time, with final audit required after original writers finish."
+}

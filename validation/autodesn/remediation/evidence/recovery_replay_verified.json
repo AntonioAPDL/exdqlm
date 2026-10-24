@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "verified_parts": 1380,
+  "verified_members": 3802,
+  "verified_archives": 6,
+  "verified_prefix_archives": 1,
+  "all_archive_payloads_complete": false,
+  "extracted": true,
+  "manifest": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006_recovered.manifest.json",
+  "manifest_sha256": "fceefa2f95b1a3500e6a25992727332436dec35611594ccc075b32e49f037ae7",
+  "restore_source_sha256": "b6ddd525aaaf1b350b2006283786f09088b9e052e7e2887e405be496d5bf5c96",
+  "scope": "Observed fresh-process six-stage restore replay, explicitly retaining one incomplete archive prefix and only its complete members"
+}

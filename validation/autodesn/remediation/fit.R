@@ -3,6 +3,7 @@ args<-commandArgs(TRUE);family<-if(length(args))args[1] else 'F1';phase<-if(leng
 families<-c('F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge');stopifnot(family%in%families,phase%in%c('pilot','production'));prior_kind<-if(grepl('ridge$',family))'ridge' else 'rhs'
 run_label<-Sys.getenv('AUTODESN_RUN_LABEL',unset='');stopifnot(grepl('^[A-Za-z0-9_]*$',run_label));suffix<-if(nzchar(run_label))paste0('_',run_label) else ''
 local_path<-Sys.getenv('AUTODESN_LOCAL_PROPOSAL',unset='')
+statistics_path<-Sys.getenv('AUTODESN_STATISTICS_CACHE',unset='')
 local_scales<-identical(Sys.getenv('AUTODESN_LOCAL_SCALE_PROPOSAL',unset='0'),'1')
 root<-'validation/autodesn/remediation';directory<-file.path(root,'artifacts',family,if(phase=='pilot')'pilot' else paste0('production_',budget,suffix));dir.create(directory,recursive=TRUE,showWarnings=FALSE)
 scale_path<-Sys.getenv('AUTODESN_FROZEN_PROPOSAL',unset='');if(!nzchar(scale_path))scale_path<-file.path(root,'artifacts',family,'frozen_proposal.rds')
@@ -18,11 +19,23 @@ if(use_cache){cache_manifest<-jsonlite::fromJSON(file.path(root,'artifacts/infer
 stopifnot(b$n==2000L,identical(b$keep_idx,501:2500),length(b$history)==2500L,length(b$models)==426L)
 if(use_cache){key<-if(family%in%c('F1','F1ridge'))'F1' else if(family=='F2flat')'F2flat' else 'F2';entry<-cache_manifest$extensions[[key]];stopifnot(identical(digest::digest(file=entry$path,algo='sha256'),entry$sha256));bank<-b;bank$extension<-readRDS(entry$path);class(bank)<-c('autodesn_extended_bank',class(bank));stopifnot(identical(bank$extension$id,entry$bank_id))} else bank<-autodesn_extend_bank(b,list(lags=1:90,prior=if(family%in%c('F1','F2flat','F1ridge'))'flat' else 'grouped',cache_size=32),if(family%in%c('F1','F1ridge'))NULL else list(periods=20:120,harmonics=16))
 vc<-if(family%in%c('SV','SVseasonal'))list(type='sv',seasonal=family=='SVseasonal',save_state_paths=TRUE) else NULL
+if(nzchar(statistics_path)){
+ cached_statistics<-readRDS(statistics_path)
+ stopifnot(identical(cached_statistics$bank_id,bank$extension$id),identical(cached_statistics$version,1L))
+ bank$extension$statistics_cache<-cached_statistics
+ rm(cached_statistics)
+}
 rm(b);gc(FALSE)
 burn<-if(phase=='pilot')1000L else if(budget==32000L)8000L else if(budget==128000L)32000L else 64000L
 retained<-if(phase=='pilot')2000L else budget
 config<-list(family=family,beta_prior=prior_kind,storage_label=run_label,inference_cache_sha256=if(use_cache)cache_manifest$sha256 else NULL,cache_manifest_sha256=if(use_cache)digest::digest(file=file.path(root,'artifacts/inference_cache_manifest.json'),algo='sha256') else NULL,augmentation_sha256=if(use_cache)entry$sha256 else NULL,proposal_sha256=if(phase=='production')digest::digest(file=scale_path,algo='sha256') else NULL,priors=list(intercept_variance=10,observation_variance=list(shape=3,rate=1),rhs=if(prior_kind=='rhs')list(tau0=.001,slab_scale=1,slab_df=4,global='unit half-Cauchy',local='unit half-Cauchy') else NULL,ridge_precision=if(prior_kind=='ridge')list(shape=2,rate=2) else NULL),phase=phase,burn=burn,retained=retained,chains=4L,rows=c(501L,2500L),training_response_sd=sd(bank$y),source_sha256=as.list(source_sha),input_bank_sha256=digest::digest(file=basepath,algo='sha256'),bank_id=bank$extension$id,confirmation=FALSE,test_data_read=FALSE,forecast_allowed=FALSE)
 if(phase=='production'){config$proposal_sha256<-digest::digest(file=scale_path,algo='sha256');config$proposal_path<-scale_path}
+if(nzchar(statistics_path)){
+ config$statistics_cache_path<-statistics_path
+ config$statistics_cache_sha256<-digest::digest(file=statistics_path,algo='sha256')
+ config$statistics_cache_entries<-length(bank$extension$statistics_cache$entries)
+ config$statistics_cache_payload_bytes<-bank$extension$statistics_cache$payload_bytes
+}
 if(nzchar(local_path)){
  stopifnot(prior_kind=='rhs',phase=='production');config$local_proposal_path<-local_path;config$local_proposal_sha256<-digest::digest(file=local_path,algo='sha256')
  lp<-readRDS(local_path)$proposal

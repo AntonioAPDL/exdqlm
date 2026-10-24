@@ -3,7 +3,7 @@
   "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
   "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
   "branch": "feature/autodesn-remediation-20261023",
-  "status": "implementation_in_progress_after_verified_recovery",
+  "status": "implementation_in_progress_no_active_jobs",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
@@ -39,11 +39,16 @@
     "200-case recursive constant-variance calibration complete: ranks pass; one case ESS 301.55, computational recovery pending; no production qualification",
     "Recursive frozen-map 200-case constant-variance calibration resolves after ESS-selected recomputation of case 11 at 96k; same data/source/target identities verify, min ESS 643.47, rank envelope passes, no extra replications",
     "Distinct-outer CRPS correction and Rao-Blackwellized marginal mean/density/quantile scorer pass independent direct-pair and analytic Gaussian checks; no new benchmark forecast",
-    "Environment-loss checkpoint preserves all 61 archive005 parts and a separate verified Git-blob inventory; 320/343 archive006 parts are explicitly incomplete. Latest observed tests and failed production diagnostics are recorded separately without claiming raw-output recovery."
+    "Environment-loss checkpoint preserves all 61 archive005 parts and a separate verified Git-blob inventory; 320/343 archive006 parts are explicitly incomplete. Latest observed tests and failed production diagnostics are recorded separately without claiming raw-output recovery.",
+    "Cold original frozen builder and all426 numeric forecast maps reproduced: three conditional-bank hashes and serialized map bytes match; source-bank serialization metadata differ explicitly",
+    "All254 source and installed assertions pass, including outside Git; fixed sufficient-statistics cache preserves Gibbs paths for ridge/RHS/SV fixtures",
+    "Three same-seed full-bank paired computational trials reproduce all recorded states, probes and architecture masses; median49.976s versus30.306s, plus1.859s cache preparation; no forecasting improvement claim",
+    "Native Julia dependencies restored at the pinned source/manifest; native move and36 conditional reference checks pass again",
+    "Recursive frozen-map SV calibration: all200 cases complete at24k retained, rank envelope passes (0.1326 <=0.1378), minimum case spectralESS620.2159; isolated same-case shard all40 duplicate numerical contents agree except elapsed time; no production qualification",
+    "Observed all200 SV calibration cases and same-case duplicate audit complete; no computational calibration recovery required"
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
-    "Complete 200-case recursive SV calibration; fixed-design RHS and recursive constant targets passed at their recorded monitored resolution",
     "Composite/depth-four native GP stress references and four full-size runs at successive budgets",
     "Chronological fold refits, family selection and conditional prior-predictive/representation audits",
     "Predictive Monte Carlo and conditional state-filter budget qualification",
@@ -61,22 +66,13 @@
     "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture.",
     "forecast_templates": "Resolved for all 426 original reservoirs: exact before/after serial and batched transitions, terminal-feature error <=1.8e-13, controlled full-bank recursive and observed-update parity. No new benchmark forecast issued.",
     "execution_environment": "Shell and pinned R runtime restored in a fresh checkout. Recovery observations supersede earlier inaccessible-file status; original manifests were not recovered, newly constructed manifests explicitly retain the truncated archive.",
-    "old_job_states": "Prior environment process exits cannot be recovered. The fresh environment has new observed invocations; prior jobs are not represented as continuing."
+    "old_job_states": "Prior environment process exits cannot be recovered. The fresh environment has new observed invocations; prior jobs are not represented as continuing.",
+    "latest_long_production_interruption": "The fresh256k first-pair invocation was observed running at20:45UTC, but at23:04UTC no R/runner process, completed chain, or resource exit record remained. Its exit status and cause are unknown. No iterations or runtime totals are credited to it. A resumable within-chain checkpoint is needed before another long invocation."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
-  "running_at_this_checkpoint": [
-    {
-      "family": "recursive_SV_calibration",
-      "snapshot": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
-      "status": "Observed new resumption from62 verified cases under original source; see invocation collision repair record"
-    },
-    {
-      "family": "bank_cache_reconstruction",
-      "status": "Original frozen builder completed all426 admitted candidates; exact conditional identities being checked before inference"
-    }
-  ],
+  "running_at_this_checkpoint": [],
   "jobs_with_unknown_state_after_environment_loss": [],
   "latest_observations_record": "validation/autodesn/remediation/evidence/environment_loss_recovery_inventory.json",
   "latest_recovery": {
@@ -86,7 +82,8 @@
     "trace4_regenerated_from_matching_RDS": true,
     "original_archive006_complete": false,
     "source_test_sha256": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
-    "source_and_outside_git_installed_assertions": 210,
+    "source_and_outside_git_installed_assertions": 254,
     "full_qualified_posterior": false
-  }
+  },
+  "snapshot_utc": "2026-10-24T23:05:11.148903+00:00"
 }

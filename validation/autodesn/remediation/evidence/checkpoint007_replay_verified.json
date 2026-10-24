@@ -1,0 +1,11 @@
+{
+  "complete": true,
+  "verified_parts": 1421,
+  "verified_members": 4096,
+  "verified_archives": 7,
+  "verified_prefix_archives": 1,
+  "all_archive_payloads_complete": false,
+  "extracted": false,
+  "manifest_sha256": "71ee0f51d15f63817e90459272db898811a67e5a0bb5c307600249a869be5b5a",
+  "restore_source_sha256": "5bf677169095d2298d5f880b2e79491ef9eb12c23f8284aa0985ad6e46e00b1b"
+}

@@ -1,14 +1,18 @@
 {
   "complete": true,
-  "tests": 23,
-  "assertions": 210,
+  "tests": 25,
+  "assertions": 254,
   "failed": 0,
   "errors": 0,
   "warnings": 0,
-  "passed": 210,
+  "passed": 254,
   "outside_git_working_tree": true,
   "fixture_sources_manifest_sha256": "e527cbb86d159f87e6c3bb13b87f575ab809d0751c0f96889cdd821fba4f5541",
   "test_source_sha256": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
-  "installed_database_sha256": "49bb5e1e8945fa1b88069d50a75fde5618a371711ea79f3390bf410936550d76",
-  "scope": "Installed extension tests with bundled frozen references outside Git history; not a package-wide CRAN check"
+  "installed_database_sha256": "5c484078dacc11b6e50531f01cc8102e1bf0a7bdda86c6356e5334f17b46a904",
+  "scope": "Installed extension tests with bundled frozen references outside Git history; not a package-wide CRAN check",
+  "test_sources_sha256": {
+    "test-autodesn-extended.R": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
+    "test-autodesn-statistics-cache.R": "0cce5a352a45df1bd0f9d769a24973f4f94a2ebd4ec0363192185fe5515aea4c"
+  }
 }

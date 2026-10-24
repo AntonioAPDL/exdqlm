@@ -4,6 +4,31 @@ This branch implements the approved plan in `../nonlinear_heteroscedastic/plans/
 
 **Current status:** implementation and training-only development. No new model is scientifically qualified and no confirmation outcomes have been generated or inspected. Passing numerical tests and running short pilots do not establish posterior convergence. See `execution.json` and actual evidence files; a script's presence is not evidence it ran.
 
+Recovery checkpoint `4f0d36c4` restores all four original joint128k RDS files,
+reconstructs its missing CSV export, and reproduces its failed architecture
+screen. Source and installed suites now include 254 assertions, with zero
+failures/errors/warnings and an installed run outside Git. The cold original
+builder reproduces all three conditional-bank identities and the exact compact
+forecast-map bytes. The original source-bank serialization hash differs because
+its provenance metadata changed; it is not relabeled as the original file.
+
+`autodesn_cache_statistics(augmented, max_bytes = 512 * 1024^2)` optionally
+caches fixed unweighted cross-products within a numeric payload bound. It keeps
+all architectures/periods available; uncached pairs are evaluated on demand.
+It preserves the bank identity and all posterior transitions. Weighted SV
+cross-products are recomputed when observation variances change. Three paired
+full-bank 500-warmup/2000-retained runs reproduce all recorded states, probes,
+and architecture summaries bit for bit; median elapsed time is 49.976 s without
+the cache and 30.306 s with it, plus 1.859 s construction. These are short
+computational benchmarks under concurrent calibration load, not whole-study
+speedups or new forecasting results.
+
+`prepare_statistics_cache.R F1 OUTPUT` reconstructs that computational cache.
+`launch_fit.py ... --statistics-cache PATH` verifies its bank identity and
+records the file checksum before fitting. The registered fresh256k run uses
+two workers per invocation, preserving the original proposals and diagnostic
+gates. All four chains and the successive-budget checks remain required.
+
 ## Implemented opt-in API
 
 ```r

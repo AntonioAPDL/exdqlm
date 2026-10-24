@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "pairs": 3,
+  "warmup": 500,
+  "retained": 2000,
+  "cache_construction_seconds": 1.859,
+  "cached_pairs": 426,
+  "cache_payload_bytes": 129200016,
+  "maximum_payload_bytes": 536870912,
+  "cache_path": "validation/autodesn/remediation/artifacts/statistics_F1.rds",
+  "cache_sha256": "3f8a738d8949d93c915e88c8dc4e74c33e6eef502b3530d887ca43d21f867e58",
+  "bank_id": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63",
+  "median_uncached_seconds": 49.976,
+  "median_cached_seconds": 30.306,
+  "all_recorded_states_bit_identical": true,
+  "test_outcomes_used": false,
+  "scope": "Three alternating-order same-seed full-bank short training runs under concurrent calibration load. Includes all traces, matching coefficients/locals/states, probes and architecture masses. Computational timing, not independent DGP replications or production qualification."
+}
