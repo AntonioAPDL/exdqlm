@@ -1,0 +1,71 @@
+{
+  "archive": "Audit_numeric_evidence.zip",
+  "bytes": 18713458,
+  "sha256": "94be6bfa6709b4c06f91bc70440907e0569ed636f9233554a09024c1143f1e19",
+  "parts": [
+    {
+      "path": "Audit_numeric_evidence.zip.part001",
+      "bytes": 7000000,
+      "sha256": "e1c89c918a21b431ab1029cfdffc685e37fb4e3807aa046bcbd1c5bba1999552"
+    },
+    {
+      "path": "Audit_numeric_evidence.zip.part002",
+      "bytes": 7000000,
+      "sha256": "45e83a12249a75f290b7f59d77a30cc10de012cf82e6bed666023635668f16c4"
+    },
+    {
+      "path": "Audit_numeric_evidence.zip.part003",
+      "bytes": 4713458,
+      "sha256": "d4a43425c54f7fe669f618cb291651e31660e69ba8b2feb110b7ec5d85a6bb5b"
+    }
+  ],
+  "members": 51,
+  "provenance": {
+    "original_benchmark_commit": "e726533322bb5625a995dc78ac6cbd09d4dcb977",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "scipy": "1.17.0",
+    "source_sha256": {
+      "README.md": "f0a47d756c860d391f8952c11771909f0ee06cfe3ea9d00a5b7664579f61c7a0",
+      "analyze.py": "1f418aa119d5139f7fec78af58bb0a26d7284b31effe8a8f5128c419b6ad4d6e",
+      "diagnostics.R": "aee9ba56597c142661728f5c32bb73e1dc97edae4c985f7371d2bfb959ca0599",
+      "gp_audit.py": "89fc07a0d7279a425504767ae273416c5e3d269a4d89a516e65769ba48bd97bb",
+      "gp_quasiperiodic.py": "fffae68bb0172786278aed15d9ecb3825c4f6b229a7873ee2d61d89fd46f37fa",
+      "lag_ablation.py": "e7ea6f10b08406bdbd38c1bae9bfecac27b881fe0d942b73e9ba9060450ab3b1",
+      "native_score.jl": "c165f15f9ca9c317daf79748e98c0f55e7b3e345779374d765c732c3b965b93f",
+      "oracle.py": "9694ead5e5f7fbb1bd62b0616039434cc3575fcb4491c889a0bbd64a992d9120",
+      "package_evidence.py": "047d584457b87f84feab28df18c862d9407454224f584bbfeedfa249065929de",
+      "protocol.json": "8c9723feb5553cbf4e11d6397a9c44d60a07b0a99298ae362bef84379ce88ba0",
+      "report.py": "c28f120cdccee3958bcd233e57e052a0a5f676a2eba7ef34976b352182a0f820",
+      "test_audit.py": "d1f2e9dd8743f6f6f021c512b41ded69865bd6b597a2a3a4a2b60b54f99cf9de",
+      "test_oracle.R": "efa820c4b09f513f10e91ba985c1100cefaf77eca0690eabb45afc3062c2c217",
+      "validate_report.py": "b751f60116d7ca57301b27dd58a6053289e901086ba367dd848c735065011280",
+      "evidence/restore_audit.py": "e04f6f7109540016612bb49d2498e6c8ed61f79c48d37650a477684ae4f6289f"
+    },
+    "truth_sha256": "287ab0f438f47d134bd18a21a41e08c825aa03112436ce8436a0a2e5db7077b3",
+    "report_sha256": "2420148e85240e2c01b2ca69e9dd980600b37264fea08a1f37e41f1281b2efcf",
+    "executed_validation": {
+      "risk_aggregation_matches_independent_analytic_one_step": true,
+      "original_four_score_tables_unchanged": true,
+      "native_candidate_uses_same_prior_and_equal_dimension": true,
+      "complete": true,
+      "independent_R_path_max_error": 5.10702591327572e-15,
+      "variance_state_recovery_error": 1.9984014443252818e-15,
+      "Gaussian_prequential_identity_passed": true,
+      "diagnostic_future_perturbation_passed": true,
+      "original_forecasts_reconstructed_to_1e_10": true,
+      "oracle_paths": 32768
+    },
+    "report_validation": {
+      "complete": true,
+      "pdf_sha256": "2420148e85240e2c01b2ca69e9dd980600b37264fea08a1f37e41f1281b2efcf",
+      "pages": 11,
+      "rendered_all_pages": true,
+      "visual_inspection": "All pages inspected for clipping, overlap, table breaks, figure labels and legibility.",
+      "approved_UTC": "2026-10-24T03:48:48.343674+00:00"
+    },
+    "interpretation": "Post-hoc diagnostic of one DGP realization. New GP fits and lag references are plug-ins, not replacement Bayesian posterior fits."
+  }
+}

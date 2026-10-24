@@ -1,0 +1,149 @@
+{
+  "analysis_status.json": {
+    "native_equal_dimension_log_joint_gap": 450.7152562055012,
+    "native_candidate_log_joint": 1788.421265393373,
+    "best_original_equal_dimension_log_joint": 1337.7060091878718,
+    "complete": true,
+    "pairs_per_model": 14130,
+    "original_benchmark_unchanged": true,
+    "diagnostics_post_hoc": true,
+    "DGP_realizations": 1,
+    "training_test_phase_profile_correlation": 0.3584402096513313,
+    "gp_structure_diversity": [
+      {
+        "run": 1,
+        "distinct_structures": 2,
+        "structure_probabilities": {
+          "Times(GammaExponential,Linear,Linear,Periodic)": 0.9883746450596878,
+          "Times(GammaExponential,GammaExponential,Linear,Periodic)": 0.0116253549403079
+        },
+        "effective_number_of_structures": 1.0235209328562649
+      },
+      {
+        "run": 2,
+        "distinct_structures": 4,
+        "structure_probabilities": {
+          "Times(Periodic,Periodic,Periodic)": 0.463618054991354,
+          "Times(GammaExponential,Periodic,Periodic,Periodic,Plus(Linear,Periodic))": 0.0466876891201601,
+          "Times(Periodic,Periodic,Periodic,Plus(Linear,Periodic))": 0.4049827421774129,
+          "Times(Periodic,Periodic,Periodic,Plus(Linear,Linear))": 0.0847115137110479
+        },
+        "effective_number_of_structures": 2.5752719593838598
+      }
+    ],
+    "native_prior_period_below60_probability": 0.022425042258117388,
+    "native_prior_period_54_to66_probability": 0.010650325487395786,
+    "oracle_MC": {
+      "full": {
+        "RMSE": 0.5168486095660347,
+        "MAE": 0.4008176133451647,
+        "CRPS": 0.2855221652555706,
+        "NLL": 0.732273575351683,
+        "Coverage50": 0.5283793347487615,
+        "Coverage90": 0.918895966029724,
+        "Width50": 0.6883414440760127,
+        "Width90": 1.7501717265698447,
+        "pairs": 14130
+      },
+      "half": {
+        "RMSE": 0.5168491834434578,
+        "MAE": 0.40080929530508347,
+        "CRPS": 0.2855322236845176,
+        "NLL": 0.7322529937217015,
+        "Coverage50": 0.5289455060155697,
+        "Coverage90": 0.9181174805378627,
+        "Width50": 0.6883812563990344,
+        "Width90": 1.7499393038555529,
+        "pairs": 14130
+      },
+      "rms_mean_mcse": 0.0017958715872123693,
+      "half_difference_variance_to_MCSE_ratio": 1.0128182948445283
+    },
+    "actual_training_innovation_RMS": 0.4603525068367043,
+    "mean_training_true_variance": 0.20676749717223292,
+    "mean_test_true_variance": 0.17679324368544996
+  },
+  "audit_validation.json": {
+    "risk_aggregation_matches_independent_analytic_one_step": true,
+    "original_four_score_tables_unchanged": true,
+    "native_candidate_uses_same_prior_and_equal_dimension": true,
+    "complete": true,
+    "independent_R_path_max_error": 5.10702591327572e-15,
+    "variance_state_recovery_error": 1.9984014443252818e-15,
+    "Gaussian_prequential_identity_passed": true,
+    "diagnostic_future_perturbation_passed": true,
+    "original_forecasts_reconstructed_to_1e_10": true,
+    "oracle_paths": 32768
+  },
+  "capacity_status.json": {
+    "complete": true,
+    "candidates": 426,
+    "best_noisy_by_validation": 113,
+    "best_oracle_by_validation": 189,
+    "forecast_reconstruction_max_error": 5.10702591327572e-15,
+    "elapsed_seconds": 36.596000000000004,
+    "selection_used_test": false,
+    "oracle_targets_are_privileged": true
+  },
+  "gp_audit_status.json": {
+    "complete": true,
+    "native_kernel_reconstruction_max_error": 4.427014310692812e-14,
+    "parameters": {
+      "period": 60.0,
+      "periodic_variance": 0.09390471200657256,
+      "periodic_lengthscale": 0.198877000671924,
+      "OU_variance": 0.3599255587211747,
+      "OU_lengthscale": 4.926247906028899,
+      "noise_variance": 0.09489555752388401
+    },
+    "best_training_negative_log_likelihood": 1504.2129789496212,
+    "optimization_starts": [
+      {
+        "converged": true,
+        "nll": 1504.2129789524447,
+        "iterations": 16
+      },
+      {
+        "converged": true,
+        "nll": 1504.2129789496212,
+        "iterations": 24
+      }
+    ],
+    "elapsed_seconds": 35.86279993800417,
+    "known_period_is_privileged": true,
+    "maximum_kernel_depth": 2,
+    "not_Bayesian_SMC": true,
+    "selection_uses_test": false,
+    "native_train_mu_RMSE": 0.2785419989242538
+  },
+  "quasiperiodic_gp_status.json": {
+    "complete": true,
+    "periodogram_initial_period": 31.25,
+    "learned_oscillatory_period": 30.527077211099687,
+    "calendar_period": 60.0,
+    "calendar_period_is_privileged": true,
+    "parameters": {
+      "calendar_variance": 0.08968928803647704,
+      "calendar_lengthscale": 0.19270566408202322,
+      "oscillatory_variance": 0.3032030617281248,
+      "oscillatory_lengthscale": 0.6866200392287665,
+      "coherence_length": 33.42507514918688,
+      "noise_variance": 0.14291754013231275
+    },
+    "negative_log_likelihood": 1468.1239828954008,
+    "gradient_finite_difference_max_error": 3.069287743073801e-06,
+    "maximum_kernel_depth": 3,
+    "within_existing_native_grammar": true,
+    "not_Bayesian_SMC": true,
+    "selection_uses_test": false,
+    "elapsed_seconds": 72.53409221099719
+  },
+  "validation/report_validation.json": {
+    "complete": true,
+    "pdf_sha256": "2420148e85240e2c01b2ca69e9dd980600b37264fea08a1f37e41f1281b2efcf",
+    "pages": 11,
+    "rendered_all_pages": true,
+    "visual_inspection": "All pages inspected for clipping, overlap, table breaks, figure labels and legibility.",
+    "approved_UTC": "2026-10-24T03:48:48.343674+00:00"
+  }
+}

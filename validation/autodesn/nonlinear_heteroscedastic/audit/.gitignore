@@ -1,0 +1,7 @@
+artifacts/
+__pycache__/
+*.log
+evidence/*.zip
+evidence/restored/
+
+evidence/.*
