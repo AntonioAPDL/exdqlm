@@ -1,0 +1,3 @@
+"case","lower_order","higher_order","model_probability_max_change","variance_mean_change"
+"fixed_scales",384,768,2.85396684873707e-06,2.91226066428951e-06
+"learned_local",320,640,2.85561918184074e-06,3.24303004833881e-06

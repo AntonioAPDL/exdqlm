@@ -1,0 +1,27 @@
+{
+  "complete": true,
+  "part_bytes": 7000000,
+  "files": [
+    {
+      "name": "requested_forecast_checkpoint.rds",
+      "bytes": 905104,
+      "sha256": "7b7137b0ca5ea995a859cd7d98c6d1886784b38dc91fa9c7acf7484bf7cca457",
+      "mode": "whole",
+      "parts": []
+    },
+    {
+      "name": "scaling_only_forecast_checkpoint.rds",
+      "bytes": 523888,
+      "sha256": "0bcc449bb72e326eb37035f4bbe0f1c9ae602c4c025c076f3130c0aac5ab0fe4",
+      "mode": "whole",
+      "parts": []
+    },
+    {
+      "name": "ridge_standardized_forecast_checkpoint.rds",
+      "bytes": 250932,
+      "sha256": "34265d2bb25eec8c67ba0c3cf4e6391d7f6872cb7cec2bbab063071877b8dd00",
+      "mode": "whole",
+      "parts": []
+    }
+  ]
+}

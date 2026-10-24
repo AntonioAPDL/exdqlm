@@ -1,0 +1,42 @@
+{
+  "complete": true,
+  "comparison_complete": false,
+  "scenario": "ridge_standardized",
+  "metrics": {
+    "RMSE": 0.6393389384754273,
+    "MAE": 0.49806597837296795,
+    "CRPS": 0.3586534238343321,
+    "NLL": 0.9775194918412202,
+    "Coverage50": 0.5750884642604388,
+    "Coverage90": 0.9338287331917905,
+    "Width50": 0.9681592859070406,
+    "Width90": 2.3235139002363807,
+    "pairs": 14130
+  },
+  "path_audit": {
+    "complete": true,
+    "checked_marginals": 90,
+    "max_absolute_error": 8.659739592076221e-15,
+    "method": "Independent NumPy/SciPy reconstruction from exported recursive paths"
+  },
+  "independent_screen": {
+    "complete": true,
+    "passed": true,
+    "checked_before_forecasting": true,
+    "trace_sha256": "a8e92bfded07bb659b064819e854a956b9b095fee7dc7e12b1a841c98599d508",
+    "maximum_rhat": 1.0004046818720713,
+    "minimum_bulk_ess": 3481.6460554137843,
+    "minimum_tail_frequency_ess": 5608.299181216877
+  },
+  "predictive_sensitivity": {
+    "complete": true,
+    "reused": false,
+    "qualified_posterior": true,
+    "settings": 24,
+    "score_pairs": 720,
+    "state_seconds_this_invocation": 2.139999999999999,
+    "forecast_compute_seconds_sum": 4.625,
+    "contract_id": "9895f9e269af8cdb22b26da834cbd6bfcebf076e4fc392723d23e161799a5815",
+    "interpretation": "Changes in Monte Carlo estimates with nested draw/path counts; these are not new fits or independent replications."
+  }
+}

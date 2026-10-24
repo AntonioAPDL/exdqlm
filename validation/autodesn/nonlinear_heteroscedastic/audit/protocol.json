@@ -1,0 +1,45 @@
+{
+  "purpose": "Post-hoc diagnostic audit, not a new frozen superiority benchmark",
+  "benchmark_commit": "e726533322bb5625a995dc78ac6cbd09d4dcb977",
+  "original_results_unchanged": true,
+  "oracle_paths_per_origin": 32768,
+  "oracle_seed": 1866021,
+  "oracle_origins": [
+    2500,
+    2970
+  ],
+  "horizons": 30,
+  "capacity_train": [
+    501,
+    2000
+  ],
+  "capacity_validation": [
+    2001,
+    2500
+  ],
+  "capacity_final_train": [
+    501,
+    2500
+  ],
+  "capacity_test": [
+    2501,
+    3000
+  ],
+  "ridge_penalties": [
+    0,
+    1e-08,
+    1e-06,
+    1e-05,
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    1,
+    10
+  ],
+  "phase_period": 60,
+  "phase_reference_information": "Period 60 is DGP-informed and already in original candidate grid; not automatically discovered",
+  "oracle_target_information": "True conditional means/variances are privileged diagnostics and never supplied to the original fits",
+  "selection_rule": "Choose diagnostic hyperparameters/candidates using training/validation only; do not select by original held-out outcomes",
+  "limits": "One realization; conditional expected risks and Monte Carlo replications do not constitute independent DGP replications"
+}

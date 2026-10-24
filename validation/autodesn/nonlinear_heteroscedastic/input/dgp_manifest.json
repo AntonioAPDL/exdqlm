@@ -1,0 +1,18 @@
+{
+  "name": "NHS1: threshold dynamics, asymmetric seasonal pulses and GJR volatility",
+  "seed": 1766021,
+  "burnin": 6000,
+  "retained": 3000,
+  "period": 60,
+  "short_period": 12,
+  "trend": false,
+  "generated_once_before_fitting": true,
+  "seed_selection": "Single predeclared seed; no seed search or test-outcome selection",
+  "source_sha256": "947eba756b42cddf80f379f3da301c9f306fa5c742d998e8222e7ad6c37a1516",
+  "conditional_second_moment_bound": {
+    "omega_max": 0.045999999999999999,
+    "expected_volatility_coefficient": 0.93000000000000005,
+    "mean_square_innovation_upper_bound": 0.65714285714285758
+  },
+  "truth_use": "Reporting only; model adapters read only input/series.csv time,y"
+}

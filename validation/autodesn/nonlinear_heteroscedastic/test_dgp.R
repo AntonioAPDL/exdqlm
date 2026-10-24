@@ -1,0 +1,23 @@
+source("validation/autodesn/nonlinear_heteroscedastic/dgp.R")
+library(testthat)
+test_that("DGP is reproducible, prefix stable and restores the caller RNG",{
+  set.seed(11);before <- .Random.seed;a <- nh_simulate(100L,burn=120L)
+  expect_identical(.Random.seed,before)
+  expect_identical(a,nh_simulate(100L,burn=120L))
+  expect_identical(a,nh_simulate(130L,burn=120L)[1:100,])
+  expect_true(all(is.finite(as.matrix(a))));expect_true(all(a$conditional_sd>0))
+})
+test_that("season is centered, periodic and not one smooth harmonic",{
+ s <- nh_season(1:60);expect_equal(mean(s),0,tolerance=1e-14)
+ expect_equal(s,nh_season(61:120),tolerance=1e-14)
+ harmonic <- lm(s~sin(2*pi*(1:60)/60)+cos(2*pi*(1:60)/60))
+ expect_gt(sum(residuals(harmonic)^2)/sum(s^2),.15)
+})
+test_that("threshold and asymmetric volatility updates match independent arithmetic",{
+ lag <- matrix(0,60,1);lag[c(1,2,12,60),1] <- c(-.5,.3,.7,-.4)
+ expected <- .58*(-.5)+.28*tanh(1.4*.3)-.25*tanh(.7)+.22*tanh(-.4)+.20*tanh(1.5*(-.5)*.3)
+ expect_equal(nh_location(lag),expected,tolerance=1e-14)
+ expect_equal(nh_variance(1,0,-.4,.2)-nh_variance(1,0,.4,.2),.1*.4^2,tolerance=1e-14)
+ expect_equal(.06+.10*.5+.82,.93)
+ expect_lt(.58,1)
+})

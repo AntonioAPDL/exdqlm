@@ -1,0 +1,98 @@
+{
+  "comparison_complete": false,
+  "completed_models": 1,
+  "total_models": 4,
+  "scenario": "requested",
+  "status": {
+    "complete": true,
+    "fit_complete": true,
+    "qualified": true,
+    "diagnostic_gates_passed": true,
+    "mode": "full",
+    "model": "AutoDESN RHS",
+    "reused": false,
+    "method": "rhs",
+    "chains": 3,
+    "selected_attempt": 4,
+    "contract_id": "7bf78c644f6d37f593c252ada7fe227bf497868834b6015497232380d128a799",
+    "bank_id": "a00c064d485bfd6aab02cf1481b21daa6764cbe75b50b6f6dfdbdafb6c87ca2d",
+    "fit_rows": 2000,
+    "innovation_seed": 1066020,
+    "outer_draws": 192,
+    "inner_paths": 8,
+    "posterior_updates": false,
+    "model_weight_updates": false,
+    "timings": {
+      "compile_seconds": 6.309999999999999,
+      "inference_seconds_all_attempts": 3768.3639999999996,
+      "bank_load_seconds_this_invocation": 0,
+      "training_pilot_seconds": 0,
+      "shared_training_source_inference_seconds": 2076.0840000000003,
+      "shared_training_source_pilot_seconds": 29.189999999999998,
+      "state_preparation_seconds_this_invocation": 3.6099999999999994,
+      "forecast_compute_seconds_sum": 96.50500000000012,
+      "forecast_timing_note": "Sum of per-origin forecast compute, excluding scoring, export and state preparation; not parallel wall time."
+    },
+    "timing_note": "Inference sums completed chain computations across all attempts; compile, feature construction and forecasting are separate. See bank/status.json for feature construction.",
+    "scenario": "requested",
+    "benchmark_complete": true,
+    "origins": 471,
+    "score_pairs": 14130
+  },
+  "independent_screen": {
+    "complete": true,
+    "passed": true,
+    "checked_before_forecasting": true,
+    "trace_sha256": "44f2ab2d4389fb6e6acf42404645df991f0af1992df8edfa605e29d3068f292e",
+    "maximum_rhat": 1.0099201244216809,
+    "minimum_bulk_ess": 499.57008448953474,
+    "minimum_tail_frequency_ess": 627.3301620336036
+  },
+  "score_audit": {
+    "complete": true,
+    "comparison_complete": false,
+    "series": "NHS1",
+    "scenario": "requested",
+    "metrics": {
+      "RMSE": 0.5788710826612254,
+      "MAE": 0.4470442545461233,
+      "CRPS": 0.3238817152936742,
+      "NLL": 0.8867450121792764,
+      "Coverage50": 0.5929936305732484,
+      "Coverage90": 0.9383581033262562,
+      "Width50": 0.9067452552070506,
+      "Width90": 2.210929077697302,
+      "pairs": 14130
+    },
+    "path_audit": {
+      "complete": true,
+      "checked_marginals": 90,
+      "max_absolute_error": 8.881784197001252e-15,
+      "method": "Independent NumPy/SciPy reconstruction from exported recursive paths"
+    },
+    "parameters_not_changed_using_scores": true
+  },
+  "causality": {
+    "complete": true,
+    "origins": [
+      2500,
+      2735,
+      2970
+    ],
+    "future_observations_added": 100,
+    "same_posterior_and_innovations": true,
+    "max_path_error": 0
+  },
+  "predictive_sensitivity": {
+    "complete": true,
+    "reused": false,
+    "qualified_posterior": true,
+    "settings": 24,
+    "score_pairs": 720,
+    "state_seconds_this_invocation": 4.806999999999999,
+    "forecast_compute_seconds_sum": 13.349999999999998,
+    "contract_id": "45e3158383ca35e4a69c4a020da8d9e5be774e6a65263eb445fa86b3f7da7f6a",
+    "interpretation": "Changes in Monte Carlo estimates with nested draw/path counts; these are not new fits or independent replications."
+  },
+  "note": "Historical checkpoint: requested RHS complete; other new-DGP models still required. Priors and study protocol fixed before test forecasts."
+}

@@ -1,0 +1,31 @@
+{
+  "complete": true,
+  "archive_roundtrip_verified": true,
+  "summary_parity_exact": true,
+  "files": {
+    "NHS1_AutoDESN_AutoGP_Report.pdf": {
+      "bytes": 3066132,
+      "sha256": "dd79a9b41da841fa770ca4e422e3cf0ce53e2f32eb708f40f8a3a23ba3a18e87"
+    },
+    "NHS1_DGP.png": {
+      "bytes": 537601,
+      "sha256": "f8ce3b928fd4eb3bbf0ec8e71866f8644532f94956e58b3b503931f3c1b4882e"
+    },
+    "frozen_feature_geometry.rds": {
+      "bytes": 262724,
+      "sha256": "51f4f905731a32f32310e8ba6d1801e2f238420435bc9843b04ec24229bdd10e"
+    },
+    "requested_forecast_checkpoint.rds": {
+      "bytes": 905104,
+      "sha256": "7b7137b0ca5ea995a859cd7d98c6d1886784b38dc91fa9c7acf7484bf7cca457"
+    },
+    "scaling_only_forecast_checkpoint.rds": {
+      "bytes": 523888,
+      "sha256": "0bcc449bb72e326eb37035f4bbe0f1c9ae602c4c025c076f3130c0aac5ab0fe4"
+    },
+    "ridge_standardized_forecast_checkpoint.rds": {
+      "bytes": 250932,
+      "sha256": "34265d2bb25eec8c67ba0c3cf4e6391d7f6872cb7cec2bbab063071877b8dd00"
+    }
+  }
+}

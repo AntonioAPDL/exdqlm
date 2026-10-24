@@ -352,3 +352,70 @@ This restoration is necessary; retaining the old augmentation would be wrong.
 The block changes no coefficient, slab, or fitted mean. It improves movement
 along a strongly dependent global/local direction, but still requires actual
 multiple-chain diagnostics, especially for architecture probabilities.
+
+
+## Optional joint architecture and global-scale moves
+
+A model-only proposal can mix poorly when architecture and shrinkage/noise
+scales are strongly associated. `model_control$joint_proposal` optionally
+adds a frozen independence proposal on
+\(z=(\log\sigma^2,\log u,\log c^2)\) together with the architecture. Defaults
+remain unchanged. Construct its normalized Student-t mixture with
+`autodesn_rhs_joint_proposal(center, scale, ...)`; `model_control$proposal`
+provides the positive model masses. The shape matrix is not a covariance
+matrix unless adjusted by the Student-t degrees of freedom.
+
+Let \(\ell\) denote the common full local-scale vector and \(\nu\) its
+augmentation. Conditional on \((\ell,\nu)\), integrate all coefficients,
+including the proper intercept. The density in log-scale coordinates is
+
+\[
+ \widetilde\pi(m,z\mid y,\ell,\nu)\propto
+ p(m)\,N\!\left(y;0,e^{z_1}I+X_mD_m(z,\ell)X_m^T\right)
+ h(z_2)\,j(z_1;a_\sigma,b_\sigma)\,j(z_3;\nu_c/2,\nu_cs_c^2/2),
+\]
+
+where
+
+\[
+ h(r)=\frac{2e^r}{\pi(1+e^{2r})},\qquad
+ j(r;a,b)=\frac{b^a}{\Gamma(a)}\exp[-ar-be^{-r}].
+\]
+
+Both expressions include their coordinate Jacobians and prior normalizers.
+Local-scale/augmentation priors are common, unchanged factors across the
+move and cancel, including inactive coordinates. The Gaussian integral
+retains every determinant and normalizer for each readout dimension.
+For fixed proposal \(q(m')g_{m'}(z')\), accept with probability
+
+\[
+ 1\wedge\frac{\widetilde\pi(m',z')q(m)g_m(z)}
+                   {\widetilde\pi(m,z)q(m')g_{m'}(z')}.
+\]
+
+A same-architecture proposal still changes global scales and requires this
+acceptance test. The conditional coefficient draw immediately follows the
+collapsed moves. Only then are the ordinary variance/local/global/slab
+conditionals applied. This ordering preserves the full joint posterior; old
+coefficients must not be used between the collapsed move and their redraw.
+The optional kernel requires sampled global and slab scales and MH model
+moves. Both fitted and broad Student-t components have normalized densities;
+all architectures keep positive proposal mass. Neither proposal fitting nor
+its mixture weight defines or changes a shrinkage prior.
+
+For NHS1, proposal centers and shape matrices use completed training chains
+only and are frozen before fresh production chains. Independent checks use
+SciPy normalized multivariate Gaussian/Student-t/IG/Cauchy densities, all
+ordered acceptance-ratio pairs, and independent Sobol integration of a small
+posterior with different readout dimensions. Disabled-kernel draws and
+coefficients match the previous sampler exactly. These checks do not replace
+full-size multiple-chain diagnostics.
+
+A separate learned-local/interwoven joint-kernel check integrates four
+normalized priors independently with scrambled Sobol quadrature, including
+the local half-Cauchy. Five posterior functionals agree across three small
+chains. The inactive local prior is integrated exactly in the reported local
+indicator. Its one-dimensional prefix embedding isolates the update
+composition; layerwise reservoir mapping and R/C++ agreement are checked
+separately on the new-series reservoir bank. These small checks still do not
+establish full-size posterior convergence.

@@ -1,0 +1,51 @@
+{
+  "status": "planning_only_document_reviewed",
+  "baseline_commit": "4916600928337f1ef179fda6100f54c20723bd9a",
+  "model_implementation_performed": false,
+  "new_model_fits_or_simulations_executed": false,
+  "pdf_pages": 23,
+  "markdown_words": 8177,
+  "sha256": {
+    "REMEDIATION_PLAN.md": "adf2867996a77b356d4e01d59f4f604d7700e84f3e7f7dd2e33fc0327798aaeb",
+    "output/pdf/AutoDESN_Remediation_Plan.pdf": "fe77732862176cadb7b6c0fc98468c8f25a8b66411cea08abd560a56d107e2bb",
+    "pdf_header.tex": "22f8d2315292d779fc334794b81fcf4148d00976c79c086143e93c7535a57849",
+    "BUILD.md": "9aa6e61f6cf60292fb84afc6442320f779111af2d82ffe5ca149ea0043bd8877"
+  },
+  "all_23_pages_rendered_and_visually_inspected": true,
+  "changed_pages_reinspected": [
+    2,
+    6,
+    9,
+    20
+  ],
+  "body_margin_check_passed": true,
+  "all_12_reference_labels_present": true,
+  "display_math_delimiters_balanced": true,
+  "render_sha256": {
+    "page-01.png": "220b6011ada1806cf4deddb8a428c4865794b2f9dd7eba3a157a57739b159030",
+    "page-02.png": "baa279d4bb38d5af1452943b8742202c8878e883a35b53cc03baeaa51f6c06fd",
+    "page-03.png": "7469c9fcfc34ce275c35e8f3e1015986e23eefaa9bfe1452eb5f823b9c3d6708",
+    "page-04.png": "25193380921824529e84f4d65c913c984a4c7d93c1c5f51d3335c638c793be65",
+    "page-05.png": "5a2a900f237ffe7fd7248433d10e38a9edb3d5d22199ae6ac0d9e702498b880e",
+    "page-06.png": "be9bc9c3eaabebd85cc6bd289964a0f044829a676cd5dd63bf1df7754ebc8b05",
+    "page-07.png": "653f6499d1fd9c81fc6e1760d2a7c01e6a37e9d18aa3049e9166dac5d9c2b5e5",
+    "page-08.png": "cdfe998941379774b0d5c63662e16e4945f3ae5c521baa94b21905250a2cfce9",
+    "page-09.png": "3a6c0a866f110c9007e0188a335c74d65c131e99f2a520ec3fe6d870953e4c7f",
+    "page-10.png": "c6927f0adf174a0ada340bde71cd520f86688e4a551c7776e16b2f76bd4521ff",
+    "page-11.png": "9f615b8d9312c1fd5bba1e356ed59a7fd3f503a72ccd3c078ffaec8777b34d71",
+    "page-12.png": "f69ab2e8e51dc90ba4c4b5e83438d959c618b100913a4cd55d79781a16ea9f43",
+    "page-13.png": "643eb03cf8d00c4cc7e94eee9cee0d533cc1ec4f1636aeae13c8b9029311459b",
+    "page-14.png": "be31a1df31457d1442eef6ab73f4ab79e37b2e24687a950a19b233cbfd4e0fbd",
+    "page-15.png": "8c315f70a57ed454be30bc97034d2a92d585919925562b4204f017ad1dae214e",
+    "page-16.png": "7e3fb4358e04c6f90028b0b09d8e1066f00db24557009092a2bfc220357c8c77",
+    "page-17.png": "b96a0d704670eded8b69ae410aac434f4dee3798edcd7bb442ec47ff9635a700",
+    "page-18.png": "269ef387b8af61925dd13392c0aae8e755a75480b32f28b844151326dea1b256",
+    "page-19.png": "33a4d73dd3c0f1b9ab32477ac963063fe21ce57711b8eabe113ce7ea19650260",
+    "page-20.png": "330d4e9381418c92b8eae01454d3f7da773544897aa1732e0ce831a20facdb5c",
+    "page-21.png": "5d58d8659f998c941cc1be081c205b776c5e27d3129cb04c7014321d0e5a1a6f",
+    "page-22.png": "9d6646d5c4bfdfcb1f88bdf4c0561b25db55f1fa8cf2815a2bd8698ae6dc3c7f",
+    "page-23.png": "0b93ddc11a28bb8afed265b6369f039347499008fc193080a821ae44ea234ba3"
+  },
+  "pandoc_version": "pandoc 3.1.3",
+  "review_scope": "Document content, equations, tables, layout and planning status. No proposed method is implemented or validated by this review. No independent PRO review was invoked."
+}
