@@ -205,6 +205,9 @@ autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
   if (identical(backend, "r")) backend <- "R"
   backend <- match.arg(backend)
   if (inherits(bank, "autodesn_extended_bank") || !is.null(variance_control)) {
+    if (beta_prior=="rhs" && (!missing(a_lambda)||!missing(b_lambda)||!missing(learn_ridge)||!missing(ridge_precision)))
+      stop("Ridge-specific controls are not used by RHS; set rhs_control instead.",call.=FALSE)
+    if (beta_prior=="ridge" && length(rhs_control)) stop("rhs_control requires beta_prior=rhs.",call.=FALSE)
     return(.ext_fit(bank, n_burn, n_mcmc, thin, intercept_variance, a_sigma, b_sigma,
       a_lambda, b_lambda, learn_ridge, ridge_precision, initial_variance, seed,
       beta_prior, rhs_control, model_control, backend, variance_control))

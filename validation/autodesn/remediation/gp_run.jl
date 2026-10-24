@@ -9,7 +9,7 @@ seed=length(ARGS)>2 ? parse(Int,ARGS[3]) : 2266021
 @assert N in [128,256,512,2000] && particles in [8,16,32,64]
 native_root=dirname(dirname(pathof(AutoGP)))
 @assert readchomp(`git -C $native_root rev-parse HEAD`)=="2ad372db2b8bea176e3b32a769bfb5d6cff80866"
-root="validation/autodesn/remediation";dir=joinpath(root,"artifacts","gp_n$(N)_p$(particles)_s$(seed)");mkpath(dir)
+root="validation/autodesn/remediation";dir=joinpath(root,"artifacts","gp_n$(N)_p$(particles)_s$(seed)");if isdir(dir)&&!isempty(readdir(dir));error("Use a fresh run directory; partial/complete evidence is never silently appended");end;mkpath(dir)
 data=CSV.read("validation/autodesn/nonlinear_heteroscedastic/input/series.csv",DataFrame;limit=2500,ntasks=1)
 times=collect(501:500+N);y=Float64.(data.y[times]);AutoGP.seed!(seed);Random.seed!(seed)
 model=AutoGP.GPModel(times,y;n_particles=particles,config=AutoGP.GP.GPConfig(max_depth=4))
@@ -32,6 +32,10 @@ fn=(;model,step,elapsed,rejuvenated,resampled,kw...)->begin
  end
  row=DataFrame(step=step,elapsed=elapsed,ess=AutoGP.effective_sample_size(model),period_updates=updates[],period_acceptances=accepted[],max_log_joint=maximum(Gen.get_score.(model.pf_state.traces)))
  CSV.write(joinpath(dir,"progress.csv"),row;append=isfile(joinpath(dir,"progress.csv")))
+ if step>0
+  checkpoint=deepcopy(Dict(model));checkpoint["noises"] .-= AutoGP.Model.JITTER
+  serialize(joinpath(dir,"checkpoint_step_$(step).jls"),checkpoint)
+ end
  println(row);flush(stdout)
  next=filter(x->x>step,schedule)
  if !isempty(next);hmc[:eps_param]=.02*32/first(next);hmc[:eps_noise]=hmc[:eps_param];end
@@ -44,8 +48,9 @@ serialize(joinpath(dir,"posterior.jls.partial"),state)
 restored=AutoGP.GPModel(deserialize(joinpath(dir,"posterior.jls.partial")))
 @assert isapprox(AutoGP.particle_weights(model),AutoGP.particle_weights(restored);atol=1e-12)
 @assert isapprox(AutoGP.observation_noise_variances(model),AutoGP.observation_noise_variances(restored);rtol=1e-10)
+@assert isapprox(Gen.get_score.(model.pf_state.traces),Gen.get_score.(restored.pf_state.traces);rtol=1e-10,atol=1e-8)
 mv(joinpath(dir,"posterior.jls.partial"),joinpath(dir,"posterior.jls");force=true)
 CSV.write(joinpath(dir,"particles.csv"),DataFrame(weight=AutoGP.particle_weights(model),kernel=string.(AutoGP.covariance_kernels(model)),native_log_joint=Gen.get_score.(model.pf_state.traces)))
-status=Dict("complete"=>true,"posterior_qualified"=>false,"training_rows"=>N,"particles"=>particles,"seed"=>seed,"native_target_unchanged"=>true,"training_only"=>true,"elapsed_seconds"=>time()-started,"period_updates"=>updates[],"period_acceptances"=>accepted[],"forecast_issued"=>false,"subsample_feasibility_only"=>(N!=2000),"source_sha256"=>source_identity,"autogp_revision"=>"2ad372db2b8bea176e3b32a769bfb5d6cff80866")
+status=Dict("complete"=>true,"posterior_qualified"=>false,"training_rows"=>N,"particles"=>particles,"julia_threads"=>Threads.nthreads(),"seed"=>seed,"native_target_unchanged"=>true,"training_only"=>true,"elapsed_seconds"=>time()-started,"period_updates"=>updates[],"period_acceptances"=>accepted[],"forecast_issued"=>false,"subsample_feasibility_only"=>(N!=2000),"source_sha256"=>source_identity,"autogp_revision"=>"2ad372db2b8bea176e3b32a769bfb5d6cff80866")
 open(joinpath(dir,"status.toml"),"w") do io;TOML.print(io,status);end
 println(status)

@@ -11,6 +11,7 @@ autodesn_variance_control(
   omega_sd = 0.5,
   initial_phi = 0.8,
   initial_omega = 0.2,
+  save_state_paths = FALSE,
   ...
 )
 }
@@ -24,6 +25,8 @@ autodesn_variance_control(
 \item{omega_sd}{Half-normal prior SD for stationary log-volatility SD.}
 
 \item{initial_phi, initial_omega}{Initial persistence and stationary SD.}
+
+\item{save_state_paths}{Save smoothing paths only for bounded joint coefficient checkpoints.}
 
 \item{...}{Unknown controls are rejected.}
 }

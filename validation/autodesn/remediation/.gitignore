@@ -1,2 +1,5 @@
 artifacts/
 *.log
+
+# Reassembled archives are reproducible from the committed split parts.
+evidence/checkpoints/*.zip

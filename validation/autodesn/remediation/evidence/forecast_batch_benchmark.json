@@ -1,0 +1,22 @@
+{
+  "complete": true,
+  "scope": "Synthetic reservoir-64 fixture with unqualified short fit, paired H30/192 outer/8 inner simulation; other training job active, not whole-study speedup",
+  "max_absolute_path_error": 9.8865e-14,
+  "summary": [
+    {
+      "backend": "batched",
+      "elapsed_seconds": 0.285,
+      "cpu_seconds": 0.285
+    },
+    {
+      "backend": "reference",
+      "elapsed_seconds": 2.359,
+      "cpu_seconds": 2.357
+    }
+  ],
+  "forecast_outer": 192,
+  "forecast_inner": 8,
+  "forecast_horizon": 30,
+  "posterior_qualified": false,
+  "source_reference_sha256": "361f6eb03c29684e27cfac439d0adaa9d7b753a8dcef93b4adbc3c730ad43320"
+}

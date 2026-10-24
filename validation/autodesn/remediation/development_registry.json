@@ -1,0 +1,27 @@
+{
+  "registered_date": "2026-10-23",
+  "scope": "Development on the already examined NHS1 series; no confirmatory outcomes generated",
+  "information_track": "automatic: observed time and response only",
+  "families": [
+    {"id":"F0","readout":"original reservoirs","prior":"original normalized RHS, tau0=.001, slab_scale=1, slab_df=4"},
+    {"id":"F1","readout":"F0 plus direct lags 1:90","prior":"flat normalized RHS with original multipliers"},
+    {"id":"F2flat","readout":"F1 plus period-averaged Fourier basis","prior":"flat normalized RHS"},
+    {"id":"F2","readout":"F1 plus period-averaged Fourier basis","prior":"independent lag/reservoir global RHS scales; proper Gaussian calendar"},
+    {"id":"known_period","period":60,"scope":"privileged calendar ablation, separately reported"},
+    {"id":"SV","readout":"qualified selected mean family","variance":"stationary latent Gaussian log volatility"},
+    {"id":"SVseasonal","readout":"qualified selected mean family","variance":"SV plus four centered log-variance Fourier harmonics"}
+  ],
+  "period_support":{"values":"integers 20:120","prior":"uniform","maximum_non_Nyquist_harmonic":16},
+  "reservoirs":{"definitions":456,"original_admitted":426,"rule":"preserve original full candidate prior and numerical washout admission; document any new-data exclusions"},
+  "chronological_development":[{"fit_start":501,"cutoff":1500,"validation_end":2000},{"fit_start":501,"cutoff":2000,"validation_end":2500}],
+  "development_selection":{"primary":"mean validation CRPS over both folds","secondary":["RMSE","NLL","calibration"],"tie_rule":"prefer simpler qualified family when differences are below computational uncertainty","transform_rule":"rebuild response transforms, PCA and readout scalers at each cutoff"},
+  "mcmc":{"chains":4,"retained_ladder":[32000,128000,256000],"fresh_warmups":[8000,32000,64000],"rank_rhat_max":1.01,"bulk_and_tail_ess_min":400,"major_category_mass_min":0.01,"category_mcse_max":0.01,"chain_frequency_range_max":0.03,"required_successive_qualified_levels":2},
+  "cross_budget":{"probe_mean_sd_tolerance":0.01,"predictive_sd_relative_tolerance":0.02,"major_category_mass_tolerance":0.02,"must_also_agree_with_assessed_mc_uncertainty":true},
+  "predictive_sensitivity":{"outer":[192,384,768],"inner":[8,32,128],"panel_origins":12,"select_before_confirmation":true},
+  "resource_policy":{"memory_limit_bytes":8589934592,"large_job_concurrency":1,"chain_workers":1,"reason":"A production fork worker was OOM-killed despite the short two-worker preflight. Short feasibility timings do not establish long-run headroom.","restart":"retain completed verified chains and rerun missing chains from their original fresh seeds; no partial chain continuation unless exact full state is checkpointed","per_invocation_wall_cap_seconds":7200,"budget_status":"caps and actual unsuccessful costs must be reported; no convergence gate may be waived"},
+  "confirmation_A":{"replications":30,"seeds":"2766021:2766050","status":"not generated; requires method, proposal and computational-policy freeze"},
+  "confirmation_B":{"replications":30,"seeds":"to be separately frozen before generation","status":"not generated; separate mean/variance block"},
+  "confirmation_practical_goals":{"relative_mean_MSE_reduction":0.05,"relative_CRPS_reduction_for_volatility":0.02,"coverage":"reduce high/low volatility imbalance without indiscriminate widening"},
+  "inferential_unit":"independent DGP realization; rolling origin-horizon pairs are dependent",
+  "scientific_claims_allowed":false
+}

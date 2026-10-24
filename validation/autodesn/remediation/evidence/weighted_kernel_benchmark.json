@@ -1,0 +1,46 @@
+{
+  "complete": true,
+  "scope": "Paired synthetic weighted Gaussian kernel; other training jobs active, not an isolated total-fit benchmark",
+  "threads": 1,
+  "seed": 4266100,
+  "replicates": 9,
+  "n": 2000,
+  "summary": [
+    {
+      "p": 101,
+      "backend": "cpp",
+      "elapsed_seconds": 0.001,
+      "cpu_seconds": 0.001
+    },
+    {
+      "p": 201,
+      "backend": "cpp",
+      "elapsed_seconds": 0.003,
+      "cpu_seconds": 0.003
+    },
+    {
+      "p": 401,
+      "backend": "cpp",
+      "elapsed_seconds": 0.01,
+      "cpu_seconds": 0.01
+    },
+    {
+      "p": 101,
+      "backend": "R",
+      "elapsed_seconds": 0.002,
+      "cpu_seconds": 0.002
+    },
+    {
+      "p": 201,
+      "backend": "R",
+      "elapsed_seconds": 0.004,
+      "cpu_seconds": 0.004
+    },
+    {
+      "p": 401,
+      "backend": "R",
+      "elapsed_seconds": 0.015,
+      "cpu_seconds": 0.015
+    }
+  ]
+}

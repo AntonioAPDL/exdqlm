@@ -1,0 +1,15 @@
+"replicate","backend","elapsed_seconds","cpu_seconds"
+1,"batched",0.409,0.408
+1,"reference",2.403,2.401
+2,"batched",0.282999999999999,0.282
+2,"reference",2.359,2.357
+3,"reference",2.222,2.22
+3,"batched",0.285,0.285
+4,"batched",0.361000000000001,0.361000000000001
+4,"reference",2.436,2.435
+5,"reference",2.25,2.248
+5,"batched",0.291,0.291
+6,"reference",2.526,2.527
+6,"batched",0.239000000000001,0.239999999999997
+7,"batched",0.251999999999999,0.252000000000002
+7,"reference",2.342,2.342

@@ -1,0 +1,16 @@
+"quantity","error","tolerance"
+"phi_logit_density_-0.95",7.105427357601e-15,1e-10
+"phi_logit_density_-0.5",3.5527136788005e-15,1e-10
+"phi_logit_density_0",1.77635683940025e-15,1e-10
+"phi_logit_density_0.7",1.77635683940025e-15,1e-10
+"phi_logit_density_0.95",3.19744231092045e-14,1e-10
+"phi_transformed_integral",4.33680868994202e-17,1e-10
+"omega_log_density_0.01",0,1e-10
+"omega_log_density_0.1",0,1e-10
+"omega_log_density_0.5",4.44089209850063e-16,1e-10
+"omega_log_density_2",0,1e-10
+"omega_transformed_integral",1.2038980923279e-15,1e-10
+"phi_conditional_moment_1",0.00217242031457632,0.0122367739966512
+"phi_conditional_moment_2",0.00185167019734878,0.0142444064327643
+"omega_conditional_moment_1",0.00427500252404428,0.0219791108596349
+"omega_conditional_moment_2",0.00298064911484303,0.0231815941560654

@@ -29,7 +29,7 @@ Period and reservoir indices have proper independent prior masses. Every period 
 
 Forecast with `forecast_paths(fit, H, draw_index = ids, inner_paths = K)`. For SV, initialize `autodesn_filter(fit, ids, particles = N)`, then use the filter explicitly. After issuing a forecast, append actual observations with `autodesn_update_history()` and update the matching conditional filter using `previous`. The new observations never reweight static parameters/architectures. Filters check static-draw identity and history prefixes. Initial filters replay the scored training block under each static draw; cloning a single terminal state is not used.
 
-Fitted mean functions and constant-variance fixed-design predictions are available. SV fixed-design posterior prediction is explicitly rejected because full smoothing paths are not retained; causal recursive SV prediction is supported. Full smoothing/PPC support is an outstanding deliverable rather than silently substituting filtered variances.
+Fitted mean functions and constant-variance fixed-design predictions are available. Set `variance_control$save_state_paths=TRUE` to retain latent smoothing paths at bounded joint checkpoints and enable conditional fixed-design fitted replicates. With that option disabled, SV fitted replication is explicitly rejected rather than silently substituting filtered variances. These replicates condition on the observed training design; unconditional recursive PPC and its data-adaptive preprocessing require separate calibration. Causal recursive SV forecasting is supported.
 
 ## Execution and provenance
 
@@ -37,13 +37,21 @@ Use the project-local environments recorded in the parent `ENVIRONMENT.md`. Comp
 
 - `test.R`: independent numerical/small-target tests.
 - `preflight.R F1|F2|SV`: full 426-reservoir training-only feasibility pilots, with source identities captured before loading.
-- `fit.R FAMILY pilot`: four dispersed 1k-warmup/2k-retained pilot chains and a frozen full-support proposal.
-- `fit.R FAMILY production 32000`: four fresh 8k-warmup/32k-retained production chains using that frozen proposal. Higher declared budgets have separate directories.
+- `launch_fit.py FAMILY pilot --workers 1`: immutable complete-source snapshot, four dispersed 1k-warmup/2k-retained pilot chains and a frozen full-support proposal. Do not edit or launch a live streaming R driver directly.
+- `launch_fit.py FAMILY production 32000 --workers 1`: four fresh 8k-warmup/32k-retained chains using the frozen proposal. Higher declared budgets have separate directories. Use `--snapshot KEY` to resume missing complete-chain artifacts under the same immutable source contract; partial chains restart from their recorded seeds.
 - `qualify.py FAMILY PHASE`: independent rank/bulk/tail and architecture/period-frequency screens; cross-budget qualification remains separate.
 - `gp_moves.jl`: native-target period-coordinate independence moves with full proposal corrections.
 - `test_gp_moves.jl`: native trace score/update and detailed-balance checks.
-- `run_process.py`: foreground subprocess completion, actual exit status and Linux child resource use.
+- `run_process.py`: observed subprocess completion, actual exit status, runtime caps and measured resource scopes. `test_resources.py` checks aggregate descendant memory and wall-cap handling. Large jobs run sequentially after an actual fork-worker OOM failure.
+- `launch_sbc.py`: immutable fixed-design ridge/RHS calibration, with atomic per-replication checkpoints and explicit retained budgets.
+- `test_sv_references.R` and `test_gp_reference.jl`: independent small-state conditional references.
+- `benchmark_kernel.R` and `benchmark_forecast.R`: paired synthetic computational benchmarks, separately labeled from full fit/forecast runtime.
+- `archive_checkpoints.py`: SHA256-verified split archives of bank-free numerical artifacts and recorded immutable source snapshots.
 
 All fit caches include a target/source/data contract. An unchanged bank is referenced rather than copied into every checkpoint. Compact checkpoints require reattaching the deterministically reconstructed matching bank and verifying `extension_id`.
 
 Full Bayesian production qualification, SBC, GP higher-budget independent runs, independent confirmations, complete predictive/runtime sensitivity and the final comparison/report remain outstanding until their outputs and gates confirm otherwise. Existing timing extrapolations are feasibility estimates, not completed budgets or running background work.
+
+The first 200-case RHS SBC falls inside its simultaneous rank envelope, but 136 cases have spectral ESS below 400 (minimum 66.5); calibration is unresolved. Both four-chain pilots fail the production screen. F2 found period 60 in all four chains but exhibits severe reservoir-mode disagreement. Its launcher also failed after all four checkpoints were saved; the checkpoint validation and failed invocation record must be read together. No new accuracy or superiority claim follows from these runs.
+
+Forecast simulation now batches paths with a common reservoir/period, preserving their coefficient, noise and conditional-state assignments. In a synthetic reservoir-64/H30/192-outer/8-inner paired benchmark, median time changed from 2.359 s to .285 s with maximum path difference below 1e-13. This is a kernel comparison under concurrent training load, not an isolated whole-study speedup.

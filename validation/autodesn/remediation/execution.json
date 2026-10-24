@@ -6,25 +6,38 @@
   "status": "implementation_in_progress",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
-    "Opt-in augmented readout/period/grouped-prior implementation",
+    "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
     "Weighted Gaussian C++ and shared causal reservoir engine",
-    "Conditional SV sampler and frozen-static-weight causal filtering implementation",
-    "105 numerical/small-target assertions across 10 tests",
-    "Native GP period-move implementation and 100-update detailed-balance test",
-    "Full-bank F1/F2/SV 130-sweep feasibility runs"
+    "Conditional SV sampler, optional bounded smoothing paths and frozen-static-weight causal filtering",
+    "132 numerical and small-target assertions across 15 tests, source and installed package",
+    "804 legacy regression assertions passed, one context skip separately covered by source-only checks",
+    "17 independent SV conditional-density/normalization/moment checks",
+    "Native GP period-move detailed-balance checks and 36 small-conditional reference checks",
+    "Full-bank F1/F2/SV 130-sweep feasibility runs",
+    "Four-chain F1 and F2 training pilots, checkpoint validation and full-support frozen proposals; both fail convergence screens",
+    "200-replication fixed-design RHS SBC; simultaneous rank envelope passed but computational calibration remains unresolved due low case ESS",
+    "Synthetic paired weighted-Gaussian and batched-forecast benchmarks",
+    "Bank-free numerical checkpoint archive with part and internal SHA256 verification"
   ],
   "pending": [
-    "Installed package and legacy regression suites",
-    "Full numerical/SBC calibration and additional SV references",
-    "Four-chain pilots and frozen proposals",
-    "Cross-budget production posterior qualification",
-    "Native GP independent higher-budget fits",
-    "Independent confirmations and predictive sensitivity",
-    "Full smoothing/PPC support",
-    "Final comparison and PDF report"
+    "Complete and qualify fresh four-chain production fits at two successive budgets",
+    "Resolve low-ESS fixed-design RHS calibration; complete ridge and recursive/SV calibration",
+    "Additional independent full-grammar GP reference integration and four full-size runs at successive budgets",
+    "Chronological fold refits, family selection and conditional prior-predictive/representation audits",
+    "Predictive Monte Carlo and conditional state-filter budget qualification",
+    "Independent confirmatory replications, stress cases and complete scoring/plots",
+    "Final complete scientific comparison and PDF report"
   ],
   "confirmation_data_generated": false,
   "confirmation_data_unblinded": false,
   "maximum_memory_bytes": 8589934592,
-  "scientific_claims_allowed": false
+  "scientific_claims_allowed": false,
+  "limitations": {
+    "fork_production": "One worker was lost with a cgroup OOM-kill increment. The two-worker short preflight did not establish long-run headroom. Large jobs are now sequential.",
+    "F2_pilot_launcher": "All four saved chains verify, but the driver exited 1 after a live-script edit; this failed invocation is preserved separately.",
+    "full_size_GP": "An intended 2000-row/16-particle run was explicitly interrupted after the R memory failure, with native stages through 256 saved; no final posterior exists.",
+    "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture."
+  },
+  "production_posterior_qualified": false,
+  "new_benchmark_forecasts_issued": false
 }

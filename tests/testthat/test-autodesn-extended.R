@@ -38,8 +38,9 @@ test_that('weighted Gaussian integral and coefficient covariance match dense ind
   expect_equal(g$log_evidence,expected,tolerance=2e-9)
   P<-solve(V)+crossprod(X,solve(D,X));Cov<-solve(P);expect_equal(g$mean,as.vector(Cov%*%crossprod(X,solve(D,y))),tolerance=1e-9)
   T<-diag(g$sqrt_prior)%*%backsolve(g$chol,diag(ncol(X)));expect_equal(tcrossprod(T),Cov,tolerance=1e-9)
-  if(exists('autodesn_weighted_gaussian_cpp',mode='function')) {
-   z<-autodesn_weighted_gaussian_cpp(X,y,ld,lv);expect_equal(z$log_evidence,g$log_evidence,tolerance=2e-9);expect_equal(z$mean,g$mean,tolerance=2e-9)
+  cpp<-tryCatch(ext_internal('autodesn_weighted_gaussian_cpp'),error=function(e)NULL)
+  if(!is.null(cpp)) {
+   z<-cpp(X,y,ld,lv);expect_equal(z$log_evidence,g$log_evidence,tolerance=2e-9);expect_equal(z$mean,g$mean,tolerance=2e-9)
   }
  }
 })
@@ -135,4 +136,69 @@ test_that('frozen general-dimensional proposal uses normalized t-mixture densiti
  expect_equal(nrow(f$trace),30);expect_equal(nrow(f$draws),6);expect_equal(length(f$beta),6)
  expect_true(all(is.finite(unlist(f$beta))));expect_true(all(is.finite(predict_mu(f))))
  one<-autodesn_update_history(f,.2);expect_equal(length(one$bank$history),length(f$bank$history)+1)
+})
+
+test_that('SV bootstrap filtering agrees with independent two-state grid integration', {
+ step<-ext_internal('.ext_filter_step');phi<-.7;omega<-.6;s2<-.4;residual<-c(.2,1.1)
+ grid<-seq(-7,7,length.out=501)
+ # Independent normalized joint density of (u1,u2,y1,y2).
+ Q<-outer(grid,grid,function(u,v)dnorm(u)*dnorm(v,phi*u,sqrt(1-phi^2))*dnorm(residual[1],0,sqrt(s2*exp(omega*u)))*dnorm(residual[2],0,sqrt(s2*exp(omega*v))))
+ expected<-sum(sweep(Q,2,tanh(grid),'*'))/sum(Q)
+ means<-numeric(8)
+ for(j in 1:8) {
+  set.seed(9260+j);N<-8192L;a<-step(numeric(N),rep(-log(N),N),residual[1],s2,phi,omega,0,TRUE)
+  b<-step(a$particles,a$logw,residual[2],s2,phi,omega,0)
+  means[j]<-sum(exp(b$logw)*tanh(b$particles))
+ }
+ expect_lt(abs(mean(means)-expected),7*sd(means)/sqrt(length(means)))
+ # Zero log volatility gives an exact likelihood independently of filter particles.
+ set.seed(16);N<-64L;a<-step(numeric(N),rep(-log(N),N),.3,s2,phi,0,0,TRUE)
+ expect_equal(a$log_increment,dnorm(.3,0,sqrt(s2),log=TRUE),tolerance=1e-13)
+ expect_equal(a$ess,N,tolerance=1e-12)
+})
+
+test_that('SV conditional fitted replicates use the matching saved smoothing state', {
+ b<-autodesn_extend_bank(ext_example(),list(lags=1:2),list(periods=12,harmonics=2))
+ f<-autodesn_fit_bank(b,n_burn=5,n_mcmc=10,beta_prior='ridge',variance_control=list(type='sv',seasonal=TRUE,save_state_paths=TRUE),model_control=list(save_draws=4),seed=48)
+ pp<-posterior_predict(f,nd=3,seed=35)
+ for(j in 1:3){k<-pp$draw_index[j];u<-f$volatility[[k]];v<-f$draws$variance[k]*exp(ext_internal('.ext_sv_w')(b,f$draws$period_index[k])%*%u$gamma+f$draws$omega[k]*u$path);expect_equal(pp$sd_draws[,j]^2,as.numeric(v)*b$preprocessing$scale^2,tolerance=1e-12)}
+ expect_false(pp$recursive_replication)
+})
+
+test_that('constant responses and short-period boundaries are handled explicitly', {
+ b<-autodesn_prepare_bank(rep(0,8),list(matrix(0,8,1)),normalize_features=FALSE,standardize_features=TRUE)
+ e<-autodesn_extend_bank(b,seasonal_control=list(periods=4.5,harmonics=4))
+ expect_equal(e$extension$calendar[[1]]$raw_d,4)
+ expect_error(autodesn_fit_bank(e,n_burn=1,n_mcmc=2,beta_prior='rhs',variance_control=list(type='sv',seasonal=TRUE)),'greater than eight')
+ z<-autodesn_fit_bank(e,n_burn=5,n_mcmc=8,beta_prior='rhs',seed=19)
+ expect_true(all(is.finite(z$draws$variance)));expect_true(all(z$draws$variance>0))
+ expect_identical(z$meta$period_policy,'fixed_period')
+})
+
+test_that('batched forecasts preserve previous path assignments and conditional SV draws', {
+ tmp<-tempfile(fileext='.R');writeLines(system2('git',c('show','9a0f512:R/autodesn_extended_forecast.R'),stdout=TRUE),tmp);on.exit(unlink(tmp))
+ ref<-new.env(parent=environment(autodesn_fit_bank));sys.source(tmp,ref)
+ # Identity hashing changed with optional smoothing storage; freeze that helper.
+ ref$.ext_draw_identity<-ext_internal('.ext_draw_identity')
+ b<-autodesn_extend_bank(ext_example(),list(lags=1:2),list(periods=c(12,18),harmonics=2))
+ for(sv in c(FALSE,TRUE)) {
+  f<-autodesn_fit_bank(b,n_burn=5,n_mcmc=12,beta_prior='ridge',variance_control=if(sv)list(type='sv',seasonal=TRUE) else NULL,seed=61)
+  ids<-c(1,3,1,2,7,9);fil<-if(sv)autodesn_filter(f,ids,particles=32,seed=91) else NULL
+  a<-forecast_paths(f,4,draw_index=ids,inner_paths=3,state_filter=fil,seed=38)
+  r<-ref$forecast_paths.autodesn_extended_fit(f,4,draw_index=ids,inner_paths=3,state_filter=fil,seed=38)
+  expect_equal(a$yrep,r$yrep,tolerance=1e-12);expect_equal(a$mu_draws,r$mu_draws,tolerance=1e-12);expect_equal(a$sd_draws,r$sd_draws,tolerance=1e-12)
+  expect_identical(a$draw_index,r$draw_index);expect_identical(a$state_filter,r$state_filter)
+ }
+})
+
+test_that('SV conditional targets keep stationary and transformed density constants', {
+ u<-c(.3,-.2,.7,.1,-.4);shape<-c(10,1.5);target<-ext_internal('.ext_sv_phi_logit_target')
+ for(phi in c(-.8,0,.9)) {
+  C<-outer(seq_along(u),seq_along(u),function(a,b)phi^abs(a-b));U<-chol(C)
+  dense<--.5*(length(u)*log(2*pi)+2*sum(log(diag(U)))+sum(forwardsolve(t(U),u)^2))
+  expected<-dense+dbeta((phi+1)/2,shape[1],shape[2],log=TRUE)+log((1-phi^2)/4)
+  expect_equal(target(qlogis((phi+1)/2),u,shape),expected,tolerance=1e-11)
+ }
+ expect_identical(ext_internal('.ext_sv_loglik')(rep(-1000,5),rep(0,5),.4),2500)
+ expect_identical(ext_internal('.ext_sv_omega_log_target')(1000,u,rep(0,5),.4,rep(0,5),.5),-Inf)
 })

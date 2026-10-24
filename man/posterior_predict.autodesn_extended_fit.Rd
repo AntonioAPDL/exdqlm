@@ -2,7 +2,7 @@
 % Please edit documentation in R/autodesn_extended_forecast.R
 \name{posterior_predict.autodesn_extended_fit}
 \alias{posterior_predict.autodesn_extended_fit}
-\title{Fixed-design prediction for an augmented constant-variance AutoDESN}
+\title{Conditional fixed-design replication for augmented AutoDESN}
 \usage{
 \method{posterior_predict}{autodesn_extended_fit}(object, nd = 1000L, seed = NULL, ...)
 }
@@ -19,5 +19,5 @@
 Conditional means and predictive samples.
 }
 \description{
-Fixed-design prediction for an augmented constant-variance AutoDESN
+Conditional fixed-design replication for augmented AutoDESN
 }

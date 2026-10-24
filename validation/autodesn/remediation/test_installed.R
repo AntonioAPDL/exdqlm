@@ -1,0 +1,6 @@
+.libPaths(c('validation/autodesn/remediation/artifacts/library',.libPaths()))
+library(exdqlm);library(testthat)
+r<-testthat::test_file('tests/testthat/test-autodesn-extended.R',reporter='summary',stop_on_failure=FALSE)
+saveRDS(r,'validation/autodesn/remediation/artifacts/installed_tests.rds');s<-as.data.frame(r)
+jsonlite::write_json(list(complete=TRUE,tests=nrow(s),assertions=sum(s$nb),failed=sum(s$failed),errors=sum(s$error),warnings=sum(s$warning),passed=sum(s$passed),library=system.file(package='exdqlm')), 'validation/autodesn/remediation/evidence/installed_tests.json',pretty=TRUE,auto_unbox=TRUE)
+stopifnot(sum(s$failed)==0,!any(s$error))

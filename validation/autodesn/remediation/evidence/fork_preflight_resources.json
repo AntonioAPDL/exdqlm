@@ -1,0 +1,16 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/fork_preflight.R"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 21.023123493003368,
+  "peak_child_rss_kib": 4067968,
+  "sampled_peak_process_tree_pss_kib": 0,
+  "sampled_peak_environment_cgroup_anon_bytes": 5538349056,
+  "user_seconds": 19.670864,
+  "system_seconds": 2.7952079999999997,
+  "runner_sha256": "28166adeada834a508e65e5b14991015847ecc1b39dca1e15e1afc54b7ff40dc",
+  "scope": "Observed Linux wait4 child completion; sampled process-tree PSS every 0.5s; cgroup anon includes other active jobs"
+}
