@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "stage": "training_only_feasibility_not_qualified",
+  "family": "SV",
+  "bank_models": 426,
+  "period_states": 101,
+  "build_seconds": 8.373,
+  "sweeps": 130,
+  "seconds": 5.62,
+  "seconds_per_sweep": 0.0432,
+  "projected_four_32k_chains_seconds": 6916.9231,
+  "object_bytes": 788534912,
+  "computation": {
+    "elapsed_seconds": 5.363,
+    "evidence_evaluations": 520,
+    "proposals": 390,
+    "acceptances": 4
+  },
+  "source_sha256": {
+    "R/autodesn_extended.R": "0c110c755af7c1139d44adf2ea5f3d824b669c124b70786de06b34658dceee95",
+    "R/autodesn_extended_forecast.R": "d1add2fa61c5d804768c6a9a2bf1112060fa2c8bc7c4506e6b237343e0c5d15e",
+    "R/autodesn_extended_proposal.R": "ac45fcbeaf7b64a44fd01df7f451f13d4064eea354106664b1999eb0fe93f245",
+    "src/autodesn_rhs.cpp": "5f6b4534eafd9414f303ce177f201e331d3800d61907e94ceda8b8d096276c4a"
+  },
+  "test_outcomes_used": false
+}

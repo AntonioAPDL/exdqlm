@@ -1,0 +1,8 @@
+{
+  "complete": true,
+  "aggregate_child_memory_passed": true,
+  "wall_cap_passed": true,
+  "observed_test_tree_pss_kib": 140307,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Controlled subprocess-tree fixture, not production peak memory"
+}

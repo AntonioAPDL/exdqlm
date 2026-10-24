@@ -1,0 +1,225 @@
+{
+  "complete": true,
+  "archive": "remediation_checkpoint_002",
+  "committed_at": "cccb22d595efb74445fff8d6cb855c5c7076f7f5",
+  "removed_duplicate_files": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/trace_2.csv",
+      "bytes": 8715287,
+      "sha256": "b4803eaafd32e679e77b4b9cdb49c5961a0a4da5f9887c6dfbd918f97d7d0b1d"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/chain_2_status.json",
+      "bytes": 484,
+      "sha256": "b0a701744d04136fe8315294998415ef3913bbab75a7d92edcffaee75a520a8a"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/chain_2.rds",
+      "bytes": 9902397,
+      "sha256": "0fd3879ad70cb3316c7f10f691cbff55362530655267eca4d7ff86fc51d1c902"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/configuration.json",
+      "bytes": 15638,
+      "sha256": "cdc94f51cd2b780f9a6c9e5f77a404f7acf45f0b64e51ab48325870af7a9d7e5"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/chain_4.rds",
+      "bytes": 10046593,
+      "sha256": "3adb109290286eb99b10cef1a809ebd160f9caed87695b08538e69a409292dbd"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/chain_4_status.json",
+      "bytes": 485,
+      "sha256": "4f9c3391b13c2b05ddb4592f96456989c8d7a0247b1199c0d7ea5d2e080a43bb"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/trace_4.csv",
+      "bytes": 8716404,
+      "sha256": "098ceba6d89de7c721354b3f327d1082d96f490ae4a6135eebe91d354cd226a8"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_32000/contract.rds",
+      "bytes": 7970,
+      "sha256": "3c9113a473bbc278466d383b34e52c3c497635a8f28f5bc792bdc86fffca2db4"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/trace_2.csv",
+      "bytes": 7836336,
+      "sha256": "da9bb824c9d35192b08ba78995fc3d68d126c592f0b999c23d01e1ff6d829b5a"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/chain_3.rds",
+      "bytes": 4100406,
+      "sha256": "270d4c31d8f7daf82e55da30ba8d95e3da3ba80d1b006c69d51447386f94039d"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/chain_2.rds",
+      "bytes": 4100515,
+      "sha256": "787a951b1912d867534d9a4f6211b7d174a122ef0217c6f5395ded256b0bf701"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/trace_3.csv",
+      "bytes": 7836373,
+      "sha256": "545e2e403961cbba334f19cd09c4e7e6b5846d5f53249c00ed0dd81513503a7a"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/status.json",
+      "bytes": 203,
+      "sha256": "c4f3b25e8b6784712f40b408a827c685654d18eb6c9d6ce5dc3b1973897652f4"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/chain_4.rds",
+      "bytes": 4100146,
+      "sha256": "4307617857341c9030d9c11678f4523fd95e255890ef5b0586009353cba1768a"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/chain_1.rds",
+      "bytes": 4100622,
+      "sha256": "3fb7ace07c49d4467ec0f0b21fcaa05221beeccc8abfce1b3f0fe0de4ef2747f"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/trace_4.csv",
+      "bytes": 7837066,
+      "sha256": "658dde0975b510959ab0363d79e6962f085481328a45a192e5a1bf9ee3903c32"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/grouped_reference/trace_1.csv",
+      "bytes": 7835823,
+      "sha256": "685fd744ab47cfcb2d0d774c30728a1d59e2fcbee613ce58fdd5e3824ceeede5"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/trace_2.csv",
+      "bytes": 7854372,
+      "sha256": "32c7690802481551dd2deb57bd4aba48667cb4e741e4d3166286cff434e05c8e"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/chain_3.rds",
+      "bytes": 4121906,
+      "sha256": "6e8ba8fa632310fbc523f9f786be5ee426c5d7f8113e5af02e01ec58b7131e9b"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/chain_2.rds",
+      "bytes": 4122241,
+      "sha256": "3efefb661f2e6c5b8931f21db47b1b53649a873be5d6a5c135b20fa5cbf9a80d"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/trace_3.csv",
+      "bytes": 7854304,
+      "sha256": "43801991ad72fdbb1b32a11982ab571ae77711de81072197c5cdaaf04ebb5c6c"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/status.json",
+      "bytes": 229,
+      "sha256": "2e67711b855ac8cd15b3575fd58b3eaeb867215cd94cf7328c0857308d0c42bb"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/chain_4.rds",
+      "bytes": 4122035,
+      "sha256": "96046bab7cbf135407e1b677db0381ce2d4cec4457646b67d8ccbe0930cd2a03"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/chain_1.rds",
+      "bytes": 4122003,
+      "sha256": "fdf3397da46359eeb560ee6ed64d397efcfef6400973c2a639bcf0f1c673d056"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/locals_1.csv",
+      "bytes": 21520,
+      "sha256": "6cd8acd08a60f3c7fd3030ae00731eaf580f199c84deac16133a3b115e924b71"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/locals_4.csv",
+      "bytes": 21503,
+      "sha256": "e84cbdb7a7a1ff0ad7fe7cb831707ae3f463572bc73cc55bf202bc3f12183108"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/locals_2.csv",
+      "bytes": 21541,
+      "sha256": "9e85f7163b6cbaef789274044ecfdf31fb1d20c366dc8ca025032b0cd73adf20"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/trace_4.csv",
+      "bytes": 7855560,
+      "sha256": "c3ad74597f68fc29d98db0e87afa088cce3af4d861c250ef9e42b8d11810d63a"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/locals_3.csv",
+      "bytes": 21562,
+      "sha256": "cfea45db7bccd1018b73e543013f25dea69e74449cd5eb778fc227ae1cfba32f"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/local_reference/trace_1.csv",
+      "bytes": 7855598,
+      "sha256": "69b0560328aede7a8ad9de629c16b7e272a6bf5ee86f2ecb62591833e8725385"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/trace_2.csv",
+      "bytes": 2451464,
+      "sha256": "7ded17ddc2d74891e66e05008f6b98bca4465cd9478e80c1a2695fcf58da19b7"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/joint_1.csv",
+      "bytes": 484315,
+      "sha256": "0b6de842276632bd640c5cafd1f86b468fb4c303c1c1acb4c213285234f3ee1c"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/chain_3.rds",
+      "bytes": 1251104,
+      "sha256": "ab8d012bc7a6f239a34e66559a3dfa81f540209e883c294cb5b2214881c02f94"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/chain_2.rds",
+      "bytes": 1250847,
+      "sha256": "6c9332eb88f94bc79ff461ad3e0fc208c8be23b60c89ba02a0e952262b2b969b"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/joint_2.csv",
+      "bytes": 484571,
+      "sha256": "0d2004e386e594e3ef737686c546d5d39885b3607fae64ac8555405551703f81"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/trace_3.csv",
+      "bytes": 2451659,
+      "sha256": "fb4398b090b767af33fa6fc280c61f49238142625e60a6b127555edae2e8e8e7"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/status.json",
+      "bytes": 183,
+      "sha256": "f4ee58cd5d4b9f7b7d11774dc295aeb3a1922f20f0c6ddb7f462ac52cee6345c"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/chain_4.rds",
+      "bytes": 1251018,
+      "sha256": "6be824a173ef7b42c41750cbf8139781460d9697f1d55c740f47f2d1bdea6f73"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/chain_1.rds",
+      "bytes": 1250745,
+      "sha256": "7ae0bba3ba12db569f573502a61b6e495b3a0e9535b806b48157ad9f85066d20"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/trace_4.csv",
+      "bytes": 2452160,
+      "sha256": "b76bfdfc5848c653a8190238372471217790fe84a01a1acf900fb753ebdc6de1"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/joint_3.csv",
+      "bytes": 484799,
+      "sha256": "bab34fd430cbe7d306b5bb4525f5860aacf2869ad3bb2728cbf110a5bea9e4cd"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/joint_4.csv",
+      "bytes": 484092,
+      "sha256": "76007f5af77828f84eab7eaa96f51992e019cdef1e548a7ac8b873a10c021c35"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/sv_joint_reference/trace_1.csv",
+      "bytes": 2451657,
+      "sha256": "e11031b7a80111ac689b629cbd6290ca53b298f86ed9745d2c4a2aa43d606f17"
+    }
+  ],
+  "bytes_reclaimed": 149895736,
+  "unarchived_files_preserved": [],
+  "scope": "Only exact, already verified and committed archive members; original data/banks, current runs, calibration cases, published evidence tables and complete checkpoint content remain preserved."
+}

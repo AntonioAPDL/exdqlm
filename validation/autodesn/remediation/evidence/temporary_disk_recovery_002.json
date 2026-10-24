@@ -1,0 +1,40 @@
+{
+  "complete": true,
+  "removed_generated_unreferenced_cache_copies": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/.inference_bank_F2flat.rds.9wlAEw.b1FPNK",
+      "bytes": 83099648,
+      "mtime": 1792819896.8717816
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/extension_F2flat.rds.writing",
+      "bytes": 20586910,
+      "mtime": 1792820240.2727885
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/.inference_bank_F2flat.rds.9wlAEw",
+      "bytes": 213647360,
+      "mtime": 1792819254.546472
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/.inference_raw_bank.rds.hQScIq.Rjfd4m",
+      "bytes": 124256256,
+      "mtime": 1792819892.259679
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/extension_F2.rds.writing",
+      "bytes": 20586921,
+      "mtime": 1792820231.7565966
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/.inference_raw_bank.rds.hQScIq",
+      "bytes": 200015872,
+      "mtime": 1792819878.9273844
+    }
+  ],
+  "removed_bytes": 662192967,
+  "free_bytes_before": 898740224,
+  "free_bytes_after": 1560948736,
+  "active_cache_sha256_verified": "a599808698b5013cb83441edeccbb82329668f95526d5d9e79ff8dc16c406a56",
+  "scope": "Only stale derived temporary cache copies, not original inputs, accepted posterior checkpoints or active manifested cache; no open process descriptors found"
+}

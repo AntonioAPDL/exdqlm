@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "replications": 200,
+  "retained": 24000,
+  "recovery_retained": 96000,
+  "recomputed_cases": 11,
+  "variance": "constant",
+  "scope": "Recursive-model SBC conditional on an independent calibration prefix and frozen weights/projections/readout/input/response geometry; not response-adaptive production-pipeline calibration",
+  "maximum_uniform_ecdf_deviation": 0.0764,
+  "simultaneous_DKW_bound": 0.1346,
+  "uniformity_envelope_passed": true,
+  "minimum_case_spectral_ess": 643.4689,
+  "cases_below_400_ess": 0,
+  "computational_calibration_resolved": true,
+  "posterior_production_qualified": false,
+  "additional_independent_replications": 0,
+  "assembly_sha256": "94ed25839349e5c1fcbdb7bec281b81755c338d0a97123f634f2d91ef233d1cd"
+}

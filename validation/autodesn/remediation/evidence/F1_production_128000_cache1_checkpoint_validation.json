@@ -1,0 +1,9 @@
+{
+  "complete": true,
+  "chain_artifacts_verified": 4,
+  "contract_id": "2512effc0296541d20a3ec7e03a4559c5ad95c303326db8f1fe2d498a6ccfec1",
+  "target_id": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "proposal_verified": false,
+  "posterior_qualified": false,
+  "scope": "Saved chain checksums, target identities and exported trace parity; launcher status remains a separate execution record"
+}

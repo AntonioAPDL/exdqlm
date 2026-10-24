@@ -1,0 +1,14 @@
+{
+  "complete": true,
+  "scope": "Independent conditional grouped-RHS posterior with fixed local scales, two learned global scales, one shared slab, proper Gaussian calendar, unknown IG noise and variable architecture dimension; not learned-local or recursive SBC",
+  "replications": 8,
+  "prior_integration_counts": [
+    32768,
+    131072
+  ],
+  "maximum_reference_mcse": 7.3444138675018144e-06,
+  "maximum_refinement_difference": 4.7472285574778894e-05,
+  "fixture_sha256": "697ac1ac2b9c5db5aac8e7a43f21edff3d6dd729bf438cdd2e249a1f6ade0bbb",
+  "elapsed_seconds": 8.326103241997771,
+  "production_qualified": false
+}

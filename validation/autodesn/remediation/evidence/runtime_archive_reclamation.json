@@ -1,0 +1,8 @@
+{
+  "complete": true,
+  "path": "/workspace/scratch/9cf6195923f9/runtime/julia_native/julia.tar.gz",
+  "archive_sha256": "6a78a03a71c7ab792e8673dc5cedb918e037f081ceb58b50971dfb7c64c5bf81",
+  "bytes_reclaimed": 173848413,
+  "installed_executable_sha256": "d413f34bf8e3356cb1ce2da762e1799d038e7f5b512adedc26ceb562d3e196f9",
+  "reason": "Verified duplicate downloaded installer; installed executable matches archive exactly. Executable, libraries, depot, registry and checkpoints preserved."
+}

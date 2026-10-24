@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "commit": "a9807447475939f34459a1d0a723cef671b7f4c3",
+  "working_copies_removed": 479,
+  "bytes_reclaimed": 287288962,
+  "manifests": [
+    "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_003.manifest.json"
+  ],
+  "restoration": "restore_checkpoints.py reads omitted parts directly from the same local Git blobs; remote committed checkpoint content unchanged"
+}

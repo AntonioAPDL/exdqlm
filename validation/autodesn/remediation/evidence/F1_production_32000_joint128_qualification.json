@@ -1,0 +1,29 @@
+{
+  "complete": true,
+  "screen_passed": false,
+  "qualified": false,
+  "cross_budget_qualification_pending": true,
+  "forecast_allowed": false,
+  "phase": "production_32000_joint128",
+  "family": "F1",
+  "maximum_probability_mcse": 0.01320575748697686,
+  "maximum_rhat": 1.0068161321716453,
+  "minimum_bulk_ess": 1033.1564475674406,
+  "minimum_tail_ess": 1033.1564475674406,
+  "frequency_ranges": {
+    "model": 0.04846874999999995,
+    "period_index": 0.0,
+    "depth": 0.033093750000000005,
+    "reservoir_lag": 0.05487500000000001
+  },
+  "visited_architectures": 192,
+  "visited_periods": 1,
+  "trace_sha256": {
+    "trace_1.csv": "e4963aa45b7a9c405cd797dcd3d9511576d7f958553d8819a4eba58817ecef0b",
+    "trace_2.csv": "f361464e80afe142d1a12ad3c997e060cd2a586c6124f99b71bae93712c0d553",
+    "trace_3.csv": "b3610c36de51ca9cd40930ed182e92517d6911efd9194f04513a654d3d62e006",
+    "trace_4.csv": "bbf453cf9573f28f366b93c327c8807dfe9c4709b8c7b24465eb2a8ae7682ad5"
+  },
+  "target_id": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "note": "Passing this screen is necessary; independent references, mode/cross-budget and predictive Monte Carlo stability are still required."
+}

@@ -1,0 +1,19 @@
+{
+  "complete": true,
+  "passed": true,
+  "chains": [
+    {
+      "chain": 2,
+      "common_trace_fields": 12,
+      "saved_joint_states": 2048,
+      "trace_and_joint_states_bit_identical": true
+    },
+    {
+      "chain": 4,
+      "common_trace_fields": 12,
+      "saved_joint_states": 2048,
+      "trace_and_joint_states_bit_identical": true
+    }
+  ],
+  "scope": "Original full-bank production and exact matrix/augmentation cache, same initial values, seeds and target; no statistical approximation"
+}

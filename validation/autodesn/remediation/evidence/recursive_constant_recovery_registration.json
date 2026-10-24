@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-24",
+  "scope": "Recompute every existing recursive calibration case below monitored ESS 400; selection uses ESS alone, never ranks or held-out scores",
+  "variance": "constant",
+  "replications": 200,
+  "original_retained": 24000,
+  "recovery_retained_ladder": [
+    96000,
+    384000
+  ],
+  "source_snapshot": "becf3b7e82a9273a464805b9408a360123ba554971c7885292549057cf99a404",
+  "selected_cases": [
+    11
+  ],
+  "deficient_fields": {
+    "11": {
+      "log_global_1": 301.549845334379
+    }
+  },
+  "truth_seeds_unchanged": true,
+  "all_original_cases_preserved": true,
+  "additional_independent_replications": 0
+}

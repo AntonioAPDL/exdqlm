@@ -1,0 +1,104 @@
+{
+  "loaded_rss_kib": 2344856,
+  "components": [
+    {
+      "component": "y",
+      "bytes": 16048,
+      "_row": "y"
+    },
+    {
+      "component": "n",
+      "bytes": 56,
+      "_row": "n"
+    },
+    {
+      "component": "normalize_features",
+      "bytes": 56,
+      "_row": "normalize_features"
+    },
+    {
+      "component": "keep_idx",
+      "bytes": 8048,
+      "_row": "keep_idx"
+    },
+    {
+      "component": "history",
+      "bytes": 20048,
+      "_row": "history"
+    },
+    {
+      "component": "history_scaled",
+      "bytes": 20048,
+      "_row": "history_scaled"
+    },
+    {
+      "component": "preprocessing",
+      "bytes": 1064,
+      "_row": "preprocessing"
+    },
+    {
+      "component": "meta",
+      "bytes": 1456,
+      "_row": "meta"
+    },
+    {
+      "component": "models",
+      "bytes": 663987296,
+      "_row": "models"
+    },
+    {
+      "component": "templates",
+      "bytes": 64200480,
+      "_row": "templates"
+    },
+    {
+      "component": "specifications",
+      "bytes": 6691648,
+      "_row": "specifications"
+    },
+    {
+      "component": "model_info",
+      "bytes": 119896,
+      "_row": "model_info"
+    },
+    {
+      "component": "prior",
+      "bytes": 3456,
+      "_row": "prior"
+    },
+    {
+      "component": "standardize_features",
+      "bytes": 56,
+      "_row": "standardize_features"
+    },
+    {
+      "component": "feature_sd_tol",
+      "bytes": 56,
+      "_row": "feature_sd_tol"
+    }
+  ],
+  "stripped_rss_kib": 2792420,
+  "gc": [
+    {
+      "used": 1074810,
+      "(Mb)": 57.5,
+      "gc trigger": 24913860,
+      "(Mb).1": 1330.6,
+      "max used": 24422164,
+      "(Mb).2": 1304.3,
+      "_row": "Ncells"
+    },
+    {
+      "used": 90272029,
+      "(Mb)": 688.8,
+      "gc trigger": 283440216,
+      "(Mb).1": 2162.5,
+      "max used": 234458751,
+      "(Mb).2": 1788.8,
+      "_row": "Vcells"
+    }
+  ],
+  "target_bank_id": "d78dc44784b5cf2af70ec8238d19009dcdac77eebcc0e6d5477f8ed46edaa795",
+  "admitted": 426,
+  "all_model_masses_retained": true
+}

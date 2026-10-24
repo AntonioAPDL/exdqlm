@@ -1,0 +1,33 @@
+{
+  "complete": true,
+  "path": "validation/autodesn/remediation/artifacts/inference_raw_bank.rds",
+  "sha256": "a599808698b5013cb83441edeccbb82329668f95526d5d9e79ff8dc16c406a56",
+  "bytes": 620418450,
+  "source_bank_path": "validation/autodesn/nonlinear_heteroscedastic/artifacts/standardized_bank/bank.rds",
+  "source_bank_sha256": "0beca3337cda15835b1f84ff96d7f038e229158cdeb4db37820c7f3855caef1d",
+  "bank_ids": {
+    "F1": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63",
+    "F2": "b51585c0ff849c9dfb81f0318f6ba46afd8dcfd56f07de7fbcf250a5c80b3fdb",
+    "F2flat": "d78dc44784b5cf2af70ec8238d19009dcdac77eebcc0e6d5477f8ed46edaa795"
+  },
+  "admitted": 426,
+  "forecast_templates_valid": false,
+  "scope": "Exact inference matrix view; all 426 priors, training rows, scalers and terminal-state identities retained. Reattach the original bank for forecasting.",
+  "extensions": {
+    "F1": {
+      "path": "validation/autodesn/remediation/artifacts/extension_F1.rds",
+      "sha256": "ed54b8f0d8a36724a85d48fe5ea480f6ee163cc102f308046c44b30551e70d15",
+      "bank_id": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63"
+    },
+    "F2": {
+      "path": "validation/autodesn/remediation/artifacts/extension_F2.rds",
+      "sha256": "9e71258b1b9b161a98e69f95460c455834e321105ab70985f58fecda5dbde4f3",
+      "bank_id": "b51585c0ff849c9dfb81f0318f6ba46afd8dcfd56f07de7fbcf250a5c80b3fdb"
+    },
+    "F2flat": {
+      "path": "validation/autodesn/remediation/artifacts/extension_F2flat.rds",
+      "sha256": "600a53b26d0e72124fcb45365e376b4b4d4b9f72cab56831165d54c86050a845",
+      "bank_id": "d78dc44784b5cf2af70ec8238d19009dcdac77eebcc0e6d5477f8ed46edaa795"
+    }
+  }
+}

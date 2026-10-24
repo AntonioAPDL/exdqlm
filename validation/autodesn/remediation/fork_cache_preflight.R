@@ -1,0 +1,9 @@
+# Long memory measurement using exact, reloaded inference matrices instead of
+# serialized reservoir construction environments. This is not posterior qualification.
+source('validation/autodesn/load_checkout.R');root<-'validation/autodesn/remediation';Rcpp::sourceCpp('src/autodesn_rhs.cpp',cacheDir=file.path(root,'artifacts/cpp'),showOutput=FALSE)
+manifest<-jsonlite::fromJSON(file.path(root,'artifacts/inference_cache_manifest.json'));stopifnot(identical(digest::digest(file=manifest$path,algo='sha256'),manifest$sha256))
+e<-readRDS(manifest$path);entry<-manifest$extensions$F2flat;stopifnot(identical(digest::digest(file=entry$path,algo='sha256'),entry$sha256));e$extension<-readRDS(entry$path);class(e)<-c('autodesn_extended_bank',class(e));stopifnot(identical(e$extension$id,manifest$bank_ids$F2flat));gc(FALSE)
+started<-proc.time()[3]
+result<-parallel::mclapply(1:4,function(chain){f<-autodesn_fit_bank(e,n_burn=1000,n_mcmc=4000,beta_prior='rhs',rhs_control=list(tau0=.001,slab_scale=1,slab_df=4,initial_global=c(.1,1,10,100)[chain],interweave_global=TRUE),model_control=list(moves=4,joint_moves=2,save_draws=2048,initial_model=as.integer(round(seq(1,426,length.out=4))[chain]),initial_period=as.integer(round(seq(1,101,length.out=4))[chain])),initial_variance=c(.1,.5,1,4)[chain],seed=3366100+chain,backend='cpp');f$bank<-NULL;path<-file.path(root,'artifacts',paste0('cache_preflight_chain_',chain,'.rds'));saveRDS(f,path);list(chain=chain,complete=TRUE,computation=f$computation,checkpoint_sha256=digest::digest(file=path,algo='sha256'))},mc.cores=4,mc.set.seed=FALSE)
+stopifnot(length(result)==4L,all(vapply(result,function(x)is.list(x)&&isTRUE(x$complete),TRUE)))
+jsonlite::write_json(list(complete=TRUE,workers=4,shared_exact_matrix_cache=TRUE,warmup=1000,retained=4000,elapsed_seconds=unname(proc.time()[3]-started),chains=result,posterior_qualified=FALSE),file.path(root,'evidence/fork_cache_preflight_reloaded.json'),pretty=TRUE,auto_unbox=TRUE)

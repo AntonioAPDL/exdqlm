@@ -1,0 +1,7 @@
+{
+  "complete": true,
+  "cases": 4,
+  "common_traces_bit_identical": true,
+  "coefficient_local_and_volatility_states_bit_identical": true,
+  "scope": "Monitoring additions under ridge/RHS and constant/SV targets, same seeds and R algebra"
+}

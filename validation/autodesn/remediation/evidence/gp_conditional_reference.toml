@@ -1,0 +1,9 @@
+checks = 36
+grid_refinement_max_difference = 8.034479210550227e-5
+scope = "Single native periodic-leaf conditional with other parameters/tree fixed; not exhaustive full grammar and not full-size SMC convergence"
+posterior_truncation_bound = 2.9778996306308046e-10
+mcmc_updates = 26000
+complete = true
+accepted = 10716
+native_dense_score_constant_error = 2.4868995751603507e-14
+posterior_qualified = false

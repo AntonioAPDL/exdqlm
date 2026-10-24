@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-24",
+  "trigger": "Completed F1 128k passes continuous rank/ESS thresholds but fails major-category frequency-range threshold; do not waive gate.",
+  "next": "Freeze an exact reservoir-local proposal from training-only 128k checkpoints; evaluate fresh 32k chains with one additional collapsed local move and otherwise unchanged controls.",
+  "target_or_hyperparameters_changed": false,
+  "all_426_reservoirs_retained": true,
+  "confirmation_generated": false,
+  "baseline_256k_status": "not yet run; computational repair evaluated before further escalation",
+  "qualification": "Require two successive individually qualified fresh budgets under a common frozen proposal policy and cross-budget stability; existing failed budgets remain failed.",
+  "res_local_32k_result": "Completed; minimum ESS 440.7, maximum Rhat 1.0122, categorical ranges still fail",
+  "joint_scale_local_followup": {
+    "date": "2026-10-24",
+    "reason": "Training-only major-mode log-global shifts and failed architecture-frequency gates; propose the local and noise/global/slab scales together",
+    "independent_reference": "12 learned-local prior-integration quantities pass; max Rhat 1.00251, min bulk ESS 1959, min tail ESS 1757",
+    "next": "Fresh 32k retained, 8k warmup, four chains with frozen training-only base-128k global/discrete and reservoir-local proposals",
+    "initial_slab_variances": [
+      0.1,
+      1,
+      4,
+      16
+    ],
+    "hyperprior_unchanged": true,
+    "heldout_outcomes_used": false
+  }
+}

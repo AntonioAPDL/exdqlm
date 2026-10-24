@@ -1,0 +1,15 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/fit.R",
+    "F1",
+    "pilot"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 373.69363266400615,
+  "peak_child_rss_kib": 3684572,
+  "user_seconds": 371.58892,
+  "system_seconds": 2.048081,
+  "scope": "Linux wait4 foreground child; completion observed, not a background claim"
+}

@@ -9,6 +9,10 @@ autodesn_rhs_local_cpp <- function(log_local, log_aux, beta, log_tau, log_slab, 
     .Call(`_exdqlm_autodesn_rhs_local_cpp`, log_local, log_aux, beta, log_tau, log_slab, max_attempts)
 }
 
+autodesn_weighted_gaussian_cpp <- function(X, y, log_observation_variance, log_prior_variance) {
+    .Call(`_exdqlm_autodesn_weighted_gaussian_cpp`, X, y, log_observation_variance, log_prior_variance)
+}
+
 cpp_build_polytrend_FF_GG <- function(order) {
     .Call(`_exdqlm_cpp_build_polytrend_FF_GG`, order)
 }

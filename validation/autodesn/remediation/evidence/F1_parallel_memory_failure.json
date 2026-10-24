@@ -1,0 +1,10 @@
+{
+  "complete": false,
+  "observation": "One F1 fork worker disappeared and cgroup oom_kill increased from 94 to 95 during the first production invocation. No chain checkpoint existed at observation.",
+  "phase": "F1_production_32000",
+  "memory_limit_bytes": 8589934592,
+  "short_preflight_generalizes_to_production": false,
+  "corrective_policy": "Sequential large-bank chains; avoid overlapping native GP and large R fits. Preserve any complete checkpoints, retry missing chains with identical contract and seeds.",
+  "observed_cgroup_memory_events": "low 0\nhigh 0\nmax 335979\noom 294\noom_kill 95\noom_group_kill 0\n",
+  "observed_time_unix": 1792818226.9059622
+}

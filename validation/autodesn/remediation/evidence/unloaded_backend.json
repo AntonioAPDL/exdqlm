@@ -1,0 +1,5 @@
+{
+  "complete": true,
+  "auto_fallback_reproduces_R": true,
+  "explicit_cpp_fails_when_unavailable": true
+}

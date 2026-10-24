@@ -1,0 +1,10 @@
+source('validation/autodesn/load_checkout.R');source('validation/autodesn/remediation/readout_audit.R')
+set.seed(8316100);x<-seq(-1,1,length.out=15);b<-autodesn_prepare_bank(sin(x)+rnorm(15,sd=.1),list(cbind(x,x*x)),normalize_features=FALSE,standardize_features=TRUE)
+e<-autodesn_extend_bank(b,readout_control=list(prior='grouped'),seasonal_control=list(periods=10,harmonics=2))
+f<-autodesn_fit_bank(e,n_burn=10,n_mcmc=20,beta_prior='rhs',rhs_control=list(tau0=.001),model_control=list(save_draws=4),seed=19,backend='R')
+a<-remediation_readout_audit(f,1:3);stopifnot(nrow(a$draws)==3L,all(a$draws$conditional_edf>0),max(abs(aggregate(conditional_edf~draw,a$groups,sum)$conditional_edf-a$draws$conditional_edf))<1e-10)
+# Direct observation-space smoother is independent of prior-whitened diagonal.
+k<-1;d<-.ext_design(e,f$draws$model[k],f$draws$period_index[k]);ell<-numeric(e$extension$dimension);ell[d$slots]<-f$local[[k]];lv<-.ext_logv(d,ell,as.numeric(f$draws[k,paste0('log_global_',1:2)]),f$draws$log_slab[k],rep(.001,2),'rhs',1,10)
+V<-diag(exp(lv));C<-f$draws$variance[k]*diag(b$n)+d$X%*%V%*%t(d$X);expected<-sum(diag(d$X%*%V%*%t(d$X)%*%solve(C)))
+stopifnot(abs(expected-a$draws$conditional_edf[1])<1e-9)
+jsonlite::write_json(list(complete=TRUE,draw_checkpoints=3L,observation_space_identity_error=abs(expected-a$draws$conditional_edf[1]),scope='Small conditional geometry fixture, not production shrinkage evidence'), 'validation/autodesn/remediation/evidence/readout_audit_test.json',pretty=TRUE,auto_unbox=TRUE)

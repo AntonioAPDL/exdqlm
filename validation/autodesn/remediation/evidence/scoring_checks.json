@@ -1,0 +1,6 @@
+{
+  "complete": true,
+  "passed": true,
+  "checks": ["distinct_outer_direct_pair_definition", "analytic_normal_mean_variance_density_quantiles", "target_timestamp", "current_innovation_integration", "single_cluster_rejected"],
+  "scope": "Synthetic marginal score identities; no posterior or benchmark forecast issued"
+}

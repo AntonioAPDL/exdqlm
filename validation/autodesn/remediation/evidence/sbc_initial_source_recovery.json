@@ -1,0 +1,7 @@
+{
+  "complete": true,
+  "source_files_verified": 148,
+  "contract_id": "d5d0ec3ca12e35b8870c40eb66132b0d2a137daf30548d6d8f3222d83c2c99e7",
+  "method": "Source bytes recovered from recorded immutable snapshots and Git; initial driver reconstructed by reversing launcher-only edits, then every file verified against its original captured SHA256.",
+  "posterior_calibration_qualified": false
+}

@@ -100,3 +100,23 @@ Rcpp::List autodesn_rhs_local_cpp(Rcpp::NumericVector log_local,
   return Rcpp::List::create(Rcpp::Named("log_local") = local,
     Rcpp::Named("log_aux") = aux, Rcpp::Named("attempts") = attempts);
 }
+
+// Gaussian integral with heterogeneous diagonal observation covariance.
+// No weighted sufficient statistics survive a change of covariance state.
+// [[Rcpp::export]]
+Rcpp::List autodesn_weighted_gaussian_cpp(const arma::mat& X,
+    const arma::vec& y, const arma::vec& log_observation_variance,
+    const arma::vec& log_prior_variance) {
+  if (X.n_rows != y.n_elem || y.n_elem != log_observation_variance.n_elem ||
+      !X.is_finite() || !y.is_finite() || !log_observation_variance.is_finite())
+    Rcpp::stop("Invalid weighted Gaussian observations or design.");
+  arma::vec sw=arma::exp(-0.5*log_observation_variance);
+  if(!sw.is_finite() || arma::any(sw<=0)) Rcpp::stop("Weighted Gaussian scale overflow or underflow.");
+  arma::mat W=X.each_col()%sw;
+  arma::vec z=y%sw;
+  Rcpp::List out=autodesn_rhs_gaussian_cpp(W.t()*W,W.t()*z,arma::dot(z,z),1.,log_prior_variance,W,z);
+  double value=Rcpp::as<double>(out["log_evidence"])-0.5*arma::sum(log_observation_variance);
+  if(!std::isfinite(value))Rcpp::stop("Nonfinite weighted Gaussian evidence.");
+  out["log_evidence"]=value;
+  return out;
+}

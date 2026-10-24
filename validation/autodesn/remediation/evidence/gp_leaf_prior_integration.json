@@ -1,0 +1,35 @@
+{
+  "complete": true,
+  "grammar": "native default max_depth=1; all three supported leaf types",
+  "tree_prior": [
+    0.3333333333333333,
+    0.3333333333333333,
+    0.3333333333333333
+  ],
+  "normalized_latent_prior": "four independent standard normals",
+  "model_jitter": 1e-05,
+  "maximum_reference_mcse": 7.644262991688699e-05,
+  "maximum_refinement_difference": 0.00015316743791382592,
+  "scrambles": 8,
+  "powers": [
+    16,
+    18
+  ],
+  "seed_base": 7466101,
+  "fixture": {
+    "times": [
+      0.0,
+      0.19,
+      0.47,
+      1.0
+    ],
+    "response": [
+      0.13,
+      -0.24,
+      0.12,
+      0.07
+    ]
+  },
+  "source_sha256": "8bf5d3267183acd4690f33f1cb052a4182dd7e5fb3ce9bb637f477dc709fa60b",
+  "production_qualified": false
+}

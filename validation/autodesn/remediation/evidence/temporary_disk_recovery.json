@@ -1,0 +1,7 @@
+{
+  "complete": true,
+  "scope": "Stale generated temporary copies of reproducible preflight/inference caches only; original inputs and complete checkpoints retained",
+  "files_removed": 7,
+  "bytes_recovered": 1430257664,
+  "minimum_age_seconds": 300
+}

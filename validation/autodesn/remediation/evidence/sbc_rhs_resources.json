@@ -1,0 +1,15 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/sbc.R",
+    "rhs",
+    "200"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 966.9720600919973,
+  "peak_child_rss_kib": 187264,
+  "user_seconds": 966.311529,
+  "system_seconds": 0.478601,
+  "scope": "Linux wait4 foreground child; completion observed, not a background claim"
+}
