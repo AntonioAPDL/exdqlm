@@ -4,6 +4,9 @@ families<-c('F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge');stopifnot(
 run_label<-Sys.getenv('AUTODESN_RUN_LABEL',unset='');stopifnot(grepl('^[A-Za-z0-9_]*$',run_label));suffix<-if(nzchar(run_label))paste0('_',run_label) else ''
 local_path<-Sys.getenv('AUTODESN_LOCAL_PROPOSAL',unset='')
 statistics_path<-Sys.getenv('AUTODESN_STATISTICS_CACHE',unset='')
+checkpoint_every<-as.integer(Sys.getenv('AUTODESN_CHECKPOINT_EVERY',unset='0'))
+checkpoint_stop<-as.numeric(Sys.getenv('AUTODESN_CHECKPOINT_STOP_AFTER',unset='Inf'))
+stopifnot(length(checkpoint_every)==1L,!is.na(checkpoint_every),checkpoint_every>=0L)
 local_scales<-identical(Sys.getenv('AUTODESN_LOCAL_SCALE_PROPOSAL',unset='0'),'1')
 root<-'validation/autodesn/remediation';directory<-file.path(root,'artifacts',family,if(phase=='pilot')'pilot' else paste0('production_',budget,suffix));dir.create(directory,recursive=TRUE,showWarnings=FALSE)
 scale_path<-Sys.getenv('AUTODESN_FROZEN_PROPOSAL',unset='');if(!nzchar(scale_path))scale_path<-file.path(root,'artifacts',family,'frozen_proposal.rds')
@@ -46,6 +49,7 @@ if(nzchar(local_path)){
  rm(lp)
 }
 if(local_scales){stopifnot(nzchar(local_path),phase=='production');config$local_scale_proposal<-TRUE}
+if(checkpoint_every>0L)config$checkpoint_policy<-list(every=checkpoint_every,partial_is_not_a_completed_fit=TRUE,source_id=digest::digest(source_sha,algo='sha256'))
 contract_id<-digest::digest(config,algo='sha256');contract_path<-file.path(directory,'contract.rds')
 if(file.exists(contract_path))stopifnot(identical(readRDS(contract_path)$id,contract_id)) else saveRDS(list(id=contract_id,configuration=config),contract_path)
 jsonlite::write_json(config,file.path(directory,'configuration.json'),pretty=TRUE,auto_unbox=TRUE)
@@ -68,7 +72,16 @@ run_chain<-function(chain) {
  cat(family,phase,'chain',chain,'started\n');flush.console()
  a<-list(bank=bank,n_burn=burn,n_mcmc=retained,beta_prior=prior_kind,model_control=mc,variance_control=vc_chain,initial_variance=c(.1,.5,1,4)[chain],seed=if(phase=='pilot')2266020L+chain+100L*match(family,families) else 2466020L+chain+100L*match(family,families)+budget,backend='cpp')
  if(prior_kind=='rhs')a$rhs_control<-rhs else a$ridge_precision<-c(.1,1,10,100)[chain]
- f<-do.call(autodesn_fit_bank,a)
+ progress<-file.path(directory,paste0('chain_',chain,'_progress.rds'))
+ if(checkpoint_every>0L)a$checkpoint_control<-list(path=progress,every=checkpoint_every,resume=file.exists(progress),stop_after=checkpoint_stop,source_id=config$checkpoint_policy$source_id)
+ f<-tryCatch(do.call(autodesn_fit_bank,a),autodesn_checkpoint_pause=function(e)e)
+ if(inherits(f,'autodesn_checkpoint_pause')){
+  checkpoint<-readRDS(progress)
+  stopifnot(checkpoint$payload$iteration==f$iteration,identical(checkpoint$sha256,digest::digest(checkpoint$payload,algo='sha256')))
+  status<-list(chain=chain,complete=FALSE,paused=TRUE,iteration=f$iteration,retained=checkpoint$payload$retained,contract_id=contract_id,checkpoint_id=checkpoint$id,checkpoint_sha256=digest::digest(file=progress,algo='sha256'),qualified=FALSE,forecast_allowed=FALSE)
+  jsonlite::write_json(status,file.path(directory,paste0('chain_',chain,'_progress_status.json')),pretty=TRUE,auto_unbox=TRUE)
+  cat(family,phase,'chain',chain,'durably paused at sweep',f$iteration,'\n');flush.console();return(status)
+ }
  f$bank<-NULL;f$reconstruction_bank<-list(path=basepath,extension_id=bank$extension$id,readout=bank$extension$readout,seasonal=bank$extension$seasonal)
  saved<-list(fit=f,contract_id=contract_id,source_sha256=source_sha)
  tmp<-paste0(path,'.writing');saveRDS(saved,tmp);stopifnot(identical(readRDS(tmp)$contract_id,contract_id));stopifnot(file.rename(tmp,path))
@@ -81,8 +94,9 @@ workers<-as.integer(Sys.getenv('AUTODESN_CHAIN_WORKERS',unset='1'));stopifnot(wo
 if(workers>1L){gate<-jsonlite::fromJSON(file.path(root,'evidence/fork_cache_preflight_reloaded.json'));memory<-jsonlite::fromJSON(file.path(root,'evidence/fork_cache_preflight_reloaded_resources.json'));stopifnot(use_cache,isTRUE(gate$complete),gate$retained>=4000L,memory$exit_code==0L,memory$sampled_peak_environment_cgroup_anon_bytes<6400000000)}
 selected_chains<-as.integer(strsplit(Sys.getenv('AUTODESN_CHAINS',unset='1,2,3,4'),',',fixed=TRUE)[[1]]);stopifnot(length(selected_chains)>0L,!anyDuplicated(selected_chains),all(selected_chains%in%1:4))
 completed<-parallel::mclapply(selected_chains,run_chain,mc.cores=workers,mc.set.seed=FALSE)
-stopifnot(length(completed)==length(selected_chains),all(vapply(completed,function(x)is.list(x)&&isTRUE(x$complete),TRUE)))
+stopifnot(length(completed)==length(selected_chains),all(vapply(completed,function(x)is.list(x)&&(isTRUE(x$complete)||isTRUE(x$paused)),TRUE)))
 present<-file.exists(file.path(directory,paste0('chain_',1:4,'.rds')))
+if(any(vapply(completed,function(x)isTRUE(x$paused),TRUE))){jsonlite::write_json(list(complete=FALSE,chains_present=which(present),paused=completed,qualified=FALSE,forecast_allowed=FALSE),file.path(directory,'status.json'),pretty=TRUE,auto_unbox=TRUE);cat('Bounded checkpoint segment complete; full posterior remains incomplete\n');quit(status=0)}
 if(!all(present)){jsonlite::write_json(list(complete=FALSE,chains_present=which(present),qualified=FALSE,forecast_allowed=FALSE),file.path(directory,'status.json'),pretty=TRUE,auto_unbox=TRUE);cat('Requested chains complete; full four-chain target pending\n');quit(status=0)}
 
 fits<-lapply(1:4,function(k)readRDS(file.path(directory,paste0('chain_',k,'.rds')))$fit)

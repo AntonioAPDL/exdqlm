@@ -6,7 +6,7 @@ This branch implements the approved plan in `../nonlinear_heteroscedastic/plans/
 
 Recovery checkpoint `4f0d36c4` restores all four original joint128k RDS files,
 reconstructs its missing CSV export, and reproduces its failed architecture
-screen. Source and installed suites now include 254 assertions, with zero
+screen. Source and installed suites now include 478 assertions (including within-chain recovery), with zero
 failures/errors/warnings and an installed run outside Git. The cold original
 builder reproduces all three conditional-bank identities and the exact compact
 forecast-map bytes. The original source-bank serialization hash differs because
@@ -103,3 +103,33 @@ The completed joint-policy 32k run has maximum R-hat 1.00682 and minimum ESS 103
 All 426 compact numeric propagation maps have now been recovered and checked against the original maps in both backends; the last training-feature error is at most 1.8e-13. `load_forecast_bank.R` reattaches these verified maps to the exact inference cache. The cache alone remains invalid for forecasting. `test_forecast_bank.R` passed controlled manual recursion and observed-update checks without issuing a posterior benchmark forecast.
 
 Forecast simulation now batches paths with a common reservoir/period, preserving their coefficient, noise and conditional-state assignments. In a synthetic reservoir-64/H30/192-outer/8-inner paired benchmark, median time changed from 2.359 s to .285 s with maximum path difference below 1e-13. This is a kernel comparison under concurrent training load, not an isolated whole-study speedup.
+# Recovery of long augmented chains
+
+`autodesn_fit_bank(..., checkpoint_control=list(path="chain-progress.rds",
+every=4000L))` records all Markov variables, auxiliary scales, retained joint
+draws, probes, counters and RNG state at completed sweep boundaries. The same
+call with `resume=TRUE` continues the original budget and thinning schedule;
+it does not restart burn-in or add independent chains. The target, transition
+controls, source identity, runtime and RNG convention must match. Use one
+writer per path. Checkpointing currently supports the default
+Mersenne-Twister/Inversion/Rejection RNG; Box-Muller has hidden cached state
+and is explicitly rejected. Legacy ridge and reservoir-only APIs retain their
+existing behavior; recovery is opt-in for augmented banks.
+
+For compiled recovery, pass a SHA256 `source_id` for externally verified C++
+source. The immutable experiment launcher does this using its recorded source
+manifest. Checkpoint identity additionally hashes the R algorithm, the full
+budget, runtime and thread settings. Payload checksums detect accidental
+corruption, and same-directory renames publish complete files on POSIX.
+Temporary files are not recovery inputs. A bounded `stop_after` is an absolute
+sweep and raises `autodesn_checkpoint_pause`, never a completed fit. The
+experiment launcher records such a segment as exit-zero but posterior
+incomplete, with no forecast authorization. Segment resource records, including
+failed/interrupted invocations, remain separate; saved sampler elapsed time
+cannot account for work lost after its last checkpoint.
+
+The fresh-process recovery check exercises learned grouped RHS scales, joint
+local/scale proposals, seasonal SV and C++ in separate operating-system
+processes. It compares every recorded state with an uninterrupted run. These
+are reproducibility checks, not posterior convergence evidence.
+

@@ -13,23 +13,35 @@ for family in ['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']:
    if (config.parent/name).exists():files.add(config.parent/name)
   files.update(config.parent.glob('invocation_*.json'))
  for st in family_dir.glob('*/chain_*_status.json'):
+  if st.name.endswith('_progress_status.json'):continue
   status=json.loads(st.read_text());assert status['complete'];k=status['chain'];d=st.parent
   cp=d/f'chain_{k}.rds';assert hashlib.sha256(cp.read_bytes()).hexdigest()==status['checkpoint_sha256']
   files.update([st,cp,d/f'trace_{k}.csv',d/'contract.rds',d/'configuration.json'])
   for name in ['status.json','independent_diagnostics.csv','qualification.json','model_metadata.csv']:
    if (d/name).exists():files.add(d/name)
   files.update(d.glob('invocation_*.json'))
+ for st in family_dir.glob('*/chain_*_progress_status.json'):
+  status=json.loads(st.read_text());assert not status['complete'] and status['paused'];d=st.parent
+  final=d/f'chain_{status["chain"]}_status.json'
+  if final.exists() and json.loads(final.read_text()).get('complete'):
+   # The verified final fit above supersedes a last-pause marker. Its live
+   # continuation file is redundant and may have advanced beyond that marker.
+   continue
+  cp=d/f'chain_{status["chain"]}_progress.rds'
+  assert hashlib.sha256(cp.read_bytes()).hexdigest()==status['checkpoint_sha256'],'Only archive a quiescent, verified pause; a running checkpoint is not immutable'
+  files.update([st,cp])
  for name in ['frozen_proposal.rds','frozen_local_proposal.rds']:
   if (family_dir/name).exists():files.add(family_dir/name)
  files.update(family_dir.glob('frozen_local_proposal_*.rds'));files.update(family_dir.glob('frozen_proposal_*.rds'))
 for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manifest.json','source_snapshots/*/R/*.R','source_snapshots/*/src/*.cpp','source_snapshots/*/validation/autodesn/remediation/*.R','gp_drivers/*/*',
                 'sbc_sources/**/*','recursive_sbc_sources/**/*','sv_reference_sources/**/*','reference_sources/**/*','gp_sources/**/*','gp_reference_sources/**/*','legacy_sbc_source/**/*','drivers/*.R',
                 'recursive_sbc_*/*.rds','recursive_sbc_*/*.csv','recursive_sbc_*/*.json',
-                'grouped_reference/*','local_reference/*','local_joint_reference/*','local_partial_reference/*','sv_joint_reference/*','gp_leaf_reference/*','*_reference_fixture.json',
+                'grouped_reference/*','local_reference/*','local_joint_reference/*','local_partial_reference/*','sv_joint_reference/*','gp_leaf_reference/*','gp_composite_reference/*','*_reference_fixture.json',
                 'proposal_sources/**/*','portable_test_sources/**/*','profile_full_bank/*','environment_recovery_prior_invocation/*',
-                '*_attempt*.log','gp_n*.log','gp_leaf_reference.log','grouped_reference.log','local_reference.log','local_joint_reference.log','local_partial_reference.log','sv_joint_mcmc.log']:
+                'checkpoint_process_sources/**/*','checkpoint_fresh_process/**/*',
+                '*_attempt*.log','gp_n*.log','gp_leaf_reference.log','checkpoint_fresh_process.log','grouped_reference.log','local_reference.log','local_joint_reference.log','local_partial_reference.log','sv_joint_mcmc.log']:
  files.update(p for p in (root/'artifacts').glob(pattern) if p.is_file() and not p.name.endswith('.partial'))
-for name in ['test_results.rds','statistics_cache_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
+for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
  f=root/'artifacts'/name
  if f.exists():files.add(f)
 previous={};parent=None

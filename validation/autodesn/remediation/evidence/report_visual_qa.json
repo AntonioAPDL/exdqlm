@@ -1,0 +1,15 @@
+{
+  "complete": true,
+  "pages": 10,
+  "all_pages_rendered": true,
+  "all_page_contact_sheet_inspected": true,
+  "full_size_dense_pages_inspected": [
+    6,
+    8
+  ],
+  "no_clipped_or_overlapping_content_observed": true,
+  "report_sha256": "c3a09c4960136abe51f2668445396792081efe078d1ff6f0d6638fbf95d73035",
+  "report_inputs_verified": true,
+  "scientific_study_complete": false,
+  "inspected_utc": "2026-10-24T23:21:19.352387+00:00"
+}

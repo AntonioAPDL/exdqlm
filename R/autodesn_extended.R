@@ -208,7 +208,7 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
   sweep(S, 2, colMeans(S), "-")
 }
 
-.ext_fit <- function(bank, n_burn, n_mcmc, thin, intercept_variance, a_sigma, b_sigma, a_lambda, b_lambda, learn_ridge, ridge_precision, initial_variance, seed, beta_prior, rhs_control, model_control, backend, variance_control) {
+.ext_fit <- function(bank, n_burn, n_mcmc, thin, intercept_variance, a_sigma, b_sigma, a_lambda, b_lambda, learn_ridge, ridge_precision, initial_variance, seed, beta_prior, rhs_control, model_control, backend, variance_control, checkpoint_control = NULL) {
   if (!inherits(bank, "autodesn_extended_bank")) bank <- autodesn_extend_bank(bank)
   vc <- .ext_control(variance_control, autodesn_variance_control)
   rc <- .ext_control(rhs_control, autodesn_rhs_control)
@@ -262,6 +262,15 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
   a_lambda = a_lambda, b_lambda = b_lambda, learn_ridge = learn_ridge, fixed_ridge = if (!learn_ridge) ridge_precision else NULL,
   fixed_global = if (!rc$learn_global) rc$initial_global else NULL, fixed_slab = if (!rc$learn_slab) if (is.null(rc$initial_slab)) rc$slab_scale ^ 2 else rc$initial_slab else NULL)
   target_id <- digest::digest(target, algo = "sha256")
+  cp <- .ext_checkpoint_control(checkpoint_control)
+  if (!is.null(cp) && backend == "cpp" && is.null(cp$source_id)) stop("C++ checkpointing requires an externally verified compiled source_id.", call. = FALSE)
+  checkpoint_id <- if (!is.null(cp)) digest::digest(list(target_id = target_id,
+    kernel = list(mc = mc, rc = rc, vc = vc, ridge_precision = ridge_precision, initial_variance = initial_variance, seed = seed),
+    budget = c(n_burn, n_mcmc, thin), backend = backend, source_id = cp$source_id,
+    R_code_id = .ext_checkpoint_code_id(), R_version = R.version$version.string,
+    platform = R.version$platform, RNG_kind = RNGkind(), matprod = getOption("matprod"),
+    external_versions = extSoftVersion(), LAPACK = La_version(),
+    thread_environment = Sys.getenv(c("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"))), algo = "sha256") else NULL
   .autodesn_seed(seed, function() {
     G <- groups_count
     if (!is.null(mc$joint_proposal)) {
@@ -340,8 +349,31 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
     beta <- local <- states <- vector("list", length(snapshots))
     probes <- matrix(0, K, length(probe))
     k <- 0L
+    done <- 0L
+    elapsed_before <- 0
+    checkpoint_names <- c("logu", "logc2", "ell", "aux", "s2", "m", "p", "u", "phi", "omega", "gamma", "ridge_precision",
+      "evaluations", "accepted", "proposed", "local_proposed", "local_accepted", "local_model_switches", "beta", "local", "states")
+    if (!is.null(cp) && cp$resume) {
+      recovered <- .ext_checkpoint_read(cp$path, checkpoint_id)
+      done <- recovered$iteration
+      k <- recovered$retained
+      if (!identical(names(recovered$state), checkpoint_names) || length(done) != 1L || !is.finite(done) || done < 1L || done > length(keep) || done != floor(done) ||
+          !identical(as.integer(k), as.integer(sum(keep[seq_len(done)]))) ||
+          !identical(dim(recovered$draws), c(as.integer(k), ncol(draws))) ||
+          !identical(dim(recovered$probes), c(as.integer(k), ncol(probes)))) stop("Invalid checkpoint state dimensions.", call. = FALSE)
+      for (nm in checkpoint_names) assign(nm, recovered$state[[nm]])
+      if (k) {
+        draws[seq_len(k), ] <- recovered$draws
+        probes[seq_len(k), ] <- recovered$probes
+      }
+      elapsed_before <- recovered$elapsed_seconds
+      if (done < length(keep) && cp$stop_after <= done) stop("checkpoint stop_after must exceed the recovered sweep.", call. = FALSE)
+      assign(".Random.seed", recovered$RNG_state, envir = .GlobalEnv)
+      rm(recovered)
+    }
     began <- proc.time()[3]
-    for (it in seq_len(n_burn + n_mcmc)) {
+    iterations_left <- if (done < length(keep)) seq.int(done + 1L, length(keep)) else integer()
+    for (it in iterations_left) {
       cur <- evaluate(m, p)
       if (mc$method == "categorical") {
         w <- matrix(0, M, NP)
@@ -547,6 +579,18 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
 
         probes[k, ] <- mu[probe]
       }
+      if (!is.null(cp) && (it %% cp$every == 0L || it == length(keep) || it >= cp$stop_after)) {
+        payload <- list(iteration = it, retained = k,
+          state = mget(checkpoint_names, inherits = TRUE),
+          draws = draws[seq_len(k), , drop = FALSE], probes = probes[seq_len(k), , drop = FALSE],
+          RNG_state = get(".Random.seed", envir = .GlobalEnv),
+          elapsed_seconds = unname(elapsed_before + proc.time()[3] - began))
+        .ext_checkpoint_write(cp$path, checkpoint_id, payload)
+        rm(payload)
+        if (it >= cp$stop_after && it < length(keep)) stop(structure(
+          list(message = paste("Sampler paused after checkpoint sweep", it), call = NULL, iteration = it, path = cp$path),
+          class = c("autodesn_checkpoint_pause", "error", "condition")))
+      }
     }
 
     draws <- as.data.frame(draws)
@@ -556,7 +600,7 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
     structure(list(bank = bank, draws = draws[snapshots, , drop = FALSE], trace = draws, beta = beta, local = local, volatility = states, probes = probes, probe_rows = probe, model_summary = summary,
     period_summary = data.frame(period = bank$extension$periods, prior = bank$extension$period_prior, posterior = tabulate(draws$period_index, NP) / K),
     controls = list(target = target, target_id = target_id, rhs_control = rc, variance_control = vc, model_control = mc, backend = backend, n_burn = n_burn, n_mcmc = n_mcmc, thin = thin, seed = seed),
-    computation = list(elapsed_seconds = unname(proc.time()[3] - began), evidence_evaluations = evaluations, proposals = proposed, acceptances = accepted, local_proposals = local_proposed, local_acceptances = local_accepted, local_model_switches = local_model_switches),
+    computation = list(elapsed_seconds = unname(elapsed_before + proc.time()[3] - began), evidence_evaluations = evaluations, proposals = proposed, acceptances = accepted, local_proposals = local_proposed, local_acceptances = local_accepted, local_model_switches = local_model_switches),
     meta = list(likelihood_family = "normal", beta_prior_type = paste0("independent_", beta_prior), inference_method = "extended_collapsed_mh", global_groups = if (G == 1L) "all" else c("lag", "reservoir"), period_policy = if (all(is.na(bank$extension$periods))) "none" else if (NP == 1L) "fixed_period" else "posterior_period_averaging", qualified = FALSE)), class = c("autodesn_extended_fit", "autodesn_fit"))
   }
 

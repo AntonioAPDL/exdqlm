@@ -42,7 +42,7 @@ def archived_case_count(directory):
     partial_observations[str(directory)]=dict(manifest=str(manifest_path),members=list(cases.values()))
     return len(cases)
 
-tests=read_json(E/'extended_tests.json',{});installed=read_json(E/'installed_tests.json',{});legacy=read_json(E/'legacy_tests.json',{})
+tests=read_json(E/'extended_tests.json',{});installed=read_json(E/'portable_installed_tests.json',{});legacy=read_json(E/'legacy_tests.json',{})
 qualifications=[]
 for path in sorted(E.glob('F1_production_*_qualification.json')):
     q=read_json(path);directory=ROOT/'artifacts/F1'/q['phase'];cfg=read_json(directory/'configuration.json',{})
@@ -106,6 +106,12 @@ for i,(name,label) in enumerate(zip(models,short)):
 for ax,metric in zip(axes,['RMSE','CRPS','Coverage90']):ax.set_title(metric,loc='left');ax.set_xlabel('Horizon');ax.grid(alpha=.15)
 axes[-1].axhline(.9,color=RED,ls='--',lw=.8);axes[0].legend(fontsize=6,frameon=False);fig.tight_layout();historical_figure=save_plot(fig,'historical_horizon_scores')
 
+statistics_benchmark=read_json(E/'statistics_cache_benchmark.json',{})
+checkpoint_reference=read_json(E/'checkpoint_fresh_process.json',{})
+checkpoint_execution=read_json(E/'checkpoint_recovery_execution.json',{})
+interruption=read_json(E/'F1_statistics_256_interruption.json',{})
+statistics_pairs=read_csv(E/'statistics_cache_benchmark.csv') if (E/'statistics_cache_benchmark.csv').exists() else None
+
 font_path=font_manager.findfont(font_manager.FontProperties(family='DejaVu Sans'))
 bold_path=font_manager.findfont(font_manager.FontProperties(family='DejaVu Sans',weight='bold'))
 pdfmetrics.registerFont(TTFont('DV',font_path));pdfmetrics.registerFont(TTFont('DV-Bold',bold_path))
@@ -147,13 +153,15 @@ for stem,label,s,t in references:rows.append([label,str(s['joint_functionals']),
 table(rows,[170,80,95,135]);image(reference_figure,max_height=3.3*inch)
 add('References use dense response-space Gaussian covariances and integration over normalized scale priors. The learned-local check integrates seven dimensions and tests nonuniform architecture/period proposals, variable active dimensions and the added reservoir-local proposal. SV uses independent full two-response quadrature, not only scalar conditional identities.')
 add('The grouped RHS references use tau0=0.2 for tractable small-target checks; production uses the requested tau0=0.001. The two-response SV target is intercept-only. These checks do not certify the complete production workflow.',True)
-add('The GP reference integrates all three supported leaves and all four latent parameters under the pinned default depth-one grammar. It checks native normalized scores and prior-independence MH, rather than qualifying depth-four SMC or composite-tree multiplicities.',True)
+add('The GP posterior-integration reference covers all three supported leaves and all four latent parameters under the pinned default depth-one grammar. It checks normalized scores and prior-independence MH; it does not qualify depth-four SMC.',True)
+composite=read_json(E/'gp_composite_reference.json')
+if composite:add('An additional finite conditional check enumerates all 30 default depth-two syntactic trees, including nine change-point trees and ordered sum/product pairs, across five latent fixtures. Independent covariances, normalized active/inactive prior constants and conditional architecture probabilities agree. This checks multiplicities at that depth; it does not integrate all continuous parameters or prove deep-tree exploration.',True)
 add(f"The source suite has {tests.get('tests','?')} tests and {tests.get('passed','?')} passing assertions; the installed suite records {installed.get('passed','?')} passing assertions. Earlier legacy regression evidence records 804 passes with one separately covered context skip. Passing these checks is not proof of convergence on the 426-reservoir bank.",True)
 
 page();title('Production convergence: all gates still apply')
 rows=[['F1 run','R-hat max','ESS min','Largest chain frequency range','Screen']]
 for q,c in sorted(qualifications,key=lambda x:(x[1].get('retained',0),x[0]['phase'])):
-    label=('Joint move ' if 'joint' in q['phase'] else 'Local move ' if 'local' in q['phase'] else 'Baseline ')+f"{c.get('retained',0):,}"
+    label=('Coordinate16 ' if 's16' in q['phase'] else 'Joint full-vector ' if 'joint' in q['phase'] else 'Local move ' if 'local' in q['phase'] else 'Baseline ')+f"{c.get('retained',0):,}"
     rows.append([label,fmt(q['maximum_rhat'],4),fmt(min(q['minimum_bulk_ess'],q['minimum_tail_ess']),0),fmt(max(q['frequency_ranges'].values()),4),'pass' if q['screen_passed'] else 'FAIL'])
 table(rows,[110,70,65,150,85])
 if trace_figure:image(trace_figure,max_height=4.6*inch)
@@ -208,6 +216,20 @@ trace_bench=read_json(E/'trace_storage_benchmark.json')
 if trace_bench:add('Paired small-target trace-storage benchmark: median 11.401 s with data frames, 8.897 s with matrices, preserving full traces and matching joint states bit for bit. This is not a full-study speedup claim.',True)
 add('Forecast performance remains separately scoped: the synthetic reservoir-64/H30/192-outer/8-inner batch benchmark was 2.359 s versus 0.285 s, maximum path difference below 1e-13. No new full rolling-panel forecasting runtime is available.',True)
 
+page();title('Exact computation and interruption recovery')
+if statistics_pairs is not None:
+    table([['Paired trial','Uncached (s)','Cached (s)']]+[[str(int(r.pair)),fmt(r.uncached_seconds,3),fmt(r.cached_seconds,3)] for r in statistics_pairs.itertuples()], [150,165,165])
+add('Three same-seed full-bank trials preserve all recorded traces, matching coefficient/local/volatility states, fitted probes and architecture masses bit for bit. Median sampling time is 49.976 s without the fixed statistics cache and 30.306 s with it; preparing all 426 F1 entries took 1.859 s. Each trial uses 500 warmup and 2,000 retained sweeps. These paired computations are not independent DGP replications or a complete-study speedup.')
+add('The optional cache stores fixed unweighted X-transpose-X and X-transpose-y values under a numeric-payload memory bound. Partial caching falls back to exact computation and retains every model/period. It does not change the prior, target, posterior weights or random updates. Weighted SV statistics are recomputed as covariance changes.',True)
+if interruption:
+    add('The first fresh 256k invocation disappeared before completed chains or an exit/resource record were observed. Its cause and final iteration are unknown. It contributes neither a completed posterior nor an invented runtime total. This interruption exposed the need for checkpoints within each long chain.')
+if checkpoint_reference:
+    add('Recovery now saves all Markov variables, auxiliary scales, retained draws, probes, counters and RNG state at complete sweep boundaries. A separate four-process C++/grouped-RHS/seasonal-SV experiment pauses at sweep 47 and finishes the same 120-sweep budget; every recorded state and counter matches uninterrupted computation exactly.')
+    add('Resume verifies the target, kernel, full budget, source, runtime, thread settings and payload checksum. Box-Muller RNG is rejected because its hidden cached normal is absent from .Random.seed. Bounded pauses are explicitly incomplete fits and do not authorize forecasts.',True)
+if checkpoint_execution:
+    add(checkpoint_execution['report_statement'])
+add('No new full rolling-origin forecast or independent confirmation result is produced by these engineering checks. The model qualification thresholds remain unchanged.',True)
+
 page();title('Historical forecast context - unchanged')
 image(historical_figure,max_height=3.1*inch)
 rows=[['Historical model','RMSE','MAE','CRPS','NLL','50% cover / width','90% cover / width']]
@@ -218,7 +240,7 @@ add('These scores are the original completed NHS1 reference, not outcomes of the
 add('High pooled coverage can conceal excess width and regime-dependent undercoverage. Visual failure to track every realized spike also includes irreducible innovation uncertainty. The new work must separately establish computational adequacy and then compare conditional means, proper scores and calibration. None of the historical rankings proves that a new model is superior.')
 
 page();title('Unfinished gates and reproducible handoff')
-table([['Gate','What is still required'],['Posterior qualification','Two successive qualified fresh budgets, targeted mode checks, probability precision and cross-budget stability under frozen computational controls.'],['Mean-family selection','Rebuild PCA/scalers at cutoffs 1500 and 2000; qualified frozen-fit rolling validation; select by registered CRPS rule.'],['Native AutoGP','Complete full-size independent same-prior runs and particle/move-budget sensitivity. Small feasibility runs and an interrupted full run do not qualify it.'],['Conditional variance','Complete recursive/SV calibration, production-chain qualification and conditional particle-filter budget checks. Small-target validation is complete only at its stated scope.'],['Prediction','Outer/inner Monte Carlo panel; full 471-origin, 30-horizon comparisons with RMSE, MAE, CRPS, NLL, intervals and calibrated runtimes.'],['Independent confirmation','Frozen 30-realization mean/GP block, separate variance block and registered stress cells. None can be replaced by overlapping origin-horizon pairs.']], [125,355])
+table([['Gate','What is still required'],['Posterior qualification','Two successive qualified fresh budgets, targeted mode checks, probability precision and cross-budget stability under frozen computational controls.'],['Mean-family selection','Rebuild PCA/scalers at cutoffs 1500 and 2000; qualified frozen-fit rolling validation; select by registered CRPS rule.'],['Native AutoGP','Complete full-size independent same-prior runs and particle/move-budget sensitivity. Small feasibility runs and an interrupted full run do not qualify it.'],['Conditional variance','Recursive constant/SV calibration has resolved within its frozen-map scope. Production-chain qualification and conditional particle-filter budget checks remain.'],['Prediction','Outer/inner Monte Carlo panel; full 471-origin, 30-horizon comparisons with RMSE, MAE, CRPS, NLL, intervals and calibrated runtimes.'],['Independent confirmation','Frozen 30-realization mean/GP block, separate variance block and registered stress cells. None can be replaced by overlapping origin-horizon pairs.']], [125,355])
 add('Checkpoints preserve completed numeric states, traces, case records, immutable executed sources and failure logs. restore_checkpoints.py verifies archive ancestry, every part and every extracted member. Large construction/inference banks are referenced by checksums and deterministic rebuild scripts rather than duplicated in each fitted object.')
 add('Primary evidence: MATH.md; execution.json; development_registry.json; independent-reference check CSV/JSON files; F1 checkpoint-validation and qualification records; resource records; versioned checkpoint manifests. The report input manifest supplies their exact SHA256 values.',True)
 add('The appropriate conclusion at this checkpoint is an implemented and increasingly validated statistical extension with unresolved production and predictive gates. It is not a completed forecast comparison or a superiority claim.')
@@ -228,6 +250,6 @@ def footer(canvas,doc):
 path=PDF/'AutoDESN_Remediation_Execution_Report.pdf'
 doc=SimpleDocTemplate(str(path),pagesize=(595.28,841.89),rightMargin=42,leftMargin=42,topMargin=44,bottomMargin=53,title='AutoDESN remediation: execution and validation checkpoint',author='AntonioAPDL / reproducible execution')
 doc.build(story,onFirstPage=footer,onLaterPages=footer)
-for file in [Path('R/autodesn_extended.R'),Path('R/autodesn_extended_bank.R'),Path('R/autodesn_extended_forecast.R'),Path('R/autodesn_extended_local.R'),ROOT/'execution.json',ROOT/'development_registry.json',Path(__file__)]:inputs[str(file)]=hashlib.sha256(file.read_bytes()).hexdigest()
+for file in [Path('R/autodesn_checkpoint.R'),Path('R/autodesn_statistics_cache.R'),Path('R/autodesn_gaussian.R'),Path('R/autodesn_extended.R'),Path('R/autodesn_extended_bank.R'),Path('R/autodesn_extended_forecast.R'),Path('R/autodesn_extended_local.R'),ROOT/'execution.json',ROOT/'development_registry.json',Path(__file__)]:inputs[str(file)]=hashlib.sha256(file.read_bytes()).hexdigest()
 record=dict(complete=True,report=str(path),report_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),execution_context_date='2026-10-24',last_committed_base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),inputs=inputs,partial_observations=partial_observations,scientific_study_complete=False,new_forecast_comparison_complete=False)
 (OUT/'report_inputs.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps({k:record[k] for k in ['complete','report','report_sha256','scientific_study_complete']}))

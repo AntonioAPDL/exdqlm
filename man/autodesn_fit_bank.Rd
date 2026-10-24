@@ -22,11 +22,14 @@ autodesn_fit_bank(
   rhs_control = list(),
   model_control = list(),
   backend = c("auto", "R", "cpp"),
-  variance_control = NULL
+  variance_control = NULL,
+  checkpoint_control = NULL
 )
 }
 \arguments{
 \item{variance_control}{Optional controls from \code{autodesn_variance_control()}. Activates the augmented weighted Gaussian sampler and requires a standardized, unnormalized bank.}
+
+\item{checkpoint_control}{Optional augmented-sampler recovery list: \code{path}, positive \code{every} (sweeps, default 8000), \code{resume=FALSE}, optional \code{stop_after=Inf} (absolute sweep), and optional SHA256 \code{source_id} for externally verified compiled source. C++ checkpointing requires that source identity. Resume requires the same target, transition controls, full budget, runtime, thread settings and default Mersenne-Twister/Inversion/Rejection RNG. Box-Muller is rejected because its cached normal is not stored in \code{.Random.seed}. A bounded pause raises condition \code{autodesn_checkpoint_pause}; it does not return a completed fit. Checkpoints retain the RNG, all Markov variables and recorded draws. One writer per path; same-directory atomic publication is tested on POSIX. Temporary files are never used as recovery inputs.}
 
 \item{bank}{An \code{autodesn_bank}.}
 

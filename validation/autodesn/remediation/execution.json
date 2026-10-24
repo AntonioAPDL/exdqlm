@@ -3,7 +3,7 @@
   "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
   "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
   "branch": "feature/autodesn-remediation-20261023",
-  "status": "implementation_in_progress_no_active_jobs",
+  "status": "recovery_verified_at_bounded_pause",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
@@ -45,7 +45,11 @@
     "Three same-seed full-bank paired computational trials reproduce all recorded states, probes and architecture masses; median49.976s versus30.306s, plus1.859s cache preparation; no forecasting improvement claim",
     "Native Julia dependencies restored at the pinned source/manifest; native move and36 conditional reference checks pass again",
     "Recursive frozen-map SV calibration: all200 cases complete at24k retained, rank envelope passes (0.1326 <=0.1378), minimum case spectralESS620.2159; isolated same-case shard all40 duplicate numerical contents agree except elapsed time; no production qualification",
-    "Observed all200 SV calibration cases and same-case duplicate audit complete; no computational calibration recovery required"
+    "Observed all200 SV calibration cases and same-case duplicate audit complete; no computational calibration recovery required",
+    "Exact within-chain checkpoint recovery:478 source and outside-Git installed assertions pass; four fresh-process groupedRHS/seasonalSV/C++ calculations reproduce every recorded state and counter bit-for-bit after interruption",
+    "Allfour full-bank chains durably paused at8k warmup sweeps under bounded recovery; process exit0, wall128.68s, sampled aggregatePSS4.36GiB; no retained posterior draws or qualification",
+    "Allfour full-bank chains resume8k-to16k warmup in fresh processes, with exact checkpoint/file hashes and cumulative proposal counters verified; zero retained posterior draws and no forecasts",
+    "NativeGP complete default depth-two conditional reference:483 assertions pass over30 syntactic trees andfive latent fixtures, including change-point and ordered-operator multiplicities; no continuous-parameter integration or productionSMC qualification"
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
@@ -82,8 +86,8 @@
     "trace4_regenerated_from_matching_RDS": true,
     "original_archive006_complete": false,
     "source_test_sha256": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
-    "source_and_outside_git_installed_assertions": 254,
+    "source_and_outside_git_installed_assertions": 478,
     "full_qualified_posterior": false
   },
-  "snapshot_utc": "2026-10-24T23:05:11.148903+00:00"
+  "snapshot_utc": "2026-10-24T23:19:12.520953+00:00"
 }

@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "fresh_R_processes": 4,
+  "paused_after_sweep": 47,
+  "total_sweeps": 120,
+  "backend": "cpp",
+  "prior": "normalized_grouped_rhs",
+  "conditional_variance": "seasonal_sv",
+  "joint_scale_local_proposals": true,
+  "recorded_states_bit_identical": {
+    "draws": true,
+    "trace": true,
+    "beta": true,
+    "local": true,
+    "volatility": true,
+    "probes": true,
+    "model_summary": true,
+    "period_summary": true,
+    "controls": true
+  },
+  "counters_bit_identical": true,
+  "source_id": "181e5d0ed7b14bce709bff11b8ebd0374306e579adb5bc60671134046ba54e49",
+  "source_snapshot": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/checkpoint_process_sources/2f34402341ed55ee2e843e8b51ea7729c4ea9059b91df5eace6c9ebdd1fcd1b6",
+  "scope": "Deterministic interrupted-versus-uninterrupted computation check, not posterior convergence"
+}

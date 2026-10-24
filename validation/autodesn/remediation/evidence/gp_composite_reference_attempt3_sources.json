@@ -1,0 +1,8 @@
+{
+  "source": "validation/autodesn/remediation/test_gp_composite_reference.jl",
+  "snapshot": "validation/autodesn/remediation/artifacts/gp_reference_sources/8a4bcf5c6cee1d8c6241dada241493f7eed417922335997ea520272e9a07f165/test_gp_composite_reference.jl",
+  "sha256": "8a4bcf5c6cee1d8c6241dada241493f7eed417922335997ea520272e9a07f165",
+  "launcher_sha256": "b95b63f76bd7077900fc0d165139f608a2062c34729dbe3f120f7ad1bcbd2490",
+  "registered_before_execution": true,
+  "production_qualified": false
+}

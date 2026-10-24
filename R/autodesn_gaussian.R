@@ -190,6 +190,13 @@ autodesn_prepare_bank <- function(y, features, model_info = NULL, model_prior = 
 #' @param backend RHS linear algebra backend: `"auto"`, `"R"`, or `"cpp"`.
 #'   Auto uses the compiled implementation when available. Ridge retains its
 #'   existing SVD implementation and accepts `"auto"` or `"R"`.
+#' @param checkpoint_control Optional augmented-sampler recovery list: `path`,
+#'   positive `every` (sweeps, default 8000), `resume=FALSE`, and optional
+#'   `stop_after=Inf` (absolute sweep at which to save and pause). A pause raises
+#'   `autodesn_checkpoint_pause`, not a completed fit. Use one writer per path.
+#'   Resume requires identical target, kernel, budget, RNG kind and runtime.
+#'   An optional SHA256 `source_id` identifies externally verified compiled
+#'   source; it is required for checkpointing with the C++ backend.
 #' @return An `autodesn_fit` with joint draws and model probability estimates.
 #' @export
 autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
@@ -200,7 +207,7 @@ autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
                          initial_variance = NULL, seed = NULL,
                          beta_prior = c("ridge", "rhs"), rhs_control = list(),
                          model_control = list(), backend = c("auto", "R", "cpp"),
-                         variance_control = NULL) {
+                         variance_control = NULL, checkpoint_control = NULL) {
   beta_prior <- match.arg(beta_prior)
   if (identical(backend, "r")) backend <- "R"
   backend <- match.arg(backend)
@@ -210,8 +217,9 @@ autodesn_fit_bank <- function(bank, n_burn = 1500L, n_mcmc = 3000L, thin = 1L,
     if (beta_prior=="ridge" && length(rhs_control)) stop("rhs_control requires beta_prior=rhs.",call.=FALSE)
     return(.ext_fit(bank, n_burn, n_mcmc, thin, intercept_variance, a_sigma, b_sigma,
       a_lambda, b_lambda, learn_ridge, ridge_precision, initial_variance, seed,
-      beta_prior, rhs_control, model_control, backend, variance_control))
+      beta_prior, rhs_control, model_control, backend, variance_control, checkpoint_control))
   }
+  if (!is.null(checkpoint_control)) stop("checkpoint_control currently requires an augmented bank.", call. = FALSE)
   if (beta_prior == "rhs") {
     if (!missing(a_lambda) || !missing(b_lambda) || !missing(learn_ridge) ||
         !missing(ridge_precision)) {

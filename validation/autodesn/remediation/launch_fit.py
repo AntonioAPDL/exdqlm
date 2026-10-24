@@ -2,7 +2,12 @@
 import argparse,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
 from large_job import single_large_job
-p=argparse.ArgumentParser();p.add_argument('family',choices=['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']);p.add_argument('phase',choices=['pilot','production']);p.add_argument('budget',type=int,nargs='?',default=32000);p.add_argument('--workers',type=int,choices=[1,2,4],default=1);p.add_argument('--snapshot',help='Existing immutable snapshot key, required to resume its contract');p.add_argument('--cache',action='store_true');p.add_argument('--run-label',default='');p.add_argument('--chains',default='1,2,3,4');p.add_argument('--local-proposal',default='',help='Frozen training-only optional exact local proposal checkpoint');p.add_argument('--global-proposal',default='',help='Frozen scale/model/period proposal checkpoint');p.add_argument('--statistics-cache',default='',help='Frozen exact unweighted design-statistics cache; does not change the target');p.add_argument('--local-scales',action='store_true',help='Jointly propose scales and reservoir locals with exact corrections');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('family',choices=['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']);p.add_argument('phase',choices=['pilot','production']);p.add_argument('budget',type=int,nargs='?',default=32000);p.add_argument('--workers',type=int,choices=[1,2,4],default=1);p.add_argument('--snapshot',help='Existing immutable snapshot key, required to resume its contract');p.add_argument('--cache',action='store_true');p.add_argument('--run-label',default='');p.add_argument('--chains',default='1,2,3,4');p.add_argument('--local-proposal',default='',help='Frozen training-only optional exact local proposal checkpoint');p.add_argument('--global-proposal',default='',help='Frozen scale/model/period proposal checkpoint');p.add_argument('--statistics-cache',default='',help='Frozen exact unweighted design-statistics cache; does not change the target');p.add_argument('--local-scales',action='store_true',help='Jointly propose scales and reservoir locals with exact corrections')
+p.add_argument('--checkpoint-every',type=int,default=0,help='Positive sweep interval for exact within-chain recovery; zero disables')
+p.add_argument('--stop-after-sweeps',type=int,help='Bounded absolute checkpoint sweep; not a completed fit')
+a=p.parse_args()
+assert a.checkpoint_every>=0
+assert a.stop_after_sweeps is None or (a.checkpoint_every>0 and a.stop_after_sweeps>0)
 root=Path('validation/autodesn/remediation');files=sorted(Path('R').glob('*.R'))+[Path('src/autodesn_rhs.cpp'),Path('src/RcppExports.cpp'),root/'fit.R']
 if a.snapshot:
  key=a.snapshot;snapshot=root/'artifacts'/'source_snapshots'/key
@@ -17,6 +22,9 @@ else:
  (snapshot/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 env=os.environ.copy();env['AUTODESN_SOURCE_SNAPSHOT']=str(snapshot.resolve());env['AUTODESN_CHAIN_WORKERS']=str(a.workers);env['AUTODESN_INFERENCE_CACHE']='1' if a.cache else '0';env['AUTODESN_RUN_LABEL']=a.run_label;env['AUTODESN_CHAINS']=a.chains
 env['AUTODESN_STATISTICS_CACHE']=a.statistics_cache
+env['AUTODESN_CHECKPOINT_EVERY']=str(a.checkpoint_every)
+env['AUTODESN_CHECKPOINT_STOP_AFTER']=str(a.stop_after_sweeps) if a.stop_after_sweeps is not None else 'Inf'
+if a.checkpoint_every:assert 'AUTODESN_CHECKPOINT_EVERY' in (snapshot/root/'fit.R').read_text()
 env['AUTODESN_LOCAL_PROPOSAL']=a.local_proposal
 env['AUTODESN_FROZEN_PROPOSAL']=a.global_proposal;env['AUTODESN_LOCAL_SCALE_PROPOSAL']='1' if a.local_scales else '0'
 if a.local_proposal:assert 'AUTODESN_LOCAL_PROPOSAL' in (snapshot/root/'fit.R').read_text()
@@ -29,7 +37,7 @@ invocation=root/'artifacts'/a.family/('pilot' if a.phase=='pilot' else f'product
 record=root/'evidence'/f'{label}_resources.json';attempt=1
 while record.exists() or (invocation/f'invocation_{attempt}.json').exists():
  attempt+=1;record=root/'evidence'/f'{label}_attempt{attempt}_resources.json'
-invocation_data=dict(snapshot=key,workers=a.workers,cache=a.cache,statistics_cache=a.statistics_cache,chains=a.chains,local_proposal=a.local_proposal,global_proposal=a.global_proposal,local_scales=a.local_scales,launcher_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),resource_runner_sha256=hashlib.sha256((root/'run_process.py').read_bytes()).hexdigest())
+invocation_data=dict(snapshot=key,workers=a.workers,cache=a.cache,statistics_cache=a.statistics_cache,checkpoint_every=a.checkpoint_every,stop_after_sweeps=a.stop_after_sweeps,chains=a.chains,local_proposal=a.local_proposal,global_proposal=a.global_proposal,local_scales=a.local_scales,launcher_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),resource_runner_sha256=hashlib.sha256((root/'run_process.py').read_bytes()).hexdigest())
 command=[sys.executable,str(root/'run_process.py'),'--record',str(record),'--log',str(root/'artifacts'/f'{label}_attempt{attempt}.log'),'--max-seconds','7200','--max-cgroup-anon-bytes','6400000000','Rscript','--vanilla',str(snapshot/root/'fit.R'),a.family,a.phase,str(a.budget)]
 with single_large_job(root,f'{a.family} {a.phase} {a.budget}'):
  invocation.mkdir(parents=True,exist_ok=True)

@@ -1,0 +1,20 @@
+{
+  "command": [
+    "/workspace/scratch/9cf6195923f9/runtime/julia_native/julia-1.10.10/bin/julia",
+    "--startup-file=no",
+    "--project=/workspace/scratch/9cf6195923f9/runtime/AutoGP.jl",
+    "validation/autodesn/remediation/artifacts/gp_reference_sources/8a4bcf5c6cee1d8c6241dada241493f7eed417922335997ea520272e9a07f165/test_gp_composite_reference.jl"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 300.0,
+  "max_cgroup_anon_bytes": 3000000000,
+  "exit_code": 0,
+  "elapsed_seconds": 14.661099004999414,
+  "peak_child_rss_kib": 532408,
+  "sampled_peak_process_tree_pss_kib": 530663,
+  "sampled_peak_environment_cgroup_anon_bytes": 416849920,
+  "user_seconds": 14.069716,
+  "system_seconds": 0.20790499999999998,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}
