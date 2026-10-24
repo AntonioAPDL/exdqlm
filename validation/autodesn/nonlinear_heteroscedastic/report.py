@@ -172,8 +172,8 @@ def main():
   for n,k in [(192,8),(384,32)]:
    r=sens[(sens.scenario==sc['id'])&(sens.N==n)&(sens.K==k)].iloc[0];rows.append([sc['id'],f'{n} x{k}',f'{r.RMSE:.5f}',f'{r.CRPS:.5f}',f'{r.NLL:.5f}'])
  table(rows,[170,75,85,85,85])
- para('All 24 combinations per model are archived: origins 2500, 2735, 2970; N=192/384 and K=4/8/16/32. A setting has 90 dependent pairs, not 14,130. The same qualified posterior is reused. Native GP additionally exports full run-by-run forecast sensitivity for its two independent eight-particle SMC fits.','Small')
- page();title('Native AutoGP and measured runtime')
+ para('All 24 origin/budget combinations per model are archived: origins 2500, 2735, 2970; N=192/384 and K=4/8/16/32. Each of the eight N x K settings is aggregated across three origins, giving 90 dependent pairs rather than 14,130. The same qualified posterior is reused. Native GP additionally exports full run-by-run forecast sensitivity for its two independent eight-particle SMC fits.','Small')
+ page();title('Native AutoGP and finite-particle sensitivity')
  gp=json.loads((b/'gp/status.json').read_text());native=json.loads((b/'gp/native_resources.json').read_text());gt=gp['timings']
  para('Fresh authors\' AutoGP 0.1.19 at revision 2ad372db2b8bea176e3b32a769bfb5d6cff80866, Julia 1.10.10. Native grammar/priors, depth 4, two independent eight-particle SMC fits; unchanged stage-wise schedule and HMC controls. Native save/reload and three-origin Gaussian-conditioning checks passed. These verify transport, not SMC posterior exploration.')
  rows=[['Run','Particles','Final particle ESS','Distinct kernel states','Largest weight']]
@@ -181,6 +181,17 @@ def main():
   st=tomllib.loads((b/f'gp/run_{run}/status.toml').read_text());pa=pd.read_csv(b/f'gp/run_{run}/particles.csv');rows.append([run,8,f'{st["ess"]:.3f}',pa.kernel.nunique(),f'{pa.weight.max():.4f}'])
  table(rows,[70,90,115,115,110])
  para('Distinct exported kernel states include continuous parameter values, not just tree structures. Particle ESS can be reset by resampling; it does not establish exploration of kernel space. Run-by-run forecast sensitivity measures variation between two finite-particle approximations, not independent DGP replications.','Small')
+ rs=pd.read_csv(b/'gp/gp_run_sensitivity.csv.gz');rows=[['SMC run','Pairs','RMSE','CRPS','NLL']]
+ for run,g in rs.groupby('run'):
+  rows.append([int(run),len(g),f'{np.sqrt(g.squared_error.mean()):.6f}',f'{g.crps.mean():.6f}',f'{g.negative_log_score.mean():.6f}'])
+ table(rows,[90,80,110,110,110])
+ native_cfg=tomllib.loads((HERE/'configuration.toml').read_text())
+ rows=[['Training stage','Structural MCMC steps','HMC steps','HMC step size']]
+ for n,mc,hmc in zip(native_cfg['autogp_schedule'],native_cfg['autogp_mcmc'],native_cfg['autogp_hmc']):
+  rows.append([n,mc,hmc,f'{native_cfg["autogp_hmc_base_step"]*native_cfg["autogp_hmc_reference_n"]/n:.7f}'])
+ table(rows,[100,140,120,140])
+ para(f"Each run has eight particles and maximum grammar depth4. Leapfrog steps: {native_cfg['autogp_leapfrog']}; HMC exit control: {native_cfg['autogp_hmc_exit']}; seeds: 1166020 and 1166021. These are the original frozen C1 controls applied to the new data. The two-run predictive mixture uses the fitted particle weights; model weights remain fixed between origins.",'Small')
+ page();title('Measured runtime and memory')
  raw=json.loads((b/'raw_bank/status.json').read_text())
  bm=json.loads((b/"bank_memory.json").read_text())
  para(f"Shared raw builder: {raw['invocation_wall_seconds']:.2f}s wall; frozen standardized-design preparation: {bank['standardization_seconds']:.2f}s. The complete bank-building command, including startup and serialization, took {bm['invocation_wall_seconds']:.2f}s with parent peak RSS {bm['process_peak_rss_kib']/2**20:.2f}GiB. Reservoir candidates and state timing match across all AutoDESN priors.")

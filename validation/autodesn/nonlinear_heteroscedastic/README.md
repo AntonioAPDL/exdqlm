@@ -64,10 +64,17 @@ python validation/autodesn/nonlinear_heteroscedastic/execute_remaining.py --juli
 # With all model forecasts complete, audit and package the study:
 python validation/autodesn/nonlinear_heteroscedastic/postprocess.py --julia /path/to/julia --project /path/to/AutoGP.jl
 python validation/autodesn/nonlinear_heteroscedastic/report.py
-python validation/autodesn/nonlinear_heteroscedastic/archive.py
-python validation/autodesn/nonlinear_heteroscedastic/evidence/restore_evidence.py
-python validation/autodesn/nonlinear_heteroscedastic/analysis.py --data validation/autodesn/nonlinear_heteroscedastic/evidence/restored
+python validation/autodesn/nonlinear_heteroscedastic/validate_report.py
+# Inspect every rendered page, then record that review:
+python validation/autodesn/nonlinear_heteroscedastic/validate_report.py --confirm-visual-review
+# Split large checkpoints, archive, restore, rerun analysis and require exact table parity:
+python validation/autodesn/nonlinear_heteroscedastic/finalize.py
 ```
+
+For an existing committed delivery, run `evidence/restore_evidence.py`, followed
+by `analysis.py --data validation/autodesn/nonlinear_heteroscedastic/evidence/restored`.
+This verifies all part, archive and internal checksums and rebuilds the summary
+tables without rerunning inference.
 
 The committed input is frozen; `generate.R` is for explicitly regenerating it,
 not selecting another realization. `execute_joint.py` resumes guarded per-chain and

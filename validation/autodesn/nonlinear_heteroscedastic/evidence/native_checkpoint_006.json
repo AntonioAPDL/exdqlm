@@ -1,0 +1,129 @@
+{
+  "complete": true,
+  "series": "NHS1",
+  "all_core_model_forecasts_complete": true,
+  "auxiliary_recovery_running": true,
+  "native_gp": {
+    "complete": true,
+    "benchmark_complete": true,
+    "mode": "full",
+    "method": "gp",
+    "model": "AutoGP",
+    "reused": false,
+    "fit_rows": 2000,
+    "origins": 471,
+    "score_pairs": 14130,
+    "posterior_updates": false,
+    "model_weight_updates": false,
+    "native_checks_passed": true,
+    "native_evidence_audit": {
+      "complete": true,
+      "runs": [
+        {
+          "n_future": 500,
+          "ess": 5.459114485242146,
+          "n_particles": 8,
+          "fixed_weights": true,
+          "complete": true,
+          "seed": 1166020,
+          "fit_rows": 2000,
+          "elapsed_seconds": 1438.1353540420532
+        },
+        {
+          "n_future": 500,
+          "ess": 4.2406920821834815,
+          "n_particles": 8,
+          "fixed_weights": true,
+          "complete": true,
+          "seed": 1166021,
+          "fit_rows": 2000,
+          "elapsed_seconds": 1655.595869064331
+        }
+      ],
+      "training_seconds_sum": 2978.8071994130005,
+      "max_native_mean_error": 1.6653345369377348e-15,
+      "max_native_covariance_error": 3.3306690738754696e-16
+    },
+    "autogp_revision": "2ad372db2b8bea176e3b32a769bfb5d6cff80866",
+    "julia_version": "1.10.10",
+    "smc_runs": [
+      {
+        "n_future": 500,
+        "ess": 5.459114485242146,
+        "n_particles": 8,
+        "fixed_weights": true,
+        "complete": true,
+        "seed": 1166020,
+        "fit_rows": 2000,
+        "elapsed_seconds": 1438.1353540420532
+      },
+      {
+        "n_future": 500,
+        "ess": 4.2406920821834815,
+        "n_particles": 8,
+        "fixed_weights": true,
+        "complete": true,
+        "seed": 1166021,
+        "fit_rows": 2000,
+        "elapsed_seconds": 1655.595869064331
+      }
+    ],
+    "source_contract": {
+      "autogp_revision": "2ad372db2b8bea176e3b32a769bfb5d6cff80866",
+      "input_sha256": {
+        "dgp_manifest.json": "01a2ff708d777a6dfa4ebc6e9f169eba2172ae4177a67dc270dee327be50cb6a",
+        "dgp_truth.csv": "287ab0f438f47d134bd18a21a41e08c825aa03112436ce8436a0a2e5db7077b3",
+        "series.csv": "a0896bdcdb8478098f12221864803194f539b17dde234bbdf179d4ab1d46146c",
+        "specification_grid.csv": "67cc91c598cd012d4a8a2613490035deabb3473ba94a21c8ddddf7c69aee8d3f",
+        "specification_recovery_audit.json": "77e73c044295d70cb3518600a2c0b83488b5068ce3452dab53a2e21db3907dd6",
+        "specifications.rds": "b4fb99bc0f7ad6cec4367fedc2487e91fc47a552e59ddb9c985f0c57ca3b74cc"
+      },
+      "source_sha256": {
+        "validation/autodesn/c1_comparison/run_autogp.jl": "1836200d2766e3af8090dc8c6a09490b3f5c078de13c2c93c0969bca65939cec",
+        "validation/autodesn/nonlinear_heteroscedastic/configuration.toml": "1e391e9440caa5a393d3dac6ff5d414dfb715dcd8696c23b364d6b96881ec674",
+        "validation/autodesn/c1_comparison/scoring.py": "c2c7dc1412922f0252b81e43690b035e8b3bad33af39a80ce64d2bbcac04f435",
+        "validation/autodesn/c1_comparison/report.py": "7c5fa8779574c0c7a64ec50c75fdcbd422692726593e0c283a6c61ca4a104719",
+        "validation/autodesn/nonlinear_heteroscedastic/run_gp.py": "b9d7b550321b96883572c230c617a293262494c59480436b8e0195cddd63021a"
+      }
+    },
+    "timings": {
+      "smc_training_seconds_sum": 2978.8071994130005,
+      "native_launcher_seconds_this_invocation": 3115.1073211529947,
+      "rolling_conditioning_scoring_seconds": 21.948493705000146
+    },
+    "timing_note": "SMC training sums the final completed-run callback times, retained when a completed posterior is reused. Abandoned fitting attempts are excluded. Native launcher measures this invocation, including startup, export and conditioning checks. Rolling timer includes Python conditioning, scores and sensitivity export."
+  },
+  "pooled_metrics": {
+    "RMSE": 0.6664433419110811,
+    "MAE": 0.52353752931069,
+    "CRPS": 0.3865591154662864,
+    "NLL": 1.103234392128784,
+    "Coverage50": 0.6657466383581033,
+    "Coverage90": 0.9782024062278839,
+    "Width50": 1.2596576404979178,
+    "Width90": 3.072633749287018,
+    "pairs": 14130
+  },
+  "files": {
+    "scores.csv": {
+      "bytes": 4252612,
+      "sha256": "7c83c7784303bcf2b22b2296182cf33eab522177616ea9eac787b579c2d13a2e"
+    },
+    "run_1/posterior.jls": {
+      "bytes": 34411,
+      "sha256": "0e6b8d5a2719747cb1f545fe38f09cda93b331f7c76da8d57f3843c18b69c91a"
+    },
+    "run_2/posterior.jls": {
+      "bytes": 34522,
+      "sha256": "b4a23a0fa1638f157c2a0b668f4b8754388b127c4e9bf05fd0fd2a4bace3bb89"
+    },
+    "native_resources.json": {
+      "bytes": 240,
+      "sha256": "26c42cebf99d603f7ef35c8bbbaca5f55f6892da73826ea00b265e83b2318a59"
+    }
+  },
+  "native_posterior_copies": [
+    "native_run_1.posterior.jls",
+    "native_run_2.posterior.jls"
+  ]
+}
