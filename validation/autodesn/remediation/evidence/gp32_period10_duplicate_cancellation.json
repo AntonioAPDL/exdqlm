@@ -1,0 +1,20 @@
+{
+  "observed_utc": "2026-10-25T05:22:36.864Z",
+  "duplicate": {
+    "id": 40165064445,
+    "status": "completed",
+    "conclusion": "cancelled",
+    "head_sha": "a2fc842ffef50cfaf27a9e5bb50abe145865e713",
+    "run_started_at": "2026-10-25T05:18:42Z",
+    "updated_at": "2026-10-25T05:21:45Z"
+  },
+  "original": {
+    "id": 40165012423,
+    "status": "in_progress",
+    "conclusion": null,
+    "head_sha": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d"
+  },
+  "cause": "The commit-workflow wrapper filters to PR-triggered runs. A redundant request was issued after misreading the wrapper's missing push event. The full Actions run collection showed both runs. A one-time identity-guarded workflow canceled only the duplicate.",
+  "cancellation_workflow_run_id": 40165230959,
+  "duplicate_seeds_not_independent": true
+}

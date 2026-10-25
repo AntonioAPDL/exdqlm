@@ -1,0 +1,44 @@
+{
+  "complete": true,
+  "phase": "production_512000_joint128_recoverable",
+  "chains": 4,
+  "stored_states_per_chain": 2048,
+  "rows": [501, 2500],
+  "models_with_stored_states": 132,
+  "source_checkpoints": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/chain_1.rds",
+      "sha256": "a30c11563be66e1dca24336456ad8682d4e694fe6651cf3ef655762f6d49994c"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/chain_2.rds",
+      "sha256": "7f9b62a577e61c61e62137f36139b75bbbdc03d7e8c34aee339116955ea58d96"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/chain_3.rds",
+      "sha256": "a9e9b8e9d1db15da9e00504a1b0cf39b380359bc20150af51b5dd9d258cc6a8d"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/chain_4.rds",
+      "sha256": "c63bacefed5f6cbc2147493d888c304d5930743c3eeb32fffd9976bb7c123381"
+    }
+  ],
+  "metrics": {
+    "training_observed_rmse": 0.4754,
+    "training_conditional_mean_rmse": 0.1534,
+    "realized_innovation_rmse": 0.4604,
+    "weighted_unpenalized_fit_conditional_mean_rmse": 0.1822,
+    "weighted_privileged_projection_rmse": 0.123,
+    "conditional_mean_correlation": 0.9696,
+    "maximum_chain_mean_range": 0.01,
+    "mean_pointwise_90_percent_latent_width": 0.2257,
+    "descriptive_training_latent_coverage90": 0.543
+  },
+  "public_predict_mu_maximum_error": 1.3323e-15,
+  "source_snapshot": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/fit_audit_sources/115b48e8e45c0f9ba3bb4698d559c45a035c4731fe0aec25317bf2c70a4f3076",
+  "heldout_used": false,
+  "new_random_draws_generated": false,
+  "posterior_qualified": false,
+  "forecast_allowed": false,
+  "scope": "Descriptive in-sample conditional means from8192 existing matching coefficient states. Latent bands omit observation noise. Unpenalized and privileged projections use the same finite-snapshot architecture weights and are optimistic training diagnostics, not predictive alternatives or new fits selected by test outcomes. Each occupied-model projection reproduces its independently audited span error. No architecture is removed from the sampler; finite saved states do not visit every supported model. This does not replace successive-budget or forecast qualification."
+}

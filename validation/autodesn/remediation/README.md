@@ -4,6 +4,36 @@ This branch implements the approved plan in `../nonlinear_heteroscedastic/plans/
 
 **Current status:** implementation and training-only development. No new model is scientifically qualified and no confirmation outcomes have been generated or inspected. Passing numerical tests and running short pilots do not establish posterior convergence. See `execution.json` and actual evidence files; a script's presence is not evidence it ran.
 
+Latest verified checkpoint (25 October 2026 UTC): all four F1 RHS chains at
+512,000 retained sweeps are complete. The fresh 256k/512k levels both pass
+individual convergence/architecture-precision screens, all 270 common lag/scale
+monitors, and all 71 registered practical/Monte Carlo comparisons. This closes
+the F1 two-budget MCMC gate; independent calibration/mode review, predictive
+Monte Carlo qualification and scientific promotion remain open. The latest
+matching 8192-state training audit gives conditional-mean RMSE about 0.1534 and
+correlation 0.9696. These are training diagnostics, not forecast scores.
+
+Both full chronological prefix banks are verified. All six short four-chain
+pilots complete but fail convergence, so there is no qualified selected mean.
+The privileged known-DGP/state forecastability panel passes 100k/400k path
+precision/stability checks, with conditional-risk RMSE about 0.44 at H1 and0.58
+at H30 on twelve fixed training origins. Those risks are not realized heldout
+scores and must not be compared numerically to models scored at other origins.
+All four additional-period GP16 runs finish but still fail evidence agreement
+(range 86.858 log units, effective replica count 1). Native 64 and additional-
+period 32 cohorts have actual workflow observations; see their timestamped live
+observation files. A duplicate same-seed launch was canceled and is never
+counted as an independent cohort.
+
+`remediation_checkpoint_023` preserves the final 512k results, new diagnostics,
+all six completed pilots and their immutable executed sources. Its full replay
+verifies 4369 parts and 8675 members through 22 archives; the old 006 prefix remains
+explicitly incomplete. Only hash-verified redundant observation copies and
+abandoned serialization fragments were pruned to stay within the 32 GiB disk;
+canonical final and resumable progress states are retained. See the cleanup
+receipts and archive ancestry for exact identities.
+
+
 Recovery checkpoint `4f0d36c4` restores all four original joint128k RDS files,
 reconstructs its missing CSV export, and reproduces its failed architecture
 screen. Source and installed suites now include 478 assertions (including within-chain recovery), with zero

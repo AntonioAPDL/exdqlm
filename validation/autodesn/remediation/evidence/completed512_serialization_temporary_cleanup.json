@@ -1,0 +1,82 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-25T05:19:26.100449+00:00",
+  "all_four_canonical_posteriors_complete_and_hash_verified": true,
+  "no_local_R_or_Julia_processes": true,
+  "files": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-12399ec706",
+      "bytes": 123803040,
+      "sha256": "3f4ef5a1f1235b74038952e118ee9a4fb07b600f745011b4866f1b61bc737bc3",
+      "mtime_ns": 1792903271694998217
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-1264aebf36",
+      "bytes": 128876336,
+      "sha256": "859839ae2bb7835d6cac48b6dc6aae8cca2526282c14347c48a08cf52dec0dc0",
+      "mtime_ns": 1792903542171809816
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-127d4bc7d4",
+      "bytes": 72086688,
+      "sha256": "7019fb302138b26a44e438cd816a9c2725fd8daf7a5cf37c50cc0432ed12c67d",
+      "mtime_ns": 1792900638234487536
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-11558aa6d5",
+      "bytes": 82242464,
+      "sha256": "d130d79b1d4aff7a51c5b11f2982ad423e818ac435996a918d2b04f968c12abc",
+      "mtime_ns": 1792901170029040156
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-1284ebd03",
+      "bytes": 73107776,
+      "sha256": "0cfabbb5961f508cc85dbda092c78a23f1797eaa22016d09e6a636748e4c5ee0",
+      "mtime_ns": 1792900691573869060
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-1159f7946f",
+      "bytes": 110628688,
+      "sha256": "61e6a63ff5b7356931ee32af29326105e0d7383b307722a2bafc271fcec83f56",
+      "mtime_ns": 1792902573923350133
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-1214e85e92",
+      "bytes": 68027888,
+      "sha256": "bc7291220115f5ec5e5a592e042646b37a82fe9f9a79648b6457fa1ee5a5cba5",
+      "mtime_ns": 1792900430556941960
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-129c70c13",
+      "bytes": 117716208,
+      "sha256": "b599126e9be239285e16a19876aa5b2ea53139fa97222b8a3a315b2112ab8d91",
+      "mtime_ns": 1792902949742657325
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.autodesn-checkpoint-1254e088b8",
+      "bytes": 120759952,
+      "sha256": "1cc31990c280692c6aaf2271c334e0ac0b5e42e014cff24f0beed540e1442eea",
+      "mtime_ns": 1792903110536930471
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.trace_4.csv.egc5h1",
+      "bytes": 72613888,
+      "sha256": "7fa206e2ea83291e5ec259182854efc9c72b152a5e08052897ac5d6048f4fa9a",
+      "mtime_ns": 1792903615173618793
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/.trace_3.csv.QwJLIB",
+      "bytes": 62914560,
+      "sha256": "7a26499853d0812652b2686105e6f2d4bac80215508576a0525d1d4565f85751",
+      "mtime_ns": 1792903606261722937
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable/chain_3.rds.writing",
+      "bytes": 82460672,
+      "sha256": "1f6aa26dd4701357843989a2bcb282de2e89f19eca1c5eea013d35d1c0c7b40b",
+      "mtime_ns": 1792903598671146537
+    }
+  ],
+  "freed_bytes": 1115238160,
+  "scope": "Remove only abandoned atomic serialization temporaries after the completed canonical posterior hashes are independently verified. These files are unmanifested fragments, not fitted posterior or recoverable progress checkpoints. Canonical chain/trace/progress/contract files are retained."
+}

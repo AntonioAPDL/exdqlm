@@ -1,5 +1,5 @@
 """Build the evidence-backed execution report; unfinished work stays explicit."""
-import hashlib, json, subprocess
+import datetime, hashlib, json, subprocess
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -162,15 +162,16 @@ def table(rows,widths=None):
     t=Table(data,colWidths=widths,repeatRows=1,hAlign='LEFT');t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e9f0f5')),('VALIGN',(0,0),(-1,-1),'TOP'),('LINEBELOW',(0,0),(-1,0),.7,colors.HexColor(BLUE)),('LINEBELOW',(0,1),(-1,-1),.25,colors.HexColor('#d8e0e5')),('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),5)]));story.append(t);story.append(Spacer(1,10))
 def image(path,width=6.7*inch,max_height=4.8*inch):
     from PIL import Image as PILImage
+    inputs[str(path)]=hashlib.sha256(Path(path).read_bytes()).hexdigest()
     with PILImage.open(path) as im:w,h=im.size
     height=width*h/w
     if height>max_height:width*=max_height/height;height=max_height
     story.append(Image(str(path),width=width,height=height,hAlign='LEFT'));story.append(Spacer(1,7))
 def page():story.append(PageBreak())
 
-story.append(Paragraph('AutoDESN remediation',styles['TitleDV']));add('NHS1 nonlinear, seasonal and heteroscedastic series | 24 October 2026')
+story.append(Paragraph('AutoDESN remediation',styles['TitleDV']));add('NHS1 nonlinear, seasonal and heteroscedastic series | 25 October 2026 UTC')
 title('Execution and validation checkpoint')
-table([['Outcome','Verified status'],['Implementation','Opt-in augmented readouts, period averaging, normalized grouped RHS, conditional SV, filtering, exact proposals and causal recursion are implemented.'],['Numerical correctness',f"{tests.get('passed','?')} source assertions pass; installed test results are reported separately. Independent reference outcomes and their scopes are reported separately."],['Production inference','No production posterior is yet scientifically qualified. Individually passing R-hat and ESS are insufficient when architecture-frequency or cross-budget gates fail.'],['Predictive comparison','No new full rolling-origin forecasts or independent confirmation scores are claimed. Historical scores are shown only as unchanged context.']], [100,380])
+table([['Outcome','Verified status'],['Implementation','Opt-in augmented readouts, period averaging, normalized grouped RHS, conditional SV, filtering, exact proposals and causal recursion are implemented.'],['Numerical correctness',f"{tests.get('passed','?')} source assertions pass; installed test results are reported separately. Independent reference outcomes and their scopes are reported separately."],['Production inference','Fresh four-chain F1 budgets at 256k and 512k pass individual screens, 270 shared-coordinate monitors and all 71 cross-budget practical/MC comparisons. Scientific promotion still awaits calibration/mode and predictive-MC review.'],['Predictive comparison','No new full rolling-origin forecasts or independent confirmation scores are claimed. Historical scores are shown only as unchanged context.']], [100,380])
 add('The work is not complete from start to finish. The distinction is deliberate: numerical identities, computational adequacy and predictive improvement are different requirements. Unfinished experiments cannot supply forecast scores or evidence of improvement.')
 add('Repository: AntonioAPDL/exdqlm. Feature branch: feature/autodesn-remediation-20261023. Draft pull request: https://github.com/AntonioAPDL/exdqlm/pull/5.',True)
 add('This report is generated from the output files listed in report_inputs.json. It preserves failed runs and source/checkpoint identities; scripts alone are never counted as executed experiments.',True)
@@ -201,10 +202,19 @@ for q,c in sorted(qualifications,key=lambda x:(x[1].get('retained',0),x[0]['phas
     label=('Coordinate16 ' if 's16' in q['phase'] else 'Joint full-vector ' if 'joint' in q['phase'] else 'Local move ' if 'local' in q['phase'] else 'Baseline ')+f"{c.get('retained',0):,}"
     rows.append([label,fmt(q['maximum_rhat'],4),fmt(min(q['minimum_bulk_ess'],q['minimum_tail_ess']),0),fmt(max(q['frequency_ranges'].values()),4),'pass' if q['screen_passed'] else 'FAIL'])
 table(rows,[110,70,65,150,85])
-if trace_figure:image(trace_figure,max_height=3.9*inch)
 add('Registered gates: rank/folded R-hat <=1.01, bulk/tail ESS >=400, major-category probability MCSE <=0.01, chain frequency ranges <=0.03. Two successive qualified fresh budgets must also agree within practical and Monte Carlo tolerances. No gate is waived because a different diagnostic passes.',True)
 level256=read_json(E/'F1_256000_execution_summary.json')
 if level256:add('The 256k joint run is the first individual level to pass. All 73 training-probe, predictive-quantile and major-probability comparisons against 128k pass their practical/MC tolerances, but the cross-budget certificate remains false because 128k fails its own frequency screen. A fresh 512k level with 128k warmup is registered before execution; it keeps the same frozen proposals, prior and target.',True)
+
+stability=read_json(E/'F1_production_256000_joint128_recoverable_vs_production_512000_joint128_recoverable_stability.json')
+if stability:
+    add(f"The completed fresh 512k level now passes. Its registered comparison with 256k passes all {stability['checked_quantities']} practical/MC comparisons, both individual screens and both 270-coordinate screens. This closes the two-budget MCMC gate for F1; it does not close scientific promotion or predictive Monte Carlo gates.",True)
+
+if trace_figure:
+    page();title('Full-trace production diagnostics')
+    image(trace_figure,max_height=5.8*inch)
+    add('All four completed 512k chains are shown on the retained-sweep scale. Lines are subsampled only for display; the individual screens use every retained trace value. The prior, model support, frozen proposals and exact arithmetic cache are held fixed across the independently started 256k and 512k levels.',True)
+    add('No trace panel proves posterior convergence. The previous page reports the full gates, including architecture probabilities, while the common-scale page checks 270 matched lag/local/prior-variance coordinates from saved joint states.',True)
 
 page();title('Architecture exploration and shrinkage')
 if occupancy_figure:image(occupancy_figure,max_height=3.7*inch)
@@ -236,7 +246,16 @@ if training_function:
     m=training_function['metrics']
     table([['Training-only diagnostic','Response units'],['RHS mean vs known conditional mean',fmt(m['training_conditional_mean_rmse'],4)],['RHS mean vs observed response',fmt(m['training_observed_rmse'],4)],['Realized innovations: observed minus true mean',fmt(m['realized_innovation_rmse'],4)],['Weighted unpenalized fits vs true mean',fmt(m['weighted_unpenalized_fit_conditional_mean_rmse'],4)],['Weighted privileged projections vs true mean',fmt(m['weighted_privileged_projection_rmse'],4)]],[350,130])
     add(f"The fitted/true mean correlation is {m['conditional_mean_correlation']:.4f}. Shrinkage improves the descriptive conditional-mean error relative to unpenalized fits of the same stored architecture mixture. The privileged truth projections show additional representational room; neither projection is a fitted forecasting alternative or an error bound for Bayesian averaging.",True)
-    add(f"The latent-mean bands omit observation noise. Their descriptive within-training 90% truth coverage is {100*m['descriptive_training_latent_coverage90']:.1f}%, indicating substantial remaining mean discrepancy. This is not predictive interval coverage or independent repeated-sample coverage. These are 8,192 stored joint states from the first individually passing level; full posterior qualification is pending.",True)
+    add(f"The latent-mean bands omit observation noise. Their descriptive within-training 90% truth coverage is {100*m['descriptive_training_latent_coverage90']:.1f}%, indicating substantial remaining mean discrepancy. This is not predictive interval coverage or independent repeated-sample coverage. These are 8,192 stored joint states from the latest complete 512k level; scientific promotion remains pending.",True)
+
+oracle=read_json(E/'oracle_forecastability.json')
+if oracle:
+    page();title('How much future uncertainty is unavoidable?')
+    image(Path(oracle['figure']),max_height=3.45*inch)
+    table([['Horizon','Oracle conditional RMSE floor','Training-response SD fraction']]+[[str(int(v['horizon'])),fmt(v['oracle_rmse_floor'],4),fmt(v['oracle_rmse_floor']/oracle['training_response_sd'],3)] for v in oracle['horizon_results']],[85,240,155])
+    add('A privileged predictor knows the true DGP parameters and current residual/volatility state. It recursively simulates future responses from 12 fixed training origins, using only observations through 2500. The 100k and 400k path levels pass individual precision and successive-budget practical/simultaneous-MC checks. All 22 independent scalar/causality assertions pass.')
+    add('At horizon 30, about 60% of conditional predictive variance is expected innovation variance; about 40% propagates through future mean dynamics. The latter includes linear and nonlinear effects and is not an isolated causal effect of nonlinearity. Heteroscedastic noise therefore imposes substantial forecast risk even for a perfect known-state model.',True)
+    add('These are conditional future risks on a small fixed training-origin panel. They are not realized held-out scores, a population lower bound, or 12 independent DGP replications. Do not compare the 0.44/0.58 values numerically to model RMSE evaluated on different origins. This audit neither selects nor qualifies a candidate model.',True)
 
 standardization=read_json(E/'full_standardization.json')
 common=read_json(E/f"F1_{latest[0]['phase']}_common_rhs_diagnostics.json") if latest else None
@@ -274,8 +293,13 @@ if gp_training:
         if gp32:add(f"The full corrected 32-particle log-evidence range is {gp32['log_evidence_range']:.3f}; the effective evidence-weighted replica count is {gp32['effective_evidence_replicas']:.3f}. This budget fails computational qualification. All four replicas are retained; no best-run selection or forecast is allowed.")
         repaired=[read_json(p) for p in sorted(E.glob('gp16_period10_s*_imported.json'))]
         if repaired:table([['Period-intervention replica','Wall (minutes)','Peak PSS (GiB)']]+[[str(v['seed']),fmt(v['wall_seconds']/60,1),fmt(v['peak_pss_kib']/1048576,2)] for v in repaired],[210,135,135])
-        add(f'{len(repaired)} of four registered 16-particle replicas with ten additional invariant period moves are verified complete. The other two were observed fitting. The prior/grammar remain fixed and the proposal uses training-only peaks with exact Hastings correction. Keep this computational policy separate from strict native controls. No cohort qualification or forecast is claimed.',True)
-        if read_json(ROOT/'remote_gp_requests/budget64.json'):add('The registered native 64-particle control uses four fresh replicas and the unchanged native target/schedule/move kernels. Its 14,400-second process cap is fixed before 64-particle outputs. The request is pending publication/launch at this report checkpoint; check actual workflow records before crediting execution.',True)
+        add(f'{len(repaired)} of four registered 16-particle replicas with ten additional invariant period moves are verified complete. All four are now complete. The prior/grammar remain fixed and the proposal uses training-only peaks with exact Hastings correction. Keep this computational policy separate from strict native controls. No cohort qualification or forecast is claimed.',True)
+        if read_json(ROOT/'remote_gp_requests/budget64.json'):add('The registered native 64-particle control uses four fresh replicas and the unchanged native target/schedule/move kernels. Its 14,400-second process cap is fixed before 64-particle outputs. All four inference steps were observed active in workflow 40160840831. No completed 64-particle numeric posterior is credited at this checkpoint.',True)
+
+period16=read_json(E/'gp16_period10_evidence_diagnostics.json')
+if period16:add(f"The complete additional-period 16 cohort still fails: corrected logZ range {period16['log_evidence_range']:.3f}, effective evidence-replica count {period16['effective_evidence_replicas']:.3f}. The registered 32-particle follow-up has four inference steps observed active in workflow 40165012423. This is a separate computational policy; do not pool it with native-control cohorts.",True)
+read_json(E/'gp64_live_observation.json');read_json(E/'gp32_period10_live_observation.json')
+if read_json(E/'gp32_period10_duplicate_cancellation.json'):add('A PR-only status wrapper hid the already launched push run and caused one redundant launch. An identity-guarded job canceled the duplicate 40165064445, retaining original 40165012423. Duplicate seeds are not independent replicas; their attempted compute is a separate unsuccessful cost.',True)
 
 page();title('Calibration scope and actual execution status')
 rows=[['Calibration','Executed result / limitation']]
@@ -329,6 +353,9 @@ if checkpoint_reference:
 if checkpoint_execution:
     add("The earlier bounded recovery audit recorded: " + checkpoint_execution['report_statement'])
 if level256:add(f"The subsequent full continuation completes all four chains with exit 0. Summing the three observed process invocations gives {level256['known_active_wall_seconds_sum']/60:.2f} active minutes, including repeated startup/checkpoint work and excluding pauses between invocations. Peak process-tree PSS is {level256['peak_process_tree_pss_kib']/1048576:.2f} GiB; sampled environment anonymous memory includes simultaneous audits. The earlier unknown-exit invocation remains uncredited.")
+level512=read_json(E/'F1_512000_execution_summary.json')
+if level512:add(f"Full 512k completes all four chains. Observed invocations 2-5 sum to {level512['known_active_wall_seconds_sum']/60:.2f} active minutes; aggregate PSS peaks at {level512['peak_process_tree_pss_kib']/1048576:.2f} GiB. Invocation 1 lacks a recovered resource exit record, so this is a partial observed-cost total. Segments are the same chains; diagnostic and forecast costs are separate.",True)
+
 add('No new full rolling-origin forecast or independent confirmation result is produced by these engineering checks. The model qualification thresholds remain unchanged.',True)
 
 blocks=read_json(E/'calendar_cache_benchmark_lawvalidated.json')
@@ -361,6 +388,19 @@ add('SV and seasonal SV now require a frozen certificate binding both qualified 
 read_json(E/'variance_only_seasonality_tests.json');read_json(E/'fit_inputs_tests.json')
 add('The 30 variance-only normalization/integration and R/C++ checks pass. The broader scoped suite passes 830 assertions in source and a fresh installation outside Git. A separate isolated fixture checks certificate hashes and selected-mean controls. No actual mean selection, production SV fit or new benchmark forecast follows from these checks.',True)
 
+fold_pilots=read_json(E/'fold_pilot_batch.json')
+if fold_pilots:
+    page();title('Six completed pilots: none is yet qualified')
+    rows=[['Cutoff / family','Max R-hat','Min bulk / tail ESS','Screen']]
+    for v in fold_pilots['cells']:
+        d=read_json(E/f"fold_fits/cutoff{v['cutoff']}/{v['family']}/{v['family']}_pilot_qualification.json")
+        if d:rows.append([f"{v['cutoff']} / {v['family']}",fmt(d['maximum_rhat'],3) if d['maximum_rhat']<100 else '>100',fmt(min(d['minimum_bulk_ess'],d['minimum_tail_ess']),1),'pass' if d['screen_passed'] else 'FAIL'])
+    table(rows,[155,100,155,70])
+    add('All six fits complete four chains with 1,000 warmup and 2,000 retained sweeps per chain. The legacy requested-budget filename contains 32000; it does not represent the actual pilot sampling budget. Frozen proposal guides retain full support. The five new cells required 356.46 seconds in the observed foreground batch; the first verified cell was reused.')
+    add('Every short pilot fails convergence. This is direct evidence that completed sampling and proposal construction do not qualify a posterior. Production fold budgets and successive-budget checks remain necessary before rolling validation or the registered CRPS family-selection rule.')
+    add('The first batch attempt omitted the launcher dependency large_job.py and failed before starting another fit. Its source/failure record remains. A new immutable complete dependency snapshot produced the successful batch; no executed sampler snapshot was edited.',True)
+    add('SV and seasonal SV must retain the selected mean family, with certificate hashes binding both qualified development folds. The log-SV model approximates the DGP variance; it does not exactly reproduce its GJR leverage dynamics. Mean/variance flexibility and predictive calibration still require measured comparisons.',True)
+
 page();title('Historical forecast context - unchanged')
 image(historical_figure,max_height=3.1*inch)
 rows=[['Historical model','RMSE','MAE','CRPS','NLL','50% cover / width','90% cover / width']]
@@ -371,16 +411,16 @@ add('These scores are the original completed NHS1 reference, not outcomes of the
 add('High pooled coverage can conceal excess width and regime-dependent undercoverage. Visual failure to track every realized spike also includes irreducible innovation uncertainty. The new work must separately establish computational adequacy and then compare conditional means, proper scores and calibration. None of the historical rankings proves that a new model is superior.')
 
 page();title('Unfinished gates and reproducible handoff')
-table([['Gate','What is still required'],['Posterior qualification','Two successive qualified fresh budgets, targeted mode checks, probability precision and cross-budget stability under frozen computational controls.'],['Mean-family selection','Both prefix banks and state bindings are complete. Fit and qualify their posteriors, run frozen-fit rolling validation and select by the registered CRPS rule.'],['Native AutoGP','Complete full-size independent same-prior runs and particle/move-budget sensitivity. Small feasibility runs and an interrupted full run do not qualify it.'],['Conditional variance','Recursive constant/SV calibration has resolved within its frozen-map scope. Production-chain qualification and conditional particle-filter budget checks remain.'],['Prediction','Outer/inner Monte Carlo panel; full 471-origin, 30-horizon comparisons with RMSE, MAE, CRPS, NLL, intervals and calibrated runtimes.'],['Independent confirmation','Frozen 30-realization mean/GP block, separate variance block and registered stress cells. None can be replaced by overlapping origin-horizon pairs.']], [125,355])
+table([['Gate','What is still required'],['Posterior qualification','F1 two-budget/precision checks pass. Complete independent calibration/mode review and qualify the other model-family/fold/volatility posteriors.'],['Mean-family selection','Both prefix banks and state bindings are complete. Fit and qualify their posteriors, run frozen-fit rolling validation and select by the registered CRPS rule.'],['Native AutoGP','Complete full-size independent same-prior runs and particle/move-budget sensitivity. Small feasibility runs and an interrupted full run do not qualify it.'],['Conditional variance','Recursive constant/SV calibration has resolved within its frozen-map scope. Production-chain qualification and conditional particle-filter budget checks remain.'],['Prediction','Outer/inner Monte Carlo panel; full 471-origin, 30-horizon comparisons with RMSE, MAE, CRPS, NLL, intervals and calibrated runtimes.'],['Independent confirmation','Frozen 30-realization mean/GP block, separate variance block and registered stress cells. None can be replaced by overlapping origin-horizon pairs.']], [125,355])
 add('Checkpoints preserve completed numeric states, traces, case records, immutable executed sources and failure logs. restore_checkpoints.py verifies archive ancestry, every part and every extracted member. Large construction/inference banks are referenced by checksums and deterministic rebuild scripts rather than duplicated in each fitted object.')
 add('Primary evidence: MATH.md; execution.json; development_registry.json; independent-reference check CSV/JSON files; F1 checkpoint-validation and qualification records; resource records; versioned checkpoint manifests. The report input manifest supplies their exact SHA256 values.',True)
 add('The appropriate conclusion at this checkpoint is an implemented and increasingly validated statistical extension with unresolved production and predictive gates. It is not a completed forecast comparison or a superiority claim.')
 
 def footer(canvas,doc):
-    canvas.saveState();canvas.setStrokeColor(colors.HexColor('#d8e0e5'));canvas.line(42,39,553,39);canvas.setFont('DV',7);canvas.setFillColor(colors.HexColor(NAVY));canvas.drawString(42,26,'NHS1 | implementation and validation | 24 October 2026');canvas.drawRightString(553,26,str(doc.page));canvas.restoreState()
+    canvas.saveState();canvas.setStrokeColor(colors.HexColor('#d8e0e5'));canvas.line(42,39,553,39);canvas.setFont('DV',7);canvas.setFillColor(colors.HexColor(NAVY));canvas.drawString(42,26,'NHS1 | implementation and validation | 25 October 2026 UTC');canvas.drawRightString(553,26,str(doc.page));canvas.restoreState()
 path=PDF/'AutoDESN_Remediation_Execution_Report.pdf'
 doc=SimpleDocTemplate(str(path),pagesize=(595.28,841.89),rightMargin=42,leftMargin=42,topMargin=44,bottomMargin=53,title='AutoDESN remediation: execution and validation checkpoint',author='AntonioAPDL / reproducible execution')
 doc.build(story,onFirstPage=footer,onLaterPages=footer)
 for file in [Path('R/autodesn.R'),Path('R/qdesn_normal.R'),Path('R/qdesn_vb.R'),Path('NAMESPACE'),Path('R/autodesn_calendar_cache.R'),Path('R/autodesn_checkpoint.R'),Path('R/autodesn_statistics_cache.R'),Path('R/autodesn_gaussian.R'),Path('R/autodesn_extended.R'),Path('R/autodesn_extended_bank.R'),Path('R/autodesn_extended_forecast.R'),Path('R/autodesn_extended_local.R'),ROOT/'fit.R',ROOT/'fit_inputs.R',ROOT/'launch_fit.py',ROOT/'load_forecast_bank.R',ROOT/'execution.json',ROOT/'development_registry.json',Path(__file__)]:inputs[str(file)]=hashlib.sha256(file.read_bytes()).hexdigest()
-record=dict(complete=True,report=str(path),report_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),execution_context_date='2026-10-24',last_committed_base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),inputs=inputs,partial_observations=partial_observations,scientific_study_complete=False,new_forecast_comparison_complete=False)
+record=dict(complete=True,report=str(path),report_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),execution_context_date='2026-10-25',generated_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),last_committed_base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),inputs=inputs,partial_observations=partial_observations,scientific_study_complete=False,new_forecast_comparison_complete=False)
 (OUT/'report_inputs.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps({k:record[k] for k in ['complete','report','report_sha256','scientific_study_complete']}))

@@ -1,17 +1,18 @@
 {
   "complete": true,
-  "pages": 17,
+  "observed_utc": "2026-10-25T05:26:58.861201+00:00",
+  "report": "validation/autodesn/remediation/output/pdf/AutoDESN_Remediation_Execution_Report.pdf",
+  "report_sha256": "2a4e114de66cf4c3b263263623175229f2dfd5ac938bcd196b064b5cdebd024c",
+  "pages": 20,
   "all_pages_rendered": true,
-  "all_page_contact_sheet_inspected": true,
-  "full_size_dense_pages_inspected": [
-    3,
-    10,
-    15
+  "all_pages_contact_sheet_inspected": true,
+  "full_size_pages_inspected": [
+    5,
+    9,
+    18
   ],
-  "no_clipped_or_overlapping_content_observed": true,
-  "report_sha256": "7646435d5c0389d1980538d22a2dff54a7e3ae6ee4e5d363ae56691352741776",
-  "report_inputs_verified": true,
-  "scientific_study_complete": false,
-  "inspected_utc": "2026-10-25T04:06:28.503224+00:00",
-  "last_change": "Spacing cleanup only after full-size pages3/10/15 inspection; all17 final pages rerendered and inspected in a contact sheet."
+  "bound_input_hashes_verified": 144,
+  "render_directory": "validation/autodesn/remediation/artifacts/report_qa_phase10",
+  "layout_result": "No clipping or overflow observed; full production traces now have a separate readable page. Execution checkpoint, not completed scientific comparison.",
+  "scientific_study_complete": false
 }

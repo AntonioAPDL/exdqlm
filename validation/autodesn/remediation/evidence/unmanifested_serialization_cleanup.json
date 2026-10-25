@@ -1,0 +1,17 @@
+{
+  "complete": true,
+  "removed": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/lastpair512_near_final/.copy_4.writing.h6PhQX",
+      "bytes": 109838336,
+      "sha256": "f7f0435c8dfbf71b1690d023b6c7069f3f84aacb0226e346a9aaa646f0b193fa"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid_production_2/.chain_4_sweep_280000.rds.qYJvZX",
+      "bytes": 44826624,
+      "sha256": "402ef7f326d2f5adffea8e13cb09df483db27c3ca1f9cc54e496977d7f67b599"
+    }
+  ],
+  "verified_checkpoint_removed": false,
+  "scope": "Only quiescent, unmanifested serialization temporaries rejected by the numeric membership audit. All manifested complete observation files remain in022 and local source folders."
+}

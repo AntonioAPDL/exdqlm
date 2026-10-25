@@ -1,0 +1,36 @@
+{
+  "complete": true,
+  "all_four_chains_complete": true,
+  "retained_per_chain": 512000,
+  "warmup_per_chain": 128000,
+  "observed_process_records": [
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_attempt4_resources.json",
+      "sha256": "3138fec1075da0ce591c1f4b04bbeaebbf0bcb1e00f78f99ea4eca6a600cfbb4",
+      "elapsed_seconds": 4186.227010504001,
+      "pss_kib": 4480547
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_attempt5_resources.json",
+      "sha256": "d65422fe0ea89585d87ce216e7f1c33d22e797bdafedf32f8917eb95288a241b",
+      "elapsed_seconds": 4173.266102978003,
+      "pss_kib": 4460179
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_attempt2_resources.json",
+      "sha256": "87947ec474ae4d057a49185edf18c353059094fa4319f9b0dceec634b32f0d01",
+      "elapsed_seconds": 28.02453063899884,
+      "pss_kib": 4183170
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_attempt3_resources.json",
+      "sha256": "28776901aadf4227a0fe12b2ed9129a51aba71c50a44091b8b2c5409b27c9135",
+      "elapsed_seconds": 4018.829830546001,
+      "pss_kib": 6056349
+    }
+  ],
+  "known_active_wall_seconds_sum": 12406.347474667004,
+  "peak_process_tree_pss_kib": 6056349,
+  "complete_total_runtime_known": false,
+  "scope": "Sum of observed process invocations2-5, including startup, prior-pause verification and final continuations. Invocation1 has no recovered resource exit record; no runtime is invented for it. Bounded segments are continuations of the same four chains, not extra independent fits. Diagnostic/audit and remote GP times excluded."
+}

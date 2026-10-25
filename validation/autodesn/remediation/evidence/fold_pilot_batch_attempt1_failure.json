@@ -1,0 +1,12 @@
+{
+  "observed_utc": "2026-10-25T05:09:05.238518+00:00",
+  "source_snapshot": "235eedb85ace0adb9450da64007dfac713ccaab6c8874cdf7d6838a9e2703849",
+  "exit_code": 1,
+  "error": "ModuleNotFoundError: No module named 'large_job'",
+  "stage": "second cell launch before inference",
+  "completed_existing_cells_verified": [
+    "cutoff1500/F1"
+  ],
+  "new_fits_started": 0,
+  "scope": "Foreground command failed; no elapsed-resource measurement was recorded. Executed source snapshot remains unchanged."
+}

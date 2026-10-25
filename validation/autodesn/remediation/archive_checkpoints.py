@@ -5,8 +5,9 @@ p=argparse.ArgumentParser();p.add_argument('label');p.add_argument('--previous',
 root=Path('validation/autodesn/remediation');out=root/'evidence'/'checkpoints';out.mkdir(parents=True,exist_ok=True);base=out/a.label
 assert not Path(str(base)+'.manifest.json').exists(),'A checkpoint archive label is immutable'
 files=set();skipped_live_progress=[]
-for family in ['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']:
- family_dir=root/'artifacts'/family
+family_dirs=[root/'artifacts'/family for family in ['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']]
+family_dirs+=sorted((root/'artifacts/fold_fits').glob('cutoff*/*'))
+for family_dir in family_dirs:
  for config in family_dir.glob('*/configuration.json'):
   files.add(config)
   for name in ['contract.rds','model_metadata.csv','status.json']:
@@ -51,6 +52,7 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
                 'full_prefix_sources/**/*','prefix_reference_maps/*',
                 'gp_cohort_evidence_sources/**/*','gp32_period0_cohort*/*','gp16_period10_cohort*/*',
                 'checkpoint_validation_sources/**/*','oracle_forecastability_sources/**/*',
+                'qualification_sources/**/*','cross_budget_sources/**/*','fold_pilot_sources/**/*',
                 'oracle_forecastability/*/*.csv','oracle_forecastability/*/status.json',
                 'prefix_banks/*/manifest.json','prefix_banks/*/raw_bank/*.csv','prefix_banks/*/raw_bank/status.json','prefix_banks/*/raw_bank/contract.rds',
                 'prefix_banks/*/standardized_bank/*.csv','prefix_banks/*/standardized_bank/status.json','prefix_banks/*/standardized_bank/contract.rds',

@@ -79,7 +79,7 @@
   "artifact_directory": "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4",
   "source_status_sha256": "54ea75316b2609ed722fdbea6c47262e0e60180303f4c6acf84e90815d2e0d80",
   "figure": "validation/autodesn/remediation/output/figures/oracle_forecastability.png",
-  "figure_sha256": "b1f97bea02bcbccb26d062b131df260540c72e071f60f2281242932cd28d81a1",
+  "figure_sha256": "d65b59ab72b6319b25acfc9647486a1a7c1c0189beebea0bff9a71cc55b99100",
   "horizon_results": [
     {
       "horizon": 1,
@@ -120,7 +120,7 @@
     "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4/status.json": "54ea75316b2609ed722fdbea6c47262e0e60180303f4c6acf84e90815d2e0d80",
     "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4/paths_400000.csv": "271a7a53a25b86609e6be9e89cdc776747c703f7154d12634c3308a2e36a53a4",
     "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4/horizon_summary.csv": "545a5dd5d2b87865db7a4c78cc72a9abf2d06e44ba6c49040444793da3910aa9",
-    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/summarize_oracle_forecastability.py": "4c036061277bd463bc4b4623bcbdc06ed0a19682ed2122400a19993bb57d920b"
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/summarize_oracle_forecastability.py": "fb713b63ebbe608fd91c16ca2f649d53748757bc9510354d691ecd9f9a4a46a3"
   },
-  "interpretation": "At the fixed training-origin panel, even the privileged known-state predictor has a conditional RMSE floor about0.44 at horizon1 and0.58 at horizon30. These are conditional future risks, not scores on realized test observations. Do not compare them numerically to held-out model RMSE from different origins or claim population bounds. About40% of horizon30 variance comes from nonlinear propagation of future innovations; the rest is expected innovation variance. This does not qualify any candidate posterior or full benchmark."
+  "interpretation": "At the fixed training-origin panel, even the privileged known-state predictor has a conditional RMSE floor about0.44 at horizon1 and0.58 at horizon30. These are conditional future risks, not scores on realized test observations. Do not compare them numerically to held-out model RMSE from different origins or claim population bounds. About40% of horizon30 variance comes from propagation of future innovations through the mean dynamics; the rest is expected innovation variance. This does not qualify any candidate posterior or full benchmark."
 }

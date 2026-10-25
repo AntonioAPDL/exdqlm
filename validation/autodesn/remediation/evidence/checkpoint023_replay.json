@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "verified_parts": 4369,
+  "verified_members": 8675,
+  "verified_archives": 22,
+  "verified_prefix_archives": 1,
+  "all_archive_payloads_complete": false,
+  "extracted": false,
+  "manifest": "evidence/checkpoints/remediation_checkpoint_023.manifest.json",
+  "manifest_sha256": "0c5c456bd27e811156e8401c78aeead0445aaa4f2c1b65229b4561cc62b35ddf",
+  "git_parent": "511b8c9dc52546ebc9887977e858963b2a86d525",
+  "scope": "Full part/archive/member/ancestry replay with no extraction. Old archive006 remains an explicitly incomplete prefix; all new complete payloads verify."
+}

@@ -76,7 +76,14 @@
     "Variance-only period support retains the selected nonseasonal mean;830 source and outside-Git installed assertions pass with zero errors/warnings",
     "Generic fold driver and frozen selected-mean certificate guards pass isolated fixtures; no actual fold posterior or mean selection completed",
     "Allfour native32 full2000-row posteriors/logs imported and verified; full Gen evidence agrees exactly but range222.4485 and evidence-replica ESS1 block qualification",
-    "Two additional invariant-period GP16 replicas complete and verify; two remain active; no completed qualified cohort"
+    "Two additional invariant-period GP16 replicas complete and verify; two remain active; no completed qualified cohort",
+    "Allfour fullF1 RHS512k chains complete, independently checkpoint-validated, individual full-trace and all270 common-coordinate screens pass.",
+    "FreshF1256k and512k successive-budget check passes all71 practical/MC comparisons; individual and common-coordinate screens pass at both levels. Scientific promotion and forecasts remain false.",
+    "Matching8192 saved-state training-mean and shrinkage audits repeated at512k; no new posterior samples or heldout outcomes.",
+    "Allsix fixed training-only chronological pilot cells completed; allsix short-budget convergence screens fail. No qualified fold posterior or mean-family selection.",
+    "Known-DGP/state forecastability panel at12 training origins:22 independent scalar/causality assertions;100k/400k path screens and cross-budget checks pass. Not candidate forecast scores.",
+    "Allfour16-particle additional-period GP runs complete: logZrange86.8581 and evidence-replicaESS1 fail computational qualification.",
+    "Duplicate GP32-period launch identified from full Actions listing and canceled by exact source/run identity guard. Original cohort remains. Duplicate seeds never counted as independent evidence."
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
@@ -102,43 +109,36 @@
     "full_package_CI": "Broad release check at680c6f59 still fails152 assertions (50warnings,9skips,6548passes); this supersedes the earlier155-failure check. New830-assertion scoped suites do not imply full package green. Native/backend, repository-only integration and legacy numerical/doc failures remain unresolved.",
     "native_gp16": "Four complete full-size runs fail mode/budget review: corrected log evidence range365.29, effective evidence-weighted replica count1.0, one within-run ESS1.08. Retain all runs; no forecast promotion.",
     "calendar_block_rounding": "Reordered Gram sums preserve Gaussian laws to tested numerical accuracy but may alter trajectories. The strict first path check failed and remains recorded. Cache contents are part of exact checkpoint identity; production512k keeps its old source/pair cache.",
-    "native_gp32": "Allfour native32 runs complete and agree with full Gen evidence accounting, but log-evidence range222.4485 and replica-weight ESS1 fail computational qualification. No best-run selection."
+    "native_gp32": "Allfour native32 runs complete and agree with full Gen evidence accounting, but log-evidence range222.4485 and replica-weight ESS1 fail computational qualification. No best-run selection.",
+    "native_gp16_period10": "Four verified complete runs fail: log-evidence range86.8581 and effective evidence-replica count1. No forecast promotion.",
+    "fold_pilots": "Allsix1000warmup+2000retained/chains4 pilots finish but all convergence screens fail. Completed guide construction is not a selected or qualified mean model.",
+    "oracle_scope": "Privileged conditional future-risk panel on12 dependent training origins. Cannot compare numerically to realized heldout model scores or treat12origins as independent DGP replications.",
+    "variance_model": "The implemented Gaussian log-SV family approximates conditional variance; it does not reproduce the DGP GJR leverage recursion exactly. Predictive improvement remains untested.",
+    "duplicate_GP_cost": "One unnecessary four-seed launch was canceled after status-wrapper omission was discovered. Preserve its attempted compute cost separately; duplicate seeds are not extra independent replicas."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
   "running_at_this_checkpoint": [
     {
-      "method": "AutoDESN RHS F1",
-      "budget_retained_per_chain": 512000,
-      "chains": [
-        3,
-        4
-      ],
-      "completed_chains": [
-        1,
-        2
-      ],
-      "workers": 2,
-      "snapshot": "7ef16ab301161e5740ae004e1d51a07db731825f6bd8fe2309e9b57bc60615b9",
-      "status": "Last pair observed active under invocation5; first pair verified complete. No complete four-chain512k posterior or cross-budget certificate."
+      "method": "AutoGP native control",
+      "particles": 64,
+      "period_moves": 0,
+      "rows": 2000,
+      "observation_file": "evidence/gp64_live_observation.json",
+      "workflow_run_id": 40160840831,
+      "source_commit": "b88f738a743a238468f5052b4667ca8346d28716",
+      "status": "Observed workflow step states in bound observation file; no completed numeric posterior imported."
     },
     {
       "method": "AutoGP with additional invariant period rejuvenation",
-      "workflow_run_id": 40156723959,
-      "commit": "680c6f5907eead9297ecde1d5de121876905052f",
-      "particles": 16,
+      "particles": 32,
       "period_moves": 10,
       "rows": 2000,
-      "completed_imported_seeds": [
-        7366221,
-        7366222
-      ],
-      "active_seeds": [
-        7366223,
-        7366224
-      ],
-      "status": "Two replicas complete and verified; two inference steps observed active. Additional policy, no same-cohort qualification or forecasts."
+      "observation_file": "evidence/gp32_period10_live_observation.json",
+      "workflow_run_id": 40165012423,
+      "source_commit": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+      "status": "Observed workflow step states in bound observation file; no completed numeric posterior imported."
     }
   ],
   "jobs_with_unknown_state_after_environment_loss": [],
@@ -153,5 +153,7 @@
     "source_and_outside_git_installed_assertions": 478,
     "full_qualified_posterior": false
   },
-  "snapshot_utc": "2026-10-25T04:01:35.264995+00:00"
+  "snapshot_utc": "2026-10-25T05:23:01.027779+00:00",
+  "production_mcmc_two_budget_gate_passed": true,
+  "production_mcmc_two_budget_record": "evidence/F1_production_256000_joint128_recoverable_vs_production_512000_joint128_recoverable_stability.json"
 }

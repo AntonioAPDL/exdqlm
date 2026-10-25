@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "validation/autodesn/remediation/artifacts/qualification_sources/40866e48643046715e285026bfd01cad401bd5d1e074e09fa738188f6781c442/validation/autodesn/remediation/qualify.py",
+    "F1",
+    "production_512000_joint128_recoverable",
+    "--directory",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/F1/production_512000_joint128_recoverable",
+    "--evidence-root",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/evidence"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1800.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 37.30888092999521,
+  "peak_child_rss_kib": 954120,
+  "sampled_peak_process_tree_pss_kib": 900095,
+  "sampled_peak_environment_cgroup_anon_bytes": 2877943808,
+  "user_seconds": 34.088666,
+  "system_seconds": 2.947348,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

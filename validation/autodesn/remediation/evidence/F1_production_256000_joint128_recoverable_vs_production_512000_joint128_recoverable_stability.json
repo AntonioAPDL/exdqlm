@@ -1,0 +1,47 @@
+{
+  "complete": true,
+  "cross_budget_passed": true,
+  "family": "F1",
+  "phases": [
+    "production_256000_joint128_recoverable",
+    "production_512000_joint128_recoverable"
+  ],
+  "computational_registry_sha256": "686f65ddbc1cb8e0e9b7f4e7a086b1be106e0775249dfc1ecb2dcd87159ed641",
+  "target_id": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "individual_screens_passed": [
+    true,
+    true
+  ],
+  "supplementary_common_rhs_required": true,
+  "supplementary_common_rhs_screens": [
+    {
+      "phase": "production_256000_joint128_recoverable",
+      "available": true,
+      "screen_passed": true,
+      "diagnostics_sha256": "fc7637b2662482731d0c432fb0304949061a98218a341a6daeaa017d7cbc46be"
+    },
+    {
+      "phase": "production_512000_joint128_recoverable",
+      "available": true,
+      "screen_passed": true,
+      "diagnostics_sha256": "e25917988365742159c06aa79ce60a54311066d6d35209c2ff757022b7f22ebd"
+    }
+  ],
+  "practical_stability_passed": true,
+  "mc_consistency_passed": true,
+  "familywise_normal_critical_value": 3.806679512952946,
+  "checked_quantities": 71,
+  "response_sd": 1.0607,
+  "qualified": false,
+  "forecast_allowed": false,
+  "validation_contract_ids": [
+    "0cefa716f4ff64d5a3dd2fe5bda5aa96ebaed15130236354f5b9a57472b6133b",
+    "8fecdf580690cc831f784ebc19f3f6565161b538c39753d294d4c37c259eb6cf"
+  ],
+  "scope": "Successive fresh posterior budgets; fixed training-probe means, marginal constant-noise predictive SDs and 5/25/50/75/95 percent quantiles, major model/period masses; no held-out outcomes read",
+  "pending": [
+    "independent calibration/mode review",
+    "predictive Monte Carlo sensitivity",
+    "full scientific promotion"
+  ]
+}
