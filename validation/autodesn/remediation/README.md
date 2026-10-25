@@ -4,7 +4,17 @@ This branch implements the approved plan in `../nonlinear_heteroscedastic/plans/
 
 **Current status:** implementation and training-only development. No new model is scientifically qualified and no confirmation outcomes have been generated or inspected. Passing numerical tests and running short pilots do not establish posterior convergence. See `execution.json` and actual evidence files; a script's presence is not evidence it ran.
 
-Latest verified checkpoint (25 October 2026 UTC): all four F1 RHS chains at
+
+**25 October 2026 recovery update:** Both previously active GP cohorts have now
+finished. All eight exact remote numerical exports were re-imported and verified.
+Native 64 evidence range 41.9723/effective replicas ≈1; additional-period 32 range
+116.5187/effective replicas ≈1. Both fail stability; no new forecasts qualify.
+See [RECOVERY_20261025.md](RECOVERY_20261025.md) and the independently rechecked
+`references/gp_completion_20261025/` bundles. This latest record supersedes older
+running-job observations below. The former uncommitted phase 12 report/audits
+were unavailable after workspace loss and are not claimed recovered or published.
+
+Latest previously committed checkpoint (25 October 2026 UTC): all four F1 RHS chains at
 512,000 retained sweeps are complete. The fresh 256k/512k levels both pass
 individual convergence/architecture-precision screens, all 270 common lag/scale
 monitors, and all 71 registered practical/Monte Carlo comparisons. This closes

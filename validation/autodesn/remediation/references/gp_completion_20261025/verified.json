@@ -1,0 +1,254 @@
+{
+  "transport_target_and_export_arithmetic_verified": true,
+  "julia_serialized_state_gen_reaudit": false,
+  "scientific_study_complete": false,
+  "forecasts_issued": false,
+  "full_new_forecast_comparison_complete": false,
+  "scope": "Exported full-Gen estimates and final CSV weights; not a fresh Julia/Gen replay or posterior qualification.",
+  "verifier_sha256": "3c830c9a64d713da427e8f0de10e969a84b24c6fdca1b4a8999dcf3644bb6c3b",
+  "index_sha256": "e08b3581adf1df99d7c88dd68dbebd624f20bc00f77620059c183c9869cd8066",
+  "cohorts": {
+    "native64": {
+      "seeds": [
+        7366321,
+        7366322,
+        7366323,
+        7366324
+      ],
+      "log_evidence_range": 41.972315359879985,
+      "log_mean_evidence": 1669.763392561806,
+      "evidence_replica_weights": [
+        0.9999999485936693,
+        3.8950987250717855e-11,
+        5.136737976969239e-08,
+        5.910919219397403e-19
+      ],
+      "effective_evidence_replicas": 1.0000001028126668,
+      "minimum_final_particle_ess": 2.0866604399614506,
+      "summed_process_wall_seconds": 24768.818920019,
+      "posterior_qualified": false
+    },
+    "additional_period32": {
+      "seeds": [
+        7366421,
+        7366422,
+        7366423,
+        7366424
+      ],
+      "log_evidence_range": 116.51866609637409,
+      "log_mean_evidence": 1709.853664552744,
+      "evidence_replica_weights": [
+        0.9999999999990214,
+        2.4922194187862319e-51,
+        9.784399403257526e-13,
+        1.0118473890633645e-22
+      ],
+      "effective_evidence_replicas": 1.000000000001957,
+      "minimum_final_particle_ess": 1.1895950957304464,
+      "summed_process_wall_seconds": 20668.086918795,
+      "posterior_qualified": false
+    }
+  },
+  "runs": [
+    {
+      "seed": 7366321,
+      "run_id": 40160840831,
+      "job_id": 121071869879,
+      "particles": 64,
+      "period_moves": 0,
+      "bundle_sha256": "8dd8412ae6011fc0c34f5863b900cb2757b89a8f36b44d3c1db26ea328f36d82",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "4837337fdf9082cedccfb8e5ea0a64828f69dc005504e4cdc58dabdff3f33837",
+      "log_evidence_export": 1671.1496868715196,
+      "pre_resampling_accumulator": 1182.482090796883,
+      "final_particle_ess": 23.926362945617317,
+      "wall_seconds": 6114.785292913,
+      "inference_seconds": 6021.343645095825,
+      "sampled_peak_process_tree_pss_kib": 4096704,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    },
+    {
+      "seed": 7366322,
+      "run_id": 40160840831,
+      "job_id": 121071869838,
+      "particles": 64,
+      "period_moves": 0,
+      "bundle_sha256": "230c144b1a7bfaf431a7ba2a81ca6341ee6002a140b489ddef848449aaac4d1f",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "e128f75a7612b55a3bb9e449c0bf786957508262d7c08b0da9ed985fdcedc15a",
+      "log_evidence_export": 1647.1809699256096,
+      "pre_resampling_accumulator": 1188.679490476089,
+      "final_particle_ess": 2.0866604399614506,
+      "wall_seconds": 5527.788234539,
+      "inference_seconds": 5468.024784088135,
+      "sampled_peak_process_tree_pss_kib": 3716368,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    },
+    {
+      "seed": 7366323,
+      "run_id": 40160840831,
+      "job_id": 121071869884,
+      "particles": 64,
+      "period_moves": 0,
+      "bundle_sha256": "4c612e900fbcadca29130a9cadefecc32ff75a143b7868422be9348b0c4e3109",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "029dc3deb20f36a01a8c67e042b2d1673bb387193471db1f13f43b863d115fe5",
+      "log_evidence_export": 1654.3654244221439,
+      "pre_resampling_accumulator": 1184.1048094837279,
+      "final_particle_ess": 15.153265130433946,
+      "wall_seconds": 5234.809037496,
+      "inference_seconds": 5180.801052093506,
+      "sampled_peak_process_tree_pss_kib": 3742382,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    },
+    {
+      "seed": 7366324,
+      "run_id": 40160840831,
+      "job_id": 121071869651,
+      "particles": 64,
+      "period_moves": 0,
+      "bundle_sha256": "8fa75c597578d23089dfa792b92126b2fbbae7e4ee8dd3e0044adb146b0890db",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "de349a1bc22b4014bc9cff4e743ec38d04d7cb880f5951d1775b9f1da89faf80",
+      "log_evidence_export": 1629.1773715116396,
+      "pre_resampling_accumulator": 1157.714903545921,
+      "final_particle_ess": 9.390134414985353,
+      "wall_seconds": 7891.4363550709995,
+      "inference_seconds": 7792.266377925873,
+      "sampled_peak_process_tree_pss_kib": 3920180,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    },
+    {
+      "seed": 7366421,
+      "run_id": 40165012423,
+      "job_id": 121084170130,
+      "particles": 32,
+      "period_moves": 10,
+      "bundle_sha256": "d8730f87476abbdc86192a55842bba5020df697059af00a0d17d6df0e07f7a5e",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "6854439371f456297dec43f95bd39600b7d9cb89f8c878eb1c25a0ed9411df6c",
+      "log_evidence_export": 1711.239958913863,
+      "pre_resampling_accumulator": 1218.2191591709632,
+      "final_particle_ess": 1.945418118852084,
+      "wall_seconds": 8020.291334258,
+      "inference_seconds": 7940.699071884155,
+      "sampled_peak_process_tree_pss_kib": 3934407,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    },
+    {
+      "seed": 7366422,
+      "run_id": 40165012423,
+      "job_id": 121084170126,
+      "particles": 32,
+      "period_moves": 10,
+      "bundle_sha256": "cfb84b76189b06284ab7df59ebdb40ad5b39cf72e7d771513517ac8b985486b2",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "0cc47899fe923a43a09b4840773d6ffb8204f29da32f6e7f413c01bc1d83cb89",
+      "log_evidence_export": 1594.7212928174888,
+      "pre_resampling_accumulator": 1156.3485020667895,
+      "final_particle_ess": 9.941664118620738,
+      "wall_seconds": 4171.361208651,
+      "inference_seconds": 4117.237086057663,
+      "sampled_peak_process_tree_pss_kib": 4108759,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    },
+    {
+      "seed": 7366423,
+      "run_id": 40165012423,
+      "job_id": 121084170023,
+      "particles": 32,
+      "period_moves": 10,
+      "bundle_sha256": "f6eafb3fb7579ba82df47602e65623f912bbd330b28eae8a61cd316c2df4bbca",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "de60d07bc20c22e039d90c5ff18c456762d7b6ef376155777e8179afa34d4bf4",
+      "log_evidence_export": 1683.5871419245757,
+      "pre_resampling_accumulator": 1179.7232480911882,
+      "final_particle_ess": 1.1895950957304464,
+      "wall_seconds": 2831.52649127,
+      "inference_seconds": 2798.2702400684357,
+      "sampled_peak_process_tree_pss_kib": 3633551,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    },
+    {
+      "seed": 7366424,
+      "run_id": 40165012423,
+      "job_id": 121084169955,
+      "particles": 32,
+      "period_moves": 10,
+      "bundle_sha256": "b658c815f762e88ea3b22db011768c4ee893a097596d5974daf0c574c9f9f1f2",
+      "verified_members": 33,
+      "training_input_sha256": "46464d7d40bce7c0f9f1ca914abaa89f861d4f80623770cc694e1e65b4e325c3",
+      "posterior_sha256": "bdd686706df2a22e092abcea3915b22d6d733d6ba527cf34284c1f3ff89dc3dc",
+      "log_evidence_export": 1660.5948646261677,
+      "pre_resampling_accumulator": 1179.5894434881754,
+      "final_particle_ess": 11.204281580004249,
+      "wall_seconds": 5644.907884616,
+      "inference_seconds": 5585.3711841106415,
+      "sampled_peak_process_tree_pss_kib": 4303047,
+      "source_sha256": {
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_moves.jl": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_run.jl": "c4073d3dd3284b9a2c49e780e30a21b7cbdb9d7649621103d6607dfed6f81291",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Manifest.toml": "9c37ef35df741ada9b9f51b5cd8d10f4d2dc780232e6e03a2067bd3016566993",
+        "/home/runner/work/_temp/autodesn-gp/AutoGP.jl/Project.toml": "9b11388ac2c4bf388ef095faf6c8c7736c60b68bc8fd5e271c2854285674910b",
+        "/home/runner/work/exdqlm/exdqlm/validation/autodesn/remediation/artifacts/gp_sources/17163b52e54fd699d4c960bfec8231aeb9d4cbf1540291bf2bd584952fa890f1/gp_training_proposal.toml": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688"
+      },
+      "posterior_qualified": false
+    }
+  ]
+}

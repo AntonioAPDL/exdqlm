@@ -3,7 +3,7 @@
   "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
   "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
   "branch": "feature/autodesn-remediation-20261023",
-  "status": "first_full_production_screen_passed_additional_qualification_pending",
+  "status": "main_F1_mcmc_gate_passed_both_GP_cohorts_failed_full_comparison_incomplete",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
@@ -88,12 +88,12 @@
     "NativeGP64 seeds7366322/7366323 retrieved and independently transport/target/resource/CRC verified at2000rows/64particles. Two other native64 inference steps observed active. No complete-cohort qualification."
   ],
   "pending": [
-    "Complete and qualify fresh four-chain production fits at two successive budgets",
-    "Composite/depth-four native GP stress references and four full-size runs at successive budgets",
-    "Qualified chronological fold inference/forecasts, family selection and conditional prior-predictive/representation audits",
-    "Predictive Monte Carlo and conditional state-filter budget qualification",
-    "Independent confirmatory replications, stress cases and complete scoring/plots",
-    "Final complete scientific comparison and PDF report"
+    "Recover/reproduce unpublished serialized-state Gen/target/numerical audits and report inputs after additional workspace loss",
+    "Qualify chronological production folds and freeze family/mean selection; complete matched ridge/SV qualification, calibration and mode review",
+    "Resolve GP evidence/mode instability and establish successive-budget stability",
+    "Qualify predictive Monte Carlo and conditional variance-state filtering",
+    "Execute complete 471-origin/H1–30 comparison, metrics and sensitivities; independent confirmation/stress replications after freeze",
+    "Resolve broader package CI and deliver the final complete scientific PDF"
   ],
   "confirmation_data_generated": false,
   "confirmation_data_unblinded": false,
@@ -123,43 +123,9 @@
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
-  "running_at_this_checkpoint": [
-    {
-      "method": "Native AutoGP control",
-      "particles": 64,
-      "period_moves": 0,
-      "workflow_run_id": 40160840831,
-      "source_commit": "b88f738a743a238468f5052b4667ca8346d28716",
-      "observation_file": "evidence/gp64_live_observation.json",
-      "jobs_active": [
-        121071869651,
-        121071869879
-      ],
-      "jobs_complete": [
-        121071869838,
-        121071869884
-      ],
-      "posterior_qualified": false
-    },
-    {
-      "method": "AutoGP additional invariant period moves",
-      "particles": 32,
-      "period_moves": 10,
-      "workflow_run_id": 40165012423,
-      "source_commit": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
-      "observation_file": "evidence/gp32_period10_live_observation.json",
-      "jobs_active": [
-        121084169955,
-        121084170023,
-        121084170126,
-        121084170130
-      ],
-      "jobs_complete": [],
-      "posterior_qualified": false
-    }
-  ],
+  "running_at_this_checkpoint": [],
   "jobs_with_unknown_state_after_environment_loss": [],
-  "latest_observations_record": "validation/autodesn/remediation/evidence/environment_loss_recovery_inventory.json",
+  "latest_observations_record": "validation/autodesn/remediation/references/gp_completion_20261025/verified.json",
   "latest_recovery": {
     "archive005_members_verified": 360,
     "archive006_complete_members_recovered": 12,
@@ -170,8 +136,18 @@
     "source_and_outside_git_installed_assertions": 478,
     "full_qualified_posterior": false
   },
-  "snapshot_utc": "2026-10-25T05:54:53.002202+00:00",
+  "snapshot_utc": "2026-10-25T16:38:04.930Z",
   "production_mcmc_two_budget_gate_passed": true,
   "production_mcmc_two_budget_record": "evidence/F1_production_256000_joint128_recoverable_vs_production_512000_joint128_recoverable_stability.json",
-  "local_inference_jobs_active_at_snapshot": false
+  "local_inference_jobs_active_at_snapshot": false,
+  "gp_completion_recovery": {
+    "record": "RECOVERY_20261025.md",
+    "export_index": "references/gp_completion_20261025/index.json",
+    "export_audit": "references/gp_completion_20261025/verified.json",
+    "native64_completed": 4,
+    "additional_period32_completed": 4,
+    "cohorts_running": 0,
+    "julia_Gen_reaudit_in_this_recovery": false,
+    "posterior_qualified": false
+  }
 }
