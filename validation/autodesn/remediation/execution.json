@@ -3,7 +3,7 @@
   "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
   "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
   "branch": "feature/autodesn-remediation-20261023",
-  "status": "recovery_verified_at_bounded_pause",
+  "status": "first_full_production_screen_passed_additional_qualification_pending",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
@@ -49,7 +49,13 @@
     "Exact within-chain checkpoint recovery:478 source and outside-Git installed assertions pass; four fresh-process groupedRHS/seasonalSV/C++ calculations reproduce every recorded state and counter bit-for-bit after interruption",
     "Allfour full-bank chains durably paused at8k warmup sweeps under bounded recovery; process exit0, wall128.68s, sampled aggregatePSS4.36GiB; no retained posterior draws or qualification",
     "Allfour full-bank chains resume8k-to16k warmup in fresh processes, with exact checkpoint/file hashes and cumulative proposal counters verified; zero retained posterior draws and no forecasts",
-    "NativeGP complete default depth-two conditional reference:483 assertions pass over30 syntactic trees andfive latent fixtures, including change-point and ordered-operator multiplicities; no continuous-parameter integration or productionSMC qualification"
+    "NativeGP complete default depth-two conditional reference:483 assertions pass over30 syntactic trees andfive latent fixtures, including change-point and ordered-operator multiplicities; no continuous-parameter integration or productionSMC qualification",
+    "Actual frozen456-definition audit: all336 deep definitions have identity bridges and no fittedPCA; the plan description is corrected without altering model/prior/data or rerunning valid fits",
+    "Small original-builder chronological-prefix test passes with future perturbation invariance, equal raw feature prefixes, fixed maps and refitted scalers; reduced-layer warmup helper uses raw shared-engine states and matches the old identity result exactly",
+    "All426-model training-only conditional-mean span audit matches frozen feature-geometrySHA and nested-space identities: prior-weighted per-architecture RMSE0.2363 F0,0.1339 F1,0.0838 privileged known-calendar60; no posterior or forecast improvement claimed",
+    "Independent7D posterior reference at requestedtau0=.001,slab_scale1,slab_df4: all12 functionals agree with normalized-prior integration; maxRhat1.000693,minbulkESS2018,mintailESS1872; smallconditional scope only",
+    "All four F1 chains complete at64k warmup+256k retained; final files/CSV parity verified and first full independent screen passes: maxRhat1.000854,minESS4326,largestcategoryfrequencyrange.020402. No complete posterior/forecast qualification.",
+    "F1joint128/256 training-only cross-budget checker completes: all73 practical/MC functionals pass, but certificate remainsfalse because128 individual frequency screen fails. Failed premature checker attempt is retained."
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
@@ -71,12 +77,28 @@
     "forecast_templates": "Resolved for all 426 original reservoirs: exact before/after serial and batched transitions, terminal-feature error <=1.8e-13, controlled full-bank recursive and observed-update parity. No new benchmark forecast issued.",
     "execution_environment": "Shell and pinned R runtime restored in a fresh checkout. Recovery observations supersede earlier inaccessible-file status; original manifests were not recovered, newly constructed manifests explicitly retain the truncated archive.",
     "old_job_states": "Prior environment process exits cannot be recovered. The fresh environment has new observed invocations; prior jobs are not represented as continuing.",
-    "latest_long_production_interruption": "The fresh256k first-pair invocation was observed running at20:45UTC, but at23:04UTC no R/runner process, completed chain, or resource exit record remained. Its exit status and cause are unknown. No iterations or runtime totals are credited to it. A resumable within-chain checkpoint is needed before another long invocation."
+    "latest_long_production_interruption": "The fresh256k first-pair invocation was observed running at20:45UTC, but at23:04UTC no R/runner process, completed chain, or resource exit record remained. Its exit status and cause are unknown. No iterations or runtime totals are credited to it. A resumable within-chain checkpoint is needed before another long invocation.",
+    "full_package_CI": "Broader package check on bf347f3 fails155 assertions and four check errors. Two stale fixture contexts now pass47 assertions; shipped-data example executes and repository-only config is excluded from package tarballs. Other legacy integration/numerical/docs issues remain under investigation; scopedAutoDESN suites do not imply package-wide green."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
-  "running_at_this_checkpoint": [],
+  "running_at_this_checkpoint": [
+    {
+      "method": "Native AutoGP",
+      "workflow_run_id": 40146404171,
+      "commit": "48cbedc7ffd576a0d261ec4df9458b59f3d2918e",
+      "seeds": [
+        7366021,
+        7366022,
+        7366023,
+        7366024
+      ],
+      "rows": 2000,
+      "particles": 16,
+      "status": "All four inference steps observed active; no completed output yet retrieved"
+    }
+  ],
   "jobs_with_unknown_state_after_environment_loss": [],
   "latest_observations_record": "validation/autodesn/remediation/evidence/environment_loss_recovery_inventory.json",
   "latest_recovery": {
@@ -89,5 +111,5 @@
     "source_and_outside_git_installed_assertions": 478,
     "full_qualified_posterior": false
   },
-  "snapshot_utc": "2026-10-24T23:19:12.520953+00:00"
+  "snapshot_utc": "2026-10-25T00:31:35.720281+00:00"
 }

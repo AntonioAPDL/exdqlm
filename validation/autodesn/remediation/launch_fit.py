@@ -8,7 +8,7 @@ p.add_argument('--stop-after-sweeps',type=int,help='Bounded absolute checkpoint 
 a=p.parse_args()
 assert a.checkpoint_every>=0
 assert a.stop_after_sweeps is None or (a.checkpoint_every>0 and a.stop_after_sweeps>0)
-root=Path('validation/autodesn/remediation');files=sorted(Path('R').glob('*.R'))+[Path('src/autodesn_rhs.cpp'),Path('src/RcppExports.cpp'),root/'fit.R']
+root=Path('validation/autodesn/remediation');files=sorted(Path('R').glob('*.R'))+[Path('src/autodesn_rhs.cpp'),Path('src/RcppExports.cpp'),root/'fit.R',root/'development_registry.json']
 if a.snapshot:
  key=a.snapshot;snapshot=root/'artifacts'/'source_snapshots'/key
  manifest=json.loads((snapshot/'manifest.json').read_text())

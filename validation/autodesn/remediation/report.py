@@ -20,7 +20,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 ROOT=Path('validation/autodesn/remediation');E=ROOT/'evidence';OUT=ROOT/'output';FIG=OUT/'figures';PDF=OUT/'pdf'
 FIG.mkdir(parents=True,exist_ok=True);PDF.mkdir(parents=True,exist_ok=True)
 HISTORY=ROOT.parent/'nonlinear_heteroscedastic'
-NAVY='#17324b';BLUE='#2275a5';TEAL='#228877';AMBER='#b57920';RED='#a84242';PALETTE=[BLUE,TEAL,AMBER,'#8a65a3','#59636d']
+NAVY='#17324b';BLUE='#2275a5';TEAL='#228877';AMBER='#b57920';RED='#a84242';PALETTE=[BLUE,TEAL,AMBER,'#8a65a3','#59636d','#4b7b8a']
 plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.spines.top':False,'axes.spines.right':False,'axes.labelcolor':NAVY,'text.color':NAVY,'axes.titleweight':'bold','savefig.facecolor':'white'})
 inputs={};partial_observations={}
 def read_json(path,default=None):
@@ -43,12 +43,12 @@ def archived_case_count(directory):
     return len(cases)
 
 tests=read_json(E/'extended_tests.json',{});installed=read_json(E/'portable_installed_tests.json',{});legacy=read_json(E/'legacy_tests.json',{})
+package_ci=read_json(E/'full_package_ci_audit.json',{})
 qualifications=[]
 for path in sorted(E.glob('F1_production_*_qualification.json')):
     q=read_json(path);directory=ROOT/'artifacts/F1'/q['phase'];cfg=read_json(directory/'configuration.json',{})
     qualifications.append((q,cfg))
-baseline=[(q,c) for q,c in qualifications if q['phase'].endswith('cache1')]
-latest=max(baseline,key=lambda item:item[1].get('retained',0)) if baseline else None
+latest=max(qualifications,key=lambda item:item[1].get('retained',0)) if qualifications else None
 traces=None;trace_figure=occupancy_figure=None
 if latest:
     q,c=latest;directory=ROOT/'artifacts/F1'/q['phase']
@@ -61,7 +61,7 @@ if latest:
         ax.set_title(label,fontsize=9,loc='left');ax.grid(alpha=.15)
     axes[0,0].legend(ncol=2,fontsize=7,frameon=False)
     for ax in axes[-1,:]:ax.set_xlabel('Retained sweep (display subsample)')
-    fig.suptitle(f"Baseline F1, {c.get('retained',0):,} draws per chain - unqualified",fontsize=12)
+    fig.suptitle(f"F1, {c.get('retained',0):,} draws per chain - qualification pending",fontsize=12)
     fig.tight_layout();trace_figure=save_plot(fig,'F1_traces')
     metadata=read_csv(directory/'model_metadata.csv').set_index('model')
     counts=pd.concat([t.model.value_counts(normalize=True).rename(k) for k,t in enumerate(traces)],axis=1).fillna(0)
@@ -74,13 +74,13 @@ if latest:
     bx.set_xlabel('Lag coefficient norm');bx.set_ylabel('Reservoir coefficient norm');bx.set_title('Readout allocation',loc='left',fontsize=9);fig.tight_layout();occupancy_figure=save_plot(fig,'F1_occupancy_and_norms')
 
 references=[]
-for stem,label in [('grouped','Grouped, fixed locals'),('local','Grouped, learned locals'),('local_joint','Joint scale/local proposal'),('sv_joint','Full two-response SV'),('gp_leaf','Complete GP leaf grammar')]:
+for stem,label in [('grouped','Grouped, fixed locals'),('local','Grouped, learned locals'),('local_joint','Joint scale/local proposal'),('sv_joint','Full two-response SV'),('gp_leaf','Complete GP leaf grammar'),('production_scale','RHS controls .001 / 1')]:
     s=read_json(E/f'{stem}_mcmc_reference.json')
     if s:references.append((stem,label,s,read_csv(E/f'{stem}_mcmc_reference_checks.csv')))
 fig,ax=plt.subplots(figsize=(7,3.2))
 for i,(stem,label,s,t) in enumerate(references):
     ratio=t.absolute_error/t.tolerance;ax.scatter(ratio,np.arange(len(t))*.02+i,s=18,color=PALETTE[i],label=label)
-ax.axvline(1,color=RED,ls='--',lw=1);ax.set_xlim(0,1.12);ax.set_yticks(range(len(references)),[v[1] for v in references]);ax.set_xlabel('Absolute moment error / registered numerical-MC tolerance');ax.grid(axis='x',alpha=.18);fig.tight_layout();reference_figure=save_plot(fig,'independent_reference_agreement')
+ax.axvline(1,color=RED,ls='--',lw=1);ax.set_xlim(0,max(1.12,max((float((t.absolute_error/t.tolerance).max()) for _,_,_,t in references),default=0)*1.03));ax.set_yticks(range(len(references)),[v[1] for v in references]);ax.set_xlabel('Absolute moment error / registered numerical-MC tolerance');ax.grid(axis='x',alpha=.18);fig.tight_layout();reference_figure=save_plot(fig,'independent_reference_agreement')
 
 calibration_figure=None
 calibration_paths=[('Fixed exogenous design',ROOT/'artifacts/sbc_rhs_24000/ranks.csv'),('Recursive frozen map',ROOT/'artifacts/recursive_sbc_constant_n200_k24000_recovered96000/ranks.csv')]
@@ -105,6 +105,18 @@ for i,(name,label) in enumerate(zip(models,short)):
     for ax,metric in zip(axes,['RMSE','CRPS','Coverage90']):ax.plot(t.horizon,t[metric],color=PALETTE[i],label=label,lw=1.4)
 for ax,metric in zip(axes,['RMSE','CRPS','Coverage90']):ax.set_title(metric,loc='left');ax.set_xlabel('Horizon');ax.grid(alpha=.15)
 axes[-1].axhline(.9,color=RED,ls='--',lw=.8);axes[0].legend(fontsize=6,frameon=False);fig.tight_layout();historical_figure=save_plot(fig,'historical_horizon_scores')
+
+capacity=None;capacity_summary=None;capacity_figure=None
+if (E/'representation_capacity.csv').exists():
+    capacity=read_csv(E/'representation_capacity.csv');capacity_summary=read_csv(E/'representation_capacity_summary.csv')
+    read_json(E/'representation_capacity.json');read_json(E/'representation_capacity_interpretation.json')
+    fig,ax=plt.subplots(figsize=(7,3.0))
+    labels=[('F0','Reservoir'),('F1','Reservoir + direct lags'),('F2_known_period60','Known period 60 probe (privileged)')]
+    for i,(space,label) in enumerate(labels):
+        t=capacity[capacity.space==space].sort_values('conditional_mean_training_span_rmse')
+        ax.step(t.conditional_mean_training_span_rmse,np.cumsum(t.prior_weight),where='post',color=PALETTE[i],label=label,lw=1.4)
+    ax.set(xlabel='Per-architecture training approximation RMSE (response units)',ylabel='Cumulative architecture prior mass',ylim=(0,1.01))
+    ax.grid(alpha=.15);ax.legend(fontsize=7,frameon=False,loc='lower right');fig.tight_layout();capacity_figure=save_plot(fig,'training_span_capacity')
 
 statistics_benchmark=read_json(E/'statistics_cache_benchmark.json',{})
 checkpoint_reference=read_json(E/'checkpoint_fresh_process.json',{})
@@ -137,26 +149,31 @@ def page():story.append(PageBreak())
 
 story.append(Paragraph('AutoDESN remediation',styles['TitleDV']));add('NHS1 nonlinear, seasonal and heteroscedastic series | 24 October 2026')
 title('Execution and validation checkpoint')
-table([['Outcome','Verified status'],['Implementation','Opt-in augmented readouts, period averaging, normalized grouped RHS, conditional SV, filtering, exact proposals and causal recursion are implemented.'],['Numerical correctness',f"{tests.get('passed','?')} source assertions pass; installed test results are reported separately. Independent small-target posterior references agree."],['Production inference','No production posterior is yet scientifically qualified. Individually passing R-hat and ESS are insufficient when architecture-frequency or cross-budget gates fail.'],['Predictive comparison','No new full rolling-origin forecasts or independent confirmation scores are claimed. Historical scores are shown only as unchanged context.']], [100,380])
+table([['Outcome','Verified status'],['Implementation','Opt-in augmented readouts, period averaging, normalized grouped RHS, conditional SV, filtering, exact proposals and causal recursion are implemented.'],['Numerical correctness',f"{tests.get('passed','?')} source assertions pass; installed test results are reported separately. Independent reference outcomes and their scopes are reported separately."],['Production inference','No production posterior is yet scientifically qualified. Individually passing R-hat and ESS are insufficient when architecture-frequency or cross-budget gates fail.'],['Predictive comparison','No new full rolling-origin forecasts or independent confirmation scores are claimed. Historical scores are shown only as unchanged context.']], [100,380])
 add('The work is not complete from start to finish. The distinction is deliberate: numerical identities, computational adequacy and predictive improvement are different requirements. Unfinished experiments cannot supply forecast scores or evidence of improvement.')
 add('Repository: AntonioAPDL/exdqlm. Feature branch: feature/autodesn-remediation-20261023. Draft pull request: https://github.com/AntonioAPDL/exdqlm/pull/5.',True)
 add('This report is generated from the output files listed in report_inputs.json. It preserves failed runs and source/checkpoint identities; scripts alone are never counted as executed experiments.',True)
 
 page();title('Frozen statistical and forecasting contracts')
 table([['Component','Executed reference convention'],['Data protocol','500 washout observations; 2,000 scored training observations; 500 held out. Fit once at 2500; origins 2500:2970; horizons 1:30.'],['Feature geometry','Original 456 reservoir definitions, 426 admitted. Training-only column centers and sample SDs; no square-root dimension normalization. Conditioning-prefix response/input transform is frozen.'],['Intercept and noise','Independent intercept Normal(0, variance 10); observation variance IG(shape 3, rate 1).'],['Normalized RHS','tau = 0.001 * u; u and each local scale are unit half-Cauchy. Slab variance IG(2,2): slab_scale=1, slab_df=4. Coefficient variance = 1 / (1/(tau*local)^2 + 1/slab_variance).'],['Mean families','F1 adds lags 1:90. F2 adds period-averaged Fourier terms over integers 20:120, up to 16 non-Nyquist harmonics. Flat and separately named grouped priors are supported.'],['Grouped prior','Independent lag/reservoir global scales; one shared slab; Gaussian calendar variance 0.5^2/[1+(harmonic/4)^4].'],['Conditional SV','Standardized stationary AR(1) state; (phi+1)/2 ~ Beta(10,1.5); omega ~ HalfNormal(0.5). Optional four-harmonic centered log variance.']], [105,375])
+add('Definition audit: all336 deep candidates use identity bridges; no PCA is fitted. The builder can draw seeded random reducers for other dimensions. The plan correction changes no model or prior. Prefix folds retain those maps and refit training scalers; see PLAN_CORRECTIONS_20261024.md.',True)
 add('Every issued path holds its joint architecture, period and static parameters fixed. Simulated responses update future lags and reservoir states. Actual observations update states only between origins. Conditional SV filtering retains frozen outer parameter weights and replays training uncertainty; it is not full sequential parameter reweighting.')
 add('The normalized RHS is not the augmented rhs_ns target. Coefficient-independent noise scaling, all Gaussian determinants, inactive proper priors and exact Hastings corrections are retained. See MATH.md for the joint densities and partial-collapse order.',True)
 
 page();title('Independent posterior validation')
-rows=[['Conditional reference','Checked quantities','Maximum R-hat','Minimum bulk / tail ESS']]
-for stem,label,s,t in references:rows.append([label,str(s['joint_functionals']),fmt(s['maximum_rhat'],6),f"{s['minimum_bulk_ess']:,.0f} / {s['minimum_tail_ess']:,.0f}"])
-table(rows,[170,80,95,135]);image(reference_figure,max_height=3.3*inch)
+rows=[['Conditional reference','Quantities','Max R-hat','Min bulk / tail ESS','Check']]
+for stem,label,s,t in references:rows.append([label,str(s['joint_functionals']),fmt(s['maximum_rhat'],6),f"{s['minimum_bulk_ess']:,.0f} / {s['minimum_tail_ess']:,.0f}",'PASS' if s.get('passed',False) else 'FAIL'])
+table(rows,[150,65,80,130,55]);image(reference_figure,max_height=3.3*inch)
 add('References use dense response-space Gaussian covariances and integration over normalized scale priors. The learned-local check integrates seven dimensions and tests nonuniform architecture/period proposals, variable active dimensions and the added reservoir-local proposal. SV uses independent full two-response quadrature, not only scalar conditional identities.')
-add('The grouped RHS references use tau0=0.2 for tractable small-target checks; production uses the requested tau0=0.001. The two-response SV target is intercept-only. These checks do not certify the complete production workflow.',True)
+add('The initial grouped RHS references use tau0=0.2. The additional seven-dimensional check uses the requested tau0=0.001, slab_scale=1, slab_df=4, with a proper intercept and unknown noise. The two-response SV target is intercept-only. These conditional checks do not certify the complete production workflow.',True)
 add('The GP posterior-integration reference covers all three supported leaves and all four latent parameters under the pinned default depth-one grammar. It checks normalized scores and prior-independence MH; it does not qualify depth-four SMC.',True)
 composite=read_json(E/'gp_composite_reference.json')
 if composite:add('An additional finite conditional check enumerates all 30 default depth-two syntactic trees, including nine change-point trees and ordered sum/product pairs, across five latent fixtures. Independent covariances, normalized active/inactive prior constants and conditional architecture probabilities agree. This checks multiplicities at that depth; it does not integrate all continuous parameters or prove deep-tree exploration.',True)
-add(f"The source suite has {tests.get('tests','?')} tests and {tests.get('passed','?')} passing assertions; the installed suite records {installed.get('passed','?')} passing assertions. Earlier legacy regression evidence records 804 passes with one separately covered context skip. Passing these checks is not proof of convergence on the 426-reservoir bank.",True)
+add(f"The AutoDESN extension source suite has {tests.get('tests','?')} tests and {tests.get('passed','?')} passing assertions; its installed suite records {installed.get('passed','?')} passing assertions. Earlier legacy regression evidence records 804 passes with one separately covered context skip. Passing these checks is not proof of convergence on the 426-reservoir bank.",True)
+if package_ci:
+    add('The broader GitHub package check on commit bf347f3 failed: 155 test failures, 50 test warnings and four package-check errors. The AutoDESN extension contexts have no failure headers in that log. Packaging of repository-only paths, missing example data, repository integration fixtures and other legacy regression failures remain under investigation; the scoped extension results do not establish package-wide success.',True)
+ci_repair=read_json(E/'ci_fixture_repairs.json')
+if ci_repair:add('Two stale fixture contexts have since been repaired and all 47 targeted assertions pass. The transfer-function example now executes using shipped climate data; repository-only config is excluded from the package tarball. A complete fresh package check remains separate.',True)
 
 page();title('Production convergence: all gates still apply')
 rows=[['F1 run','R-hat max','ESS min','Largest chain frequency range','Screen']]
@@ -164,18 +181,34 @@ for q,c in sorted(qualifications,key=lambda x:(x[1].get('retained',0),x[0]['phas
     label=('Coordinate16 ' if 's16' in q['phase'] else 'Joint full-vector ' if 'joint' in q['phase'] else 'Local move ' if 'local' in q['phase'] else 'Baseline ')+f"{c.get('retained',0):,}"
     rows.append([label,fmt(q['maximum_rhat'],4),fmt(min(q['minimum_bulk_ess'],q['minimum_tail_ess']),0),fmt(max(q['frequency_ranges'].values()),4),'pass' if q['screen_passed'] else 'FAIL'])
 table(rows,[110,70,65,150,85])
-if trace_figure:image(trace_figure,max_height=4.6*inch)
+if trace_figure:image(trace_figure,max_height=3.9*inch)
 add('Registered gates: rank/folded R-hat <=1.01, bulk/tail ESS >=400, major-category probability MCSE <=0.01, chain frequency ranges <=0.03. Two successive qualified fresh budgets must also agree within practical and Monte Carlo tolerances. No gate is waived because a different diagnostic passes.',True)
+level256=read_json(E/'F1_256000_execution_summary.json')
+if level256:add('The 256k joint run is the first individual level to pass. All 73 training-probe, predictive-quantile and major-probability comparisons against 128k pass their practical/MC tolerances, but the cross-budget certificate remains false because 128k fails its own frequency screen. A fresh 512k level with 128k warmup is registered before execution; it keeps the same frozen proposals, prior and target.',True)
 
 page();title('Architecture exploration and shrinkage')
 if occupancy_figure:image(occupancy_figure,max_height=3.7*inch)
-add('These are occupancies and coefficient norms from an unqualified run, not certified posterior architecture probabilities. Distinct reservoir modes can have similar fitted functions. A small continuous-parameter R-hat does not establish adequate architecture probabilities.')
+add('These occupancies and coefficient norms use the latest complete run shown above. Full posterior qualification remains pending even when an individual screen passes. Distinct reservoir modes can have similar fitted functions; a small continuous-parameter R-hat alone does not establish adequate architecture probabilities.')
 add('The RHS prior is continuous; exact zeros are not its sparsity mechanism. Coefficient norms and threshold counts depend on the standardized, correlated basis and do not measure a selected-variable count. Conditional group EDF is recorded at the Gaussian substep; a separate audit recomputes it at matching saved scales.')
-shrink=read_json(E/'F1_production_128000_cache1_shrinkage.json')
-if shrink:add('Descriptive matching-state audit of the unqualified baseline 128k run: median 80% of standardized-feature slopes below 0.01 response SD; median five above 0.1 response SD. The median actual global scale was 0.00453 despite tau0=0.001, because the global multiplier is sampled. This is neither an all-zero fit nor evidence that its representation is adequate.')
+shrink=read_json(E/f"F1_{latest[0]['phase']}_shrinkage.json") if latest else None
+if shrink:
+    shrink_summary={s['quantity']:s for s in shrink['summary']}
+    add(f"The matching-state audit finds a median {100*shrink_summary['fraction_below_001_sd']['median']:.1f}% of standardized-feature slopes below 0.01 response SD, and median {shrink_summary['number_above_01_sd']['median']:.0f} above 0.1 response SD. Median actual global scale is {shrink_summary['actual_tau']['median']:.5f}, since the multiplier is sampled despite tau0=.001. Median slab SD is {shrink_summary['slab_sd']['median']:.3f}; slab_scale=1 is a hyperprior scale. This documents strong shrinkage with retained effects, not adequate predictive fit.")
 add('The optional computational repair proposes active reservoir-local scales from a normalized prior/kernel-product mixture and inactive slots from their proper priors. It restores marginalized auxiliaries, then redraws coefficients. Every reservoir retains support. The proposal is frozen from training-only checkpoints; it changes computation, not tau0, the slab, the likelihood or architecture priors.')
 qmeta=read_json(E/'F1_frozen_local_proposal_128.json')
 if qmeta:add(f"The 128k-trained proposal has kernel estimates for {qmeta['models_with_kernel']} reservoirs and uses exact prior proposals for {qmeta['models_using_prior_only']} others. Scarce training samples do not remove a reservoir.",True)
+
+if capacity_figure:
+    page();title('Representation: a training-only capacity probe')
+    image(capacity_figure,max_height=3.3*inch)
+    rows=[['Feature space','Median rank / columns','Prior-weighted mean RMSE','Best RMSE']]
+    labels={'F0':'Reservoir only','F1':'Add direct lags 1:90','F2_known_period60':'Add known calendar60 (privileged)'}
+    for t in capacity_summary.itertuples():rows.append([labels[t.space],f'{int(t.median_rank)} / {int(t.median_columns)}',fmt(t.prior_weighted_mean_span_rmse,3),fmt(t.minimum_span_rmse,3)])
+    table(rows,[170,105,120,85])
+    add('Each architecture is projected separately onto the known one-step conditional mean along observed training history, using an unpenalized SVD fit on rows 501:2500. No held-out observations enter this audit. The feature geometry of all 426 candidates reproduces the frozen bank hash, and nested-space residuals never increase.')
+    add('Direct lags substantially reduce the per-architecture training approximation error. This is evidence that the added basis can represent useful mean structure. It does not show that the RHS posterior has learned it, that shrinkage is adequate, or that recursive forecasts improve.')
+    add('The period60 probe is privileged. It tests a calendar space also present in the automatic model support, but supplies no period information to the automatic fit. The plotted weights are architecture priors, not posterior probabilities. A Bayesian averaged mean combines spaces; these per-model bounds are not lower bounds on its error.',True)
+    add('All designs are numerically full rank under the registered SVD threshold. Median condition numbers are about 2022-4269; the maximum is about 1.9e8. Correlated feature directions can make individual coefficients difficult to interpret even when fitted functions are stable.',True)
 
 page();title('Calibration scope and actual execution status')
 rows=[['Calibration','Executed result / limitation']]
@@ -202,7 +235,7 @@ add('The initial and larger fixed-design budgets use the same 200 prior-predicti
 
 page();title('Runtime, memory and engineering checks')
 rows=[['Observed process','Wall (s)','Aggregate PSS (GiB)','Exit / status']]
-for file,label in [('F1_production_32000_resources.json','Original full-bank fork'),('F1_production_32000_cache1_resources.json','Exact cache, F1 32k'),('F1_production_128000_cache1_resources.json','Exact cache, F1 128k'),('F1_production_32000_local128_resources.json','Exact local move, F1 32k'),('F1_production_32000_joint128_resources.json','Joint scale/local policy, F1 32k'),('compact_forecast_templates_resources.json','Recover compact forecast maps')]:
+for file,label in [('F1_production_32000_resources.json','Original full-bank fork'),('F1_production_32000_cache1_resources.json','Exact cache, F1 32k'),('F1_production_128000_cache1_resources.json','Exact cache, F1 128k'),('F1_production_32000_local128_resources.json','Exact local move, F1 32k'),('F1_production_32000_joint128_resources.json','Joint scale/local policy, F1 32k'),('F1_production_256000_joint128_recoverable_attempt3_resources.json','Joint F1 256k continuation'),('compact_forecast_templates_resources.json','Recover compact forecast maps')]:
     s=read_json(E/file)
     if s:
         pss=s.get('sampled_peak_process_tree_pss_kib');valid='unreliable early scope' if file=='F1_production_32000_resources.json' else fmt(pss/1048576 if pss else None,2)
@@ -227,7 +260,8 @@ if checkpoint_reference:
     add('Recovery now saves all Markov variables, auxiliary scales, retained draws, probes, counters and RNG state at complete sweep boundaries. A separate four-process C++/grouped-RHS/seasonal-SV experiment pauses at sweep 47 and finishes the same 120-sweep budget; every recorded state and counter matches uninterrupted computation exactly.')
     add('Resume verifies the target, kernel, full budget, source, runtime, thread settings and payload checksum. Box-Muller RNG is rejected because its hidden cached normal is absent from .Random.seed. Bounded pauses are explicitly incomplete fits and do not authorize forecasts.',True)
 if checkpoint_execution:
-    add(checkpoint_execution['report_statement'])
+    add("The earlier bounded recovery audit recorded: " + checkpoint_execution['report_statement'])
+if level256:add(f"The subsequent full continuation completes all four chains with exit 0. Summing the three observed process invocations gives {level256['known_active_wall_seconds_sum']/60:.2f} active minutes, including repeated startup/checkpoint work and excluding pauses between invocations. Peak process-tree PSS is {level256['peak_process_tree_pss_kib']/1048576:.2f} GiB; sampled environment anonymous memory includes simultaneous audits. The earlier unknown-exit invocation remains uncredited.")
 add('No new full rolling-origin forecast or independent confirmation result is produced by these engineering checks. The model qualification thresholds remain unchanged.',True)
 
 page();title('Historical forecast context - unchanged')
@@ -240,7 +274,7 @@ add('These scores are the original completed NHS1 reference, not outcomes of the
 add('High pooled coverage can conceal excess width and regime-dependent undercoverage. Visual failure to track every realized spike also includes irreducible innovation uncertainty. The new work must separately establish computational adequacy and then compare conditional means, proper scores and calibration. None of the historical rankings proves that a new model is superior.')
 
 page();title('Unfinished gates and reproducible handoff')
-table([['Gate','What is still required'],['Posterior qualification','Two successive qualified fresh budgets, targeted mode checks, probability precision and cross-budget stability under frozen computational controls.'],['Mean-family selection','Rebuild PCA/scalers at cutoffs 1500 and 2000; qualified frozen-fit rolling validation; select by registered CRPS rule.'],['Native AutoGP','Complete full-size independent same-prior runs and particle/move-budget sensitivity. Small feasibility runs and an interrupted full run do not qualify it.'],['Conditional variance','Recursive constant/SV calibration has resolved within its frozen-map scope. Production-chain qualification and conditional particle-filter budget checks remain.'],['Prediction','Outer/inner Monte Carlo panel; full 471-origin, 30-horizon comparisons with RMSE, MAE, CRPS, NLL, intervals and calibrated runtimes.'],['Independent confirmation','Frozen 30-realization mean/GP block, separate variance block and registered stress cells. None can be replaced by overlapping origin-horizon pairs.']], [125,355])
+table([['Gate','What is still required'],['Posterior qualification','Two successive qualified fresh budgets, targeted mode checks, probability precision and cross-budget stability under frozen computational controls.'],['Mean-family selection','Rebuild prefix banks and refit scalers at cutoffs 1500 and 2000; qualified frozen-fit rolling validation; select by registered CRPS rule.'],['Native AutoGP','Complete full-size independent same-prior runs and particle/move-budget sensitivity. Small feasibility runs and an interrupted full run do not qualify it.'],['Conditional variance','Recursive constant/SV calibration has resolved within its frozen-map scope. Production-chain qualification and conditional particle-filter budget checks remain.'],['Prediction','Outer/inner Monte Carlo panel; full 471-origin, 30-horizon comparisons with RMSE, MAE, CRPS, NLL, intervals and calibrated runtimes.'],['Independent confirmation','Frozen 30-realization mean/GP block, separate variance block and registered stress cells. None can be replaced by overlapping origin-horizon pairs.']], [125,355])
 add('Checkpoints preserve completed numeric states, traces, case records, immutable executed sources and failure logs. restore_checkpoints.py verifies archive ancestry, every part and every extracted member. Large construction/inference banks are referenced by checksums and deterministic rebuild scripts rather than duplicated in each fitted object.')
 add('Primary evidence: MATH.md; execution.json; development_registry.json; independent-reference check CSV/JSON files; F1 checkpoint-validation and qualification records; resource records; versioned checkpoint manifests. The report input manifest supplies their exact SHA256 values.',True)
 add('The appropriate conclusion at this checkpoint is an implemented and increasingly validated statistical extension with unresolved production and predictive gates. It is not a completed forecast comparison or a superiority claim.')

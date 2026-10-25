@@ -76,19 +76,33 @@
     "retained_ladder": [
       32000,
       128000,
-      256000
+      256000,
+      512000
     ],
     "fresh_warmups": [
       8000,
       32000,
-      64000
+      64000,
+      128000
     ],
     "rank_rhat_max": 1.01,
     "bulk_and_tail_ess_min": 400,
     "major_category_mass_min": 0.01,
     "category_mcse_max": 0.01,
     "chain_frequency_range_max": 0.03,
-    "required_successive_qualified_levels": 2
+    "required_successive_qualified_levels": 2,
+    "extension_after_first_passing_level": {
+      "registered_utc": "2026-10-25T00:31:35.719776+00:00",
+      "trigger": "The256k level is the first individual full-bank screen to pass;128k fails. Two successive passing levels remain required.",
+      "new_retained": 512000,
+      "new_warmup": 128000,
+      "frozen_proposals": "same full-vector joint128 global and reservoir-local guides",
+      "target_and_prior_changed": false,
+      "heldout_outcomes_read": false,
+      "segments": "First absolute stop320000 of640000 total sweeps; verify four atomic pauses, then resume unchanged budget/source/RNG to640000. Each process invocation retains its7200s and6.4GB-anon caps.",
+      "fallback": "If the larger trace hits the existing memory cap, preserve last checkpoints and resume only two independent chains at a time; do not change any chain kernel, budget or RNG state.",
+      "earlier_failed_screens_retained": true
+    }
   },
   "cross_budget": {
     "probe_mean_sd_tolerance": 0.01,

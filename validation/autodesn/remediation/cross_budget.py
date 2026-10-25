@@ -82,7 +82,8 @@ def compare(family, left_name, right_name):
     for field in ["proposal_sha256", "local_proposal_sha256", "bank_id", "priors", "beta_prior"]:
         assert configs[0].get(field) == configs[1].get(field), "Cross-budget comparison requires a common frozen target/proposal policy: " + field
     assert configs[0].get("local_scale_proposal", False) == configs[1].get("local_scale_proposal", False)
-    ladder = [32000, 128000, 256000]
+    registry_path = ROOT / 'development_registry.json'
+    ladder = json.loads(registry_path.read_text())['mcmc']['retained_ladder']
     index = ladder.index(configs[0]["retained"])
     assert index + 1 < len(ladder) and configs[1]["retained"] == ladder[index + 1]
     assert not family.startswith("SV"), "SV needs matched latent-variance probe summaries; do not substitute constant noise."
@@ -124,6 +125,7 @@ def compare(family, left_name, right_name):
     label = f"{family}_{left_name}_vs_{right_name}"
     table.to_csv(ROOT / "evidence" / (label + "_stability.csv"), index=False)
     record = dict(complete=True, cross_budget_passed=passed, family=family, phases=names,
+                  computational_registry_sha256=hashlib.sha256(registry_path.read_bytes()).hexdigest(),
                   target_id=qualifications[0]["target_id"],
                   individual_screens_passed=[q["screen_passed"] for q in qualifications],
                   practical_stability_passed=bool(table.practical_passed.all()),

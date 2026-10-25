@@ -35,7 +35,7 @@ for family in ['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']:
  for name in ['frozen_proposal.rds','frozen_local_proposal.rds']:
   if (family_dir/name).exists():files.add(family_dir/name)
  files.update(family_dir.glob('frozen_local_proposal_*.rds'));files.update(family_dir.glob('frozen_proposal_*.rds'))
-for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manifest.json','source_snapshots/*/R/*.R','source_snapshots/*/src/*.cpp','source_snapshots/*/validation/autodesn/remediation/*.R','gp_drivers/*/*',
+for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manifest.json','source_snapshots/*/R/*.R','source_snapshots/*/src/*.cpp','source_snapshots/*/validation/autodesn/remediation/*.R','source_snapshots/*/validation/autodesn/remediation/*.json','gp_drivers/*/*',
                 'sbc_sources/**/*','recursive_sbc_sources/**/*','sv_reference_sources/**/*','reference_sources/**/*','gp_sources/**/*','gp_reference_sources/**/*','legacy_sbc_source/**/*','drivers/*.R',
                 'recursive_sbc_*/*.rds','recursive_sbc_*/*.csv','recursive_sbc_*/*.json',
                 'grouped_reference/*','local_reference/*','local_joint_reference/*','local_partial_reference/*','sv_joint_reference/*','gp_leaf_reference/*','gp_composite_reference/*','*_reference_fixture.json',
@@ -47,7 +47,7 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
  if a.skip_live_observations and pattern.startswith('live_chain_snapshots/'):
   continue
  files.update(p for p in (root/'artifacts').glob(pattern) if p.is_file() and not p.name.endswith('.partial'))
-for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
+for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','ci_fixture_repair_tests.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
  f=root/'artifacts'/name
  if f.exists():files.add(f)
 previous={};parent=None

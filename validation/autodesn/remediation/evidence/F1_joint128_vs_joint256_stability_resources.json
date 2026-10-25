@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "validation/autodesn/remediation/cross_budget.py",
+    "F1",
+    "production_128000_joint128",
+    "production_256000_joint128_recoverable"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 600.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 1,
+  "elapsed_seconds": 3.0271520000023884,
+  "peak_child_rss_kib": 323788,
+  "sampled_peak_process_tree_pss_kib": 298700,
+  "sampled_peak_environment_cgroup_anon_bytes": 1478983680,
+  "user_seconds": 3.631387,
+  "system_seconds": 0.24811599999999998,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

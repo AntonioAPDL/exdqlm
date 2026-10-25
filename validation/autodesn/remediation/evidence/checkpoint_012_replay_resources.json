@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "validation/autodesn/remediation/restore_checkpoints.py",
+    "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_012.manifest.json",
+    "--git-ref",
+    "HEAD"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 300.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 19.645799609999813,
+  "peak_child_rss_kib": 772108,
+  "sampled_peak_process_tree_pss_kib": 704856,
+  "sampled_peak_environment_cgroup_anon_bytes": 841359360,
+  "user_seconds": 14.980813,
+  "system_seconds": 4.702796,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

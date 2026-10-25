@@ -13,6 +13,8 @@ scale_path<-Sys.getenv('AUTODESN_FROZEN_PROPOSAL',unset='');if(!nzchar(scale_pat
 snapshot<-Sys.getenv('AUTODESN_SOURCE_SNAPSHOT',unset='.')
 relative_paths<-c(list.files(file.path(snapshot,'R'),pattern='[.]R$',full.names=FALSE),'autodesn_rhs.cpp','RcppExports.cpp','fit.R')
 paths<-c(file.path(snapshot,'R',head(relative_paths,-3L)),file.path(snapshot,'src',c('autodesn_rhs.cpp','RcppExports.cpp')),file.path(snapshot,'validation/autodesn/remediation/fit.R'))
+registry_path<-file.path(snapshot,root,'development_registry.json')
+paths<-c(paths,registry_path)
 logical_paths<-substring(paths,nchar(snapshot)+2L)
 source_sha<-setNames(vapply(paths,function(p)digest::digest(file=p,algo='sha256'),''),logical_paths)
 for(p in list.files(file.path(snapshot,'R'),pattern='[.]R$',full.names=TRUE))source(p,local=.GlobalEnv)
@@ -29,7 +31,11 @@ if(nzchar(statistics_path)){
  rm(cached_statistics)
 }
 rm(b);gc(FALSE)
-burn<-if(phase=='pilot')1000L else if(budget==32000L)8000L else if(budget==128000L)32000L else 64000L
+registry<-jsonlite::fromJSON(registry_path)$mcmc
+stopifnot(length(registry$retained_ladder)==length(registry$fresh_warmups),
+  !anyDuplicated(registry$retained_ladder),all(registry$retained_ladder>0),all(registry$fresh_warmups>0))
+if(phase=='production')stopifnot(budget%in%registry$retained_ladder)
+burn<-if(phase=='pilot')1000L else as.integer(registry$fresh_warmups[match(budget,registry$retained_ladder)])
 retained<-if(phase=='pilot')2000L else budget
 config<-list(family=family,beta_prior=prior_kind,storage_label=run_label,inference_cache_sha256=if(use_cache)cache_manifest$sha256 else NULL,cache_manifest_sha256=if(use_cache)digest::digest(file=file.path(root,'artifacts/inference_cache_manifest.json'),algo='sha256') else NULL,augmentation_sha256=if(use_cache)entry$sha256 else NULL,proposal_sha256=if(phase=='production')digest::digest(file=scale_path,algo='sha256') else NULL,priors=list(intercept_variance=10,observation_variance=list(shape=3,rate=1),rhs=if(prior_kind=='rhs')list(tau0=.001,slab_scale=1,slab_df=4,global='unit half-Cauchy',local='unit half-Cauchy') else NULL,ridge_precision=if(prior_kind=='ridge')list(shape=2,rate=2) else NULL),phase=phase,burn=burn,retained=retained,chains=4L,rows=c(501L,2500L),training_response_sd=sd(bank$y),source_sha256=as.list(source_sha),input_bank_sha256=digest::digest(file=basepath,algo='sha256'),bank_id=bank$extension$id,confirmation=FALSE,test_data_read=FALSE,forecast_allowed=FALSE)
 if(phase=='production'){config$proposal_sha256<-digest::digest(file=scale_path,algo='sha256');config$proposal_path<-scale_path}
