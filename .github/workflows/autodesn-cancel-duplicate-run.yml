@@ -1,0 +1,24 @@
+name: Stop redundant AutoDESN GP32 run
+on:
+  push:
+    branches: [feature/autodesn-remediation-20261023]
+    paths:
+      - validation/autodesn/remediation/remote_gp_requests/cancel_duplicate_gp32_request.json
+permissions:
+  contents: read
+  actions: write
+jobs:
+  cancel-exact-duplicate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner, repo = context.repo.repo;
+            const duplicate = (await github.rest.actions.getWorkflowRun({owner,repo,run_id:40165064445})).data;
+            const original = (await github.rest.actions.getWorkflowRun({owner,repo,run_id:40165012423})).data;
+            const path = '.github/workflows/autodesn-remediation-gp32-period.yml';
+            if (duplicate.head_sha !== 'a2fc842ffef50cfaf27a9e5bb50abe145865e713' || original.head_sha !== '69387927e25ccdc20dc805a6f834ec3d1b3e3a7d' || duplicate.path !== path || original.path !== path || duplicate.id === original.id) throw Error('Exact duplicate identity check failed');
+            core.info(`Keep original ${original.id}; stop duplicate ${duplicate.id}, status ${duplicate.status}`);
+            if (duplicate.status !== 'completed') await github.rest.actions.cancelWorkflowRun({owner,repo,run_id:duplicate.id});
