@@ -1333,9 +1333,11 @@ ret <- list(
 
 #' Predict in-sample p0-quantiles (mu_t) for a fitted Q-DESN
 #' @param object A \code{qdesn_fit} object.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return A numeric vector \eqn{\hat\mu_t} aligned with \code{object$y_fit}.
 #' @export
-predict_mu.qdesn_fit <- function(object) {
+predict_mu.qdesn_fit <- function(object, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
   if (is.null(object$fit)) stop("predict_mu(): object has no fitted readout (fit_readout=FALSE).", call. = FALSE)
   if (inherits(object$fit, "exal_vb")) {
     return(as.numeric(object$X %*% object$fit$qbeta$m))
@@ -1468,11 +1470,15 @@ exal_vb_posterior_predict <- function(fit_exal, X_new, nd = 1000L, chunk = 200L,
 
 #' Posterior predictive for a Q-DESN fit (uses its in-sample design by default)
 #' @param object qdesn_fit object from qdesn_fit_vb()
-#' @param nd draws; @param X_new optional n x p design; @param chunk memory chunk
+#' @param nd Number of draws.
+#' @param X_new Optional n by p design matrix.
+#' @param chunk Memory chunk size.
 #' @param draws optional posterior draws list from exal_vb_posterior_draws()
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return same structure as exal_vb_posterior_predict()
 #' @export
-posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk = 200L, draws = NULL) {
+posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk = 200L, draws = NULL, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
   stopifnot(is.list(object), !is.null(object$fit), !is.null(object$X))
   X_use <- if (is.null(X_new)) object$X else as.matrix(X_new)
   exal_posterior_predict(object$fit, X_new = X_use, nd = nd, chunk = chunk, draws = draws)
@@ -1513,6 +1519,7 @@ posterior_predict.qdesn_fit <- function(object, nd = 1000L, X_new = NULL, chunk 
 #' @param recursion_mode posterior-predictive recursion (the default) or the
 #'   mean-complete-readout-state estimator. The latter averages candidate
 #'   predictive states/features before applying posterior coefficient draws.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return list with yrep (H x nd) and mu_draws (H x nd)
 #' @export
 forecast_paths.qdesn_fit <- function(
@@ -1535,8 +1542,10 @@ forecast_paths.qdesn_fit <- function(
   origin_index = NULL,
   noise_draws = NULL,
   cpp_fallback_note = TRUE,
-  recursion_mode = c("posterior_predictive", "posterior_predictive_mean_readout_state")
+  recursion_mode = c("posterior_predictive", "posterior_predictive_mean_readout_state"),
+  ...
 ) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
   stopifnot(is.list(object), !is.null(object$fit), H >= 1L)
   method <- match.arg(method)
   anchor <- match.arg(anchor)

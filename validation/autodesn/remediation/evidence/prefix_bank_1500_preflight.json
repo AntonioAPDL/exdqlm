@@ -1,0 +1,9 @@
+{
+  "complete_preflight": true,
+  "cutoff": 1500,
+  "source_snapshot": "280cc1dab7492ae5072b1cbeb354847911763b51d3c7be17bebbeb7303a3ad11",
+  "output": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_280cc1dab7492ae5072b1cbeb354847911763b51d3c7be17bebbeb7303a3ad11",
+  "original_builder_revision": "fea371fbfa73c425a6f98407095194c1e8098a24",
+  "full_bank_executed": false,
+  "posterior_qualified": false
+}

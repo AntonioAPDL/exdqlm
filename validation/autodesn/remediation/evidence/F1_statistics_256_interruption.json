@@ -1,0 +1,17 @@
+{
+  "observation_utc": "2026-10-24T23:05:11.148903+00:00",
+  "source_snapshot": "3e83aae0d060225048664551d58a9c8be704395b067446ca45cf79d0ca969126",
+  "phase": "production_256000_joint128_stats",
+  "selected_chains": [
+    1,
+    2
+  ],
+  "last_observed_running_utc": "2026-10-24T20:45:30Z",
+  "currently_running": false,
+  "completed_chain_checkpoints": 0,
+  "exit_status": "unknown",
+  "termination_cause": "unknown",
+  "resource_completion_record_present": false,
+  "posterior_qualified": false,
+  "scope": "Observed interruption across user-status/runtime boundary. No assumption of background continuation, completed iterations, or measured full runtime."
+}

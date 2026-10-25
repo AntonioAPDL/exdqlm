@@ -1,0 +1,6 @@
+{
+  "complete": true,
+  "overlap_rejected": true,
+  "released_after_exit": true,
+  "scope": "Two independently opened handles under the same process; cooperating observing-manager reservation, not a persistent scheduler or orphan detector"
+}

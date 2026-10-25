@@ -4,10 +4,12 @@
 \alias{predict_mu.qdesn_fit}
 \title{Predict in-sample p0-quantiles (mu_t) for a fitted Q-DESN}
 \usage{
-predict_mu.qdesn_fit(object)
+predict_mu.qdesn_fit(object, ...)
 }
 \arguments{
 \item{object}{A \code{qdesn_fit} object.}
+
+\item{...}{Reserved for generic compatibility; additional arguments are rejected.}
 }
 \value{
 A numeric vector \eqn{\hat\mu_t} aligned with \code{object$y_fit}.

@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-25T04:02:12.249828+00:00",
+  "commit": "680c6f5907eead9297ecde1d5de121876905052f",
+  "run_id": 40156730248,
+  "job_id": 121059586618,
+  "platform": "ubuntu release",
+  "conclusion": "failure",
+  "package_checks": {
+    "errors": 1,
+    "warnings": 4,
+    "notes": 4
+  },
+  "test_summary": {
+    "fail": 152,
+    "warn": 50,
+    "skip": 9,
+    "passed": 6548
+  },
+  "raw_log_bytes": 2353309,
+  "raw_log_sha256": "9cb62c753f117d9159031e53ff52d1dd6ef1755f1b8ea8b4e148485474326c74",
+  "gzip_log_path": "validation/autodesn/remediation/artifacts/remote_ci_logs/release_680.log.gz",
+  "gzip_crc_verified": true,
+  "scope": "Complete observed package check before the new S3/block/variance-only changes. Source/installed830 scoped checks do not resolve this package-wide failure. The earlier155-failure log remains separate."
+}

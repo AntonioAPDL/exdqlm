@@ -1,0 +1,22 @@
+{
+  "registered_utc": "2026-10-25T01:26:57.454425+00:00",
+  "particles": 32,
+  "rows": 2000,
+  "seeds": [
+    7366121,
+    7366122,
+    7366123,
+    7366124
+  ],
+  "period_moves": 0,
+  "Julia_threads": 2,
+  "BLAS_threads": 1,
+  "max_process_seconds": 7200,
+  "max_cgroup_anon_bytes": 6100000000,
+  "native_revision": "2ad372db2b8bea176e3b32a769bfb5d6cff80866",
+  "target_prior_schedule_and_moves_unchanged": true,
+  "diagnostic_output_additions": "Native log marginal-likelihood estimates; full compressed run log. No additional sampling or fitting stages.",
+  "heldout_outcomes_read": false,
+  "forecasts_allowed": false,
+  "scope": "Pre-existing registered16/32/64 computational ladder; four fresh independent same-target runs at the32-particle level. Workflow triggers only on this explicit request file, preventing diagnostics-only commits from launching duplicate calculations."
+}

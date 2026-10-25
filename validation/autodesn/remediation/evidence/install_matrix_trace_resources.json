@@ -1,0 +1,24 @@
+{
+  "command": [
+    "R",
+    "CMD",
+    "INSTALL",
+    "--no-lock",
+    "--no-staged-install",
+    "--no-multiarch",
+    "--library=validation/autodesn/remediation/artifacts/library",
+    "."
+  ],
+  "cap_trigger": null,
+  "max_seconds": 300.0,
+  "max_cgroup_anon_bytes": null,
+  "exit_code": 0,
+  "elapsed_seconds": 33.028898775002745,
+  "peak_child_rss_kib": 439436,
+  "sampled_peak_process_tree_pss_kib": 502698,
+  "sampled_peak_environment_cgroup_anon_bytes": 875290624,
+  "user_seconds": 32.287173,
+  "system_seconds": 0.45345599999999997,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

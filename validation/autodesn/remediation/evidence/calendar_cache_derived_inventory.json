@@ -1,0 +1,22 @@
+{
+  "complete": true,
+  "files": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/calendar_cache_benchmark/blocks.rds",
+      "bytes": 122430592,
+      "sha256": "5a0d239363f35ad5d5094995a72c60e21e0883c80d1a8df571a3ccd75cf8e610",
+      "bank": "F2",
+      "max_bytes": 134217728,
+      "source_snapshot": "af348cd9eca2248ad4800cf01d18fb0dfba809feac66640f8ec2647e30e996d4"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/calendar_cache_benchmark_lawvalidated/blocks.rds",
+      "bytes": 122430592,
+      "sha256": "5a0d239363f35ad5d5094995a72c60e21e0883c80d1a8df571a3ccd75cf8e610",
+      "bank": "F2",
+      "max_bytes": 134217728,
+      "source_snapshot": "a3edf2a746e11487d3e097d046aec0033ce2f269928a60464f95c5c029e0f9a6"
+    }
+  ],
+  "scope": "Reconstructible numeric caches, excluded from bank-free archives; fitted states and executed sources are archived separately"
+}

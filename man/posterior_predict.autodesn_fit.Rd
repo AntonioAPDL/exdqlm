@@ -4,7 +4,13 @@
 \alias{posterior_predict.autodesn_fit}
 \title{Fixed-design posterior predictive draws from Gaussian AutoDESN}
 \usage{
-posterior_predict.autodesn_fit(object, nd = 1000L, X_new = NULL, seed = NULL)
+posterior_predict.autodesn_fit(
+  object,
+  nd = 1000L,
+  X_new = NULL,
+  seed = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{An \code{autodesn_fit}.}
@@ -15,6 +21,8 @@ posterior_predict.autodesn_fit(object, nd = 1000L, X_new = NULL, seed = NULL)
 bank's feature normalization. Defaults to the scored training designs.}
 
 \item{seed}{Optional seed preserving the caller's RNG state.}
+
+\item{...}{Reserved for generic compatibility; additional arguments are rejected.}
 }
 \value{
 List with \code{yrep}, \code{mu_draws}, and selected posterior draw indices.

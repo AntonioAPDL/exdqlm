@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "particles": 32,
+  "seeds": [
+    7366121,
+    7366122,
+    7366123,
+    7366124
+  ],
+  "period_moves": 0,
+  "log_evidence_range": 222.4485158587438,
+  "replica_weights": [
+    1.0168209656333762e-45,
+    2.55746210880937e-59,
+    1.0,
+    2.465114265711823e-97
+  ],
+  "effective_evidence_replicas": 1.0,
+  "all_four_included": true,
+  "posterior_qualified": false,
+  "screen_passed": false,
+  "forecasts_allowed": false,
+  "scope": "Full corrected Gen evidence agrees exactly with all four serialized final weights. Severe replica dominance blocks computational qualification; no best-run selection.",
+  "source_status_sha256": "a32cebe28a18bbcf97ebab2a8534ba420f5182a66c3c5cef06088fe46220eee2"
+}

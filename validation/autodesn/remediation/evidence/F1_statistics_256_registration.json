@@ -1,0 +1,17 @@
+{
+  "registered_before_new_production": true,
+  "policy": "Same frozen joint proposal and exact Markov transitions, with the independently tested fixed-design statistics cache",
+  "prior_target_expected": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "retained_per_chain": 256000,
+  "warmup_per_chain": 64000,
+  "chains": 4,
+  "scheduling": "First chains1,2 under two workers while recursive SV calibration uses two small workers; chains3,4 require a separate observed invocation after completion",
+  "per_invocation_seconds_cap": 7200,
+  "anonymous_memory_cap_bytes": 6400000000,
+  "required_probability_mcse": 0.01,
+  "required_chain_frequency_range": 0.03,
+  "gates_unchanged": true,
+  "hyperparameters_unchanged": true,
+  "statistics_cache_sha256": "3f8a738d8949d93c915e88c8dc4e74c33e6eef502b3530d887ca43d21f867e58",
+  "forecast_allowed": false
+}

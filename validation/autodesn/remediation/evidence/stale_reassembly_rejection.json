@@ -1,0 +1,22 @@
+{
+  "complete": true,
+  "files": [
+    {
+      "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_001.zip",
+      "bytes": 18479507,
+      "sha256": "6bb16fe359e859cfa874d823b0c04061951fca1b0a6fe738af22a2a4b3dd36a9",
+      "matches_canonical_archive": false,
+      "zip_integrity": false
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_002.zip",
+      "bytes": 177996761,
+      "sha256": "e17fbe74430aa96c6f946b849b3575714ce6d380dce48e1347e5f66c1ab14f9c",
+      "matches_canonical_archive": true,
+      "zip_integrity": true
+    }
+  ],
+  "canonical_git_parts_and_members_verified": true,
+  "original_data_and_posterior_checkpoints_untouched": true,
+  "scope": "Rejected stale reassembled intermediate ZIP copies; canonical manifests and committed immutable parts remain authoritative; cause of stale-file reappearance is not established."
+}

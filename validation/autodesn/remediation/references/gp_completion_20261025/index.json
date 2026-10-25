@@ -1,0 +1,133 @@
+{
+  "scope": "Eight exact numerical exports recovered from completed GitHub Actions logs after local-workspace loss; no rerun of inference.",
+  "bundles": [
+    {
+      "run": 40160840831,
+      "seed": 7366321,
+      "job": 121071869879,
+      "bytes": 264741,
+      "parts": 30,
+      "sha256": "8dd8412ae6011fc0c34f5863b900cb2757b89a8f36b44d3c1db26ea328f36d82",
+      "job_id": 121071869879,
+      "run_id": 40160840831,
+      "file": "s7366321.zip",
+      "checkout_sha": "b88f738a743a238468f5052b4667ca8346d28716",
+      "particles": 64,
+      "period_moves": 0
+    },
+    {
+      "run": 40160840831,
+      "seed": 7366322,
+      "job": 121071869838,
+      "bytes": 264119,
+      "parts": 30,
+      "sha256": "230c144b1a7bfaf431a7ba2a81ca6341ee6002a140b489ddef848449aaac4d1f",
+      "job_id": 121071869838,
+      "run_id": 40160840831,
+      "file": "s7366322.zip",
+      "checkout_sha": "b88f738a743a238468f5052b4667ca8346d28716",
+      "particles": 64,
+      "period_moves": 0
+    },
+    {
+      "run": 40160840831,
+      "seed": 7366323,
+      "job": 121071869884,
+      "bytes": 274470,
+      "parts": 31,
+      "sha256": "4c612e900fbcadca29130a9cadefecc32ff75a143b7868422be9348b0c4e3109",
+      "job_id": 121071869884,
+      "run_id": 40160840831,
+      "file": "s7366323.zip",
+      "checkout_sha": "b88f738a743a238468f5052b4667ca8346d28716",
+      "particles": 64,
+      "period_moves": 0
+    },
+    {
+      "run": 40160840831,
+      "seed": 7366324,
+      "job": 121071869651,
+      "bytes": 306535,
+      "parts": 35,
+      "sha256": "8fa75c597578d23089dfa792b92126b2fbbae7e4ee8dd3e0044adb146b0890db",
+      "job_id": 121071869651,
+      "run_id": 40160840831,
+      "file": "s7366324.zip",
+      "checkout_sha": "b88f738a743a238468f5052b4667ca8346d28716",
+      "particles": 64,
+      "period_moves": 0
+    },
+    {
+      "run": 40165012423,
+      "seed": 7366421,
+      "job": 121084170130,
+      "bytes": 249442,
+      "parts": 28,
+      "sha256": "d8730f87476abbdc86192a55842bba5020df697059af00a0d17d6df0e07f7a5e",
+      "job_id": 121084170130,
+      "run_id": 40165012423,
+      "file": "s7366421.zip",
+      "checkout_sha": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+      "particles": 32,
+      "period_moves": 10
+    },
+    {
+      "run": 40165012423,
+      "seed": 7366422,
+      "job": 121084170126,
+      "bytes": 198664,
+      "parts": 23,
+      "sha256": "cfb84b76189b06284ab7df59ebdb40ad5b39cf72e7d771513517ac8b985486b2",
+      "job_id": 121084170126,
+      "run_id": 40165012423,
+      "file": "s7366422.zip",
+      "checkout_sha": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+      "particles": 32,
+      "period_moves": 10
+    },
+    {
+      "run": 40165012423,
+      "seed": 7366423,
+      "job": 121084170023,
+      "bytes": 194496,
+      "parts": 22,
+      "sha256": "f6eafb3fb7579ba82df47602e65623f912bbd330b28eae8a61cd316c2df4bbca",
+      "job_id": 121084170023,
+      "run_id": 40165012423,
+      "file": "s7366423.zip",
+      "checkout_sha": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+      "particles": 32,
+      "period_moves": 10
+    },
+    {
+      "run": 40165012423,
+      "seed": 7366424,
+      "job": 121084169955,
+      "bytes": 229575,
+      "parts": 26,
+      "sha256": "b658c815f762e88ea3b22db011768c4ee893a097596d5974daf0c574c9f9f1f2",
+      "job_id": 121084169955,
+      "run_id": 40165012423,
+      "file": "s7366424.zip",
+      "checkout_sha": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+      "particles": 32,
+      "period_moves": 10
+    }
+  ],
+  "run_observations": [
+    {
+      "run_id": 40160840831,
+      "head_sha": "b88f738a743a238468f5052b4667ca8346d28716",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-25T06:24:05Z"
+    },
+    {
+      "run_id": 40165012423,
+      "head_sha": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-25T07:34:26Z"
+    }
+  ]
+}

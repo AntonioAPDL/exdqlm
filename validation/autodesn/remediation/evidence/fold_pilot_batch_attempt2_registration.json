@@ -1,0 +1,14 @@
+{
+  "source": "93988bd8b45b29c1f25479c49cb7dfe33ef6e293d22e7cdef629c81abcbac398",
+  "closure": {
+    "validation/autodesn/remediation/run_fold_pilots.py": "d7266fa67ee1271123371f7d6f0c66705101c62d73b59d6746f09e1ca6c1d6a1",
+    "validation/autodesn/remediation/launch_fit.py": "9f7ba919faafc98d99cec47424a4a35d27f311d413b1ed7ba8b1f3599baaed7b",
+    "validation/autodesn/remediation/large_job.py": "e95e6896176a65de609fe835abe3be5765d91ad2fc57503bf8b7c23abb8dcad8"
+  },
+  "sampler_source": "746007ea38402e47af55f570b0680d0fe35d327c8df267ced9ecc96cb606d573",
+  "chains": 4,
+  "warmup_per_chain": 1000,
+  "retained_per_chain": 2000,
+  "workers": 4,
+  "scope": "Six fixed training-only pilot cells; existing complete first cell hash-verified and reused. No production qualification or model-family selection."
+}

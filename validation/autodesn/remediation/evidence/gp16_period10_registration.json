@@ -1,0 +1,57 @@
+{
+  "registered_utc": "2026-10-25T02:47:55.308456+00:00",
+  "reason": "All four full native16 runs completed but evidence estimates differ by365 log units; particle32 native controls remain separately in progress. Evaluate the existing independently checked invariant training-peak period proposal before escalating the repaired policy.",
+  "rows": 2000,
+  "particles": 16,
+  "seeds": [
+    7366221,
+    7366222,
+    7366223,
+    7366224
+  ],
+  "period_moves_per_particle_per_stage": 10,
+  "schedule": [
+    32,
+    64,
+    128,
+    256,
+    512,
+    1000,
+    1500,
+    2000
+  ],
+  "structure_moves": [
+    40,
+    40,
+    40,
+    30,
+    20,
+    15,
+    10,
+    10
+  ],
+  "hmc_moves": [
+    4,
+    4,
+    4,
+    3,
+    3,
+    2,
+    2,
+    2
+  ],
+  "max_depth": 4,
+  "native_revision": "2ad372db2b8bea176e3b32a769bfb5d6cff80866",
+  "prior_or_kernel_grammar_changed": false,
+  "target_changed": false,
+  "heldout_used": false,
+  "frozen_proposal_sha256": "90e86f29297a3763366ad220e447927d4de8349ae38af34ae62b6ccee7bc9688",
+  "period_kernel_sha256": "fb9d62d9896282eb627a109aa3242440ea920b9246711b111dbf430c99696766",
+  "memory_cap_bytes": 6100000000,
+  "wall_cap_seconds": 7200,
+  "qualification": "Four independent complete runs, mode checks and successive particle budgets under the same repaired policy; no waiver of any gate",
+  "cohort_pooling": "All four registered complete replicas within one fixed particle-count/kernel-policy cohort, using full Gen evidence; never pool native and repaired cohorts or different particle counts",
+  "report_label": "AutoGP native prior/grammar with additional invariant period rejuvenation",
+  "forecasts_allowed": false,
+  "scope": "Computational exploration repair, not additional model expressiveness or test-outcome tuning"
+}

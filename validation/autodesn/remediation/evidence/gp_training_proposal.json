@@ -1,0 +1,17 @@
+{
+  "complete": true,
+  "training_only": true,
+  "rows": [
+    501,
+    2500
+  ],
+  "raw_periods": [
+    31.25,
+    20.0,
+    60.6060606060606,
+    51.282051282051285,
+    39.2156862745098
+  ],
+  "training_sha256": "994b10bb114c775b058e9268290c1cbd4c4378f1ec086c76939080b16351ae73",
+  "proposal_only": true
+}

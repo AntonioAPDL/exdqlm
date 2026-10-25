@@ -1,0 +1,19 @@
+{
+  "complete_observation": true,
+  "observed_utc": "2026-10-25 04:30:33 UTC",
+  "chains": {
+    "3": {
+      "iteration": 564000,
+      "retained": 436000,
+      "payload_sha256": "7a3c6741154bb90de2605714156990485ccd342419f6f163d96f6c8e31da3f8c",
+      "complete": false
+    },
+    "4": {
+      "iteration": 568000,
+      "retained": 440000,
+      "payload_sha256": "42d3be40286de981c7459df1f8d2d04d0e9ebec7557ef884441dafdfd9d2500c",
+      "complete": false
+    }
+  },
+  "posterior_qualified": false
+}

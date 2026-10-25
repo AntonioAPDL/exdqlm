@@ -1,0 +1,58 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-25T05:54:52.589029+00:00",
+  "rows": [
+    {
+      "cutoff": 1500,
+      "family": "F1",
+      "warmup_per_chain": 8000,
+      "retained_per_chain": 32000,
+      "chains": 4,
+      "raw_identities_verified": true,
+      "screen_passed": false,
+      "maximum_rhat": 1.0521974524015911,
+      "minimum_ess": 83.37422225906185,
+      "maximum_category_frequency_range": 0.11059374999999999,
+      "common270_passed": true,
+      "common_maximum_rhat": 1.0066882485404447,
+      "common_minimum_ess": 1292.6444804456025,
+      "process_wall_seconds": 441.9060531319992,
+      "peak_process_tree_pss_kib": 3461213,
+      "target_id": "f847a4f55ba51a174ad8ed7f288dad2ed6d1a51c5dcc3b55a094f48b4870a4b8",
+      "qualified": false,
+      "forecast_allowed": false
+    },
+    {
+      "cutoff": 2000,
+      "family": "F1",
+      "warmup_per_chain": 8000,
+      "retained_per_chain": 32000,
+      "chains": 4,
+      "raw_identities_verified": true,
+      "screen_passed": false,
+      "maximum_rhat": 1.0226216586862158,
+      "minimum_ess": 146.51082778371244,
+      "maximum_category_frequency_range": 0.1000625,
+      "common270_passed": true,
+      "common_maximum_rhat": 1.0065087937400075,
+      "common_minimum_ess": 1062.0560198794046,
+      "process_wall_seconds": 412.16539756199927,
+      "peak_process_tree_pss_kib": 3991033,
+      "target_id": "f0c7cbcc9bb31e92eb39fa2022b6e0ed50051fc8307c431f573c77b57ecb9a94",
+      "qualified": false,
+      "forecast_allowed": false
+    }
+  ],
+  "input_sha256": {
+    "validation/autodesn/remediation/evidence/fold_fits/cutoff1500/F1/F1_production_32000_pilotguide_qualification.json": "d75b60ceacf6d2f68ff9adda443ccc851c7b99f8f642aa35f52979da2cfe64ec",
+    "validation/autodesn/remediation/evidence/fold_fits/cutoff1500/F1/F1_production_32000_pilotguide_common_rhs_diagnostics.json": "f9586a58deeb82fc2d20c5c0f95418ff134bfb4a258d2dd9cd0a55c2d328fc11",
+    "validation/autodesn/remediation/evidence/fold1500_F1_production_32000_pilotguide_checkpoint_validation.json": "bf9214277ca67add344eccb3df60194fc4c4b9d1ea4187556bd0cf1e6ae01656",
+    "validation/autodesn/remediation/evidence/fold1500_F1_production_32000_pilotguide_resources.json": "6bfee138132b2d39b29ef8640ffb072aef4425b27436e55f64ac11d39d99d14e",
+    "validation/autodesn/remediation/evidence/fold_fits/cutoff2000/F1/F1_production_32000_pilotguide_qualification.json": "d6c202bd2ed12e86353b0b6ae7bbdb3a2e2cf76e115a7239f9d9d3cf48779bdc",
+    "validation/autodesn/remediation/evidence/fold_fits/cutoff2000/F1/F1_production_32000_pilotguide_common_rhs_diagnostics.json": "988e0ab5cf698a7072935ba73208295fcc8177524929df1efad3e439552fc684",
+    "validation/autodesn/remediation/evidence/fold2000_F1_production_32000_pilotguide_checkpoint_validation.json": "5932b770bfe75e61d89cfa6668e6ec5830913ac4e5155748bc63477003043b1d",
+    "validation/autodesn/remediation/evidence/fold2000_F1_production_32000_pilotguide_resources.json": "890eeb1bc75d1fd8e760ba182020a68ecf128f7609df70a10772e44f941614a7"
+  },
+  "producer_sha256": "bad25242edfa6b3e98c2d2901bfbc2fec09e842e8b769bd8cb3969724c3cfdd6",
+  "scope": "Both first-ladder chronological F1 budgets complete and all15 raw identities bind at each cutoff. Common270 coefficients/scales pass, architecture/full-trace screens fail. No selected mean or forecast promotion. Process wall includes startup/checkpointing, distinct from sampler-only time."
+}

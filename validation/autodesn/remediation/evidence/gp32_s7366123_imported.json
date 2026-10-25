@@ -1,0 +1,19 @@
+{
+  "verified": true,
+  "seed": 7366123,
+  "checkout_sha": "892fa693715d1b46f2a14e49be3fa943d84942ca",
+  "bundle_sha256": "3b08fa2e3583e0755d8b26ac9efbd9d0256033b5c84b2cd4a83a58a3ee8f528a",
+  "members": 33,
+  "particles": 32,
+  "training_rows": 2000,
+  "status_complete": true,
+  "resource_exit_code": 0,
+  "resource_cap_trigger": null,
+  "wall_seconds": 6285.132344826,
+  "inference_seconds": 6215.608891010284,
+  "peak_pss_kib": 3926958,
+  "full_inference_log_crc_verified": true,
+  "full_inference_log_bytes": 19028,
+  "full_inference_log_sha256": "99cf7916d8c804b8a3fba4719cd8d36beac2da6fb98605a61f9ab5cdc8c1ee70",
+  "posterior_qualified": false
+}

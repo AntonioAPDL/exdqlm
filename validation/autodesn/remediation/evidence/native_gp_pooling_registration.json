@@ -1,0 +1,19 @@
+{
+  "registered_utc": "2026-10-25T01:14:55.402118+00:00",
+  "before_inspection_of_completed_GP_numeric_outputs": true,
+  "replicas": 4,
+  "seeds": [
+    7366021,
+    7366022,
+    7366023,
+    7366024
+  ],
+  "pooling": "Pool the unnormalized SMC measures: within-run normalized particle weights multiplied by exp(log_ml_est); normalize across all four complete runs using log-sum-exp. Equal particle counts and the same full2000-row target are required.",
+  "native_field": "Dict(model)[pf_state][log_ml_est] / AutoGP.log_marginal_likelihood_estimate(model)",
+  "qualification": "Retain individual-run diagnostics, evidence dispersion and effective number of replica weights. Dominance of one run or unstable budgets blocks promotion; never select by held-out scores. All complete registered replicas are included.",
+  "normalizer_reference_validation_pending": true,
+  "same_target_required": true,
+  "different_particle_budgets_not_pooled": true,
+  "forecasts_allowed": false,
+  "scope": "Aggregation rule frozen before numeric-result inspection. It uses the standard unnormalized-measure SMC identity; implementation/transport and independent normalizer checks remain required."
+}

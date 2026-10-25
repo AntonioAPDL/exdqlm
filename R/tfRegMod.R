@@ -36,9 +36,8 @@
 #' @export
 #'
 #' @examples
-#' data("BTflow", package = "exdqlm")
-#' data("nino34", package = "exdqlm")
-#' X <- cbind(nino34, scale(BTflow)[,1])  # T x n
+#' data("climateIndices", package = "exdqlm")
+#' X <- as.matrix(climateIndices[c("noi", "amo")])  # T x n
 #' tfc <- tfRegMod(X, lambda = 0.9)
 #'
 #' trend.comp <- polytrendMod(order = 3, m0 = rep(0,3), C0 = diag(3))

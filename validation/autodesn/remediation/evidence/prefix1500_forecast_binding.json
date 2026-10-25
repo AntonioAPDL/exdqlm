@@ -1,0 +1,14 @@
+{
+  "complete": true,
+  "architectures": 426,
+  "forecast_issued": false,
+  "posterior_qualified": false,
+  "source_sha256": "82c2580ac6b23cc3961e4ddb1f70cfa315d97229f30b57861e59cb82f8e245b0",
+  "scope": "All prefix-specific reservoir terminal states reproduce their matching training-row features; no held-out or validation outcomes read.",
+  "conditional_bank_id": "63cb7ace49f135797c436335819181b18fdc9b504d62bad91012e071bf14f3d2",
+  "forecast_map_id": "c351b05f80256c07037f541ed90265e50fa2a1b10dd7adcd40ebc287be4882f0",
+  "maximum_terminal_feature_error": 2.084998840246044e-13,
+  "cutoff": 1500,
+  "prefix_manifest_sha256": "415684f9e7264dbd2f5c056f6de3cc97515d782fda62293ccbda0ae6e4b07888",
+  "mean_selection": {}
+}

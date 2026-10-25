@@ -1,0 +1,5 @@
+{
+  "complete": true,
+  "files": ["autodesn_extended.R", "autodesn_extended_forecast.R", "autodesn_extended_proposal.R", "autodesn_generics.R"],
+  "parsed_expressions_identical": true
+}

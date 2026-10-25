@@ -1,0 +1,40 @@
+{
+  "complete": true,
+  "chain_artifacts_verified": 4,
+  "contract_id": "0cefa716f4ff64d5a3dd2fe5bda5aa96ebaed15130236354f5b9a57472b6133b",
+  "target_id": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "proposal_verified": false,
+  "matching_joint_states_per_chain": [
+    2048,
+    2048,
+    2048,
+    2048
+  ],
+  "input_files_sha256": {
+    "contract.rds": "20d482dd22509c83cb478ffa3ab4b3771bb2de2d95d467ec3acd11d369fbfd4b",
+    "configuration.json": "58faf4ad29169a68d769a5557dcf4b2bcf9d2168770deba83fdca8ba165b8654",
+    "chain_1.rds": "84d8dca03566cb59aa7f15f29568aa63a6607867d2adedc159da7ad0e068457b",
+    "chain_1_status.json": "14e7584e85132b383dadc10f1f5d4ac985de5eea07e6c1ee13a3e8a36ec9ffe0",
+    "trace_1.csv": "7d8b47fe02d40db2e9e3e1e24f465fe7278a55f6b8a9059bfdd5fee3a28e642d",
+    "chain_2.rds": "fa2969f9182112e6851c27d7bd4f7e8beaed48f0a83216b60c7479798b7bfc5f",
+    "chain_2_status.json": "87c294994fd303de327332f789efb87843d0112fa7030cd91ea42c1a854dc46b",
+    "trace_2.csv": "66503302c05d37401df44868ff12f386cb7d89460c19b31a35284bde24c2df75",
+    "chain_3.rds": "542f4bc693f21090a9d49d1ecb90f8c2b3284db4623e9bde9d6a5485d9eb59c2",
+    "chain_3_status.json": "8b3fb275cfe7774ee70f992ba8c75d1eeca2f9d3cc0ca32124214a710fbc6858",
+    "trace_3.csv": "fb56147f45ca7338a75e09a880b2a4c8dc30da4825d5f4530a53f936fb62f0a0",
+    "chain_4.rds": "27e31b57977ee7782cf94f938623cdd813c3e24973ada36e2ca45fdd45338bcc",
+    "chain_4_status.json": "fca517f9f6ef233cd03d85d5432c7aa8339fce51f9027251cd6593aa08761185",
+    "trace_4.csv": "c4798f148e3f73bec05532c2526bdbcb2691ea4beef6d32ca8bcb455f9b278e2",
+    "model_metadata.csv": "83378d1272779fa54c4ba74880b1a1e41e26935901037f18b792a7e8bf5243d8"
+  },
+  "posterior_qualified": false,
+  "scope": "Complete RDS/status/contract identities, trace and fitted-probe CSV parity, exact matching coefficient/local-state indices; launcher completion and posterior qualification remain separate",
+  "base_validation": {
+    "path": "validation/autodesn/remediation/evidence/F1_256000_bound_checkpoint_validation.json",
+    "sha256": "c11fafe69598d9ff6e04b48282326ea1da08358b380d2b56db79733e31195f74"
+  },
+  "metadata_supplement": {
+    "path": "validation/autodesn/remediation/supplement_metadata_binding.R",
+    "sha256": "b8b820a71ed351a2938866c109a0636e39611dd71f106dae52916a9e8a1d909b"
+  }
+}

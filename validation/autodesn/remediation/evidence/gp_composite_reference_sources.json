@@ -1,0 +1,7 @@
+{
+  "source": "validation/autodesn/remediation/test_gp_composite_reference.jl",
+  "snapshot": "validation/autodesn/remediation/artifacts/gp_reference_sources/a823077ba6211505578a430b8cf67b1a0f74bab4a354465dc2f21125988912f4/test_gp_composite_reference.jl",
+  "sha256": "a823077ba6211505578a430b8cf67b1a0f74bab4a354465dc2f21125988912f4",
+  "registered_before_execution": true,
+  "scope": "Small finite-grammar conditional density/normalization check, not production qualification"
+}

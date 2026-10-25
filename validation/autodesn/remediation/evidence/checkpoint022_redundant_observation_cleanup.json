@@ -1,0 +1,77 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-25T05:18:34.330205+00:00",
+  "git_revision": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+  "archive_manifest": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_022.manifest.json",
+  "manifest_sha256": "259b993dd2bc23e746d92b7599199709d3981dbdcc585b3e14b561eb57f0adb4",
+  "archive_and_all23_members_reverified": true,
+  "removed_redundant_observation_copies": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/lastpair512_near_final/chain_3_sweep_584000.rds",
+      "bytes": 115701984,
+      "sha256": "bb5527dc9b757c2f984bee59317c4b5bdafb151969b043f7e29ba5827c2325d4"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/lastpair512_near_final/chain_4_sweep_584000.rds",
+      "bytes": 115681888,
+      "sha256": "23c7b66be87a63d8df9bdace448c168af3e9351337a4f568c2793da15bd7f7f4"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/lastpair512_near_final/contract.rds",
+      "bytes": 9172,
+      "sha256": "5c0c9991d4721d57a47cd634cd9ec0974a4fcf5b3ea51034683889c19d855274"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_training_1/chain_1_sweep_148000.rds",
+      "bytes": 5126336,
+      "sha256": "6a3b6fbc64cf1a1c6657b9f40840e217030e644c5444c7c5a2ea82912ba145b8"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_training_1/chain_2_sweep_148000.rds",
+      "bytes": 5121152,
+      "sha256": "932193b3ce0276e43e3b20e22d0723210d8eecea4a5a63b160fc7596d8bddd2f"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_training_1/chain_3_sweep_148000.rds",
+      "bytes": 5128896,
+      "sha256": "1f0b59ef0b81aceba3c72bdc191fc7fe05915ad38491e3fead3109c342c54eec"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_training_1/chain_4_sweep_148000.rds",
+      "bytes": 5129344,
+      "sha256": "5a12eac7eb1087cafed0d216140e7c3c7a15e2f9cda9f2273f50553522b4e62a"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_training_1/contract.rds",
+      "bytes": 9172,
+      "sha256": "5c0c9991d4721d57a47cd634cd9ec0974a4fcf5b3ea51034683889c19d855274"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid_production_2/chain_1_sweep_276000.rds",
+      "bytes": 56688736,
+      "sha256": "ea5ce189338d439490a2fc1477d45fb0f40de151231a642087ba12fd1c04735f"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid_production_2/chain_2_sweep_276000.rds",
+      "bytes": 56709824,
+      "sha256": "c34e4235d9f13677b2e0177cffe9a55187ba3540c2cdd130740ddb2855569cc9"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid_production_2/chain_3_sweep_276000.rds",
+      "bytes": 56644992,
+      "sha256": "7591b32aeb3b39330a1f4cad60f5cee42fa35197dd613150c9881e96b0a728b5"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid_production_2/chain_4_sweep_280000.rds",
+      "bytes": 57754000,
+      "sha256": "a3429c54a730962bdc206468b7160bf98f9f46bcb63ba844ea5f7aab9cf9c79c"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid_production_2/contract.rds",
+      "bytes": 9117,
+      "sha256": "20d482dd22509c83cb478ffa3ab4b3771bb2de2d95d467ec3acd11d369fbfd4b"
+    }
+  ],
+  "freed_bytes": 479714613,
+  "scope": "Canonical fitted posteriors and canonical progress files retained. Only byte-identical duplicate observation copies were removed after remote Git publication and local committed-object/ZIP/member verification; restore from the committed archive when needed."
+}

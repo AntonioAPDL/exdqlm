@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "observed_completed_invocations": 48,
+  "sum_process_wall_seconds": 27198.450221473046,
+  "sum_process_cpu_seconds": 47105.520619,
+  "nonzero_exit_invocations": 8,
+  "wall_scope": "Sum across observed invocations, including failures. Concurrent jobs overlap; this is not end-to-end study wall time.",
+  "outcome_scope": "Includes intentional resource-cap fixtures and numerical checks; nonzero exits are not a model failure rate.",
+  "memory_scope": "Per-record scope applies; early aggregate PSS limitations remain in resource_measurement_limits.json. Environment anon includes concurrent work; do not sum peaks.",
+  "inference_scope": "Process times include imports/loading/compilation/saving. Matching chain computation records provide inference-only times; neither scope is a completed predictive comparison.",
+  "measurement_limits_sha256": "c0a54615a901cedd8ba0062615c474d9dab063642b2dbd57c777a5414429dc3f",
+  "no_new_full_rolling_forecast_time_measured": true
+}

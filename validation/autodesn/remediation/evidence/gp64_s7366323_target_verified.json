@@ -1,0 +1,30 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-25T05:54:06.030415+00:00",
+  "seed": 7366323,
+  "status_sha256": "1795a25fc9d90fbc0322ce3457c7b90df9a583042b7bd3422d873aa209bbca0e",
+  "checks": {
+    "particles": true,
+    "rows": true,
+    "seed": true,
+    "training_only": true,
+    "native_target_unchanged": true,
+    "no_forecast": true,
+    "no_feasibility_subsample": true,
+    "period_moves_zero": true,
+    "correct_final_evidence": true,
+    "native_pin": true,
+    "export_commit": true
+  },
+  "inference_seconds": 5180.801052093506,
+  "initialization_seconds": 14.331268072128296,
+  "training_probe_seconds": 11.213515996932983,
+  "transport_seconds": 22.691457986831665,
+  "host": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "cpu_count": 4,
+    "cpu_model": "AMD EPYC 9V45 96-Core Processor"
+  },
+  "posterior_qualified": false,
+  "cohort_complete": false
+}

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/benchmark_statistics_cache.R"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1800.0,
+  "max_cgroup_anon_bytes": 6100000000,
+  "exit_code": 0,
+  "elapsed_seconds": 257.443198811,
+  "peak_child_rss_kib": 1773708,
+  "sampled_peak_process_tree_pss_kib": 1767143,
+  "sampled_peak_environment_cgroup_anon_bytes": 3405774848,
+  "user_seconds": 256.079725,
+  "system_seconds": 1.161866,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

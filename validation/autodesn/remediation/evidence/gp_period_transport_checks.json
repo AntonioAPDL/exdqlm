@@ -1,0 +1,24 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "period_moves": 0,
+      "verified_members": 3,
+      "bundle_sha256": "9dd9a3a6b4e71a4f7652cf0a234da90da36f6d098801c13e0ae22bac429d9b4d",
+      "incomplete_fit_remains_incomplete": true
+    },
+    {
+      "period_moves": 10,
+      "verified_members": 3,
+      "bundle_sha256": "805df32fbe4b1cc4a97e23d3f729130e2825b44ffd88654b56b3052d91be2ba4",
+      "incomplete_fit_remains_incomplete": true
+    }
+  ],
+  "new_forecasts_issued": false,
+  "source_sha256": {
+    "validation/autodesn/remediation/remote_gp_budget.py": "287e9131421d03e66829f64f0518a602a4cf6728ba23ba5f763ff559b1a4a0ab",
+    "validation/autodesn/remediation/import_gp_log.py": "2051953f88b4af3eb87115de9514e19acd2e2e8145a77bcf9ddc23b102158a87",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/test_gp_period_transport.py": "8dc20eec9cee544f1bc6737b967337b837e44cd65e52a77ee2e2bfc24204971f"
+  },
+  "scope": "Actual period0/10 exporter/decoder fixtures, incomplete-status preservation, gzip CRC/content and partial-file exclusion. No GP fit executed."
+}

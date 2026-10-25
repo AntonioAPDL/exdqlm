@@ -1,0 +1,283 @@
+{
+  "audited_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917",
+  "audit_kind": "Forensic review of committed source, saved numerical diagnostics, resource records and complete CI log; no new inference, forecasts or full raw-archive replay.",
+  "compute_policy": "Pause long fitting here; transfer execution to persistent storage after a bounded portability/reproducibility check.",
+  "scientific_study_complete": false,
+  "new_inference_launched": false,
+  "full_new_forecast_comparison_complete": false,
+  "confirmed_environment_issues": {
+    "memory_limit_bytes": 8589934592,
+    "production_worker_oom_observed": true,
+    "early_aggregate_process_tree_pss_unreliable": true,
+    "scratch_pruning_removed_local_recovery_checkout": true,
+    "uncommitted_phase12_inventory_unavailable": true
+  },
+  "main_F1": {
+    "chains": 4,
+    "warmup_per_chain": 128000,
+    "retained_per_chain": 512000,
+    "mcmc_two_budget_passed": true,
+    "maximum_rhat": 1.0002232637110813,
+    "independent_calibration_mode_predictive_MC_gates_open": true,
+    "minimum_full_trace_screen_ess": 17882.58341530802,
+    "common270": {
+      "maximum_rhat": 1.0008827609389404,
+      "minimum_bulk_ess": 7107.694592164427,
+      "minimum_tail_ess": 6942.238752343886
+    }
+  },
+  "development_fold_F1": [
+    {
+      "cutoff": 1500,
+      "screen_passed": false,
+      "maximum_rhat": 1.0521974524015911,
+      "minimum_ess": 83.37422225906185,
+      "maximum_category_frequency_range": 0.11059374999999999
+    },
+    {
+      "cutoff": 2000,
+      "screen_passed": false,
+      "maximum_rhat": 1.0226216586862158,
+      "minimum_ess": 146.51082778371244,
+      "maximum_category_frequency_range": 0.1000625
+    }
+  ],
+  "GP_cohorts": {
+    "native64": {
+      "seeds": [
+        7366321,
+        7366322,
+        7366323,
+        7366324
+      ],
+      "log_evidence_range": 41.972315359879985,
+      "log_mean_evidence": 1669.763392561806,
+      "evidence_replica_weights": [
+        0.9999999485936693,
+        3.8950987250717855e-11,
+        5.136737976969239e-8,
+        5.910919219397403e-19
+      ],
+      "effective_evidence_replicas": 1.0000001028126668,
+      "minimum_final_particle_ess": 2.0866604399614506,
+      "summed_process_wall_seconds": 24768.818920019,
+      "posterior_qualified": false
+    },
+    "additional_period32": {
+      "seeds": [
+        7366421,
+        7366422,
+        7366423,
+        7366424
+      ],
+      "log_evidence_range": 116.51866609637409,
+      "log_mean_evidence": 1709.853664552744,
+      "evidence_replica_weights": [
+        0.9999999999990214,
+        2.4922194187862319e-51,
+        9.784399403257526e-13,
+        1.0118473890633645e-22
+      ],
+      "effective_evidence_replicas": 1.000000000001957,
+      "minimum_final_particle_ess": 1.1895950957304464,
+      "summed_process_wall_seconds": 20668.086918795,
+      "posterior_qualified": false
+    }
+  },
+  "scoped_tests": {
+    "source_assertions": 830,
+    "installed_outside_git_assertions": 830,
+    "full_package_check_passed": false
+  },
+  "package_CI": {
+    "run_id": 40156730248,
+    "job_id": 121059586618,
+    "failed": 152,
+    "warnings": 50,
+    "skipped": 9,
+    "passed": 6548,
+    "baseline_failure_attribution_established": false,
+    "parsed_failure_records_name_AutoDESN_test_files": false
+  },
+  "confirmed_workflow_errors": [
+    "Production concurrency exceeded measured memory headroom",
+    "Early process-tree PSS collection missed descendants",
+    "Incomplete PR-event-only workflow query led to a redundant same-seed launch; duplicate canceled",
+    "Native evidence field initially omitted terminal particle-weight contribution; deterministic accounting corrected",
+    "Reports/plans described PCA where frozen reservoir bridges were identity maps; corrected",
+    "Source and result/report publication did not finish before scratch pruning; unavailable files excluded from claimed recovery"
+  ],
+  "unresolved_causes": [
+    "Exact GP mode-exploration bottleneck under the fixed native target",
+    "Prefix-specific architecture exploration and proposal portability",
+    "Generalization and mean/variance calibration of the revised models",
+    "Attribution and repair of the whole-package CI failures"
+  ],
+  "evidence": [
+    {
+      "path": "validation/autodesn/remediation/evidence/resource_measurement_limits.json",
+      "git_blob_sha": "87d8eb7c797ea950415a10fda30e8a31581021ae",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_parallel_memory_failure.json",
+      "git_blob_sha": "1f7396e3c1aa4d31ebd9a01ce647b281a00e68de",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_512000_execution_summary.json",
+      "git_blob_sha": "91cc589e2f37f012a36a67a3a0b99a51372b3d30",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_qualification.json",
+      "git_blob_sha": "db63490f089ace967b7373cc4d1dc2531b0f2fee",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_common_rhs_diagnostics.json",
+      "git_blob_sha": "9dcce4fbcd8a425381899a656d0f4f0c50941c21",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_256000_joint128_recoverable_vs_production_512000_joint128_recoverable_stability.json",
+      "git_blob_sha": "31c776e1167bdcc1a4a80a608531179811cdf9c5",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/fold_F1_production_32000_bound_summary.json",
+      "git_blob_sha": "e8ae686e5dfc2276f1f32fa5f860c3db3a48f418",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/fold_pilot_stuck_indicator_audit.json",
+      "git_blob_sha": "a853464fc709a52b6b6a53b131d52fee673b82b0",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/full_standardization.json",
+      "git_blob_sha": "b8067ec61899467a63cd61b341f1839b13ab9458",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/full_package_ci_680_audit.json",
+      "git_blob_sha": "ae36657f5252629dfa3087a592282b2b8e77b4ed",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/variance_only_seasonality_tests.json",
+      "git_blob_sha": "e0473b388fe48c8584181faec42665939a293cfd",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/representation_capacity_interpretation.json",
+      "git_blob_sha": "c38cb71b753a9447573e8ea90572bd54189e7373",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/lag_scale_coupling_interpretation.json",
+      "git_blob_sha": "e76413bf99cceda11ea24a76ab532063d5bd576b",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/native_gp_pooling_correction.json",
+      "git_blob_sha": "367142cbc2d34362f99aeed64e888f1185f02503",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_training_function.json",
+      "git_blob_sha": "24e4c8fd0707cf9058a6da4dcbb95352fbe5733d",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/F1_production_512000_joint128_recoverable_shrinkage.json",
+      "git_blob_sha": "e8f14c2adc2f16bda8b3ba8e29f1bd61b9f27205",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/oracle_forecastability.json",
+      "git_blob_sha": "ea764e30637c16f0745d1a177511a223a1ea0257",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/gp32_evidence_diagnostics.json",
+      "git_blob_sha": "7e968605c23310d989c72f62988bd6e74248a247",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/gp16_period10_evidence_diagnostics.json",
+      "git_blob_sha": "36afa2a81f0a0f02f846d0fb806769f9e3f8dda1",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/gp32_period10_duplicate_cancellation.json",
+      "git_blob_sha": "dbb2e1622297bba9c0ccb33a6d4eba5f0798e768",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/checkpoint025_replay.json",
+      "git_blob_sha": "cfe1f5d8fd4735e3ee543e32e00b0dd67d686187",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/evidence/runtime_process_ledger.json",
+      "git_blob_sha": "5d76b44bb321edc7b3673d913046752547c41cae",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    }
+  ],
+  "sources": [
+    {
+      "path": "R/autodesn_extended.R",
+      "git_blob_sha": "fea3234b4beeecfd5ef53f63021f1a5d5ed8ad40",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "R/autodesn_gaussian.R",
+      "git_blob_sha": "3ad7b7ae1b6b68f05ce5085ed73f7e971c7fdafd",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "R/autodesn_rhs.R",
+      "git_blob_sha": "58f6711aacb3fa606e70cb2ae070f547b3ef3c82",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "R/autodesn_scaling.R",
+      "git_blob_sha": "a0056e4f0e99c8127a23482d8658534da89563ef",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "src/autodesn_rhs.cpp",
+      "git_blob_sha": "642aac8034b027dacd94653e733810be760c98fd",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "tests/testthat/test-autodesn-extended.R",
+      "git_blob_sha": "1655541b22613b7ec2bdba7538020fe47d2c683f",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "tests/testthat/test-autodesn-rhs-integration.R",
+      "git_blob_sha": "9455b5d04e0bb7e7e395dd936d2d2bd65aced40c",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "tests/testthat/test-autodesn-rhs-normalization.R",
+      "git_blob_sha": "0a9e0528d19a20d604c6c7ebca15ad9a7203a3c4",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    }
+  ],
+  "additional_records": [
+    {
+      "path": "validation/autodesn/remediation/references/gp_completion_20261025/index.json",
+      "git_blob_sha": "0cb8bf250fa737b388dfe4c18f4ddd834a43e56d",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    },
+    {
+      "path": "validation/autodesn/remediation/references/gp_completion_20261025/verified.json",
+      "git_blob_sha": "bb4504b7c528c3f0dec2d93ea13d3f55556b5128",
+      "source_commit": "8dcbc7fbc7ff0ffafc92b72c208cfa828799b917"
+    }
+  ],
+  "environment_pruning_notice_received": true
+}

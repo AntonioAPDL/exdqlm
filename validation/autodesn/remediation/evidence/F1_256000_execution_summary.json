@@ -1,0 +1,24 @@
+{
+  "complete": true,
+  "phase": "production_256000_joint128_recoverable",
+  "warmup_per_chain": 64000,
+  "retained_per_chain": 256000,
+  "chains": 4,
+  "observed_invocations": 3,
+  "known_active_wall_seconds_sum": 4307.027174600002,
+  "peak_process_tree_pss_kib": 5261682,
+  "peak_environment_anon_bytes": 6060376064,
+  "between_invocation_idle_time_included": false,
+  "earlier_unknown_exit_invocation_credited": false,
+  "source_files_sha256": {
+    "validation/autodesn/remediation/qualify.py": "1ee9cfd63a8bbbe6940e2c5e744e9e7a938be5f919498b2eb86613313e240dc3",
+    "validation/autodesn/remediation/cross_budget.py": "a67f8926b0777c0ed7815eb5602764f137c727c77e1a326a77b7366c5b9de3c5",
+    "validation/autodesn/remediation/validate_checkpoints.R": "f7d8f969ddb0104481f281303eb29c3e1867e0c021665178a550c115357f17d8",
+    "validation/autodesn/remediation/shrinkage_summary.R": "f88ee24e9a19eef30515f335e564901061292785d7b612593bcad746a4c8266f",
+    "validation/autodesn/standardized_rhs/diagnostics.py": "2a6bb13190a38bda0b9ae9522f4e8302562f7bab4ad533910a98f60e0706a3d6"
+  },
+  "first_individual_screen_passed": true,
+  "full_posterior_qualified": false,
+  "cross_budget": "128/256 all73 practical/MC comparisons pass, but128 individual screen fails; certificate remainsfalse. The first comparison invocation stopped before validation finished; its failure is preserved, and the second executed after validation.",
+  "scope": "Completed four fresh independent chains with exact within-chain recovery. PSS covers the F1 process tree; environment anon includes simultaneous audits. No future forecast outcomes read."
+}

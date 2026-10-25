@@ -1,0 +1,6 @@
+{
+  "complete": true,
+  "checks": 17,
+  "passed": true,
+  "scope": "Dense stationary covariance, transformed phi/omega normalizers and invariant slice moments conditional on fixed latent states; not full SV posterior qualification"
+}

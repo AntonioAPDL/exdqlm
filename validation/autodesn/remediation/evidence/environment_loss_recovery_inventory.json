@@ -1,0 +1,2421 @@
+{
+  "schema": 1,
+  "date_utc": "2026-10-24",
+  "status": "blocked_execution_environment_unavailable",
+  "prior_commit": "dd9f220ee4de4a4d022cde757cc0b5235f215099",
+  "provenance": "Recovery record written through GitHub after the execution environment became unavailable. Numerical observations below were read from completed local outputs before loss; this record does not replace missing original machine-generated files.",
+  "archives": [
+    {
+      "label": "remediation_checkpoint_005",
+      "expected_parts": 61,
+      "preserved_parts": 61,
+      "expected_bytes": 36561263,
+      "parts_complete": true,
+      "original_manifest_available_in_this_commit": false,
+      "observed_before_environment_loss": "Five-archive restoration succeeded: 1060 parts, 3790 unique members. This archive adds 360 members.",
+      "recovery": "Concatenate these 61 parts in listed order. Verify Git blob identities from this inventory, then ZIP CRCs and member paths. The original SHA256/member manifest was not uploaded before loss; do not claim the original restore-chain certificate can be reconstructed from this inventory alone.",
+      "entries": [
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-001",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "52ee79b5cee50406ef2715015502eba751bc2075"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-002",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "71c2db4e4fcf84eb6cb6a2d36a37b1d1df6c0d38"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-003",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6d6384527db189dfb77d8992d105bd6427779191"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-004",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "bc34cb0f8a69ae4b3f2ee75abdba86d5fdb4d046"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-005",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "99c3cb2422f5d2d965b0e720b7d14d24e3c40623"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-006",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1130f480690419a552d43a50c5fa7b9121527320"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-007",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3d189b261709f8bc00810ef989dbcf3293abd3f4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-008",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "46af37ecfac8864b02f512cc207fc5b7bdba5e28"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-009",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2df18812855ded6a2cad79a0bfeb1a21b40dada1"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-010",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e67bf1df59cde9a307cccf3899fb1a058e00f000"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-011",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "492964d3b935894c8ed1ebc4861f48e1329224a2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-012",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9a96a189bfedc5171eb7425135b174a24ce486fc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-013",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "751235276764feb61f738db5aaca738e3876d5ea"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-014",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0045eac8044607807852e7fcfb9ef1cc59ea5886"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-015",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5b4b8018100592f6ecd8800b556eba0898564150"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-016",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5943a4ba6e11d9334493af6b967b6b1d68534cb9"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-017",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a5e2615a6ba8c6ad7ae23eda7967e6abad997598"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-018",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "013c9e83aa3e05309fa6c2c6581d8100fa4234f0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-019",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c3ff3c951004e8eb5c409eeb02dcd253c368b2aa"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-020",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4f8ea3c011eaf2623e0182d54b77ed952270ca03"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-021",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0c0f08cc2a1fbf6a9f8255d1cead85bf2c88e838"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-022",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "536457fa8e2a25422dd37270b21c379d6e669dea"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-023",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4963fb1417bfdc2034b1094cc7035559424d0c89"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-024",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "201d9722df9d943a18c2bdf8966799b4ae2cb0f8"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-025",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0a40b2ab7e53b0ee4c6c354b8666680c418d8277"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-026",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0d036fa3c409552692b6adbacea8fdba283a2d12"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-027",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1d4c95c94d646f99fae2106f3ae270f5cac26c3f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-028",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "75022ad8944b3a390004708cf2c2d6792f9c4586"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-029",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "722190d20c7405a415ef9c6d661aa1aed5bc54b4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-030",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b4ad4699e5f6722fea0eedaf8baf8e6287222240"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-031",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "25ed36bee912ca46aae9d093eeb4406df051dcaf"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-032",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "40f542e69c053b21ee5bcb2af62e963818055549"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-033",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "fb52ada61637c70334853fef3b1764cf6c54bf8d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-034",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6ca77f3fc059d3ae4ac25e1daa4b1bb71eccef77"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-035",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ef496b1e097c41b441be445ef20f2816ec7b5195"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-036",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9622e2da1838153c046b78bbe328171424d1c79f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-037",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a90044f94190a89279474a4642d7d34b36e0c54a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-038",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2eb4d00787029782aebea948c8bc7c2e5997feb6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-039",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e7a07333a32b5cc285b80174bd2a958ffeae2fa2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-040",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "efae2ae9e45ec893fa587d938cdd6c17a6fff19b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-041",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9f79242ef3f804391e87725fc53ac16b6d5bc240"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-042",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "62bf8dfc16104b2b5e3eef9cb78a7c75f69505b0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-043",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "85d9281494ebd263f2bffc695fa41b4dd4feb327"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-044",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "cc0d0ee11fa1b746641c1449e1ffde0957000598"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-045",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f14ab704a6fa98614d2001a96b2ae9b4b84eeb4f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-046",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1779eea30552a86c90a0cc658c8f46605cbef45e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-047",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1af3b24cd9dcde2c18571b078d65b6d43483b7c2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-048",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ca6347538c39ac602fd7a9ec034e76ffc6c5a4a2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-049",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7b8a18860dba82540bc6776f1b6d9985e192a1b5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-050",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7cd5fc74153397486f7be85937089039ad32c058"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-051",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "103be5433b10623a9022c6425d43f94c71d81884"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-052",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6a45160ca0ae500a2859adbd0385dd74568a188c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-053",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a958ed5d8b6becd84d4317c206515a068ed4d9eb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-054",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "735f072ef74f1c1d48fec995efa4724980b35fe1"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-055",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "db945be0d631f146c1af26a3c5f8a9434c6c4b45"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-056",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "fdd14b15ba46ea938cea8978b09a6e67fe274484"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-057",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e587836fea4875647a5b4eedd759a08227ed21f2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-058",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4ce8fe0c27aa97d6349de1374e30241d73934860"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-059",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "604b00981cb719a2091bd7937b91253e3e79298a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-060",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "314a399e9e5f80677a10bbd10878f0b394626e8a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_005.zip.part-061",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c000bce9edd09b978c4ffaf328ce331a0b0c2329"
+        }
+      ]
+    },
+    {
+      "label": "remediation_checkpoint_006",
+      "expected_parts": 343,
+      "preserved_parts": 320,
+      "expected_bytes": 205232020,
+      "parts_complete": false,
+      "original_manifest_available_in_this_commit": false,
+      "observed_before_environment_loss": "Six-archive local restore succeeded: 1403 parts, 3803 unique members. Upload interrupted by environment loss.",
+      "recovery": "Incomplete archive. Do not claim full ZIP or all 128k-chain artifacts are recoverable. Missing parts 321 through 343 remain unverified remotely; any other unrecorded uploaded blobs are excluded.",
+      "entries": [
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-001",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0257353b04c5212e298b84cb397ddbeecf2d9224"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-002",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "515379efa904b662f13a6ab67b9446c6b79bd310"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-003",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d6eedf9da926fd5f8f8653f5feca602bc7f43976"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-004",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a74c23e4f597697e44bf8b62262b5b7db1d000da"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-005",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5ae108d94ddfaf6caf7cb7da7fe64c25bdb7ec24"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-006",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e639ff53982d93038e8ea1c959769cb81a67d542"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-007",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "56e635b896394d2020c03c1fc2208534bf3dabb0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-008",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ca7211b0a048f1016b0a668e8f8a36afa0d68324"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-009",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "447a0ba371598e528ba0871170441ebb989b440d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-010",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3dbc2cff00b78954d9d8abe96573a4f94c93cecb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-011",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8d3e85a6c7cdc4947e9227b7acc0f16191fe1e87"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-012",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f1538a0e71d29cbc32f8be045f7f13c08a398c01"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-013",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ae318ecf5aeafb6e8157e0c3f3679ffc7490c490"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-014",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "acccf8f44a888896a387a45197eb6f1b7e5b3377"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-015",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "cd6115229a38f3aee4f6aa27347b81868ed5e79c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-016",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "76643a28a1f186e5219a1cf67b1fb0b017c211da"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-017",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b6b6aee69199530ea5b3c362971780da1a017a3e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-018",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "70798655f832785873add50a8340baddc89ab55c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-019",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1bdc3bd3fe77197ba4f687401f67777aeaa43f1c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-020",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3b1dfbe56da6e20c6a8cebd0baf398467461545c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-021",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "eb57b8aa8672932dd0748794ba097ce3f0a58ded"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-022",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1b5a868be73f76d875525c7539e5270ee399a0a1"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-023",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8f460f2effa8c02f30b7196241125d91681c74ae"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-024",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4f7fa9d67d2def0c8b20cf154cc22ebd69718bfc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-025",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "16fa057a35e734ad05e36020130d9c271e99ebf0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-026",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "bda63c4e51e7088e6b47c908fb943fe8474b8d00"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-027",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e656a57ac04194e99036a6d6439496637fcb9fd9"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-028",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "86133b2360642af2291f9fd9a0522dbb3fac06d4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-029",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "bbc524ffdb2c324b54c808cac41095895bd9de0b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-030",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "79a136c383b6ce16a8aa5620b28688c014aeec88"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-031",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "706378a81a25093578e13b8dcdc07c1306e14452"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-032",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "89e7e446b3c42fb03e8dde0903bcea7c30ec79f6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-033",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ad7e604a01bba1e963994868f970e5fd0151b688"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-034",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ecbcbbc01e0b539e8dbec73adaeaf7649b05a4aa"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-035",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3149272a3316ad66e3ef852729ed58ab93c625cc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-036",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "04e86ac349ffb86476ad2c4871df41511a43bfb0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-037",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6ace19a380697a6e973c68508d3d0ba21196ae47"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-038",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a0883316ba65a7ba291adf91df69040fcea4ef6b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-039",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "538b840884e3abb1f8f10f2a28ce87348add5ced"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-040",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0209eab69fe104a5ceb872b2fa3d73c106600a0c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-041",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c31bc326e7c73e9dcdc4a50e5096143ee5634a39"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-042",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7e27416d9e26f1ab1391b9a674e9853a47d16a73"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-043",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4a96194f57625bf26317eb4aeab0df657c6709fd"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-044",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a2f110b8928f46db5f14465ed4818df4250bfe21"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-045",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2c409689bdde3b635e0e669b5bb90fc9650d8b2a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-046",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "44dbcbc0f86bbd9147a5c75fbd6ac0bc55d285a8"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-047",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e6d6c3417efc76cf395c45154c345313f177364d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-048",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "53637b6cd777020d1d5d613091433e42bb39221a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-049",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0cd9e1bd1bd27f214bafe2bd1f44ffa8a0fa5b82"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-050",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ed85b1ff7c2cd4841e075e45a8ee931ff6ad27d2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-051",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6055d91e18393e0d86bb98b1e2225869f44e4373"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-052",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "051dcff92e0d10eae6f34cdc5ccf8542313a7129"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-053",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "53d6c72a9817b7c8a24f33f6423dd268de520040"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-054",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8c8b54a5e8d21030f888f8f1ab43b1cc12f334f2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-055",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "eca665f9b48f0a598162fd4b91045b503851e5de"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-056",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d2d4cd114c0e1ce20c8f50ea0f60f3ee940aec7d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-057",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "882cc4fdd0792cc8bc19caa65471bfa394577b35"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-058",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "157c1928d859ef1b34fba0da95484d584f4bd3ba"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-059",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b08a7990e23621ad275ed86803230bd26d7e3b1f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-060",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "50458caae7def57fd49c88244949fbf403a466f4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-061",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "53b34e93b3260a5fe0a5a3b31c59cec70764a2b6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-062",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "958f8dc597f22ca86176b562fd0ff9324df2c7e3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-063",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ba177d826b6d7209cd8757bf6698733edfc0b26d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-064",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d77846437ba729b98ac643a2878defb3daad7ac3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-065",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "25ad5ad1ccb2ff88a5a95175d0a1ffe838920e65"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-066",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1d8095a0f9a5bb8d81d58008214bcb0e797fc326"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-067",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "31b13d08be955786a436b373e591a9ff8de209af"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-068",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "84c0df6fab8361394044a8d764acfc7b94d99709"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-069",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0261184f6b27956762777b29495c0f8e768ff8cf"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-070",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "310db2c122662972f0d58051584cbebcc6509416"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-071",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "207ee50e16cd35e750b66f41ded874eda2cde897"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-072",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5bded31dfaf5aa4b238484c8c8f445ab2177c92a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-073",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d13693b056ebbb30a79881cfc772058cbde62a3f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-074",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c372986d94728f89051feea64ba172e2ad8ccae0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-075",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "95323bc06ea4e694cd6e730c459b64213e1554ed"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-076",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c534017b6e4e8e0f7822e2d0a1a5259a4cfda476"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-077",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "45bd2099cc9979e5fb45aa467618e2d563355134"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-078",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ff87ad01d10ba87f7a0501a3cc081455da4e1782"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-079",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f6735eb2171e660de76767aeb4a07d0c80f9fc8d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-080",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "871d02d5798f84f13fc6cc7732fdd845f9aefe6f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-081",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "50534c02867cf9b52a033bfbf9a7dff253afe5fa"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-082",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e4b7d3d6b0dbb91870db96e4505e940cf7553cfb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-083",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ee98d74b7d9b1d7cdef6f89460c679c1b371f21e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-084",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3cbfb206fbf7d5d515e1b3d48b400294052ef185"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-085",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8b3dd740231c36e6a394611a39295261091861f3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-086",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "518dea65a0eaf538492d485a5dcdf99bfd4d22d3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-087",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "43a97a41c53ab651c9c8456ab727298d3e74dc45"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-088",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "905e25af511aeee73499b9f5a6043112a93b2096"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-089",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "18479f2a5b77f5b1fdea6bdb1201e3c56f289e96"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-090",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6307b24ff51206f610a402d37dabc77e80aee0f3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-091",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "50c34d57224f7bf2421271092b166bd6e133c58b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-092",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f1305f3bd35105267746acb0e72e1546f368cf97"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-093",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3391b45374a173c591471f9a3225eabf2acb9daf"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-094",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "27563ab253e4fb4724b0e313ee46bb28866b940b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-095",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3f36ffc68fcf2288e13e789cfddc16487a2474cd"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-096",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "eba34fad2e7f9b19aa849071de8447dfac62dcb2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-097",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0b883fd0425a8c9fb3a8b2924a99b22792967b6c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-098",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9451781fce31e5151709239ebcbd9a1e29f8d310"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-099",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b6562e484e80a28994ac151281f0ac608660a2ac"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-100",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "50ea75bcde2f98475fbdc24b11532cf04d6a1504"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-101",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "cd9300a132f23f255a2e79b1a5e7b9d510023881"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-102",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7bd9bd64f34a6c2130b4d4ee66e54b3763b853de"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-103",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1acd0486889ac3fcf35ecb92bbac0d80f20abac1"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-104",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "231e53e44a1efa2610a42c6968d156066ac5a17d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-105",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ea04319f17da7b14d72f594d9fcc07cdfb60df84"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-106",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "111cceed2e3c83033d120e2e120638178f240088"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-107",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2f9717d5f2958748692a1246997cd96adafcf7dc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-108",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "08949fee765a6419334f873dc98739a4da5e1f01"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-109",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "fddd43f74eb906ef0545c3058715fd2f336d5b0c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-110",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8426cf284da72deb9cb9c5f7b3e6ef596e6c6620"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-111",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "399232e10caee8c544452e5174dd59d46c77a619"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-112",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "624d8222ab78ea1d1c0114180f24c96e07e8b1ee"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-113",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "635a26d6716c12f8f5793662e2681e74b02fe165"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-114",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "240c318b23824a6d3fdfb150892c893c79b51995"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-115",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "26fb5039110a7f5012ff0bd7034ef09f120ead62"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-116",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "46d8605633ea89b704f5fdbb11e8e4aa99141246"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-117",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b507a81b88d172578864b0a7425f1e2c8b1e2d97"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-118",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "32c2a7b827968e5c21ae75051736f7d1360b3f9b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-119",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f5d45059d44f35dd86093695f71a77c82a1ed62f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-120",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2a3d5c84ca33ce0c653d4fb4ef1b617a39042aca"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-121",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "735280272d4e9971239960e93dc9381fc683b43b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-122",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7f3ed309723ed20bcf6f0f4c95a23190c11df82f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-123",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1548aa91e456b04fc38fce7a89363e63d9e3c124"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-124",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "43afa3166c5caa5328ab4871fa1ae4beb540f11e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-125",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "709cea744c917d76cf5f4f85c65e04e648ca5683"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-126",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "44c38efb8a5b380fbd646762fa606c5d949bebcb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-127",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e60d9df47fe0e4d7deb2230053fafefd6487340d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-128",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d0611ed59e98ae2daa283dfb3b7618f4c9131ca9"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-129",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ff162d39c4206e86bc98a6e91a05d83fc7bfa339"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-130",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "801f39543322014089e55bc50e5973a0b6cffe25"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-131",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "28d50c43f282f51f71e31b53334786515e977b97"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-132",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "24eac5b4dd35487c1bc560956eb7448ba24e87c2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-133",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1e6ff73f567256c3e5a960e4e89eb75eb7f9f08a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-134",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0ee4a3ea34e734367e434cb670e2cebb7d773453"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-135",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c1b5ad92eed7e0287bb6dba234454fca896555af"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-136",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c499c366879fca4c7885ada212f112dd0ed6da2a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-137",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b5707c8e26b1df414299dccf8f95be59da964a63"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-138",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4b8a6e2861eea9f63caf0c6c368fc789a0ec52c1"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-139",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "063ed5cb457201fc879bdc887bfd460a9e82e039"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-140",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5d47fd8f991e88beb5ea65a3f1e87bec938869d3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-141",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "338b44dac52bf60b122e3c755d9542499c5df5e6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-142",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8e46dc3d594129b2adeef71101592a718e27e445"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-143",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a6cf19f4cd330ad62196ce77b7f0eb24131bc8f2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-144",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1a16cc70a048e3b9478aa6bc3954e4e9da053719"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-145",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "be426f49b53702434adac9c1c758c1786342ab03"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-146",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "61f0e5e1b2ea57bb4dd2db6f1176027a09f48e51"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-147",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9c8ed7b3f57d7ef0ba737d837ffa79cb8e6fc734"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-148",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2fec9e6ab4006b6441bc3af10f5c054503231aaa"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-149",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "59c5c5061d8494d3c596a25bf9f6e9f78531413b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-150",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1f5a7b375fb5fe56595e60c3b56793cfbf483155"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-151",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5ec743aa0a271a255a65c619ede2ca9da6177332"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-152",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8eb55e8ca03446ba46c6b3b7d99f9d087ee9cf30"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-153",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a74514d1ec0a8d55df0693242943225e4aaed866"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-154",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "42ebef1f1190e25a17ab8c90df6034d6a4723fb5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-155",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "85ebf2119f62c37dd9c6c485f5036961ebcd7f85"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-156",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8f66f9c992670b522b5baad0feb08377fe4740f6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-157",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f7eed894368fa17bb5b6e83b25b4e3dff2168aa5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-158",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c19f7323bad69fe7585218129c0451879fbb15a7"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-159",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7cace0954cea8a770f23b8d2e6b382cfcb16e64a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-160",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a187ca563e6c2d5d2debb737d07467e280117f45"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-161",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f3245b10a38fe2b949ded2e37b491957f17baa42"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-162",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d5cd4b1f720c3330d5050946b03c8f248a19b833"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-163",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a91de219e38a094575ae1dfa3e65b3e7c2197c32"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-164",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "fdf17fae1337d045151b07550785a00e54520540"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-165",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8c325f0abcd4d376f92b7afa8bcbfeb3d6f02d97"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-166",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "89e4a444567f76a761d0aa0591e0aae7d304d301"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-167",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c75506ed19d71ffb96f1e3655ee4b09fc3fd96d5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-168",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3ceb021781619b2e5688fe1aad66856851854cab"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-169",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d6d850ac4e8920ee1021e789256dd2b2847bf40b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-170",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e644da44e41193cb4612f114d7ac3c41f25935f6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-171",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0908de4689fe468f135b85c40f056622cc338f52"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-172",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "798f32ce673fbb07a18b479da78c2c0b8e8f80cc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-173",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "09b2bf9e36375180261373d83e4c11a1bbb26efb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-174",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "323202950aa9c5418876e8edba479d4c6d36e3ef"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-175",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b01db61dc6818f6f908c1767fca1d27d963084e9"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-176",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "349667ac26c7f1bce209c1a2c700db77e9d16747"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-177",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "222b2944a42d4d64b0fd50781bb5e01cefa51409"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-178",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6ba4001c0c69e0fcb62e39ee6b3ed278fcd490e7"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-179",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1b9ba7998f72bde0d623dd1a2bdb37fdb0549bbf"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-180",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "af7d486bc888934d25abadccada5a2c7bb79ef19"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-181",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e73e1f53bf87f9f2a27af097053806cf7d0239bc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-182",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "22604ba46f78f12dd88d3f459f508e14d1765c81"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-183",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b3c5d5ce1df36d92cce69e1f114f694ebe6e91bd"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-184",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "afc0218cbeefd83842488077bb6909a7ef54a915"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-185",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "41f13bad7b8f4f0b7f5b35be4d01a4c345158a1b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-186",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f7aab79e17016d29c6d6286e612a9bae7c94c993"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-187",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "fcc37efcd15668ed7de44158e85b96b73ba40a72"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-188",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3218832a2c20ac7d3f7262f7e1ec2dea75546c69"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-189",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1fac2e2be07f2bc17a549fde0eaa32a3920bafca"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-190",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "882a37f27c15b831660a976684d349cc230f6cf2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-191",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "046bc6c72f0688e3630361274780312e95a91640"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-192",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a8a816e84d4f9da4a73e6e92907ae5dd47d60800"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-193",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "40b78b35e6d7f616e2f4dc7c7c46884d01249159"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-194",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b99ec5350de30008367e318280401240860a3a76"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-195",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "04240feadf091f2f471b138f5c9242b4440cabc6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-196",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "754a002d3b70495da33e36f7fe9255567b221d56"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-197",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "baba24a0e7770d0f1011d1fc8b67552d6cb86886"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-198",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c22eafe78a586231179ca63ca58e7faec4ccd036"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-199",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8064e6f6fcfd1a38140d810802680793d062ff3e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-200",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "add238431cf5334b89c22cd7f2f9dea8110ab1e4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-201",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c57412593851dfb2482d09466869169a8dd6c890"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-202",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7b72da11f3b34e0c54f101a06422f4cec21c2d7d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-203",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b6e4c7340e11907aeb1383fad8ab6d452908a89c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-204",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "38df5c50cc7d00292d312abdf5b4b2c8d12a34bc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-205",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "cb4989352708eac0c3457857662b658338bba4f4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-206",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "20b68949a3bed5e490933f18a02bfa86637a11cd"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-207",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "42fc5e4742307200b3286e77172415cb09e325b0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-208",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "83549b8abc5d50657a5ff156ff6f34e4f4edbb95"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-209",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "83e3bfd14e956906e4d208c69f7fd2c9bfded7d1"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-210",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "173ddbc4d48c38b2638842ed4479d44f023234df"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-211",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "bd7dddc32a8de97646258aa65400e803c5799585"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-212",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "93b91ee1af65131976233a98a682bcc7dfdc40f3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-213",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3c67c07ba6d14a747cc06a856aab6077b815a60a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-214",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "53dc53de4499bd3fd72e8232779c71cba8ba4880"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-215",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6964b9b3f57d1a25e34fbe50e342c230a1fb010b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-216",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "69f3230b4b6be494a81091f48a3adb892168d620"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-217",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "88db8cf8a985875ab89bd9b0ae0c05b1b936f14d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-218",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "06a3320b54dfd88e1b431fdc3d97d1f502041720"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-219",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "17eb4a3f5c0376248af32ebc6ba1970cd8c2dc09"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-220",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ef72bad7f33f0c62b896c5fed52de9341d3f12fa"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-221",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "484d37638ff9966b0f952e525bb534d694053d57"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-222",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "81c49b74db1e76d49ee051486040ff2bc9414fab"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-223",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ad3cebb02bcb3cd9cfa383e984b8eaee04ded7f7"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-224",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d9400b7bc785b3fc3044c4391d8056d7acd18b94"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-225",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5e67cfaeaa8991587da1a138c7b3e4d5bde73ccc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-226",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "894c061c3bc39413022088543c5113fde9e546e2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-227",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8915f681cfe56936719b9fe13016822b6d3e2dce"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-228",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "48429ebd639e4b17732d4d34ab8c0c199c848028"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-229",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "384c0e3339b985f1433a8c8ded9371f732eb6b4b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-230",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ba175b08ee511fdafbe81bf63029d46d7117f30e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-231",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2793d2531143482ecb0a35e0923b21bd70aebc94"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-232",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2a065cc9e220bc6eefaee4231a0e2b6138f44a33"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-233",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ff97e05a92696fa0a65a2bba9aa75256c4a2bbd5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-234",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "483fa7b7d5c197cc2dd154da6bcac631cd55b991"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-235",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d94c650f3db26aee5bfa6dd138e114a16081e00c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-236",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "72b426c92aac58570097ccfe099831754f22bea4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-237",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4a673e00a84a245cfe4f54f3dfe2b72e16e55abe"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-238",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ce821da502b7dc678836ca50eb326d2cb979c30c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-239",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c287dfbaf084368209640d01c42937c7ff16d40e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-240",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9ee569bbf3bbbe218b1c6891eaf945ae2ac10377"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-241",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "735fb344e8b8a3a0708c18afc073e146435a07b9"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-242",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1c49fb48a6aa00c75042fc000b358c9d70327514"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-243",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "160d7c865a4ec512b1cd717a463d651e97688588"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-244",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "00c021f5bdf1845528bd84d036e3e838127117fc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-245",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8bfe85bcf616e33eebbeeacf72808f6210ef9ed5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-246",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4579c6f9afe6b8389e8e7bc459944b3079f1db2c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-247",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2d0de9f80b78e46503bcdb1fe375bf789766babe"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-248",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7a4e4a01038e77e4fb00308f533fa01132f97803"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-249",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "95431bca8a8966816af10219cf88e6b328149bba"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-250",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "042e78686742a7ebf7f15948a850599ddbaaa8c4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-251",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a05d23f5290dfbd6e55af9c3382a83d1aa751eca"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-252",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "fd7254d8f86dbaafd3120f7ce79ffc43434bf6fb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-253",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5a5e8fbcec78945493a440043734883a022a5ef0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-254",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "57184ad9266a9ea0aa3b82959506912eb6ed2ca7"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-255",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a4a9aa288e1484c8ac9472affc1e89c2e1ccd15d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-256",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "441dfd5621123908241031530ffb5921aff5a7b8"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-257",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ead33e76562d2e91cfa6057657cca502b519eca2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-258",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "80eb7a45afaa0a98b54f709761ade2fc187a3542"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-259",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5bfbd870a7306bf72a0405997e85ba4340f127f2"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-260",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c81e4271628b1f5fdcd208ee444e518905ad1e3a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-261",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f6db0fc505c99c653e478a963e8178542d2c2253"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-262",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e6774454a9fadc46e02f8dcf48414caf9babcf08"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-263",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "745509ee12ec2468cae8038c2e3f607fe4c624a3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-264",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0b79bb097ae05a22c6abf5d9d429805ed9bf7bf6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-265",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e0261e9f409cf25ffdf600920cf8b8c3a3fea61e"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-266",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ccaeb118b3d13179d41eaa4f3ca25da5573f4ebd"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-267",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1409e5a26a7eba37850d8a908109047d8964d60b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-268",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3f12423d55051bbaec697c8c4707435f631ace24"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-269",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c093dfa947be635c45531f7217d21477a2f85647"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-270",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "53874b1b49f27ae48380ff3e4c4ed3b7144dffbd"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-271",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b08814abc368c9fe4d90610728142620ce1b3a6b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-272",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "215d5702f4befd2fb96a4af4020da258764ccf0d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-273",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "fdbc08eb15f0262e62873b81bc8e7822ed9e2e1d"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-274",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "501c868a2a5f8a9588fe8976bf3bff9c2954df17"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-275",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "39ce9b30690fdbd16ffac226831a8a5a33e29a3f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-276",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "035bc0cb75cc7db12b7716c52f4f6297d4ecacdb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-277",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0be49698dc07557eee5de4c1892757c8606e4d23"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-278",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "771919bcff844eb9b34cc87297ef0ba102c3d5ed"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-279",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8e34b9d53fd9dd0ae38d3ec29d01c96c0652061b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-280",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "70a5e0b08d0b551d9dff6034d473badd679a257b"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-281",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "d969e59ded9ac11f11835b57fed36d6046c1d04a"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-282",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8cf1bd754be1e3b29da87314144a29ca11047dff"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-283",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "43169849eae93081dd652f8a538ac0cfe3b429a3"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-284",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5c77e3b1374285e256fdddf313d45358e91d1b02"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-285",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3a25b6fbdd0373425cd12d1839bdc80590dde324"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-286",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8ead34bc94817066e5554693876237cb081c95c6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-287",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6f50fe083103de586ccdad5254852e895997a7b5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-288",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "4f1ac48efda2f244684984b4c8088ef298eba8a4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-289",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "f477a84aac99ae983879e1036e4a77e59b654005"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-290",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "efbeb3fcf14a26b2df50f65d3592d040811772ea"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-291",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "081fb9d5d93a12cea5fa0955227c00355dcc8427"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-292",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e25856a1503f4a9936311b00567837b8ecdb09de"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-293",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "dbb86776be264d906542bf4147cefe61ed9258f5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-294",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9e2d39d874f2e2f8ecbfe81eefd81979183909cc"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-295",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a2af55bc687796ee05b16aadb7f30e2f444bc59f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-296",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "bdccca9fbfe45051e0402a7e458c4d30652492ee"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-297",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3920bde460f079e39a12c5ea88f2524aeb41290c"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-298",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "88b8bc91d1a3690ccd30851cf172f2d6ea87fac6"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-299",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "0edd3f62d6e227288bfa845a453b8e8e9765a588"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-300",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "664e8213a8d9278e99bc7bcc3cdfda444077cecb"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-301",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "03506df17b0c6a4356ccff91aa4d0363fc085cbd"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-302",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "6d2cce4b07391ca48c9a7b06cfde014218475676"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-303",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "5d77c63764fb0288a01f227b1457bae0a2fa98c1"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-304",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "aa6130ba64b65297a9d474eed13c7cf1ef5c6da4"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-305",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e018d46c0dcdaca90db56e74c95e67e7df33e6ce"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-306",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "9be7647e700390f0953d981fe4ed5b9241512847"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-307",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "af31d85379cdf1e99338545f42135837513d3622"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-308",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "38c0ac1210a5445588fab66a5ae35cf7dfb15907"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-309",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a5c85143322ad19ff508e03a6628ddf087334d8f"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-310",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "43c9c23d1e57d23f6331c0a48ee56290be0160db"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-311",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "c27b8619592c237865d525c79bbbf761a52dcca9"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-312",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "02abe7ab730e4e5d9b37f3eeb96b9d0aae0db569"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-313",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "3664c2841175ca48ca77d8263d01c31e19f8b0b0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-314",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7ad89d1441c320a814964673af31ab04c6f36ae5"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-315",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "182a924dc8009a65e692e469e78fb1f9b0dab6a0"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-316",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "2ce6c89213ca46883e2361b2c4514a469bd101d7"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-317",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "96ec53fb95375c3783064672b4af0c39b00b0f68"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-318",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "ce99d02ebb77572b4f2c8cbc8cf60d7838dd9866"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-319",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "755e0939fa017c7a4601d05061316a9588f8f948"
+        },
+        {
+          "path": "validation/autodesn/remediation/evidence/checkpoints/remediation_checkpoint_006.zip.part-320",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "01c91788fb3e026079eeb0528f7d670da5aaa1fa"
+        }
+      ]
+    }
+  ],
+  "last_observations": {
+    "tests": {
+      "source_assertions": 210,
+      "installed_assertions": 210,
+      "failures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "installed_outside_git": true,
+      "test_source_sha256": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
+      "fixture_manifest_sha256": "4eb24b474ba7b2289a834c01cdf8e1bbf58cd918d865821bbdda88cbcde6ae2d",
+      "package_wide_check_claimed": false
+    },
+    "joint_128000": {
+      "complete": true,
+      "chains": 4,
+      "warmup": 32000,
+      "retained_per_chain": 128000,
+      "elapsed_seconds": 3117.549237,
+      "maximum_rhat": 1.001391287,
+      "minimum_ess": 3693.074779,
+      "maximum_probability_mcse": 0.007186385,
+      "model_frequency_range": 0.0406796875,
+      "depth_frequency_range": 0.0361171875,
+      "reservoir_lag_frequency_range": 0.02790625,
+      "visited_architectures": 276,
+      "screen_passed": false,
+      "forecast_allowed": false,
+      "all_raw_artifacts_remotely_recoverable": false
+    },
+    "joint_32000_vs_128000": {
+      "fixed_design_functionals": 69,
+      "practical_stability_passed": true,
+      "mc_consistency_passed": true,
+      "cross_budget_certificate": false,
+      "reason": "Individual architecture screens fail; no promotion."
+    },
+    "coordinate_32000": {
+      "complete": true,
+      "chains": 4,
+      "warmup": 8000,
+      "retained_per_chain": 32000,
+      "elapsed_seconds": 762.877229796999,
+      "maximum_rhat": 1.0044930615720966,
+      "minimum_bulk_ess": 851.6629465779149,
+      "minimum_tail_ess": 851.6629465779149,
+      "maximum_probability_mcse": 0.011412129889345797,
+      "frequency_ranges": {
+        "model": 0.059406249999999994,
+        "period_index": 0,
+        "depth": 0.10434375000000007,
+        "reservoir_lag": 0.0740625
+      },
+      "visited_architectures": 185,
+      "screen_passed": false,
+      "forecast_allowed": false,
+      "source_snapshot": "9691fd89b573614e1c56478b37e4acf7900a1c789c4930b7ec5fc4105e170492",
+      "trace_sha256": [
+        "5f007465beabf9c046fad075904bf7895f988c656d7e4232305e8919b9876d62",
+        "a50c6a1769a4f301f91f56df6569e67a7db79a8461ee8b1bd7962a1bcdd811a8",
+        "1c1b562fcad46a434c40bc1479a7f9ed1eb04efc0a62c0b98b2b5e365c978221",
+        "2f840b82d871741d152da4ac63360cc204d9646ce3fd47da23e8ba36c5934785"
+      ],
+      "raw_outputs_not_archived_before_loss": true
+    },
+    "recursive_sv": {
+      "requested_cases": 200,
+      "retained_per_case": 24000,
+      "last_log_observed_completed_cases": 89,
+      "verified_atomic_cases_in_archive005": 62,
+      "aggregate_completed": false,
+      "source_snapshot": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
+      "process_state": "unknown_after_environment_loss",
+      "terminal_session_id": 13431
+    },
+    "native_gp": {
+      "rows": 2000,
+      "particles": 16,
+      "seed": 7366021,
+      "period_moves": 0,
+      "source_snapshot": "1537c19c55dde1d9979d0b84d136340fdd2d384da14127341395bb17035800e5",
+      "observed_launched": true,
+      "completion_observed": false,
+      "process_state": "unknown_after_environment_loss",
+      "terminal_session_id": 25828
+    }
+  },
+  "production_posterior_qualified": false,
+  "new_benchmark_forecasts_issued": false,
+  "confirmation_data_generated": false,
+  "report": "The PDF already in commit dd9f220 is an earlier execution checkpoint report, not a final completed comparison. A newer local nine-page checkpoint PDF was rendered/inspected but not uploaded before environment loss; its SHA256 was d81d0ed24046dacf2e9ac22461c2f2c731d16fa3d7a379c1bd0565070784b96c.",
+  "unpreserved_work": "Latest normal-tree edits and evidence/PDF files had not been uploaded. Archive005 preserves its collected source/numeric members, but it is not a claim that the entire lost working tree or live jobs were recovered.",
+  "remaining": [
+    "Recover the prior environment if available; verify process exit states and original manifests before resuming.",
+    "Recover complete archive005 using the Git blob inventory; recover missing archive006 parts and current source/test files if the prior filesystem returns.",
+    "Resolve full-bank architecture exploration and qualify two successive fresh budgets without relaxing gates.",
+    "Finish and evaluate recursive SV calibration, with identity-checked ESS-only recovery if required.",
+    "Full-size native AutoGP independent runs and budget/mode qualification.",
+    "Chronological fold reconstruction and family selection without PCA/scaler leakage.",
+    "SV fits and filter/predictive Monte Carlo qualification.",
+    "471-origin by 30-horizon comparison and independent confirmation/stress replications.",
+    "Final complete scientific report and validation after all required gates pass."
+  ]
+}

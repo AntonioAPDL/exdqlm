@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-24T23:35:29.255966+00:00",
+  "candidate_definitions": 456,
+  "deep_definitions": 336,
+  "identity_bridges_for_deep_definitions": 336,
+  "reduced_bridges_for_deep_definitions": 0,
+  "PCA_estimated": false,
+  "builder_alternative": "When reduced dimensions are requested outside this bank, the QDESN builder draws row-normalized Gaussian projections from the fixed seed",
+  "source_sha256": {
+    "R/qdesn_vb.R": "2968852a96e041c88ade303b4d7d1497715f16f9a2e1c84ac621242d86937a67",
+    "R/autodesn.R": "7d2943f05b519407f276d489355749c5aa2649d210db34f370f84a92741b9369",
+    "validation/autodesn/nonlinear_heteroscedastic/input/specifications.rds": "b4fb99bc0f7ad6cec4367fedc2487e91fc47a552e59ddb9c985f0c57ca3b74cc"
+  },
+  "fit_or_forecast_changed": false,
+  "rerun_required_for_this_description_correction": false,
+  "remaining_fold_requirement": "Refit readout, lag and calendar scalers on each training prefix; keep conditioning prefix and reservoir maps fixed"
+}

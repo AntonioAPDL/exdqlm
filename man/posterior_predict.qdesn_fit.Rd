@@ -9,15 +9,22 @@ posterior_predict.qdesn_fit(
   nd = 1000L,
   X_new = NULL,
   chunk = 200L,
-  draws = NULL
+  draws = NULL,
+  ...
 )
 }
 \arguments{
 \item{object}{qdesn_fit object from qdesn_fit_vb()}
 
-\item{nd}{draws; @param X_new optional n x p design; @param chunk memory chunk}
+\item{nd}{Number of draws.}
+
+\item{X_new}{Optional n by p design matrix.}
+
+\item{chunk}{Memory chunk size.}
 
 \item{draws}{optional posterior draws list from exal_vb_posterior_draws()}
+
+\item{...}{Reserved for generic compatibility; additional arguments are rejected.}
 }
 \value{
 same structure as exal_vb_posterior_predict()

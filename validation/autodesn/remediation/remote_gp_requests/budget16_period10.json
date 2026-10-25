@@ -1,0 +1,11 @@
+{
+  "registration": "evidence/gp16_period10_registration.json",
+  "seeds": [
+    7366221,
+    7366222,
+    7366223,
+    7366224
+  ],
+  "particles": 16,
+  "period_moves": 10
+}

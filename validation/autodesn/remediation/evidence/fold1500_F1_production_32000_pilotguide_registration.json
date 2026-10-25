@@ -1,0 +1,21 @@
+{
+  "registered_utc": "2026-10-25T05:25:21.809972+00:00",
+  "cutoff": 1500,
+  "scored_rows": [
+    501,
+    1500
+  ],
+  "family": "F1",
+  "chains": 4,
+  "warmup_per_chain": 8000,
+  "retained_per_chain": 32000,
+  "workers": 4,
+  "sampler_snapshot": "746007ea38402e47af55f570b0680d0fe35d327c8df267ced9ecc96cb606d573",
+  "launcher_snapshot": "93988bd8b45b29c1f25479c49cb7dfe33ef6e293d22e7cdef629c81abcbac398",
+  "prefix_manifest_sha256": "415684f9e7264dbd2f5c056f6de3cc97515d782fda62293ccbda0ae6e4b07888",
+  "proposal_path": "artifacts/fold_fits/cutoff1500/F1/frozen_proposal.rds",
+  "proposal_sha256": "9dca0fd2d88061a07cdaed47690f6035903ec347d0f0afc8c65895876035c17d",
+  "checkpoint_every": 4000,
+  "run_label": "pilotguide",
+  "scope": "First registered production ladder level using the fixed full-support training-only pilot proposal. No model/prior change, no heldout outcome, no qualified-fold or forecast claim. Later computational refinements require newly frozen policies and their own successive passing budgets."
+}

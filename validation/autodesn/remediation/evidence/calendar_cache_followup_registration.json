@@ -1,0 +1,9 @@
+{
+  "registered_utc": "2026-10-25T02:35:19.772138+00:00",
+  "original_relative_path_failure_retained": true,
+  "conditional_law_checks_passed": 38,
+  "law_max_KL": 6.582343879783249e-21,
+  "new_benchmark": "three same-budget alternating-order repetitions; record all path deltas; require equal discrete paths and fitted-probe absolute error <=1e-8 response SD",
+  "reason": "Separate floating-point trajectory coupling from conditional-law correctness. No posterior convergence gate, model, prior, seed or held-out rule changes.",
+  "performance_claim_scope": "short computational comparison only"
+}

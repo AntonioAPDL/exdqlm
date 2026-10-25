@@ -1,0 +1,22 @@
+{
+  "command": [
+    "R",
+    "CMD",
+    "INSTALL",
+    "--no-multiarch",
+    "--library=validation/autodesn/remediation/artifacts/calendar_library",
+    "."
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1200.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 37.08754435999799,
+  "peak_child_rss_kib": 439184,
+  "sampled_peak_process_tree_pss_kib": 500570,
+  "sampled_peak_environment_cgroup_anon_bytes": 4351561728,
+  "user_seconds": 36.123514,
+  "system_seconds": 0.6692,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

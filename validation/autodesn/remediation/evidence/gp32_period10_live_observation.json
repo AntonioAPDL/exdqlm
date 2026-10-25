@@ -1,0 +1,192 @@
+{
+  "observed_utc": "2026-10-25T05:52:39.416Z",
+  "workflow_run_id": 40165012423,
+  "source_commit": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+  "jobs": [
+    {
+      "id": 121084169955,
+      "name": "gp32-period (7366424)",
+      "status": "in_progress",
+      "conclusion": null,
+      "run_id": 40165012423,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Prepare exact Julia and native dependency pins",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Independent 32-particle calculation with period rejuvenation",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 4
+        },
+        {
+          "name": "Preserve numeric outputs and compressed inference log",
+          "status": "pending",
+          "conclusion": null,
+          "number": 5
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10
+        }
+      ]
+    },
+    {
+      "id": 121084170023,
+      "name": "gp32-period (7366423)",
+      "status": "in_progress",
+      "conclusion": null,
+      "run_id": 40165012423,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Prepare exact Julia and native dependency pins",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Independent 32-particle calculation with period rejuvenation",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 4
+        },
+        {
+          "name": "Preserve numeric outputs and compressed inference log",
+          "status": "pending",
+          "conclusion": null,
+          "number": 5
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10
+        }
+      ]
+    },
+    {
+      "id": 121084170126,
+      "name": "gp32-period (7366422)",
+      "status": "in_progress",
+      "conclusion": null,
+      "run_id": 40165012423,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Prepare exact Julia and native dependency pins",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Independent 32-particle calculation with period rejuvenation",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 4
+        },
+        {
+          "name": "Preserve numeric outputs and compressed inference log",
+          "status": "pending",
+          "conclusion": null,
+          "number": 5
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10
+        }
+      ]
+    },
+    {
+      "id": 121084170130,
+      "name": "gp32-period (7366421)",
+      "status": "in_progress",
+      "conclusion": null,
+      "run_id": 40165012423,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Prepare exact Julia and native dependency pins",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Independent 32-particle calculation with period rejuvenation",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 4
+        },
+        {
+          "name": "Preserve numeric outputs and compressed inference log",
+          "status": "pending",
+          "conclusion": null,
+          "number": 5
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10
+        }
+      ]
+    }
+  ],
+  "scope": "Observed workflow step state only; no completed numeric posterior or qualification is credited without import and verification."
+}

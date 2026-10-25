@@ -1,0 +1,37 @@
+{
+  "pid": 5,
+  "self_exists": true,
+  "pid_exists": true,
+  "relevant_processes": [],
+  "memory.events": "low 0\nhigh 0\nmax 263804\noom 0\noom_kill 0\noom_group_kill 0\n",
+  "memory.current": "2230919168\n",
+  "memory.stat": "anon 152662016\nfile 1775230976\nkernel 302186496\nkernel_stack 720896\npagetables 3829760\nsec_pagetables 0\npercpu 10076\nsock 0\nvmalloc 4096\nshmem 0\nfile_mapped 36864\nfile_dirty 12079104\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 1589641216\nshmem_thp 0\ninactive_anon 152301568\nactive_anon 86016\ninactive_file 1647804416\nactive_file 127426560\nunevictable 0\nslab_reclaimable 295314872\nslab_unreclaimable 2126584\nslab 297441456\nworkingset_refault_anon 0\nworkingset_refault_file 15196796\nworkingset_activate_anon 0\nworkingset_activate_file 2722739\nworkingset_restore_anon 0\nworkingset_restore_file 821081\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgscan 20960604\npgsteal 20816080\npswpin 0\npswpout 0\npgscan_kswapd 288271\npgscan_direct 20672333\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 288271\npgsteal_direct 20527809\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 134098503\npgmajfault 2194\npgrefill 7410613\npgactivate 7063932\npgdeactivate 7386073\npglazyfree 941\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nthp_fault_alloc 18103\nthp_collapse_alloc 22\nthp_swpout 0\nthp_swpout_fallback 0\n",
+  "files": [
+    {
+      "name": "model_metadata.csv",
+      "bytes": 54137
+    },
+    {
+      "name": "contract.rds",
+      "bytes": 9172
+    },
+    {
+      "name": "configuration.json",
+      "bytes": 17939
+    },
+    {
+      "name": "invocation_1.json",
+      "bytes": 683
+    }
+  ],
+  "resource_exists": false,
+  "observed_utc": "2026-10-25T00:39:22.845824+00:00",
+  "source_snapshot": "7ef16ab301161e5740ae004e1d51a07db731825f6bd8fe2309e9b57bc60615b9",
+  "exit_status": "unknown; unified-exec session no longer exists and resource record absent",
+  "cause": "unknown; no OOM/oom_kill recorded in the observed cgroup counter",
+  "retained_draws_credited": 0,
+  "completed_chains_credited": 0,
+  "checkpoint_files_observed": 0,
+  "verified_256k_result_unaffected": true,
+  "recovery_policy": "Avoid more than eight simultaneous local shell subprocesses while a long fit is active. Finish a short bounded full-bank pause before uploading again. This addresses a possible orchestration pressure source without claiming it caused the interruption. Repeating the same seeds is a restart of the same four chains, not four additional independent replications."
+}

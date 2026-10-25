@@ -1,0 +1,75 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-25T05:15:01.815848+00:00",
+  "cells": [
+    {
+      "cutoff": 1500,
+      "family": "F1",
+      "complete": true,
+      "reused_verified_existing": true,
+      "burn": 1000,
+      "retained_per_chain": 2000,
+      "chains": 4,
+      "target_id": "f847a4f55ba51a174ad8ed7f288dad2ed6d1a51c5dcc3b55a094f48b4870a4b8",
+      "posterior_qualified": false
+    },
+    {
+      "cutoff": 1500,
+      "family": "F2",
+      "complete": true,
+      "reused_verified_existing": false,
+      "burn": 1000,
+      "retained_per_chain": 2000,
+      "chains": 4,
+      "target_id": "d1037aa42892cd7b7db1a313c76ce7235458ee6d3251b3938cdb18dbc6d94715",
+      "posterior_qualified": false
+    },
+    {
+      "cutoff": 1500,
+      "family": "F2flat",
+      "complete": true,
+      "reused_verified_existing": false,
+      "burn": 1000,
+      "retained_per_chain": 2000,
+      "chains": 4,
+      "target_id": "70e9889e4589d5e917775827fbe6e68c6295e58a37d5849d71447ecd52a037be",
+      "posterior_qualified": false
+    },
+    {
+      "cutoff": 2000,
+      "family": "F1",
+      "complete": true,
+      "reused_verified_existing": false,
+      "burn": 1000,
+      "retained_per_chain": 2000,
+      "chains": 4,
+      "target_id": "f0c7cbcc9bb31e92eb39fa2022b6e0ed50051fc8307c431f573c77b57ecb9a94",
+      "posterior_qualified": false
+    },
+    {
+      "cutoff": 2000,
+      "family": "F2",
+      "complete": true,
+      "reused_verified_existing": false,
+      "burn": 1000,
+      "retained_per_chain": 2000,
+      "chains": 4,
+      "target_id": "c86d927fcb574183c7d2d5121ef865d322e27ec445a5e5c2e74bfa3320f86fd6",
+      "posterior_qualified": false
+    },
+    {
+      "cutoff": 2000,
+      "family": "F2flat",
+      "complete": true,
+      "reused_verified_existing": false,
+      "burn": 1000,
+      "retained_per_chain": 2000,
+      "chains": 4,
+      "target_id": "97767e462d43cac4bee26084bb737154c277efa39d42141385f9fdae57f431ca",
+      "posterior_qualified": false
+    }
+  ],
+  "source_snapshot": "746007ea38402e47af55f570b0680d0fe35d327c8df267ced9ecc96cb606d573",
+  "launcher_sha256": "9f7ba919faafc98d99cec47424a4a35d27f311d413b1ed7ba8b1f3599baaed7b",
+  "scope": "All six training-only chronological mean-family pilots and full-support proposal guides. Actual budget1000warmup+2000retained per chain, irrespective of the legacy requested-budget filename. No production convergence, selection or forecasts credited."
+}

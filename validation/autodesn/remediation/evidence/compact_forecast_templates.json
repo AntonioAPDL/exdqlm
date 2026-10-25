@@ -1,0 +1,2586 @@
+{
+  "complete": true,
+  "reservoirs": 426,
+  "terminal_state_formats": "H_last resolved per layer",
+  "maximum_serial_and_batched_transition_error": 0,
+  "maximum_training_feature_error": 1.7963e-13,
+  "templates_path": "validation/autodesn/remediation/artifacts/forecast_templates.rds",
+  "templates_sha256": "9ab9633682c9cda6e874daae9806749136adc849d42d217986697334310cad0c",
+  "bytes": 7824906,
+  "source_bank_id": "559990503d9868e305084555ba6f4f033d5d5ca881512182e2c9415e4eefa3d5",
+  "source_bank_sha256": "d039f3e6a807129d9aa5775f5223877ddfe0c2c5aba0a9111e297875c7716c7d",
+  "source_parts": [
+    {
+      "model": 1,
+      "candidate": "desn_001",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 2,
+      "candidate": "desn_002",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 3,
+      "candidate": "desn_003",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 4,
+      "candidate": "desn_004",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 5,
+      "candidate": "desn_005",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 6,
+      "candidate": "desn_006",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 7,
+      "candidate": "desn_007",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 8,
+      "candidate": "desn_008",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 9,
+      "candidate": "desn_009",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 10,
+      "candidate": "desn_010",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 11,
+      "candidate": "desn_011",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 12,
+      "candidate": "desn_012",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 13,
+      "candidate": "desn_013",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 14,
+      "candidate": "desn_014",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 15,
+      "candidate": "desn_015",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 16,
+      "candidate": "desn_016",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 17,
+      "candidate": "desn_017",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 18,
+      "candidate": "desn_018",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 19,
+      "candidate": "desn_019",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 20,
+      "candidate": "desn_020",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 21,
+      "candidate": "desn_021",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 22,
+      "candidate": "desn_022",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 23,
+      "candidate": "desn_023",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 24,
+      "candidate": "desn_024",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 25,
+      "candidate": "desn_025",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 26,
+      "candidate": "desn_026",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 27,
+      "candidate": "desn_027",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 28,
+      "candidate": "desn_028",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 29,
+      "candidate": "desn_029",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 30,
+      "candidate": "desn_030",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 31,
+      "candidate": "desn_031",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 32,
+      "candidate": "desn_032",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 33,
+      "candidate": "desn_033",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 34,
+      "candidate": "desn_034",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 35,
+      "candidate": "desn_035",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 36,
+      "candidate": "desn_036",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 37,
+      "candidate": "desn_037",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 38,
+      "candidate": "desn_038",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 39,
+      "candidate": "desn_039",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 40,
+      "candidate": "desn_040",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 41,
+      "candidate": "desn_041",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 42,
+      "candidate": "desn_042",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 43,
+      "candidate": "desn_043",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 44,
+      "candidate": "desn_044",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 45,
+      "candidate": "desn_045",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 46,
+      "candidate": "desn_046",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 47,
+      "candidate": "desn_047",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 48,
+      "candidate": "desn_048",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 49,
+      "candidate": "desn_049",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 50,
+      "candidate": "desn_050",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 51,
+      "candidate": "desn_051",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 52,
+      "candidate": "desn_052",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 53,
+      "candidate": "desn_053",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 54,
+      "candidate": "desn_054",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 55,
+      "candidate": "desn_055",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 56,
+      "candidate": "desn_056",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 57,
+      "candidate": "desn_057",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 58,
+      "candidate": "desn_058",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 59,
+      "candidate": "desn_059",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 60,
+      "candidate": "desn_060",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 61,
+      "candidate": "desn_061",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 62,
+      "candidate": "desn_062",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 63,
+      "candidate": "desn_063",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 64,
+      "candidate": "desn_064",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 65,
+      "candidate": "desn_065",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 66,
+      "candidate": "desn_066",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 67,
+      "candidate": "desn_067",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 68,
+      "candidate": "desn_068",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 69,
+      "candidate": "desn_069",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 70,
+      "candidate": "desn_070",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 71,
+      "candidate": "desn_071",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 72,
+      "candidate": "desn_072",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 73,
+      "candidate": "broad_001",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 74,
+      "candidate": "broad_002",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 75,
+      "candidate": "broad_003",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 76,
+      "candidate": "broad_004",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 77,
+      "candidate": "broad_005",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 78,
+      "candidate": "broad_006",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 79,
+      "candidate": "broad_007",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 80,
+      "candidate": "broad_008",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 81,
+      "candidate": "broad_009",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 82,
+      "candidate": "broad_010",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 83,
+      "candidate": "broad_011",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 84,
+      "candidate": "broad_012",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 85,
+      "candidate": "broad_013",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 86,
+      "candidate": "broad_014",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 87,
+      "candidate": "broad_015",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 88,
+      "candidate": "broad_016",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 89,
+      "candidate": "broad_017",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 90,
+      "candidate": "broad_018",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 91,
+      "candidate": "broad_019",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 92,
+      "candidate": "broad_020",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 93,
+      "candidate": "broad_021",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 94,
+      "candidate": "broad_022",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 95,
+      "candidate": "broad_023",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 96,
+      "candidate": "broad_024",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 97,
+      "candidate": "broad_025",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 98,
+      "candidate": "broad_026",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 99,
+      "candidate": "broad_027",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 100,
+      "candidate": "broad_028",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 101,
+      "candidate": "broad_029",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 102,
+      "candidate": "broad_030",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 103,
+      "candidate": "broad_031",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 104,
+      "candidate": "broad_032",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 105,
+      "candidate": "broad_033",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 106,
+      "candidate": "broad_034",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 107,
+      "candidate": "broad_035",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 108,
+      "candidate": "broad_036",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 109,
+      "candidate": "broad_037",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 110,
+      "candidate": "broad_038",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 111,
+      "candidate": "broad_039",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 112,
+      "candidate": "broad_040",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 113,
+      "candidate": "broad_041",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 114,
+      "candidate": "broad_042",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 115,
+      "candidate": "broad_043",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 116,
+      "candidate": "broad_044",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 117,
+      "candidate": "broad_045",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 118,
+      "candidate": "broad_046",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 119,
+      "candidate": "broad_047",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 120,
+      "candidate": "broad_048",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 121,
+      "candidate": "broad_049",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 122,
+      "candidate": "broad_050",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 123,
+      "candidate": "broad_051",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 124,
+      "candidate": "broad_052",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 125,
+      "candidate": "broad_053",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 126,
+      "candidate": "broad_054",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 127,
+      "candidate": "broad_055",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 128,
+      "candidate": "broad_056",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 129,
+      "candidate": "broad_057",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 130,
+      "candidate": "broad_058",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 131,
+      "candidate": "broad_059",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 132,
+      "candidate": "broad_060",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 133,
+      "candidate": "broad_061",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 134,
+      "candidate": "broad_062",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 135,
+      "candidate": "broad_063",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 136,
+      "candidate": "broad_064",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 137,
+      "candidate": "broad_065",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 138,
+      "candidate": "broad_066",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 139,
+      "candidate": "broad_067",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 140,
+      "candidate": "broad_068",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 141,
+      "candidate": "broad_069",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 142,
+      "candidate": "broad_070",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 143,
+      "candidate": "broad_071",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 144,
+      "candidate": "broad_072",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 145,
+      "candidate": "broad_073",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 146,
+      "candidate": "broad_074",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 147,
+      "candidate": "broad_075",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 148,
+      "candidate": "broad_076",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 149,
+      "candidate": "broad_077",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 150,
+      "candidate": "broad_078",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 151,
+      "candidate": "broad_079",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 152,
+      "candidate": "broad_080",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 153,
+      "candidate": "broad_081",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 154,
+      "candidate": "broad_082",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 155,
+      "candidate": "broad_083",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 156,
+      "candidate": "broad_084",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 157,
+      "candidate": "broad_085",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 158,
+      "candidate": "broad_086",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 159,
+      "candidate": "broad_087",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 160,
+      "candidate": "broad_088",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 161,
+      "candidate": "broad_089",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 162,
+      "candidate": "broad_090",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 163,
+      "candidate": "broad_091",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 164,
+      "candidate": "broad_092",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 165,
+      "candidate": "broad_093",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 166,
+      "candidate": "broad_094",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 167,
+      "candidate": "broad_095",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 168,
+      "candidate": "broad_096",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 169,
+      "candidate": "broad_097",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 170,
+      "candidate": "broad_098",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 171,
+      "candidate": "broad_099",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 172,
+      "candidate": "broad_100",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 173,
+      "candidate": "broad_101",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 174,
+      "candidate": "broad_102",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 175,
+      "candidate": "broad_103",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 176,
+      "candidate": "broad_104",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 177,
+      "candidate": "broad_105",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 178,
+      "candidate": "broad_107",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 179,
+      "candidate": "broad_108",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 180,
+      "candidate": "broad_109",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 181,
+      "candidate": "broad_110",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 182,
+      "candidate": "broad_111",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 183,
+      "candidate": "broad_112",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 184,
+      "candidate": "broad_113",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 185,
+      "candidate": "broad_114",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 186,
+      "candidate": "broad_115",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 187,
+      "candidate": "broad_116",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 188,
+      "candidate": "broad_117",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 189,
+      "candidate": "broad_118",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 190,
+      "candidate": "broad_119",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 191,
+      "candidate": "broad_120",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 192,
+      "candidate": "broad_121",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 193,
+      "candidate": "broad_122",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 194,
+      "candidate": "broad_123",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 195,
+      "candidate": "broad_124",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 196,
+      "candidate": "broad_125",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 197,
+      "candidate": "broad_126",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 198,
+      "candidate": "broad_127",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 199,
+      "candidate": "broad_128",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 200,
+      "candidate": "broad_129",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 201,
+      "candidate": "broad_130",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 202,
+      "candidate": "broad_131",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 203,
+      "candidate": "broad_132",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 204,
+      "candidate": "broad_133",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 205,
+      "candidate": "broad_134",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 206,
+      "candidate": "broad_135",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 207,
+      "candidate": "broad_136",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 208,
+      "candidate": "broad_137",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 209,
+      "candidate": "broad_139",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 210,
+      "candidate": "broad_140",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 211,
+      "candidate": "broad_141",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 212,
+      "candidate": "broad_142",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 213,
+      "candidate": "broad_143",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 214,
+      "candidate": "broad_144",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 215,
+      "candidate": "broad_145",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 216,
+      "candidate": "broad_146",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 217,
+      "candidate": "broad_147",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 218,
+      "candidate": "broad_148",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 219,
+      "candidate": "broad_149",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 220,
+      "candidate": "broad_150",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 221,
+      "candidate": "broad_151",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 222,
+      "candidate": "broad_152",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 223,
+      "candidate": "broad_153",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 224,
+      "candidate": "broad_154",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 225,
+      "candidate": "broad_155",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 226,
+      "candidate": "broad_156",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 227,
+      "candidate": "broad_157",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 228,
+      "candidate": "broad_158",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 229,
+      "candidate": "broad_159",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 230,
+      "candidate": "broad_160",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 231,
+      "candidate": "broad_161",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 232,
+      "candidate": "broad_162",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 233,
+      "candidate": "broad_163",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 234,
+      "candidate": "broad_164",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 235,
+      "candidate": "broad_165",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 236,
+      "candidate": "broad_166",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 237,
+      "candidate": "broad_167",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 238,
+      "candidate": "broad_168",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 239,
+      "candidate": "broad_169",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 240,
+      "candidate": "broad_171",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 241,
+      "candidate": "broad_172",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 242,
+      "candidate": "broad_173",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 243,
+      "candidate": "broad_174",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 244,
+      "candidate": "broad_175",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 245,
+      "candidate": "broad_176",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 246,
+      "candidate": "broad_177",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 247,
+      "candidate": "broad_178",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 248,
+      "candidate": "broad_179",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 249,
+      "candidate": "broad_180",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 250,
+      "candidate": "broad_181",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 251,
+      "candidate": "broad_182",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 252,
+      "candidate": "broad_183",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 253,
+      "candidate": "broad_184",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 254,
+      "candidate": "broad_185",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 255,
+      "candidate": "broad_186",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 256,
+      "candidate": "broad_187",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 257,
+      "candidate": "broad_188",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 258,
+      "candidate": "broad_189",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 259,
+      "candidate": "broad_190",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 260,
+      "candidate": "broad_191",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 261,
+      "candidate": "broad_192",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 262,
+      "candidate": "broad_193",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 263,
+      "candidate": "broad_194",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 264,
+      "candidate": "broad_195",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 265,
+      "candidate": "broad_196",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 266,
+      "candidate": "broad_197",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 267,
+      "candidate": "broad_198",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 268,
+      "candidate": "broad_199",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 269,
+      "candidate": "broad_200",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 270,
+      "candidate": "broad_201",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 271,
+      "candidate": "broad_203",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 272,
+      "candidate": "broad_204",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 273,
+      "candidate": "broad_205",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 274,
+      "candidate": "broad_206",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 275,
+      "candidate": "broad_207",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 276,
+      "candidate": "broad_208",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 277,
+      "candidate": "broad_209",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 278,
+      "candidate": "broad_210",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 279,
+      "candidate": "broad_211",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 280,
+      "candidate": "broad_212",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 281,
+      "candidate": "broad_213",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 282,
+      "candidate": "broad_214",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 283,
+      "candidate": "broad_215",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 284,
+      "candidate": "broad_216",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 285,
+      "candidate": "broad_217",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 286,
+      "candidate": "broad_218",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 287,
+      "candidate": "broad_219",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 288,
+      "candidate": "broad_220",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 289,
+      "candidate": "broad_221",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 290,
+      "candidate": "broad_222",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 291,
+      "candidate": "broad_223",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 292,
+      "candidate": "broad_224",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 293,
+      "candidate": "broad_225",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 294,
+      "candidate": "broad_226",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 295,
+      "candidate": "broad_227",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 296,
+      "candidate": "broad_228",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 297,
+      "candidate": "broad_229",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 298,
+      "candidate": "broad_230",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 299,
+      "candidate": "broad_233",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 300,
+      "candidate": "broad_235",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 301,
+      "candidate": "broad_236",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 302,
+      "candidate": "broad_237",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 303,
+      "candidate": "broad_238",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 304,
+      "candidate": "broad_239",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 305,
+      "candidate": "broad_240",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 306,
+      "candidate": "broad_241",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 307,
+      "candidate": "broad_242",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 308,
+      "candidate": "broad_243",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 309,
+      "candidate": "broad_244",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 310,
+      "candidate": "broad_245",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 311,
+      "candidate": "broad_246",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 312,
+      "candidate": "broad_247",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 313,
+      "candidate": "broad_248",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 314,
+      "candidate": "broad_249",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 315,
+      "candidate": "broad_250",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 316,
+      "candidate": "broad_251",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 317,
+      "candidate": "broad_252",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 318,
+      "candidate": "broad_253",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 319,
+      "candidate": "broad_254",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 320,
+      "candidate": "broad_255",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 321,
+      "candidate": "broad_256",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 322,
+      "candidate": "broad_257",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 323,
+      "candidate": "broad_258",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 324,
+      "candidate": "broad_259",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 325,
+      "candidate": "broad_260",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 326,
+      "candidate": "broad_261",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 327,
+      "candidate": "broad_262",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 328,
+      "candidate": "broad_264",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 329,
+      "candidate": "broad_265",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 330,
+      "candidate": "broad_267",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 331,
+      "candidate": "broad_268",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 332,
+      "candidate": "broad_269",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 333,
+      "candidate": "broad_270",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 334,
+      "candidate": "broad_271",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 335,
+      "candidate": "broad_272",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 336,
+      "candidate": "broad_273",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 337,
+      "candidate": "broad_274",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 338,
+      "candidate": "broad_275",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 339,
+      "candidate": "broad_276",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 340,
+      "candidate": "broad_277",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 341,
+      "candidate": "broad_278",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 342,
+      "candidate": "broad_279",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 343,
+      "candidate": "broad_280",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 344,
+      "candidate": "broad_281",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 345,
+      "candidate": "broad_282",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 346,
+      "candidate": "broad_283",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 347,
+      "candidate": "broad_284",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 348,
+      "candidate": "broad_285",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 349,
+      "candidate": "broad_286",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 350,
+      "candidate": "broad_287",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 351,
+      "candidate": "broad_288",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 352,
+      "candidate": "broad_289",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 353,
+      "candidate": "broad_290",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 354,
+      "candidate": "broad_292",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 355,
+      "candidate": "broad_293",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 356,
+      "candidate": "broad_294",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 357,
+      "candidate": "broad_295",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 358,
+      "candidate": "broad_297",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 359,
+      "candidate": "broad_300",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 360,
+      "candidate": "broad_301",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 361,
+      "candidate": "broad_302",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 362,
+      "candidate": "broad_304",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 363,
+      "candidate": "broad_305",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 364,
+      "candidate": "broad_306",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 365,
+      "candidate": "broad_308",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 366,
+      "candidate": "broad_309",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 367,
+      "candidate": "broad_310",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 368,
+      "candidate": "broad_311",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 369,
+      "candidate": "broad_312",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 370,
+      "candidate": "broad_313",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 371,
+      "candidate": "broad_314",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 372,
+      "candidate": "broad_315",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 373,
+      "candidate": "broad_316",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 374,
+      "candidate": "broad_317",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 375,
+      "candidate": "broad_318",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 376,
+      "candidate": "broad_319",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 377,
+      "candidate": "broad_321",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 378,
+      "candidate": "broad_322",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 379,
+      "candidate": "broad_324",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 380,
+      "candidate": "broad_325",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 381,
+      "candidate": "broad_326",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 382,
+      "candidate": "broad_329",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 383,
+      "candidate": "broad_331",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 384,
+      "candidate": "broad_332",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 385,
+      "candidate": "broad_333",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 386,
+      "candidate": "broad_334",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 387,
+      "candidate": "broad_336",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 388,
+      "candidate": "broad_337",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 389,
+      "candidate": "broad_338",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 390,
+      "candidate": "broad_340",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 391,
+      "candidate": "broad_341",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 392,
+      "candidate": "broad_342",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 393,
+      "candidate": "broad_343",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 394,
+      "candidate": "broad_344",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 395,
+      "candidate": "broad_345",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 396,
+      "candidate": "broad_346",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 397,
+      "candidate": "broad_347",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 398,
+      "candidate": "broad_348",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 399,
+      "candidate": "broad_349",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 400,
+      "candidate": "broad_350",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 401,
+      "candidate": "broad_351",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 402,
+      "candidate": "broad_353",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 403,
+      "candidate": "broad_354",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 404,
+      "candidate": "broad_356",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 405,
+      "candidate": "broad_357",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 406,
+      "candidate": "broad_358",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 407,
+      "candidate": "broad_361",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 408,
+      "candidate": "broad_363",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 409,
+      "candidate": "broad_364",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 410,
+      "candidate": "broad_365",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 411,
+      "candidate": "broad_366",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 412,
+      "candidate": "broad_368",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 413,
+      "candidate": "broad_369",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 414,
+      "candidate": "broad_370",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 415,
+      "candidate": "broad_372",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 416,
+      "candidate": "broad_373",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 417,
+      "candidate": "broad_374",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 418,
+      "candidate": "broad_375",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 419,
+      "candidate": "broad_376",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 420,
+      "candidate": "broad_377",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 421,
+      "candidate": "broad_378",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 422,
+      "candidate": "broad_379",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 423,
+      "candidate": "broad_380",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 424,
+      "candidate": "broad_381",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 425,
+      "candidate": "broad_382",
+      "path": {},
+      "sha256": {}
+    },
+    {
+      "model": 426,
+      "candidate": "broad_383",
+      "path": {},
+      "sha256": {}
+    }
+  ],
+  "identities": {
+    "F1": {
+      "conditional_bank_id": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63",
+      "forecast_map_id": "2b1969a51dcdf6233ad4607a13d88da322f0f6baff9df1dfac7cb191bc70ae87"
+    },
+    "F2": {
+      "conditional_bank_id": "b51585c0ff849c9dfb81f0318f6ba46afd8dcfd56f07de7fbcf250a5c80b3fdb",
+      "forecast_map_id": "75b9ba7bb0090e7d5416a8098655c9c89d071feaf1865c071d68d441f3a3d168"
+    },
+    "F2flat": {
+      "conditional_bank_id": "d78dc44784b5cf2af70ec8238d19009dcdac77eebcc0e6d5477f8ed46edaa795",
+      "forecast_map_id": "4527bb187a95b386aad433f23ed6bbea3a204636c5c5a33b6bb1822d701e3bb1"
+    }
+  },
+  "forecast_issued": false,
+  "scope": "Identical numeric weights/reducers/activations/input transforms/terminal states; removed only unused construction-distribution closures and metadata. Deterministic transition check, not a posterior forecast or scientific qualification."
+}

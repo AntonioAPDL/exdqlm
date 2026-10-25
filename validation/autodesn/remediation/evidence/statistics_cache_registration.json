@@ -1,0 +1,19 @@
+{
+  "decision": "Precompute fixed unweighted sufficient statistics as a computational cache only",
+  "basis": "Training-only full-bank Rprof: crossprod35.12percent; no held-out response read",
+  "registered_before_new_production_fit": true,
+  "all_architectures_retained": 426,
+  "priors_unchanged": true,
+  "proposal_policy_unchanged": true,
+  "full_chain_bit_parity_required": true,
+  "unit_assertions_passed": 44,
+  "planned_benchmark_seeds": [
+    9366021,
+    9366022,
+    9366023
+  ],
+  "benchmark_burn": 500,
+  "benchmark_retained": 2000,
+  "maximum_numeric_cache_payload_bytes": 536870912,
+  "scope": "Computational sensitivity and reproducibility, not independent DGP replications or a relaxation of posterior qualification"
+}

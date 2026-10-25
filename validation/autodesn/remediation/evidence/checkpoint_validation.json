@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "source_assertions": 478,
+  "installed_assertions": 478,
+  "recovery_assertions": 224,
+  "source_and_installed_failures": 0,
+  "source_and_installed_errors": 0,
+  "outside_git": true,
+  "fresh_process_check": true,
+  "covered": [
+    "ridge and normalized RHS",
+    "constant and latent SV variances",
+    "zero retained draws at first pause",
+    "thinning and bounded matching-state snapshots",
+    "completed checkpoint reload without extra sampling",
+    "joint global/slab/local proposals",
+    "categorical architecture moves",
+    "seasonal SV coefficients and latent paths",
+    "R and C++ kernels",
+    "target/kernel/budget/seed identity refusal",
+    "payload corruption",
+    "caller RNG preservation and hidden-cache RNG refusal"
+  ],
+  "scope": "Exact continuation and backwards-compatible numerical regression checks; no convergence claim"
+}

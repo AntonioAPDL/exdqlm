@@ -19,7 +19,7 @@ test_that("exdqlmForecast accepts future evolution arrays with horizon depth", {
     samp.sigma = rep(1, 4),
     samp.gamma = rep(0, 4)
   )
-  class(fake_fit) <- "exdqlmLDVB"
+  class(fake_fit) <- c("exdqlmLDVB", "exdqlmFit")
 
   future_FF <- matrix(1, p, k)
   future_GG <- array(diag(p), c(p, p, k))
@@ -62,7 +62,7 @@ test_that("exdqlmForecast validates future evolution horizon depth", {
     samp.sigma = rep(1, 4),
     samp.gamma = rep(0, 4)
   )
-  class(fake_fit) <- "exdqlmLDVB"
+  class(fake_fit) <- c("exdqlmLDVB", "exdqlmFit")
 
   expect_error(
     exdqlmForecast(

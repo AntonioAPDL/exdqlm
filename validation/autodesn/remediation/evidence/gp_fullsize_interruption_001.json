@@ -1,0 +1,20 @@
+{
+  "complete": false,
+  "training_rows_intended": 2000,
+  "particles": 16,
+  "julia_threads": 2,
+  "seed": 2266031,
+  "tool_observed_exit_code": 130,
+  "reason": "Stopped explicitly after a concurrent R fork worker was OOM-killed. Large-job concurrency is suspended.",
+  "last_complete_stage": 256,
+  "complete_stage_files": [
+    "checkpoint_step_32.jls",
+    "checkpoint_step_64.jls",
+    "checkpoint_step_128.jls",
+    "checkpoint_step_256.jls"
+  ],
+  "posterior_file_exists": false,
+  "resource_completion_record_available": false,
+  "posterior_qualified": false,
+  "forecast_issued": false
+}

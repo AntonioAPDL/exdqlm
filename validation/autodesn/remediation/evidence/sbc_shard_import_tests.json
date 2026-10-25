@@ -1,0 +1,9 @@
+{
+  "complete": true,
+  "atomic_exact_binary_import": true,
+  "elapsed_only_duplicate_difference_allowed": true,
+  "changed_ranks_rejected": true,
+  "changed_contract_rejected": true,
+  "independent_replications_added": 0,
+  "scope": "Synthetic provenance/import checks, not posterior calibration"
+}

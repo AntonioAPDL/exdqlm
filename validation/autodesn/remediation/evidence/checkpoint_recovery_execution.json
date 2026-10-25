@@ -1,0 +1,52 @@
+{
+  "complete": true,
+  "recovery_verified": true,
+  "production_complete": false,
+  "posterior_qualified": false,
+  "chains": [
+    {
+      "chain": 1,
+      "iteration": 16000,
+      "retained": 0,
+      "checkpoint_sha256": "602474f6a34d47a093d4672ba4a2759e99a47b92a39e2ac4cf5818477bf84d86",
+      "checkpoint_id": "6d499d86bb92503b53bcf3fc202f2d2b2ca93801ab2cb5a708748f467481fea1",
+      "proposal_count": 112000,
+      "local_proposal_count": 16000
+    },
+    {
+      "chain": 2,
+      "iteration": 16000,
+      "retained": 0,
+      "checkpoint_sha256": "5e331eee75085a98e8aece284bec11b6bdb362f081b770cd895c02ddec478426",
+      "checkpoint_id": "411502cea2828019dafc234ae2b41ca52039ee3c68e8171d0047ad80f4eedd91",
+      "proposal_count": 112000,
+      "local_proposal_count": 16000
+    },
+    {
+      "chain": 3,
+      "iteration": 16000,
+      "retained": 0,
+      "checkpoint_sha256": "8d667a0df21e35d68f7f536228be5dea182ac905329cad9f57a2b7180831a25d",
+      "checkpoint_id": "1ad907815c56acfc7f05690ca0bd6cabe9e62359b8de9426975dca320ea165ef",
+      "proposal_count": 112000,
+      "local_proposal_count": 16000
+    },
+    {
+      "chain": 4,
+      "iteration": 16000,
+      "retained": 0,
+      "checkpoint_sha256": "8ad55de6dba98dda9425c0224472dd05852825b05cc0b383859b83ead5fb6081",
+      "checkpoint_id": "9053722bd3ae54fe88c8f2ce4a7e7ed975e6ad72acce2d41215ad26ca63e5da8",
+      "proposal_count": 112000,
+      "local_proposal_count": 16000
+    }
+  ],
+  "source_snapshot": "762e91ec18055f1f4b59dfec0ae6d2cd4615261698db9d4e25fb5fd6b4d97827",
+  "required_warmup": 64000,
+  "required_retained": 256000,
+  "resource_wall_seconds": 249.9735,
+  "peak_sampled_process_tree_pss_kib": 4568431,
+  "prior_interrupted_invocation_cost_included": false,
+  "currently_running": false,
+  "report_statement": "All four full-bank F1 chains durably paused at sweep 8,000, restarted in fresh processes and paused again at sweep 16,000. Both invocations exited zero; payload and file checksums and cumulative proposal counters verify. Combined observed process wall time is 249.97 s, maximum sampled aggregate PSS 4.36 GiB. These are warmup-only states: zero retained posterior draws, no production qualification and no forecasts. The earlier unmeasured interrupted invocation remains separate."
+}

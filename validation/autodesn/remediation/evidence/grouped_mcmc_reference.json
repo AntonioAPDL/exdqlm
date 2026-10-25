@@ -1,0 +1,20 @@
+{
+  "complete": true,
+  "passed": true,
+  "chains": 4,
+  "retained_per_chain": 24000,
+  "joint_functionals": 10,
+  "maximum_rhat": 1.0002909910000106,
+  "minimum_bulk_ess": 22775.131672647745,
+  "minimum_tail_ess": 28693.82898287595,
+  "moments_passed": true,
+  "source_status_sha256": "c4f3b25e8b6784712f40b408a827c685654d18eb6c9d6ce5dc3b1973897652f4",
+  "chain_sha256": {
+    "chain_3.rds": "270d4c31d8f7daf82e55da30ba8d95e3da3ba80d1b006c69d51447386f94039d",
+    "chain_2.rds": "787a951b1912d867534d9a4f6211b7d174a122ef0217c6f5395ded256b0bf701",
+    "chain_4.rds": "4307617857341c9030d9c11678f4523fd95e255890ef5b0586009353cba1768a",
+    "chain_1.rds": "3fb7ace07c49d4467ec0f0b21fcaa05221beeccc8abfce1b3f0fe0de4ef2747f"
+  },
+  "scope": "Fixed-local conditional grouped-RHS with learned independent globals, shared slab, proper calendar, unknown noise, variable readout dimension and nonuniform architecture/period proposals; not recursive SBC or production convergence",
+  "production_qualified": false
+}

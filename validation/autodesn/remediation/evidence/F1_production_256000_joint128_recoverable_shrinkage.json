@@ -1,0 +1,76 @@
+{
+  "complete": true,
+  "phase": "production_256000_joint128_recoverable",
+  "joint_states": 8192,
+  "training_response_sd": 1.0607,
+  "summary": [
+    {
+      "quantity": "slopes",
+      "q05": 126,
+      "median": 190,
+      "q95": 309
+    },
+    {
+      "quantity": "lag_norm",
+      "q05": 0.2543,
+      "median": 0.3122,
+      "q95": 0.5508
+    },
+    {
+      "quantity": "reservoir_norm",
+      "q05": 0.2161,
+      "median": 0.3987,
+      "q95": 0.7873
+    },
+    {
+      "quantity": "fraction_below_001_sd",
+      "q05": 0.6842,
+      "median": 0.7962,
+      "q95": 0.8895
+    },
+    {
+      "quantity": "number_above_01_sd",
+      "q05": 3,
+      "median": 5,
+      "q95": 8
+    },
+    {
+      "quantity": "median_conditional_prior_sd",
+      "q05": 0.0021,
+      "median": 0.0043,
+      "q95": 0.0078
+    },
+    {
+      "quantity": "actual_tau",
+      "q05": 0.0022,
+      "median": 0.0045,
+      "q95": 0.0083
+    },
+    {
+      "quantity": "slab_sd",
+      "q05": 0.6253,
+      "median": 1.0398,
+      "q95": 2.2446
+    }
+  ],
+  "source_checkpoints": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_256000_joint128_recoverable/chain_1.rds",
+      "sha256": "84d8dca03566cb59aa7f15f29568aa63a6607867d2adedc159da7ad0e068457b"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_256000_joint128_recoverable/chain_2.rds",
+      "sha256": "fa2969f9182112e6851c27d7bd4f7e8beaed48f0a83216b60c7479798b7bfc5f"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_256000_joint128_recoverable/chain_3.rds",
+      "sha256": "542f4bc693f21090a9d49d1ecb90f8c2b3284db4623e9bde9d6a5485d9eb59c2"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_256000_joint128_recoverable/chain_4.rds",
+      "sha256": "27e31b57977ee7782cf94f938623cdd813c3e24973ada36e2ca45fdd45338bcc"
+    }
+  ],
+  "posterior_qualified": false,
+  "scope": "Descriptive joint-draw quantities on an unqualified F1 run; coefficients are standardized-feature effects divided by training-response SD. Thresholds and norms are not variable selection or a function-space capacity measure; correlated bases and changing readout dimensions matter."
+}

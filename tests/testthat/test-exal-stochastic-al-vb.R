@@ -149,7 +149,7 @@ test_that("stochastic mode is AL-only while exact exAL remains unchanged", {
 
   expect_error(
     fit_static_al_for_stochastic_tests(dat, ctrl, family = "exal"),
-    "supported only for likelihood_family = 'al'"
+    "stochastic exAL VB chunking is not implemented"
   )
 
   exact_ctrl <- list(

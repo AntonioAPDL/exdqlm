@@ -1,0 +1,23 @@
+{
+  "registered_before_remote_execution": true,
+  "platform": "standard ubuntu-24.04 public GitHub runner",
+  "paid_larger_runner": false,
+  "artifact_or_cache_upload_actions": false,
+  "rows": 2000,
+  "particles": 16,
+  "seeds": [
+    7366021,
+    7366022,
+    7366023,
+    7366024
+  ],
+  "period_moves": 0,
+  "max_seconds_per_calculation": 7200,
+  "max_cgroup_anon_bytes": 6100000000,
+  "source_pin": "2ad372db2b8bea176e3b32a769bfb5d6cff80866",
+  "Julia": "1.10.10",
+  "new_prior_or_selection_policy": false,
+  "heldout_tuning": false,
+  "forecast_allowed": false,
+  "scope": "Four fresh native SMC calculations. A previous interrupted local calculation reused seed7366021; it is not an extra independent run. Remote outputs are imported into distinct provenance directories, never overlaid on old partial outputs. Same original registered native schedule; no new result or qualification inferred. Different-host runtimes require hardware disclosure."
+}

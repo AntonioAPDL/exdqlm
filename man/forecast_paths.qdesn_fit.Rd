@@ -25,7 +25,8 @@ forecast_paths.qdesn_fit(
   origin_index = NULL,
   noise_draws = NULL,
   cpp_fallback_note = TRUE,
-  recursion_mode = c("posterior_predictive", "posterior_predictive_mean_readout_state")
+  recursion_mode = c("posterior_predictive", "posterior_predictive_mean_readout_state"),
+  ...
 )
 }
 \arguments{
@@ -73,6 +74,8 @@ informational messages (used by lattice caller to avoid per-origin spam).}
 \item{recursion_mode}{posterior-predictive recursion (the default) or the
 mean-complete-readout-state estimator. The latter averages candidate
 predictive states/features before applying posterior coefficient draws.}
+
+\item{...}{Reserved for generic compatibility; additional arguments are rejected.}
 }
 \value{
 list with yrep (H x nd) and mu_draws (H x nd)

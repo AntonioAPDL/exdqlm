@@ -1,0 +1,12 @@
+{
+  "registered_utc": "2026-10-25T02:05:51.446054+00:00",
+  "supersedes_native_field_only": "native_gp_pooling_registration.json",
+  "reason": "Pinned AutoGP API returns pf_state.log_ml_est, the accumulator before the last resampling, whereas native SMC does not resample the terminal stage. Gen.log_ml_estimate adds logsumexp(final_log_weights)-log(N).",
+  "aggregation_rule_unchanged": "Pool all complete equal-budget unnormalized measures; never select by heldout results",
+  "correct_log_evidence": "pf_state.log_ml_est + logsumexp(pf_state.log_weights) - log(number_of_particles)",
+  "original_response_units": "Add n*log(abs(y_transform.slope)); constant cancels across identical-target replicas",
+  "no_forecasts_affected": true,
+  "normalizer_reference_validation_pending": true,
+  "posterior_qualified": false,
+  "scope": "Deterministic accounting correction before any forecast or certified pooling. Already-executed audit/status metadata retain their original API-field label and are superseded for mathematical evidence by this record."
+}

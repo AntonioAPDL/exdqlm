@@ -1,0 +1,17 @@
+{
+  "complete": true,
+  "replications": 200,
+  "retained": 24000,
+  "warmup": 6000,
+  "variance": "sv",
+  "contract_id": "e6062bf2fb188cd17ced22aaeeeaed47e1b8e45d1a1056bd2b678bcd6842e80e",
+  "map_id": "89e9bac3de5c96180bb6461181bf73fec2872c6bd8cdac1ba95c023ef55fcc09",
+  "scope": "Recursive-model SBC conditional on an independent calibration prefix and frozen weights/projections/readout/input/response geometry; not response-adaptive production-pipeline calibration",
+  "maximum_uniform_ecdf_deviation": 0.1326,
+  "simultaneous_DKW_bound": 0.1378,
+  "uniformity_envelope_passed": true,
+  "minimum_case_spectral_ess": 620.2159,
+  "cases_below_400_ess": 0,
+  "computational_calibration_resolved": true,
+  "posterior_production_qualified": false
+}

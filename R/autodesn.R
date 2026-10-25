@@ -184,6 +184,9 @@ autodesn_build_bank <- function(y, candidates = autodesn_candidates(),
 #' @param rhs_control RHS controls from [autodesn_rhs_control()] or a named list.
 #' @param model_control RHS architecture sampler controls; see [autodesn_fit_bank()].
 #' @param backend RHS algebra backend, `"auto"`, `"R"`, or `"cpp"`.
+#' @param readout_control Optional augmented lag/group controls.
+#' @param seasonal_control Optional proper seasonal-period controls.
+#' @param variance_control Optional latent-volatility controls.
 #' @return An `autodesn_fit` supporting the existing Q-DESN prediction methods.
 #' @export
 autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 30L,
@@ -191,7 +194,8 @@ autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 3
                          mcmc_args = list(), washout = NULL,
                          beta_prior = c("ridge", "rhs"), rhs_control = list(),
                          model_control = list(), backend = c("auto", "R", "cpp"),
-                         standardize_features = FALSE, feature_sd_tol = 1e-8) {
+                         standardize_features = FALSE, feature_sd_tol = 1e-8,
+                         readout_control = NULL, seasonal_control = NULL, variance_control = NULL) {
   beta_prior <- match.arg(beta_prior)
   if (identical(backend, "r")) backend <- "R"
   backend <- match.arg(backend)
@@ -206,8 +210,11 @@ autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 3
   bank <- autodesn_build_bank(y, candidates, conditioning, model_prior,
                                normalize_features, washout = washout,
                                standardize_features = standardize_features, feature_sd_tol = feature_sd_tol)
+  if (!is.null(readout_control) || !is.null(seasonal_control) || !is.null(variance_control))
+    bank <- autodesn_extend_bank(bank, readout_control, seasonal_control)
   do.call(autodesn_fit_bank, c(list(bank = bank, beta_prior = beta_prior,
-    rhs_control = rhs_control, model_control = model_control, backend = backend), mcmc_args))
+    rhs_control = rhs_control, model_control = model_control, backend = backend,
+    variance_control = variance_control), mcmc_args))
 }
 
 .autodesn_unscale <- function(bank, x) {
@@ -217,9 +224,12 @@ autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 3
 
 #' Fitted posterior means from Gaussian AutoDESN
 #' @param object An `autodesn_fit`.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return Numeric posterior means on the original response scale.
 #' @export
-predict_mu.autodesn_fit <- function(object) {
+predict_mu.autodesn_fit <- function(object, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
+  if (inherits(object,"autodesn_extended_fit")) return(predict_mu.autodesn_extended_fit(object))
   mu <- numeric(object$bank$n)
   for (j in unique(object$draws$model)) {
     ids <- which(object$draws$model == j)
@@ -239,9 +249,15 @@ predict_mu.autodesn_fit <- function(object) {
 #' @param X_new Optional list of slope matrices, in bank order and before the
 #'   bank's feature normalization. Defaults to the scored training designs.
 #' @param seed Optional seed preserving the caller's RNG state.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return List with `yrep`, `mu_draws`, and selected posterior draw indices.
 #' @export
-posterior_predict.autodesn_fit <- function(object, nd = 1000L, X_new = NULL, seed = NULL) {
+posterior_predict.autodesn_fit <- function(object, nd = 1000L, X_new = NULL, seed = NULL, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
+  if (inherits(object,"autodesn_extended_fit")) {
+    if (!is.null(X_new)) stop("Use augmented forecast_paths for future designs.",call.=FALSE)
+    return(posterior_predict.autodesn_extended_fit(object,nd,seed))
+  }
   .autodesn_integer(nd, "nd")
   bank <- object$bank
   if (is.null(X_new)) {
@@ -297,6 +313,10 @@ forecast_paths.autodesn_fit <- function(object, H, nd = 1000L, seed = NULL,
                                         innovations = NULL,
                                         recursion_mode = c("posterior_predictive", "conditional_mean_plugin"),
                                         backend = c("serial", "batched"), ...) {
+  if (inherits(object,"autodesn_extended_fit")) {
+    if (match.arg(recursion_mode)!="posterior_predictive") stop("Augmented forecasts require posterior predictive recursion.",call.=FALSE)
+    return(forecast_paths.autodesn_extended_fit(object,H,nd,seed,draw_index,inner_paths,innovations,...))
+  }
   .autodesn_integer(H, "H")
   .autodesn_integer(nd, "nd")
   .autodesn_integer(inner_paths, "inner_paths")

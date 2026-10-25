@@ -1,0 +1,40 @@
+{
+  "complete": true,
+  "checks": 38,
+  "maximum_log_evidence_error": 3.9108272176235914e-11,
+  "maximum_gaussian_KL": 6.5823438797832488e-21,
+  "maximum_fitted_mean_error": 3.2068264531399792e-12,
+  "maximum_dense_response_log_evidence_error": 3.6925484891980886e-10,
+  "original_strict_path_check_passed": false,
+  "model_period_sequences_identical": true,
+  "path_differences": [
+    {
+      "field": "trace",
+      "maximum_absolute_error": 2.5587041818653233e-08,
+      "mean_absolute_error": 6.8850723039224644e-11
+    },
+    {
+      "field": "draws",
+      "maximum_absolute_error": 2.5468352760071866e-08,
+      "mean_absolute_error": 9.6219643298042299e-11
+    },
+    {
+      "field": "beta",
+      "maximum_absolute_error": 7.4025433352553627e-10,
+      "mean_absolute_error": 1.3425380515174979e-12
+    },
+    {
+      "field": "local",
+      "maximum_absolute_error": 5.2718264420548167e-08,
+      "mean_absolute_error": 8.9106779249543135e-11
+    },
+    {
+      "field": "probes",
+      "maximum_absolute_error": 7.7646977736378631e-10,
+      "mean_absolute_error": 1.4027414004772094e-11
+    }
+  ],
+  "source_snapshot": "af348cd9eca2248ad4800cf01d18fb0dfba809feac66640f8ec2647e30e996d4",
+  "posterior_qualified": false,
+  "scope": "Same-hyperparameter Gaussian laws and independent dense response-space evidence at32 saved states and six maximum-dimension stress cases. The first path check remains failed at its original relative tolerance; a cache may reorder floating-point sums without a bit-identical Markov trajectory."
+}

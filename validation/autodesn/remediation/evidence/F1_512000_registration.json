@@ -1,0 +1,12 @@
+{
+  "registered_utc": "2026-10-25T00:31:35.719776+00:00",
+  "trigger": "The256k level is the first individual full-bank screen to pass;128k fails. Two successive passing levels remain required.",
+  "new_retained": 512000,
+  "new_warmup": 128000,
+  "frozen_proposals": "same full-vector joint128 global and reservoir-local guides",
+  "target_and_prior_changed": false,
+  "heldout_outcomes_read": false,
+  "segments": "First absolute stop320000 of640000 total sweeps; verify four atomic pauses, then resume unchanged budget/source/RNG to640000. Each process invocation retains its7200s and6.4GB-anon caps.",
+  "fallback": "If the larger trace hits the existing memory cap, preserve last checkpoints and resume only two independent chains at a time; do not change any chain kernel, budget or RNG state.",
+  "earlier_failed_screens_retained": true
+}

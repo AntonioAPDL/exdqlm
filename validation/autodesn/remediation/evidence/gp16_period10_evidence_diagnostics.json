@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "particles": 16,
+  "period_moves": 10,
+  "replicas": 4,
+  "seeds": [
+    7366221,
+    7366222,
+    7366223,
+    7366224
+  ],
+  "log_evidence_range": 86.85814969970534,
+  "replica_weights": [
+    3.10756720114557e-23,
+    5.113305862536355e-24,
+    1.896639875677269e-38,
+    1.0
+  ],
+  "effective_evidence_replicas": 1.0,
+  "screen_passed": false,
+  "posterior_qualified": false,
+  "source_status_sha256": "716596ee4bc09a56f8d19f2d70bdf19b04f35f0834b01bd540eb0ece80e4efce",
+  "all_four_retained": true,
+  "native_algorithm": false,
+  "scope": "Additional invariant-period policy, separately labeled from untouched native controls. Full Gen evidence accounting verifies;86.858 log-unit dispersion and replica ESS1 block promotion. No forecast or held-out tuning."
+}

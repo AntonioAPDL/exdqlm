@@ -1,0 +1,7 @@
+native_target_unchanged = true
+trace_updates = 100
+accepted = 36
+complete = true
+update_weight_error = 1.2212453270876722e-15
+posterior_qualified = false
+detailed_balance_error = 0.0

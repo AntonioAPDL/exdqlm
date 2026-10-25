@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "stage": "training_only_feasibility_not_qualified",
+  "family": "F2",
+  "bank_models": 426,
+  "period_states": 101,
+  "build_seconds": 9.225,
+  "sweeps": 130,
+  "seconds": 2.986,
+  "seconds_per_sweep": 0.023,
+  "projected_four_32k_chains_seconds": 3675.0769,
+  "object_bytes": 788291728,
+  "computation": {
+    "elapsed_seconds": 2.712,
+    "evidence_evaluations": 520,
+    "proposals": 390,
+    "acceptances": 5
+  },
+  "source_sha256": {
+    "R/autodesn_extended.R": "cb9683bc15577af83af68ad32b2a2dcdda2cabfd3bc2a005e264cd0e0caaf8e4",
+    "R/autodesn_extended_forecast.R": "74bcaa30980d27783be0a8c7423fe025b0e5729e9697de53671c950fe7211ba0",
+    "src/autodesn_rhs.cpp": "5f6b4534eafd9414f303ce177f201e331d3800d61907e94ceda8b8d096276c4a"
+  },
+  "test_outcomes_used": false
+}

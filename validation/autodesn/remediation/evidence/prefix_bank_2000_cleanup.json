@@ -1,0 +1,1354 @@
+{
+  "complete": true,
+  "canonical_files_verified": true,
+  "removed": [
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/.inference_bank.rds.9fbLau",
+      "bytes": 279445504,
+      "sha256": "17163ad45f26fdd759d9fa304025a23cedfbc6b24ba3899998d60ceb76bbf680",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/.rsync-tmp/.inference_bank.rds.9fbLau.RusmwU",
+      "bytes": 251396096,
+      "sha256": "041df535e9164a0e254a11ee0bf190e957aec2a54b9c6c32d530c8ed3ab958ff",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/standardized_bank/.bank.rds.vSiVjZ",
+      "bytes": 147062784,
+      "sha256": "54993589b0f03443f529bced7b71dbad7c8e06ba1fe4c3fbe16a20984107ad63",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/standardized_bank/.bank.rds.YilwJu",
+      "bytes": 252706816,
+      "sha256": "1ee2d5bf3d273b4d253388c517a99530d224818155b92caf0cbb82faf572d8a7",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/.bank.rds.ht7DtS.RPVL7Y",
+      "bytes": 164102144,
+      "sha256": "26e7f5b38279ce05c85ab2fd496262618598bfdff39788da1fa7ed719f69539f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/.bank.rds.ht7DtS",
+      "bytes": 254279680,
+      "sha256": "5e84232f9a6a72724c41bdee375cb66029555720dea2ba5ac55de68118a32ad5",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/standardized_bank/.rsync-tmp/bank.rds",
+      "bytes": 556531712,
+      "sha256": "806a699385377e98044187ed154c25d889aa123cfbe042654cd69caabed28eb8",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/.rsync-tmp/bank.rds",
+      "bytes": 556122148,
+      "sha256": "b84ac640e48a8558637b5879ff4c24257fea5fa6d622888adeb39af04e8acfe1",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0373.rds",
+      "bytes": 1361529,
+      "sha256": "390553ba5192cbc06e2b351af5bbe3c8cf833d16546a78840aff5d0bf0937775",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0174.rds",
+      "bytes": 1400991,
+      "sha256": "ad6d2d97ce68686728ad00faf5a61784e51b4dc15ee4173216e933a9996173de",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0111.rds",
+      "bytes": 1390230,
+      "sha256": "bc4135c70969ee832dd590efca17d18c9410d89876beed9e7186e0297118c79a",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0011.rds",
+      "bytes": 1400990,
+      "sha256": "f31ef09fce1ad3df06dba9436f15aebbbed2e8151a274ae7bd1925b31786cff7",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0234.rds",
+      "bytes": 1170391,
+      "sha256": "f338280eeacafb966f1b51cddb94dda3e8025733114589dcf0ee2be28626f4ff",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0268.rds",
+      "bytes": 1006056,
+      "sha256": "bb62ba1d0877ad05ca0fcb43d75c199a06889a8b251e6517a897fb0a761dca8b",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0326.rds",
+      "bytes": 3406032,
+      "sha256": "c4e9c1bd38e9c3ada0f0c0fa5f419827b5f6849fe82255919ae79c4ca3ecb461",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0024.rds",
+      "bytes": 2156903,
+      "sha256": "a89b471e5c2de4f986056b74791b86d7a993b9aee3f8e3f3fa75c7e379347f7c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0447.rds",
+      "bytes": 3980433,
+      "sha256": "c7efef54c6f7b14d5021bc0fcc04236646a8b60ef5215798869344c388ce8577",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0145.rds",
+      "bytes": 1462038,
+      "sha256": "daed8e6af5b8183063a3d08bd15333471e257dc028673d09f34a5eeb425eaa26",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0035.rds",
+      "bytes": 1425950,
+      "sha256": "63c714cd3f9d11acad00e73f2e141f3006ed01325a6e2dd3b9a31ad81253cf93",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0308.rds",
+      "bytes": 1518296,
+      "sha256": "480fde2294f1daba446b121175a03e20de654415fe06fb865ae2b29249bb1093",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0319.rds",
+      "bytes": 3397872,
+      "sha256": "1ee6988eb36f8c97f9b5fc6f0783d2f910957672412da913eeb05ebbae6e1ba7",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0222.rds",
+      "bytes": 1425951,
+      "sha256": "d91363e18212ee5525e3d1480bf09958256cc2429984b6e9bfd9d1f7ba99a615",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0247.rds",
+      "bytes": 3227791,
+      "sha256": "160590327e236e12a953b9b3a8a125f49158b160056e30524c5d512f3093e217",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0364.rds",
+      "bytes": 1359369,
+      "sha256": "b22fbf6d2e1901db6fec2b0f26175f9bf1fd2011c82545782ed0788a9de37947",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0079.rds",
+      "bytes": 1390230,
+      "sha256": "9dac6007d223ac979163f0309dba2b51ac5e02221ea6a705d336d5c5bb9862c6",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0012.rds",
+      "bytes": 2167303,
+      "sha256": "5b1338f9871f318aaa2f8ae81233ca1bf15f6af197b3fdb6d0639c926b31d7bd",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0446.rds",
+      "bytes": 2998577,
+      "sha256": "8446a0259ac9b22b15de540f28fee93515013ab879a7ff85aa2c4b4bb0c2fcc2",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0006.rds",
+      "bytes": 2156903,
+      "sha256": "6420352b43a3bdd237fc8839645511f3f51a3f00b213d92c651f4c9913288598",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0239.rds",
+      "bytes": 2565343,
+      "sha256": "eb384858a7725189259f7dc6925fe1250a5d6539fcd8aebcb47ff0a9b9fdfcd0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0278.rds",
+      "bytes": 1542840,
+      "sha256": "a850bb81bb21722d70848dfcc490e311c5f769fb5f3340ffc4ec0cf6cbf58b55",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0322.rds",
+      "bytes": 1518712,
+      "sha256": "3b7b9491fe114a12a3d16dc1923c9306c2009c300745dd71d544044eb10beb13",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0005.rds",
+      "bytes": 1390590,
+      "sha256": "b1803ba74c8a9a1cade23dd5c4d9250ff99885d4bdfd946e09f6658a68b75829",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0240.rds",
+      "bytes": 2637151,
+      "sha256": "54bfc8e3593a14543957ca939fe347c1b04cb35820fcba356d69807d0837716f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0065.rds",
+      "bytes": 1400990,
+      "sha256": "d9d56b3e79ce3a6d9d950b2cac5536c9f5282b837660a78faf1fc669e8c44ece",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0321.rds",
+      "bytes": 1018584,
+      "sha256": "4bd6d87d89a7a868a5cd169492a769bc4af9c9484feb0d714d5670a5ff08c96d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0207.rds",
+      "bytes": 2565343,
+      "sha256": "0d227e14336faa9dfe88fdb344af6c3ed52d929d68d2ace18bcce10fc74aa6f8",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0402.rds",
+      "bytes": 4003281,
+      "sha256": "f6862d68308da7a2f0a7f795c7247368f0bd0c1ba5b9f34d20b797890f3c2f28",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0023.rds",
+      "bytes": 1390590,
+      "sha256": "1fcafe1f4b7b16a00f33b8746ef5f405db4ce94c795de1e4222531fd85cba5d0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0166.rds",
+      "bytes": 1398390,
+      "sha256": "e7718139b39e05ad4bb4ce88aeb3f73d3bced3e952a22af6b151f530ea56301e",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0426.rds",
+      "bytes": 1768457,
+      "sha256": "c722976e5d3090e68bd785e9f2545f803357a390d541c8e172471e79b3293a4c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0396.rds",
+      "bytes": 1359369,
+      "sha256": "7767877abe3196d542c0b02e7d3175400f9d90f2c291658cfbca8f88f79e0a05",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0309.rds",
+      "bytes": 1008216,
+      "sha256": "c188a71d150ad418d2f940c8931929e0414283f75b4343a831a1c7decc020c88",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0433.rds",
+      "bytes": 7018977,
+      "sha256": "6d22dc7594b03276f97b87f36480f6fdef6b12244a31557a460b555eb3502b44",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0357.rds",
+      "bytes": 2155240,
+      "sha256": "ce8930e624ea716c26080f7df0d6ec1b4cec3385969082d6e2af4adf283f1896",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0401.rds",
+      "bytes": 7018977,
+      "sha256": "75a4e021d8ead82ac9d7d3bb668a6d48da39abb751c7c845a267222823311d6c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0358.rds",
+      "bytes": 3406032,
+      "sha256": "d91b688ca5a38341570f7d8ee364f9f8fa21cbd0a37314dd779c09a9a4408cfa",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0048.rds",
+      "bytes": 2167303,
+      "sha256": "09d0608412c6db22abe7ef1683c193322d0ba185e26f52e6defd0493eeb8b20c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0177.rds",
+      "bytes": 3154351,
+      "sha256": "5ea84c58bda0d3ff3b490482efe151ad11438f38294410c2cfce9f4a1d8dcbcf",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0113.rds",
+      "bytes": 1462038,
+      "sha256": "7c48bfeba78eb59c79c7d38ee19a3c9503624f7f2a5918c7a7582ab8aff121fc",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0243.rds",
+      "bytes": 3129871,
+      "sha256": "c5ccbcd77eff9583d2d49860c067eb70220c9be2243f4ec459199a2882323978",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0042.rds",
+      "bytes": 2156903,
+      "sha256": "4e051800347c2d05f87c8a355e682101b59f7793c55dc29cba9a57057e65f1b5",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0421.rds",
+      "bytes": 2961553,
+      "sha256": "21d6f0916e0961ed6e93c4f56209f67f80ca0513522195e5c52d71dbf361d3df",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0293.rds",
+      "bytes": 2155240,
+      "sha256": "60e4e3c40d1c25234eeeaece8110846697e7119b1bec4de9f83b387a00129304",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0211.rds",
+      "bytes": 3129871,
+      "sha256": "1395e9f606fe01111e09e4fe3b0264cb18375f42734d69c92e8a2c0c1f577d64",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0286.rds",
+      "bytes": 2192264,
+      "sha256": "082c5f7da77b47469d79d29f0641cb2fd68c029dff48e6265d93823af2e5ade6",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0270.rds",
+      "bytes": 2167304,
+      "sha256": "e116e3e0d55b67e7e2a487e901d76e21b58f8e808a15b9b2805587e82592879d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0341.rds",
+      "bytes": 1008216,
+      "sha256": "ce73d8ca638d6900634d109504ae5e99f6a7b0f847e7c2d92142191e18c3c2bf",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0017.rds",
+      "bytes": 1425950,
+      "sha256": "3f5d1486d63b3c36b83e0d4d5d7f8626999cce1946f0a586ca4431558c240bb2",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0303.rds",
+      "bytes": 3397872,
+      "sha256": "9d2f206d9eca7ef1eaeb489b1b9e63fbf669f0eb209355a2dba08c84c18a81f9",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0414.rds",
+      "bytes": 2998577,
+      "sha256": "1d9f8b2dafd06ad0ae72f3342dd816a3dc0a473b00d9a93cdc067e232383517c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0146.rds",
+      "bytes": 1413078,
+      "sha256": "23740d35b7cd36dfd66808ef546f9d4ffd3325f6d3cc6ad9af395b791462d87d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0428.rds",
+      "bytes": 1359369,
+      "sha256": "d93451c90b2b5b61d079c3538d31796db3682a7c14dea1a9e410f530316065d8",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0285.rds",
+      "bytes": 2155240,
+      "sha256": "40c5cb2b5dd487b3f646b7796ccce319edabaf98edc1cb73ea1b1c249fbeafa1",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0182.rds",
+      "bytes": 1193271,
+      "sha256": "031f85a9aaf04adb818ea7201a33a75a2583d3613a85f8c98dbeb43f5748f912",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0082.rds",
+      "bytes": 1413078,
+      "sha256": "d7073ff59c267f074ffd119b3911ca8badba0d360006d4e92d4b74bd224fbe12",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0453.rds",
+      "bytes": 2961553,
+      "sha256": "30a754c1078f17a7748e46374dcc5ef60b0c391c8f2e8c14be9abb5296ac72ff",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0060.rds",
+      "bytes": 2156903,
+      "sha256": "8459213259c9bd91aaf7578b778fa6d7b6080dcb1566103a5fda5799cb110587",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0317.rds",
+      "bytes": 2155240,
+      "sha256": "685870113b61494ff300ec411ebdc4408d76fc81ac867e97087237fc6f8e08cd",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0415.rds",
+      "bytes": 3980433,
+      "sha256": "5e7655267537e24d54a909ae3752feda55e2c8fa09aa3dfee24da3855ed1bcf0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0266.rds",
+      "bytes": 1519960,
+      "sha256": "1fd712b83c5541a4a27bcbf79d11537dacb18aa8ebb5161c5220428dce7831ca",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0422.rds",
+      "bytes": 3988593,
+      "sha256": "8032b81464b73caa8cb80b03ba36f3bec7968d81ae472f67393c659b7e72f388",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0343.rds",
+      "bytes": 5080104,
+      "sha256": "cdf788209c1e7cada3f17967b26980508865df765074c74992616bf327bc8307",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0144.rds",
+      "bytes": 1462038,
+      "sha256": "e7641ee8f65f8b3598c806254cf12149d363fb1ce0d05016fd221f4cabb7255b",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0112.rds",
+      "bytes": 1462038,
+      "sha256": "515c0584f204213bab3f419f58784bc60711d81b097b2b37f3338d40c64d31cb",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0279.rds",
+      "bytes": 5080104,
+      "sha256": "570f1afb923f0bc145321594f9dbfd8fabc29758529e9dde5f94d328041cfdea",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0335.rds",
+      "bytes": 3397872,
+      "sha256": "f9aba17735c041671550c196280996afb50f0b7cdbc076de44bcbb6eb771f4ec",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0198.rds",
+      "bytes": 2573503,
+      "sha256": "4d81b1f291449c5feb31e101cc031653033b8b66fad8b49e27171bc0522dd430",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0404.rds",
+      "bytes": 1766793,
+      "sha256": "d2be6c6d62ac0689d9ee931fd19c21e6c7d104d971ed8eae990e8bec6e712486",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0369.rds",
+      "bytes": 7018977,
+      "sha256": "bfc5cb02942deb93b00415316022282b6fd6a56645f60f73f07a1c43d62b797b",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0221.rds",
+      "bytes": 1388927,
+      "sha256": "eeb6adef80b2d88a3b934fdc2d23126e50bed385ae36ac034ff118f856917a3f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0119.rds",
+      "bytes": 1535478,
+      "sha256": "fa6f9646a4dfe3ac34f3ae3f480ac5187dcb86df43355d418cbd9b937909f778",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0072.rds",
+      "bytes": 2192263,
+      "sha256": "30351b222c8aaf6147d10bee549e37a3289abc3e33d8c2f0aefa433f7a0b955f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0407.rds",
+      "bytes": 7092417,
+      "sha256": "46006d6df4b4a2645e9d57996586b753d82557340314cd199d81f3f5e09d89ed",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0306.rds",
+      "bytes": 3420720,
+      "sha256": "81387c2fc4ae93c5e982cdeb584739b426e89608b8403f6ddbb72e95107802b3",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0445.rds",
+      "bytes": 2961553,
+      "sha256": "4540ebeaa6b9b6ff0855b2aa5749c7fd777f735c8c40aa84fade90ab29e86a9a",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0371.rds",
+      "bytes": 6994497,
+      "sha256": "6ecfe534b1d163338fe67f6c348e07699e4c79e72626169c8c7dbbcab2c4c5d8",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0399.rds",
+      "bytes": 3980433,
+      "sha256": "9e512ec1228a01fc185fea05d51ec1e63e9af65b933f47ebb8be2f36f4517f28",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0403.rds",
+      "bytes": 6994497,
+      "sha256": "a97f3d1e8590a9838dc3d0544e0aed3d6e72db6d69b77b525e2b19a79050b754",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0289.rds",
+      "bytes": 1018584,
+      "sha256": "d5e6d1c6a8b659f83c310d115bfe67bf9452107e442befb32d93fe614c0bf3b1",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0382.rds",
+      "bytes": 2998577,
+      "sha256": "df9e411d15aa116cdd46e0b8e6fa95b09c9f3e37855454fc0e5e7e2d8e3934e4",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0325.rds",
+      "bytes": 2155240,
+      "sha256": "dd66fbeac630d09e386b813634074b197b70eec9268eb6db13e7998335b213e1",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0114.rds",
+      "bytes": 1413078,
+      "sha256": "e784750ff132690b12efc569193bacb2e6b68223084a96b999157284145eddfb",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0071.rds",
+      "bytes": 1425950,
+      "sha256": "8ff29447cd22b45aaf3d174ace424253d16d19dc628dac93c8a24e1e300712de",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0180.rds",
+      "bytes": 1168727,
+      "sha256": "7b5f47d8b7bd247c59d0c1a419fe008da493214e65900b16391c92abfc03cda6",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0018.rds",
+      "bytes": 2192263,
+      "sha256": "0427a8f45f0c20166210bb8f15395998c2f38942294f647e97459ad6c2d051e2",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0434.rds",
+      "bytes": 4003281,
+      "sha256": "20c95413b86a2cd91ab56e1cf1f53b49f89cd86d76533a0699db59b39c76dab6",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0210.rds",
+      "bytes": 2588191,
+      "sha256": "c37462eaebbdac05ace8e8a583d7d988195e23880211a612046d6a562ce3eb15",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0276.rds",
+      "bytes": 1518296,
+      "sha256": "d904f97bdee88a72ae0e198fe21d522df4dfb46ef998d7f339962ee00038ae75",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0406.rds",
+      "bytes": 1791337,
+      "sha256": "67d907ce87d81a1f1df66fd29d1251f49662c3b4bc716f7ac79cfc75edec8e22",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0379.rds",
+      "bytes": 1397817,
+      "sha256": "555b62f3be941f8dde5c7a1d39789caf482cc40ff919f4aeb0e423dbf29407e0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0350.rds",
+      "bytes": 2192264,
+      "sha256": "ddd2f3b6030793325c96c617051b0c8f449a6f409e246e30d46f5ecd25b86b51",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0370.rds",
+      "bytes": 4003281,
+      "sha256": "d0849ba35347a9ec88f0fc0e33c0a99c51764dabf3606dbf9f09ed75ead8206d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0417.rds",
+      "bytes": 1371897,
+      "sha256": "a69e691a1f51b3f9d639562fe54f6eb3797093e2dda7f0763a4349aa1ee5394c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0054.rds",
+      "bytes": 2192263,
+      "sha256": "dbe59e83c01e3b6348bccba7f25ac53e6bbda00a4d7692abb4a0de459a65f060",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0272.rds",
+      "bytes": 3469680,
+      "sha256": "60492a5b3f8a1ca055df97e0c01aae4bbff0154735c467163f344909b7eb8939",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0315.rds",
+      "bytes": 1044504,
+      "sha256": "5f6e93341df581e51697fbfd7485b2b51cbbbc25921a2fb5ecbc86617dd454af",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0354.rds",
+      "bytes": 1518712,
+      "sha256": "831385941e0526ef55802fd1b5a581bb6ffc948f8566bc0a19d23f9be163894d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0454.rds",
+      "bytes": 3988593,
+      "sha256": "56b0ef62a6a65582bb765239eb0b9051d4825de03afbd5290bd2000091e85282",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0244.rds",
+      "bytes": 1168727,
+      "sha256": "c88395803b734b433cd39579242316bad8821a07e0e547a610d493dc77b4ea19",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0041.rds",
+      "bytes": 1390590,
+      "sha256": "a41529069438da1ac677217b5c3f04a265ace0792724974a50490662644e3189",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0147.rds",
+      "bytes": 1437558,
+      "sha256": "f49680ee9243c6b47f25350df42025b231798137d587089d3e6cebe3c4961b0f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0178.rds",
+      "bytes": 2588191,
+      "sha256": "6d37bb8da2f2dad408b2b35ec70420cb22d83cb08a52a53bea96ccf70547b7ae",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0102.rds",
+      "bytes": 1398390,
+      "sha256": "79afb3420f3d31c01ecbb5ecb8a28e59aac37cf2de3222f6de8d0032930e2173",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0413.rds",
+      "bytes": 2961553,
+      "sha256": "7d1ac744cfc6a4337b02321eb4df6382629d65b6889104730a75abbddecacb39",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0430.rds",
+      "bytes": 2973617,
+      "sha256": "045f352a4f16ef65acefc4cbc10527d880563a4e2592a36335fabbff4d388e10",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0255.rds",
+      "bytes": 2565343,
+      "sha256": "b3be74114e7babbd585abc3260ccbea7d3a8cfc3f1f29d5f4fb2cb1452cf3408",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0336.rds",
+      "bytes": 3469680,
+      "sha256": "dd3dc1ddc0bdc26fd67aae9c9d255c1af32fc2086211c44717e4eb36614ed4ad",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0176.rds",
+      "bytes": 2637151,
+      "sha256": "99d5897096f0c0730fbe083dd6f620f0e8c7eea467468f4370c822e7cb5e4874",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0432.rds",
+      "bytes": 4052241,
+      "sha256": "7bab3204828cb25453ce7984dd8f80ec336cb3c8249d0d59957cb532507d25cd",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0246.rds",
+      "bytes": 1193271,
+      "sha256": "c2a2974bffff61a7bfad778c28fdd3d1cb8bc6957829075497907c6e7debc724",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0215.rds",
+      "bytes": 3227791,
+      "sha256": "ed303e62dfa2e6c2c35cf798378bd2f308596d0cfc0fb1458673d90022d7916d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0437.rds",
+      "bytes": 1361529,
+      "sha256": "bd65f679d8fe7c488186a598f1eeaf51317950e4d769076b8f2f4df41f51d2e5",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0351.rds",
+      "bytes": 3397872,
+      "sha256": "bd8b8e5ae3e2f377a2e942d879817c99660a12962bb74f9103e8420c8df897ec",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0206.rds",
+      "bytes": 1400991,
+      "sha256": "1f9e643e04ba0f687716d311f9db97af8ac987d15bd738bd3a6d0ae542a1f515",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0366.rds",
+      "bytes": 2973617,
+      "sha256": "b3f520242c2196e11c0b225aedd6481ea8f29c0e1f19d6c9cce2746e1bdba6c4",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0310.rds",
+      "bytes": 1542840,
+      "sha256": "4fbe7b7ef2643970970abcce062763e86f63254560b2583172cd174782a69302",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0307.rds",
+      "bytes": 4982184,
+      "sha256": "a31898b9491e044ae5722c65c93363dbd5bb941a80952451f62b8037b2dc55fb",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0374.rds",
+      "bytes": 1791337,
+      "sha256": "2b51b2a43aacb476411f2e35d8d70802de41445a3dbebf413130266355523936",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0443.rds",
+      "bytes": 1397817,
+      "sha256": "c3eba6e988c836b314ea185ac0feedfef8fbfd277b09f69eb2fe34ad8c3cce74",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0242.rds",
+      "bytes": 2588191,
+      "sha256": "31f759df8901420f28e7d0ec4cb7cb065fb0125c74b8b0c40d913fb1069c8a88",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0304.rds",
+      "bytes": 3469680,
+      "sha256": "0003faf5e68ab9619a6772fed6daa71382b935d1edafaea9402e7e2d2bac8f81",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0238.rds",
+      "bytes": 1400991,
+      "sha256": "f89b3df1ae26604762861fdc5dbeba4968a587ad31d3fd94cda17d701bda17a5",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0212.rds",
+      "bytes": 1168727,
+      "sha256": "ec84d8bfa0441d5729c5ac5f0f5f84c22d64911a8ba9404e9f7baa888e39a65c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0389.rds",
+      "bytes": 2961553,
+      "sha256": "6551a6cc69ecd71a3d96530dc3887c3b90d1f211aea93df39fa1bb458bd21495",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0385.rds",
+      "bytes": 1371897,
+      "sha256": "2ba78d3413e81e7a99836cf1b7cc2854be9943b86847f0724125e213545eb9b0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0226.rds",
+      "bytes": 1169143,
+      "sha256": "e0632d7a1d88e223ea36aa63dce5d7433cb38119ecb0e4ca318c260560b9f378",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0271.rds",
+      "bytes": 3397872,
+      "sha256": "0e633643f8ab20f8ea97caaa9576225307d859b8213d230e95cb91f028078d94",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0202.rds",
+      "bytes": 1170391,
+      "sha256": "49dcc168476a72d568e3bbd1e65672d48572049026a61af877a478c46c1a7070",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0209.rds",
+      "bytes": 3154351,
+      "sha256": "6f8746daba54fdf2fe5ff8a03f345144fc46b3b195dd3291dca0c8bdf12ac550",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0439.rds",
+      "bytes": 7092417,
+      "sha256": "23ae10995b1e684a456974189931b4716bdcc8dafc82e6667bc88c7dcd56beee",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0229.rds",
+      "bytes": 1388927,
+      "sha256": "f42a7d2a457880b27bf17e41e765806ac54fd1c4f35b5206bbebadfb50cff08d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0311.rds",
+      "bytes": 5080104,
+      "sha256": "eb0b18ec707400d2ac7a4ea75c94d1857b1f5302f7df7074abcfd491daacd71d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0411.rds",
+      "bytes": 1397817,
+      "sha256": "c92a3a885341ee6dd1fa31127c39ca421f1c4f41b2978d93f0571a761a535800",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0083.rds",
+      "bytes": 1437558,
+      "sha256": "6ca46adc59d2beac9cb2e26af54c230baf59dedc0c53ddbba30a98e5b940fc3d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0208.rds",
+      "bytes": 2637151,
+      "sha256": "a8bb7a65c5060dc127cb79546b529d22c243da7a9545228a19b4bbef3844dde1",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0190.rds",
+      "bytes": 1425951,
+      "sha256": "253da92329a9d32a82a016beb205e4ab7daa05a0d9333ca62b245c5b1eb8de90",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0223.rds",
+      "bytes": 2565343,
+      "sha256": "be8a122cc5d22fbe1475d3dca66f249d84e29404bd5794f7fb8e80b648a98e87",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0159.rds",
+      "bytes": 1390230,
+      "sha256": "d70e584aed7db403af5af39ee445b1ff3662e1a3d986d3dcd0f456ee4d778697",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0298.rds",
+      "bytes": 1519960,
+      "sha256": "76e20dd078938514b4c427dba8bf134152803751cf9f36bfa2d949ddd98748ba",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0115.rds",
+      "bytes": 1437558,
+      "sha256": "dab27df9e1cf365e74d2051846c523084b99c6292d8a8cd8fbec7d4c96bc1183",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0241.rds",
+      "bytes": 3154351,
+      "sha256": "7b01f7c253b2c786ddd68eff9383cba569ce196ae59aac620735dcc649025b91",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0287.rds",
+      "bytes": 3397872,
+      "sha256": "b57b0bd2088b25a6fdffa61f5149628031586b6f58f6bb4c63cd802843fcf04d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0334.rds",
+      "bytes": 2167304,
+      "sha256": "ed6d9d77424912e009035cbe1b5ce6acbca4c02ae9efae731a1da43e421e9d08",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0197.rds",
+      "bytes": 1388927,
+      "sha256": "bbbc1193e757179075cf04ab330199ca12129012b63b548950d725e8e7616121",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0339.rds",
+      "bytes": 4982184,
+      "sha256": "aeb124d4b767df13ec6866d045542f13021f9b7b7b20b27b34b7241fe9f8ae49",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0095.rds",
+      "bytes": 1390230,
+      "sha256": "6810bab9d585fc115ce90740143133ace6ee00f50ae94c3138be4b79833db054",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0059.rds",
+      "bytes": 1390590,
+      "sha256": "7e26cd1a1ae98cbbf164ab589115fecc4838bb767ebecb5488d0834b92a257f8",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0342.rds",
+      "bytes": 1542840,
+      "sha256": "51850f9797ceec4c881e1e5a7999ce8db7730b7597d4fd7717b957527baaeee4",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0214.rds",
+      "bytes": 1193271,
+      "sha256": "e7ce75aa4c788af9299156f7c774d3af4560a341a3944ffcfc24e81dde47cf69",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0191.rds",
+      "bytes": 2565343,
+      "sha256": "f0dbc3043905a976fb4d47a8487a5e4e216e695bf852a793d7a62d69ece15a60",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0438.rds",
+      "bytes": 1791337,
+      "sha256": "1720dedb0e73d4fb3da32fb2bfe631b778ac6b3c00522397a046b6e98d5648b7",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0175.rds",
+      "bytes": 2565343,
+      "sha256": "b4380232c9f43bbf59ce3f67b83f2beae0d65e5294e8a260531e57c724a3dc94",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0398.rds",
+      "bytes": 2973617,
+      "sha256": "6873da18056c6f1881cb3a92cc6e898fb92cbd88bc4763b01c546cb3d50f9dd0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0290.rds",
+      "bytes": 1518712,
+      "sha256": "fdbd763f35f375760cfb896e3d1097da3bd717a64d1842f84192f959f21b6a17",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0230.rds",
+      "bytes": 2573503,
+      "sha256": "b003ec329691885512ea48ee6463350e935cec0a03005650caf8b1b5c6cab4c7",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0390.rds",
+      "bytes": 3988593,
+      "sha256": "b5b3dd55a2f09818f7158460aee02abf7bc0db76b67e470b603db3f419c17eea",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0349.rds",
+      "bytes": 2155240,
+      "sha256": "90b3d44512e43e317cd18f8aa60e8d422850a41526816a809833ac6643506c21",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0143.rds",
+      "bytes": 1390230,
+      "sha256": "c2689414af152eae98ab45b210949009e658441ecaab2a855d5e9f5b6833b23e",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0386.rds",
+      "bytes": 1767209,
+      "sha256": "890a181442ba1135b6a3f6f69e43a226a00526c3525f4a4b3e6a031ab2cf2b6f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0340.rds",
+      "bytes": 1518296,
+      "sha256": "0c90ea8d0a8337ecec5757d64b00c888a89d71679303c8f5b518c033de5bc8ee",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0253.rds",
+      "bytes": 1388927,
+      "sha256": "b180677ae1a54cfcb87f04f2e8a37885206f6c64e9281a2e43a04dc84e693041",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0305.rds",
+      "bytes": 5006664,
+      "sha256": "1858cc67d84cc0b8de2637555d73f4a0314863154f6403adf2d65b68bf8fbe53",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0087.rds",
+      "bytes": 1535478,
+      "sha256": "5c6ec1bd76bc289991efefc5c85c77c189599ef59fb9da00a831e4a45da697d2",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0294.rds",
+      "bytes": 3406032,
+      "sha256": "63ef275123330662ec5c8853c78cdbd36e5599ea68f5de9667abf267d13b437b",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0347.rds",
+      "bytes": 1044504,
+      "sha256": "ae6882304ccd21f9dc123abd23d3a4663956a1ca4cdc22d65e3fe2a42f58fc4d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0405.rds",
+      "bytes": 1361529,
+      "sha256": "2da1a5e85fe3a70761df6c822afd5a21591bdcc52d57e55d7ae6d2d6e6d2d64f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0418.rds",
+      "bytes": 1767209,
+      "sha256": "c1ee15b3377b8e32d85c079376ee31727bd568332f45c952713c10ee529511e1",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0275.rds",
+      "bytes": 4982184,
+      "sha256": "0f2ce1d9f275bb0c801165bf87c319f43fec7b50e4dd295e593a725facf8f340",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0254.rds",
+      "bytes": 1425951,
+      "sha256": "2608846579a6e02d6023f2edbdb4a57c4a0a6b45054cdac16c020f411791c61a",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0179.rds",
+      "bytes": 3129871,
+      "sha256": "14e87092bcdc370427fad13c9b70e147301390389bdfa5cc2508051af74f2820",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0338.rds",
+      "bytes": 3420720,
+      "sha256": "5d241a9d53958bd348875fefa503f58d3929dc1d22eb992b16075eddeac042a3",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0194.rds",
+      "bytes": 1169143,
+      "sha256": "df81dfbee14551360f58a154a2f4dcab379ee56a0b85602d4c280a334d394f35",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0262.rds",
+      "bytes": 2573503,
+      "sha256": "13201b54fd9b07b0bd2e7398c3bf5e7352bd04a8404504d8fdc594850643accf",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0080.rds",
+      "bytes": 1462038,
+      "sha256": "38d1172fb45500d88c76ea0e9fad24920eae869818f7db39ac83b536e9dceba6",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0047.rds",
+      "bytes": 1400990,
+      "sha256": "b692123f762417d9f5b7c83c499096afc01d2b8ca52af684e371a033454f2fa0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0368.rds",
+      "bytes": 4052241,
+      "sha256": "94093cc7acb41d709199cf6449164a2f8fab6e46ba30bdc911c70e5614bef163",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0151.rds",
+      "bytes": 1535478,
+      "sha256": "ad329e93fb763a903352f195aac42739a69c52820a400ee3a3e480d8df02b410",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0337.rds",
+      "bytes": 5006664,
+      "sha256": "952f7ca58444d3eb1179189463c3f7c3bedc24bb8528ae37bc27b6fb71832f65",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0127.rds",
+      "bytes": 1390230,
+      "sha256": "4a6cd490d7ddd5fb6c2d404cf6e6b2d20dcbbb877aea52b593c392ccaf98322e",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0274.rds",
+      "bytes": 3420720,
+      "sha256": "e2571e9fec5332f6b44de5f4279325b9d41ff52229adba0b70d60f955c198806",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0435.rds",
+      "bytes": 6994497,
+      "sha256": "1a537e1451bd441b362f217a705526e5a30550cdc3087a6f2d825bb413c864c7",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0030.rds",
+      "bytes": 2167303,
+      "sha256": "faababd1a3886bda58c4280153b677f13970b8b2aed8a11317891336a5fed809",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0372.rds",
+      "bytes": 1766793,
+      "sha256": "a742f22cdafe276765fc4560cf870603bea87ba8fe19ee8b29fd8969846a8b39",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0189.rds",
+      "bytes": 1388927,
+      "sha256": "fadda89b81dc8861a30625e8e97bb6705d8addcdd9b50557a2bbeaf3311e7b13",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0029.rds",
+      "bytes": 1400990,
+      "sha256": "27a0a24d1bff7f8951ac5bbf69d45de9c42c6713cc919ee285e47fe4568857b4",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0436.rds",
+      "bytes": 1766793,
+      "sha256": "237f8be7e6d6f5c9bab5af5579f228359ade3ef8e1a9f5092c1d08edf9f26d39",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0170.rds",
+      "bytes": 1170391,
+      "sha256": "aa9953fe8670c44c82d37017ec667fb48377037f2176365f93d8737ca012d84c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0302.rds",
+      "bytes": 2167304,
+      "sha256": "4c69798d5f5d7e8ef68b9f8836a183776f00bf6164b89f25d2a4cb6e684a0a04",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0066.rds",
+      "bytes": 2167303,
+      "sha256": "b074b1799b835eeacf9161a0517bca2e0084defc637f81f6afc536e1dfaa8cf7",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0381.rds",
+      "bytes": 2961553,
+      "sha256": "6e1eaac2d806f3a76d1f5bf95bd0c21b8dd254f7d34f980dc9c6c0e76b9b1136",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0449.rds",
+      "bytes": 1371897,
+      "sha256": "c88e5f5bb5bf67a6265d0d3185320cad7849992cd1e9d6170c96e8b23e7dd5d3",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0362.rds",
+      "bytes": 1768457,
+      "sha256": "6aa81e6e373d36c3d74e96c5514d50b7d010a19cdc6f32aafbf13a41dcc14d5f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0081.rds",
+      "bytes": 1462038,
+      "sha256": "323d5f392b75a376953eeec97718eeedbb90c6d690eabca500dbf38e3a95dd47",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0318.rds",
+      "bytes": 2192264,
+      "sha256": "247006ecd7a74785bf6514033ab8d335aa3dc8a4aa4dcff6390f48a0764312fa",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0283.rds",
+      "bytes": 1044504,
+      "sha256": "8ee3b76aae794fc3743ad310ae2fdc99ef0f7b9478e80f79ba22b1e3315b0636",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0036.rds",
+      "bytes": 2192263,
+      "sha256": "27bde276508540cc914ac03d96292c6c71250f5548efd37ad9c3a01df7b1d946",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0375.rds",
+      "bytes": 7092417,
+      "sha256": "d32e626f18221082672a6178ff36444c74c4026a4fed6e594cc9a9f0446a6b0d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0431.rds",
+      "bytes": 3980433,
+      "sha256": "4c35bb2f3e0c9b25631e7f1acd674d6cae7cbdeadb05f55d867518cf89620913",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0383.rds",
+      "bytes": 3980433,
+      "sha256": "0e9a3d42de95bfdfa6b2c592d2004792ca9bbf086c9dc1a7722c4d3986556186",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0258.rds",
+      "bytes": 1169143,
+      "sha256": "91c407cf98cb55f505d68beba251abe0b1340340272dc655d8f42e5a7c1be0d5",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0134.rds",
+      "bytes": 1398390,
+      "sha256": "6569e50cb7df1bfa17ec93506e874126313f06910133140b18c3e157b58a6a06",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0261.rds",
+      "bytes": 1388927,
+      "sha256": "650eee9dc1bee7071d068203bd204a607ccaa4415160e6ad9502f1ed852a509d",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0394.rds",
+      "bytes": 1768457,
+      "sha256": "93c75b0f3c3de53197a1c2645fdaa7f7bbc2df84f741291b61a861c3346e043f",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0332.rds",
+      "bytes": 1006056,
+      "sha256": "24ae7113c929c10ce67bd1d52a264b7c5d6dcc5d947042d8fa3d01a583734ac2",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0353.rds",
+      "bytes": 1018584,
+      "sha256": "32432ccbb84856f192f0eddbc0a8fb71f72d777c90177778cbfdd2b549688845",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0330.rds",
+      "bytes": 1519960,
+      "sha256": "ee2e45aa4143957b43a491ecc6a1f6209c24d98c5fd2c443ba83f8727c4121c0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0450.rds",
+      "bytes": 1767209,
+      "sha256": "2347a4d99e7f42e2ed3fe38117d539b14786af1d6580b03c49aabcc4946b90bb",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0300.rds",
+      "bytes": 1006056,
+      "sha256": "34c7a889e38c244b8827c8dd5df07a62a81d0ea294b04b88c9f63ff58c07cbaa",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0053.rds",
+      "bytes": 1425950,
+      "sha256": "c4728f06b905b33ec3f70cf44553199ae0170fbd9a342f8f79bd2b440658c0c0",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0183.rds",
+      "bytes": 3227791,
+      "sha256": "94ca90ce7d6aea7c486939ef77b3647d952f4913eb46436c49dfd8f2f2bcfff1",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0367.rds",
+      "bytes": 3980433,
+      "sha256": "20491b0b52ae796c97316b43a9bc67881d6678cbc2b26cfd3d3df138f456160b",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0400.rds",
+      "bytes": 4052241,
+      "sha256": "da9c29377caf5b1bbb319cfb681e6a4708a2850531353a1a529ea18ff7f9549b",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0277.rds",
+      "bytes": 1008216,
+      "sha256": "0606cf291bb4a6745a43ae3137eda6fe72fdefc84df5203502908293593aa9f9",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/.rsync-tmp/part_0273.rds",
+      "bytes": 5006664,
+      "sha256": "c1b3c2ee5c812a5f2c98d4dcfa515818fa721989c6ab84d5c14a55cf41dce89c",
+      "kind": "Unused temporary serialization; canonical bank/maps/extensions verified"
+    }
+  ],
+  "freed_bytes": 2987090388,
+  "posterior_removed": false,
+  "source_manifest_sha256": "149a991835b315d3d794e2eb00a6d0a1f0b932812499cc6c890164efa64de828",
+  "observed_utc": "2026-10-25T03:37:21.695099+00:00"
+}

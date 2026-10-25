@@ -1,0 +1,41 @@
+{
+  "complete": true,
+  "rows": [
+    {
+      "functional": "variance",
+      "mean_rank": 0.4382659432968376,
+      "ecdf_sup_deviation": 0.11707630442418993
+    },
+    {
+      "functional": "fitted_mean",
+      "mean_rank": 0.4717671773728489,
+      "ecdf_sup_deviation": 0.06718061711304502
+    },
+    {
+      "functional": "joint_likelihood",
+      "mean_rank": 0.5285131858145996,
+      "ecdf_sup_deviation": 0.08094588251740797
+    },
+    {
+      "functional": "architecture",
+      "mean_rank": 0.46673824847490325,
+      "ecdf_sup_deviation": 0.09404844507174903
+    },
+    {
+      "functional": "period",
+      "mean_rank": 0.4930656621031085,
+      "ecdf_sup_deviation": 0.0483454920932854
+    },
+    {
+      "functional": "global",
+      "mean_rank": 0.531584634244091,
+      "ecdf_sup_deviation": 0.07807016512771991
+    },
+    {
+      "functional": "slab",
+      "mean_rank": 0.47459141301680574,
+      "ecdf_sup_deviation": 0.06432792138693899
+    }
+  ],
+  "scope": "Descriptive ranks on the same 200 fixed-design cases; not an additional calibration batch"
+}

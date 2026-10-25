@@ -1,0 +1,69 @@
+# Privileged training-span audit, never model/period selection or forecasting.
+snapshot<-Sys.getenv('AUTODESN_SOURCE_SNAPSHOT');stopifnot(nzchar(snapshot))
+for(p in list.files(file.path(snapshot,'R'),pattern='[.]R$',full.names=TRUE))source(p,local=.GlobalEnv)
+r<-'validation/autodesn/remediation';base<-'validation/autodesn/nonlinear_heteroscedastic'
+registration<-jsonlite::fromJSON(file.path(r,'evidence/representation_capacity_registration.json'))
+source_id<-digest::digest(file=file.path(snapshot,'manifest.json'),algo='sha256')
+d<-file.path(r,'artifacts/representation_capacity',source_id);dir.create(d,recursive=TRUE,showWarnings=FALSE)
+raw<-file.path(base,'artifacts/raw_bank');contract<-readRDS(file.path(raw,'contract.rds'))
+audit<-read.csv(file.path(raw,'specification_audit.csv'));indices<-which(audit$admitted)
+stopifnot(nrow(audit)==456L,length(indices)==426L,all(audit$finite))
+first<-readRDS(file.path(raw,'parts/part_0001.rds'))$base
+stopifnot(first$n==2000L,identical(first$keep_idx,501:2500),length(first$history)==2500L)
+truth<-read.csv(file.path(base,'input/dgp_truth.csv'),nrows=2500L)
+stopifnot(identical(truth$time,1:2500),identical(truth$y,first$history))
+mu<-(truth$conditional_mean[first$keep_idx]-first$preprocessing$center)/first$preprocessing$scale
+response<-first$y
+L<-vapply(1:90,function(k)first$history_scaled[first$keep_idx-k],numeric(first$n))
+L<-.autodesn_feature_fit(L,TRUE,1e-8)$features
+S<-.autodesn_feature_fit(.ext_fourier(first$keep_idx,60,16),TRUE,1e-8)$features
+counts<-table(audit$D[indices]);weights<-1/(length(counts)*as.numeric(counts[as.character(audit$D[indices])]))
+id<-digest::digest(list(raw_bank_id=contract$id,registration=registration,source=source_id,
+  truth_prefix=digest::digest(truth,algo='sha256')),algo='sha256')
+cp<-file.path(d,'contract.rds')
+if(file.exists(cp))stopifnot(identical(readRDS(cp)$id,id)) else saveRDS(list(id=id,source_id=source_id,registration=registration),cp)
+rows<-geometries<-part_sha<-vector('list',length(indices))
+bound<-function(X){
+  s<-svd(X,nu=min(dim(X)),nv=0L);cutoff<-max(dim(X))*.Machine$double.eps*s$d[1]
+  keep<-which(s$d>cutoff);U<-s$u[,keep,drop=FALSE]
+  project<-function(y)as.vector(U%*%crossprod(U,y))
+  w<-s$d^2/sum(s$d^2);positive<-w>0
+  list(columns=ncol(X),rank=length(keep),condition_number=s$d[1]/tail(s$d,1),
+    nonzero_condition_number=s$d[1]/min(s$d[keep]),
+    entropy_effective_rank=exp(-sum(w[positive]*log(w[positive]))),
+    conditional_mean_training_span_rmse=sqrt(mean((mu-project(mu))^2))*first$preprocessing$scale,
+    observed_training_span_rmse=sqrt(mean((response-project(response))^2))*first$preprocessing$scale)
+}
+for(m in seq_along(indices)){
+  j<-indices[m];path<-file.path(d,sprintf('model_%04d.rds',m))
+  part_path<-file.path(raw,'parts',sprintf('part_%04d.rds',j))
+  sha<-digest::digest(file=part_path,algo='sha256')
+  if(file.exists(path)){
+    x<-readRDS(path);stopifnot(identical(x$contract_id,id),identical(x$part_sha256,sha))
+  } else {
+    part<-readRDS(part_path);stopifnot(identical(part$bank_id,contract$id),isTRUE(part$audit$admitted))
+    g<-.autodesn_feature_fit(part$model$X[,-1L,drop=FALSE]*part$model$divisor,TRUE,1e-8)
+    X0<-cbind(intercept=1,g$features);X1<-cbind(X0,L);X2<-cbind(X1,S)
+    result<-lapply(list(F0=X0,F1=X1,F2_known_period60=X2),bound)
+    table<-do.call(rbind,lapply(names(result),function(space)data.frame(model=m,candidate=audit$candidate[j],
+      depth=audit$D[j],prior_weight=weights[m],space=space,saturation_fraction=part$audit$saturation_fraction,
+      as.data.frame(result[[space]]))))
+    x<-list(contract_id=id,rows=table,geometry=g[c('feature_center','feature_scale','active_features','raw_d')],part_sha256=sha)
+    temporary<-paste0(path,'.writing');saveRDS(x,temporary);stopifnot(file.rename(temporary,path))
+  }
+  rows[[m]]<-x$rows;geometries[[m]]<-x$geometry;part_sha[[m]]<-list(path=part_path,sha256=sha)
+  if(m%%25L==0L){cat('Completed capacity audit',m,'of',length(indices),'models\n');flush.console()}
+}
+geometry_id<-digest::digest(geometries,algo='sha256');stopifnot(identical(geometry_id,registration$geometry_sha256_expected))
+table<-do.call(rbind,rows);write.csv(table,file.path(r,'evidence/representation_capacity.csv'),row.names=FALSE)
+summary<-do.call(rbind,lapply(split(table,table$space),function(t)data.frame(space=t$space[1],models=nrow(t),
+  prior_weighted_mean_span_rmse=sum(t$prior_weight*t$conditional_mean_training_span_rmse),
+  minimum_span_rmse=min(t$conditional_mean_training_span_rmse),median_span_rmse=median(t$conditional_mean_training_span_rmse),
+  maximum_span_rmse=max(t$conditional_mean_training_span_rmse),median_rank=median(t$rank),median_columns=median(t$columns),
+  median_condition_number=median(t$condition_number))))
+write.csv(summary,file.path(r,'evidence/representation_capacity_summary.csv'),row.names=FALSE)
+jsonlite::write_json(list(complete=TRUE,models=426L,spaces=3L,training_rows=c(501L,2500L),heldout_used=FALSE,
+  conditional_mean_truth_used=TRUE,known_period_probe_privileged=TRUE,raw_bank_id=contract$id,contract_id=id,
+  source_id=source_id,feature_geometry_sha256=geometry_id,raw_part_sha256=part_sha,
+  production_qualified=FALSE,scope=registration$statistical_scope),file.path(r,'evidence/representation_capacity.json'),pretty=TRUE,auto_unbox=TRUE)
+print(summary)

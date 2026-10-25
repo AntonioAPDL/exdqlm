@@ -1,0 +1,14 @@
+{
+  "complete": true,
+  "passed": true,
+  "chains": 4,
+  "retained_per_chain": 32000,
+  "joint_functionals": 9,
+  "maximum_rhat": 1.000504959798862,
+  "minimum_bulk_ess": 9586.859873185093,
+  "minimum_tail_ess": 4486.966349238785,
+  "moments_passed": true,
+  "scope": "Complete native default depth-one leaf grammar, all parameters/noise integrated; native prior-independence MH against independent normalized-prior dense integration. Not full depth-four grammar or SMC qualification.",
+  "production_qualified": false,
+  "source_sha256": "14ca95ef9c394030c75e3e514dd7c2e771015c4a75ae6c898acea62d1b4e144b"
+}

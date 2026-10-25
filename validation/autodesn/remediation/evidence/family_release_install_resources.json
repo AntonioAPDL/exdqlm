@@ -1,0 +1,21 @@
+{
+  "command": [
+    "R",
+    "CMD",
+    "INSTALL",
+    "--library=validation/autodesn/remediation/artifacts/family_library",
+    "."
+  ],
+  "cap_trigger": null,
+  "max_seconds": 300.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 38.53052124199894,
+  "peak_child_rss_kib": 438468,
+  "sampled_peak_process_tree_pss_kib": 497738,
+  "sampled_peak_environment_cgroup_anon_bytes": 4322967552,
+  "user_seconds": 37.825034,
+  "system_seconds": 0.631257,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

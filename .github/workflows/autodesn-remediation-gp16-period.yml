@@ -1,0 +1,44 @@
+name: AutoDESN remediation GP16 with invariant period moves
+on:
+  push:
+    branches: [feature/autodesn-remediation-20261023]
+    paths:
+      - validation/autodesn/remediation/remote_gp_requests/budget16_period10.json
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gp16-period:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [7366221, 7366222, 7366223, 7366224]
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      JULIA_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            R
+            src
+            validation/autodesn/remediation
+            validation/autodesn/nonlinear_heteroscedastic/input
+          sparse-checkout-cone-mode: true
+      - name: Prepare exact Julia and native dependency pins
+        run: python3 validation/autodesn/remediation/remote_gp.py prepare --runtime "$RUNNER_TEMP/autodesn-gp"
+      - name: Independent 16-particle calculation with period rejuvenation
+        continue-on-error: true
+        run: |
+          python3 validation/autodesn/remediation/launch_gp.py \
+            --rows 2000 --particles 16 --seed ${{ matrix.seed }} --period-moves 10 \
+            --julia "$RUNNER_TEMP/autodesn-gp/julia-1.10.10/bin/julia" \
+            --project "$RUNNER_TEMP/autodesn-gp/AutoGP.jl" \
+            --depot "$RUNNER_TEMP/autodesn-gp/depot"
+      - name: Preserve numeric outputs and compressed inference log
+        if: always()
+        run: python3 validation/autodesn/remediation/remote_gp_budget.py --particles 16 --seed ${{ matrix.seed }} --period-moves 10

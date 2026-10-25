@@ -1,0 +1,19 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/artifacts/drivers/grouped_reference_0cb0af64321afb5f0d52e6c3a5a5404e6de492de9b0144bc3a7348386d9d825e.R"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1200.0,
+  "max_cgroup_anon_bytes": null,
+  "exit_code": 0,
+  "elapsed_seconds": 323.80265508099546,
+  "peak_child_rss_kib": 208144,
+  "sampled_peak_process_tree_pss_kib": 202555,
+  "sampled_peak_environment_cgroup_anon_bytes": 1068183552,
+  "user_seconds": 319.569905,
+  "system_seconds": 3.029447,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

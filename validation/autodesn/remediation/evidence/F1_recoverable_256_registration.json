@@ -1,0 +1,25 @@
+{
+  "registered_utc": "2026-10-24T23:10:52.179468+00:00",
+  "registered_before_new_production": true,
+  "scope": "Execution recovery only; same normalized prior, frozen proposals, Markov transitions, target and full retained budget",
+  "target_id_expected": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "retained_per_chain": 256000,
+  "warmup_per_chain": 64000,
+  "chains": 4,
+  "workers": 4,
+  "checkpoint_interval_sweeps": 4000,
+  "first_absolute_pause": 8000,
+  "second_absolute_pause": 16000,
+  "prior": {
+    "tau0": 0.001,
+    "slab_scale": 1,
+    "slab_df": 4
+  },
+  "proposal": "Original full-vector128k training guide; failed coordinate16 trial is not used",
+  "statistics_cache_sha256": "3f8a738d8949d93c915e88c8dc4e74c33e6eef502b3530d887ca43d21f867e58",
+  "per_invocation_seconds_cap": 7200,
+  "anonymous_memory_cap_bytes": 6400000000,
+  "gates_unchanged": true,
+  "forecast_allowed": false,
+  "independent_replications_added": 0
+}

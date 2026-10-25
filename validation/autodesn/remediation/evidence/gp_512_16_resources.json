@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/workspace/scratch/9cf6195923f9/runtime/julia_native/julia-1.10.10/bin/julia",
+    "--startup-file=no",
+    "--project=/workspace/scratch/9cf6195923f9/runtime/AutoGP.jl",
+    "validation/autodesn/remediation/gp_run.jl",
+    "512",
+    "16",
+    "2266022"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 429.88669408200076,
+  "peak_child_rss_kib": 792700,
+  "user_seconds": 408.524157,
+  "system_seconds": 21.322573,
+  "scope": "Linux wait4 foreground child; completion observed, not a background claim"
+}

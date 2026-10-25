@@ -1,0 +1,23 @@
+{
+  "registered_utc": "2026-10-25T03:50:35.846395+00:00",
+  "particles": 64,
+  "rows": 2000,
+  "seeds": [
+    7366321,
+    7366322,
+    7366323,
+    7366324
+  ],
+  "period_moves": 0,
+  "Julia_threads": 2,
+  "BLAS_threads": 1,
+  "max_process_seconds": 14400,
+  "max_cgroup_anon_bytes": 6100000000,
+  "native_revision": "2ad372db2b8bea176e3b32a769bfb5d6cff80866",
+  "target_prior_schedule_and_moves_unchanged": true,
+  "reason": "Native32 complete but corrected log-evidence range222.4485 and evidence-replica ESS1; execute the predeclared64-particle control with four fresh replicas. The separately registered period-rejuvenation cohort is not pooled with this control.",
+  "wall_cap_extension": "Twice the original7200-second cap, registered before any64-particle outputs; worst completed32-particle wall6285s. Individual caps/failures and actual costs remain reported.",
+  "heldout_outcomes_read": false,
+  "forecasts_allowed": false,
+  "scope": "Full native target, same defaultdepth4 prior/SMC schedule/move kernels. All replicas retained; no best-run or heldout hyperparameter selection."
+}

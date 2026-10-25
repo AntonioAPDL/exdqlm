@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "seed": 7366122,
+  "particles": 32,
+  "training_rows": 2000,
+  "wall_seconds": 5183.368155051,
+  "inference_seconds": 5116.959908008575,
+  "peak_PSS_KiB": 3847851,
+  "full_inference_log_bytes": 19057,
+  "gzip_crc_verified": true,
+  "posterior_qualified": false,
+  "cohort_complete": false
+}

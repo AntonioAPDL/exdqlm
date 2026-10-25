@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "reference_commit": "cccb22d595efb74445fff8d6cb855c5c7076f7f5",
+  "bit_identical_cases": 4,
+  "full_trace_and_matching_joint_states_identical": true,
+  "replicates": 3,
+  "timings": [
+    {
+      "storage": "data.frame",
+      "inference_elapsed_seconds": 11.401
+    },
+    {
+      "storage": "matrix",
+      "inference_elapsed_seconds": 8.897
+    }
+  ],
+  "scope": "Paired small-target public sampler storage benchmark; other training jobs active; not a whole-study speedup"
+}

@@ -1,0 +1,16 @@
+{
+  "complete": true,
+  "source_snapshot": "b7b64d262a397272a05a19fbd2ff379b1d5f1ec6a2d44f10f2e0f16de6b69f4b",
+  "files": [
+    {
+      "path": "validation/autodesn/remediation/train_local_proposal.R",
+      "before_sha256": "752bb65cbd93a7e4e202193388e6bfcd4c7a0dcc144aff258d3020bbef36d25d",
+      "recovered_sha256": "1ac1abdbbcc95cc966a3333462ccb6dfb00d7acd2d66cf92a03cd259ba1f9b00"
+    },
+    {
+      "path": "validation/autodesn/remediation/launch_local_training.py",
+      "before_sha256": null,
+      "recovered_sha256": "76c1029b1267cecbcde782bcf2405f766bb5791b8b9a046849bab32f04f478ce"
+    }
+  ]
+}

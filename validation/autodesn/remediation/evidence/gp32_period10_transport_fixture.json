@@ -1,0 +1,19 @@
+{
+  "complete": true,
+  "verified": {
+    "verified": true,
+    "seed": 9999994,
+    "checkout_sha": "680c6f5907eead9297ecde1d5de121876905052f",
+    "bundle_sha256": "6abd3cb10c1ad30b3983d4776fa0e5acb75c51e57b39d47301d770eb939efcb4",
+    "members": 16,
+    "posterior_qualified": false,
+    "extracted": false
+  },
+  "period_moves": 10,
+  "particles": 32,
+  "mock_executable": true,
+  "actual_gp_inference_executed": false,
+  "incomplete_mock_not_promoted": true,
+  "resource_wall_cap_verified": 14400,
+  "scope": "New32-particle period-policy CLI/sparse-checkout/log export and checksum decode fixture; not a real GP calculation."
+}

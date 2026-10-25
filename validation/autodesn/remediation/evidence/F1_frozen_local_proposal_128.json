@@ -1,0 +1,38 @@
+{
+  "frozen_before_production": true,
+  "training_only": true,
+  "posterior_qualification_claimed": false,
+  "source_phase": "production_128000_cache1",
+  "training_counts": [8, 6, 2, 15, 10, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 12, 82, 27, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 2797, 2, 0, 0, 1, 1, 13, 0, 5, 0, 0, 1, 0, 4, 6, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 1, 0, 0, 0, 2, 2, 0, 769, 15, 0, 0, 0, 0, 2, 0, 10, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 6, 5, 0, 990, 2, 0, 1, 0, 0, 6, 0, 2, 0, 0, 0, 0, 11, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 3, 0, 715, 2, 0, 0, 0, 0, 149, 0, 6, 0, 0, 1, 0, 3, 10, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 19, 4, 0, 305, 21, 0, 0, 0, 0, 54, 0, 5, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 122, 7, 0, 238, 3, 0, 0, 0, 0, 82, 1, 0, 0, 1, 1, 0, 15, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 12, 0, 157, 5, 0, 0, 0, 0, 162, 0, 12, 0, 0, 0, 0, 12, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 18, 5, 0, 86, 22, 0, 0, 0, 0, 32, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 137, 4, 0, 59, 7, 0, 0, 1, 0, 49, 0, 3, 0, 0, 1, 7, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 5, 0, 112, 3, 0, 1, 0, 0, 78, 0, 8, 0, 4, 17, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 22, 6, 0, 90, 30, 0, 0, 0, 0, 15, 0, 11, 1, 2, 0, 3, 0, 0, 0, 0, 0, 0, 1, 0, 0, 153, 8, 0, 35, 3, 0, 0, 0, 0, 27, 0, 1],
+  "sources": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_1.rds",
+      "sha256": "78d3a79fe2e473a535bf6ca34ff82617b34a6696194520de45869a78ee091dbf"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_2.rds",
+      "sha256": "ec7fe3eaa659cfa78514d04f8e92480e151e84ddbcaa5a2e280b18e8253b98da"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_3.rds",
+      "sha256": "8700f842bb0ac1e34492af1f08c7c3f983885ca3a7a6ba41a6012e97911a4d9c"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_4.rds",
+      "sha256": "63fd326715f2323ddc9067479c12a17af7180e194727aed64104ae4c983ff9b1"
+    }
+  ],
+  "specification": {
+    "kernel": "whole-vector prior / product marginal Gaussian KDE mixture",
+    "prior_weight": 0.2,
+    "maximum_centers": 64,
+    "minimum_training_states": 24,
+    "slope_range": [-1, 0],
+    "bandwidth_floor": 0.15
+  },
+  "path": "validation/autodesn/remediation/artifacts/F1/frozen_local_proposal_128.rds",
+  "sha256": "d0dfadc82569a138431064d1627c611fa8b2fab12fc85707072f3ef130d20b5b",
+  "bank_id": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63",
+  "models_with_kernel": 27,
+  "models_using_prior_only": 399
+}

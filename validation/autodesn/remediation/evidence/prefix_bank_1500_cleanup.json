@@ -1,0 +1,640 @@
+{
+  "complete": true,
+  "canonical_files_verified": true,
+  "removed": [
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/.inference_bank.rds.Bi0i2G",
+      "bytes": 266862592,
+      "sha256": "fdb6e1d42c7b649e96c839cff39035c9ff8aea95c707fda124679751a32067b6",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/.inference_bank.rds.Bi0i2G.Xiq4xg",
+      "bytes": 239599616,
+      "sha256": "1113beda75bf46cc8d6fba32faf90ce49e30a90f5836bb77e7f21bcc0370b7f0",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/standardized_bank/.bank.rds.OpliGG",
+      "bytes": 262930432,
+      "sha256": "8783d136d9f8d480a7bed3a8a488a0fb7bdc2d73c9f75d9a4802d6bfc1e4ed11",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/standardized_bank/.bank.rds.OpliGG.zKGaKh.7LaurB",
+      "bytes": 78905344,
+      "sha256": "9ddc2bc942e938f37a8fd5eedb303363cb74ef07c4e1a6d5aa84f2c9fa1cf5e5",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/standardized_bank/.bank.rds.MuO4hT",
+      "bytes": 269221888,
+      "sha256": "c65321da07cf9d9b70cdc9d0b2ff62d59d17055d8e7e9b0c0b418de167238531",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/standardized_bank/.bank.rds.OpliGG.zKGaKh",
+      "bytes": 241172480,
+      "sha256": "80f1752e371fe2793dc1f94cea9592ab99edd1ac99122e168570ac7314f288a8",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/.bank.rds.L0B8Jx",
+      "bytes": 253493248,
+      "sha256": "7adecfd859d265635fe039e1341265e5953b08db35e1afe4062e40bfbc270d74",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/.bank.rds.L0B8Jx.F2WvdP",
+      "bytes": 171704320,
+      "sha256": "79b42f1b6040e66da3690690b0256c2b79f9c4161343dcda22f7c0221e377965",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0326.rds",
+      "bytes": 2526032,
+      "sha256": "a35a036c1864b99113fc67094b17d99ffef2c18ca724a7c96699b60e80d0bf80",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0024.rds",
+      "bytes": 1552903,
+      "sha256": "7d0cde14e501c4d67db714894a8e62475db2704f11ac77e1e1adeac2174388ea",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0145.rds",
+      "bytes": 1058038,
+      "sha256": "b32935f7a756f663f2d9199d17e99dc7ae8eedbd5924450e815abfb8e124a053",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0035.rds",
+      "bytes": 1021950,
+      "sha256": "c992eb016f1b1dda6c35622d8b09c866139197a6fc84fe49e1b83abd1817f111",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0308.rds",
+      "bytes": 1078296,
+      "sha256": "7031177b4ee32a8a98577e248483aafe25bc462532104f7f4b708cbb507f1a69",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0319.rds",
+      "bytes": 2517872,
+      "sha256": "4903b5f50e04f509584eb7c8d023a20de6512b6bf8c3069ebd40a59ae62114d8",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0222.rds",
+      "bytes": 1021951,
+      "sha256": "5c6c532f00b990d73c20051f896c695b7cce885dd9ace1479d60f8524f465f93",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0247.rds",
+      "bytes": 2423791,
+      "sha256": "d620168e812600c191e9ded701d2a80ba31a753985b3349655d547b8e1009d1d",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0012.rds",
+      "bytes": 1563303,
+      "sha256": "652e8e22fbfe363be6acd964bd2c9ce107d9530cc256ae5645e0ecc8ae8692ef",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0006.rds",
+      "bytes": 1552903,
+      "sha256": "79f42188ce7cefcc8bd68e5885d6c2dca3c5f951c84544d76545e4be79712898",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0239.rds",
+      "bytes": 1881343,
+      "sha256": "f17b11edd5c2fa15e9532e12eb13aea10794be37db78cee4cd84249c32a4ed13",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0278.rds",
+      "bytes": 1102840,
+      "sha256": "4cf77ad5d5adcd6a70c1c4c47c7c3e642ae74896b7217bb8b7312b403a1aaaa6",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0322.rds",
+      "bytes": 1078712,
+      "sha256": "453fa11e8171931fcf2d5e2f5e5d7d6dca5cabf9e3f7c761e0f034d2dcf511c5",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0240.rds",
+      "bytes": 1953151,
+      "sha256": "27c65608e2ce83bc2eb8680184cc4af3f722044858fda0b33749057400ae41c0",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0207.rds",
+      "bytes": 1881343,
+      "sha256": "90f37e14bdb6d88f122d4bf37eacad9a382a115e78deb065d8a134ae6152a571",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0048.rds",
+      "bytes": 1563303,
+      "sha256": "668935d5a0baa882272ce27ba6bc3ea35b2eecfa9e48e61cc1128c55695b46de",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0177.rds",
+      "bytes": 2350351,
+      "sha256": "86e2b539f691233571c8f92306b18b089db4282f464a6d140e18a7f525ab953f",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0113.rds",
+      "bytes": 1058038,
+      "sha256": "fedc9a959c8ff6a3279200726b8bcf39574d21ab57b481a18bb47a2e43934cd9",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0243.rds",
+      "bytes": 2325871,
+      "sha256": "005805218d60c34900568fde3cd0594abc0d45b4efdadd468a18f60882b7d873",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0042.rds",
+      "bytes": 1552903,
+      "sha256": "3bc0652f5b5ab1703a0f71d276b56b7dae5f8bf870dfe09afe2cffc0f5470e68",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0293.rds",
+      "bytes": 1551240,
+      "sha256": "20217abb334f9948b2450caea1dbe4a046c1efadffe6a6dae165656a7c122214",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0211.rds",
+      "bytes": 2325871,
+      "sha256": "f1c1210cb2b83b888b838646ca194717c97d78bb22a183d18118237332e9b83b",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0286.rds",
+      "bytes": 1588264,
+      "sha256": "fa874ee8e22721b66896d74e59b54579b1cb54c578da0b2bb3657503b73831d5",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0270.rds",
+      "bytes": 1563304,
+      "sha256": "a0c2288c62647a0157c427db6c312d245deff7cb052efc9167808a55f29761c8",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0017.rds",
+      "bytes": 1021950,
+      "sha256": "4da638c2210832489cb52bce61a743fa143eb9a84b99f5a764a04251d1a1b31b",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0303.rds",
+      "bytes": 2517872,
+      "sha256": "dc7129255204f959c01a3be122e2e3205f41781170bff2725070924fdca10efe",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0146.rds",
+      "bytes": 1009078,
+      "sha256": "adb14f6e657f27a1a398d37f5c026bc75ed41cbda6cce3e36c5dbd66041340aa",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0285.rds",
+      "bytes": 1551240,
+      "sha256": "65e24bfb4b2619e9fe250d6f29fe0aa5b0b97635284c60535399f6ee4a0b3a97",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0082.rds",
+      "bytes": 1009078,
+      "sha256": "db9e15362254e8ddc937053fd09b97df0e79a5a015bf6dd78b4089b01365bc90",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0060.rds",
+      "bytes": 1552903,
+      "sha256": "231c89bf43faad2530c19037a632ee01fc393a349a5729ac4dba7df20dbabfe5",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0317.rds",
+      "bytes": 1551240,
+      "sha256": "60a71c8c85ba4727107a1a9b1735bec6b74390119be1f149d58430b2e02da5c5",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0266.rds",
+      "bytes": 1079960,
+      "sha256": "6e5eb311a0c8414d505f972bfdf8d2706c1a35312db205caef09a21c7a98989c",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0144.rds",
+      "bytes": 1058038,
+      "sha256": "6d85d6a1428df9f7850075c51b8e09d9fadc23df71341361db6e1d164fb667e8",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0112.rds",
+      "bytes": 1058038,
+      "sha256": "5b42aac2eca444cc56a85ecc1092582ac347a97c8ce635f69f350b872eca106f",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0279.rds",
+      "bytes": 3876104,
+      "sha256": "bc259fb3bbfade33d344b4c85a8734b11e2082f3f02c20c866fc6d40889b5f98",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0335.rds",
+      "bytes": 2517872,
+      "sha256": "cc5c2ee64a97953d037ee96d69fd8bf641fd1c572f97cfde78e35653de776f8e",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0198.rds",
+      "bytes": 1889503,
+      "sha256": "125d04343382c9714bd4c2fb881b04b3dfa1d4627ee429182b7e7ec366ce2160",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0119.rds",
+      "bytes": 1131478,
+      "sha256": "232c36b8adcf0c93b3552595ab7d9da69f9adef09dc9360367b84ef915008353",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0072.rds",
+      "bytes": 1588263,
+      "sha256": "d5b273ac8889b4487f23d51c9def87a423ca1ae7f43643832d79aea5298f9259",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0306.rds",
+      "bytes": 2540720,
+      "sha256": "81686048eb71cbdf57ec2ff1d28837e44fdc5e65d702602236fa367879fc1296",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0325.rds",
+      "bytes": 1551240,
+      "sha256": "e87d1d63e9009a04cb906aba12d4abfa6fd8a3b23b92cd40916bb97d4bc562ec",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0114.rds",
+      "bytes": 1009078,
+      "sha256": "ab5b11fba59fc65bcaf0f69a1b5c4a20b8114f6b6bb1e18720e249c096c6944b",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0071.rds",
+      "bytes": 1021950,
+      "sha256": "8cf9967668d20407133564c81984d18d5af74ee0bcd818601c94a3c65ba9811a",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0018.rds",
+      "bytes": 1588263,
+      "sha256": "1a5f638f57300942bbd99b47c5d98ed0dc6308b85f4e3be2c162fe07d2f2d0f3",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0210.rds",
+      "bytes": 1904191,
+      "sha256": "94db583bc26be11cebd080951ce9745e8728dae1dde2e8005088ef408f222517",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0276.rds",
+      "bytes": 1078296,
+      "sha256": "d59437fb8d12a1482d5e46adbbf9d3094240f7227f76fe10f41c803c25784cf7",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0054.rds",
+      "bytes": 1588263,
+      "sha256": "6e37786da6cc1ce8ce6eca778036f4e5b087fe3e2022de455f076816e194cb92",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0272.rds",
+      "bytes": 2589680,
+      "sha256": "3b93b7dd744e7b76fd2866f356913eb2df61dc4b4a9a3b6db9d92b7c4c20cfce",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0147.rds",
+      "bytes": 1033558,
+      "sha256": "1a4bfe55872b5da94f182148775031ad23b0b50157f279ada39b08eab1cd269a",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0178.rds",
+      "bytes": 1904191,
+      "sha256": "b436ad1d8621fd91ef9f4da57bcad69228fdea708d62ba2cdb1d4207d3615634",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0255.rds",
+      "bytes": 1881343,
+      "sha256": "645fe83dc7ee4f3aedf196bc158c27b0bcfb7a6947b8524fdb1190ccb7a8596f",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0336.rds",
+      "bytes": 2589680,
+      "sha256": "9aeeb54c883130b94d4fba862e23c9f1f9d72922cd2dacf7c24ab2b1d8e3cff2",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0176.rds",
+      "bytes": 1953151,
+      "sha256": "4d473450d1dcd659c7b6708387ad1cc9e350fba0ec5c46f83c98f5bf06774301",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0215.rds",
+      "bytes": 2423791,
+      "sha256": "64fa38fdb141d7fcf1943f2e0b8ad9ecb6993c66c1a5216778053c42681f9650",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0310.rds",
+      "bytes": 1102840,
+      "sha256": "5e055b2b970015a9cdd4774059be3fc799c11fc82cdd5ad3f4478304e9a3c03a",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0307.rds",
+      "bytes": 3778184,
+      "sha256": "073518ea1a3234526d29ab9487be43f96fb128a04ee9c85bcb04244d498461a7",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0242.rds",
+      "bytes": 1904191,
+      "sha256": "d5a3fba1972b8998aa4f8791036413e5718ddff7fc082d979ddfeaad8e552332",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0304.rds",
+      "bytes": 2589680,
+      "sha256": "118f5b74be49d065e34bfc9ae75c3436f22092e449b778f1fdb4d996975b46f2",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0271.rds",
+      "bytes": 2517872,
+      "sha256": "620b25b84cd3754afd895f3dee06e7bb9e31d85edf0a7561b23a2d1dc50d5102",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0209.rds",
+      "bytes": 2350351,
+      "sha256": "2d112fc216b571527fa7fccdf380a8769b06391c928b5f2c5a035a3f3b783c17",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0311.rds",
+      "bytes": 3876104,
+      "sha256": "e7a647d891bd33e8153ba68bc4b4d3b5f34427ae54e22934389b7f6346d758b6",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0083.rds",
+      "bytes": 1033558,
+      "sha256": "d611a056f995f08432e75c57af941a2a1bb03fca3b2aa4552dd0fd22377ac7a0",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0208.rds",
+      "bytes": 1953151,
+      "sha256": "3743ee67622becadf869e7ab913bdb90771a81fdcc0ca66fd577d7ee3e7e8b57",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0190.rds",
+      "bytes": 1021951,
+      "sha256": "3b91c8d3c6954e58967d1d25c65216d400347e2292b0b60f4c12e660d44acc55",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0223.rds",
+      "bytes": 1881343,
+      "sha256": "fd286db7b221bdc79e7f122891ed4e1e47eecd7a99c3775726524b5e89f5e4d1",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0298.rds",
+      "bytes": 1079960,
+      "sha256": "daa4467a118e4d660195be35932127faeedec81e4e3180599de3aa31211f8349",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0115.rds",
+      "bytes": 1033558,
+      "sha256": "1018cd749a822eda2e6686dcd1d890ceba87cf51e97cfb08ab05610ec2f56900",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0241.rds",
+      "bytes": 2350351,
+      "sha256": "9aa2a2065e9611c2fed3d0b0c56a042e5229e5852231da96be83a7f0173be4f8",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0287.rds",
+      "bytes": 2517872,
+      "sha256": "0141d5d58988ffbd530fc8a8cc8aa717cf1fe33b0f99849dcddc7c0daf49089f",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0334.rds",
+      "bytes": 1563304,
+      "sha256": "5bed12261705a44c8e53d777beda5093e3ac4241c9a9bb0f069e7d6cfc3bc6cc",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0339.rds",
+      "bytes": 3778184,
+      "sha256": "ece74f6e7e1f38c864cc1d3eaa7d4eba8a667cf7e16c0bad633c504dbe2ff35d",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0191.rds",
+      "bytes": 1881343,
+      "sha256": "64cccc9fda03dd1836db4dceb271914acde17d342991839d6af0b67b2ee518f5",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0175.rds",
+      "bytes": 1881343,
+      "sha256": "9474e8b3aebeb0ed287fe6d5d0de8ba1a8f33aa684fa082496d1a12392604137",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0290.rds",
+      "bytes": 1078712,
+      "sha256": "6d695cef25180e56cbfc870e54fcfd7d01635d72c2f27c804acac30ee1c25f67",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0230.rds",
+      "bytes": 1889503,
+      "sha256": "e3673fc0b0e86b5129876358b20da5785db62703b736b886afb249ebac27b6bf",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0305.rds",
+      "bytes": 3802664,
+      "sha256": "10f3447fe922aaa0766e92e23c4cc1dc2456d58574fe9868bdc6634878a35e56",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0087.rds",
+      "bytes": 1131478,
+      "sha256": "8ee2057ca229e4c47ed951b117de71be9f2764da5f96aa6a2cc13c70506620d5",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0294.rds",
+      "bytes": 2526032,
+      "sha256": "cfe95fd8eae888829329a48f94270da4314e854bd06775c194dd33508da5b1f9",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0275.rds",
+      "bytes": 3778184,
+      "sha256": "dd1d796908a85d99252b0ba72128b85391506ea888e3dbfc55b62b813e7ba440",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0254.rds",
+      "bytes": 1021951,
+      "sha256": "0610f07502ad94fe74389565001a46522dcb4b603207a7e7e8254bcc7cf32676",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0179.rds",
+      "bytes": 2325871,
+      "sha256": "5ad9879e201d52170cca6b76de30f3d56dd74a7bddcf6bd17e33eeb438c08552",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0338.rds",
+      "bytes": 2540720,
+      "sha256": "d20ae544f97e36e23d614c86a9fc5e95d0abf4481c1ba91e2c6050abb8d6ea0a",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0262.rds",
+      "bytes": 1889503,
+      "sha256": "28a9f1f821aa1ba8ca92a005b69d38e885cf6970d5052a9bf2b51ed3d373b0c0",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0080.rds",
+      "bytes": 1058038,
+      "sha256": "573983b40aea77ff75c87cf969305af0c89cdeb0d109d7e23ddc9278b5ac0a80",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0151.rds",
+      "bytes": 1131478,
+      "sha256": "2ddbd1d2bbaa7e6be8e29237b0c0be5cc8151f462c7fb15ab722e0fa530debcb",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0337.rds",
+      "bytes": 3802664,
+      "sha256": "42ca2010fc24ff3b8523aad5a1391fe025b56058fbf37276926b111a506bd692",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0274.rds",
+      "bytes": 2540720,
+      "sha256": "3cdec6295da98ca3824efc0b00450ba5c109c7d325d5ce6c141a58c0af71096f",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0030.rds",
+      "bytes": 1563303,
+      "sha256": "92636ac64707b9872d2e84cd0474d852ccfcae7ecf46169ebcde04eec5b14038",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0302.rds",
+      "bytes": 1563304,
+      "sha256": "be12c490ffeb1d1267326ab979cfd78e68eb116d19077642649e49b4e80f48b0",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0066.rds",
+      "bytes": 1563303,
+      "sha256": "1943dbd1d845ac381f78a63c4946c9870bbe79a789166eea6bc39cd451420b0f",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0081.rds",
+      "bytes": 1058038,
+      "sha256": "ee000e851c38a139542989cfaa790b38d1eae4323a550deb8e37d59e3eccf507",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0318.rds",
+      "bytes": 1588264,
+      "sha256": "3f396749a4a1b0242b9680e1249573037c9433fe417b3160be67e451f5e8e073",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0036.rds",
+      "bytes": 1588263,
+      "sha256": "2ff4cf687c091dca4f570bcc05e9401c6deac20c9834f5ade2c266fc2afe784c",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0330.rds",
+      "bytes": 1079960,
+      "sha256": "829dba8cc9629a1510e8b1931d65ef343a0c11dceef2fa6d70085464b0cfaa99",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0053.rds",
+      "bytes": 1021950,
+      "sha256": "72ae987cbb612d6916a9b6eadc8431754452af9891720bf4435f71f0baefbcbc",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0183.rds",
+      "bytes": 2423791,
+      "sha256": "97a3916c237ec6b2ffd4f96afa47cd5c8c9c011a52dac20dde96325bfcc5d49f",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    },
+    {
+      "path": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/raw_bank/parts/part_0273.rds",
+      "bytes": 3802664,
+      "sha256": "516639399a2a3bab038edb9e0786afb9f2f56c5169b2ad4f339b38b00b224769",
+      "kind": "Unused temporary numeric serialization of a completed verified derived prefix bank"
+    }
+  ],
+  "freed_bytes": 1962919003,
+  "posterior_removed": false,
+  "source_manifest_sha256": "415684f9e7264dbd2f5c056f6de3cc97515d782fda62293ccbda0ae6e4b07888",
+  "observed_utc": "2026-10-25T03:33:31.775473+00:00"
+}

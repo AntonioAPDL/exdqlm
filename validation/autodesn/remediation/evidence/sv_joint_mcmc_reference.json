@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "passed": true,
+  "chains": 4,
+  "joint_functionals": 13,
+  "maximum_rhat": 1.0004815693070368,
+  "minimum_bulk_ess": 7755.9929909197745,
+  "minimum_tail_ess": 6978.663575676863,
+  "moments_passed": true,
+  "source_status_sha256": "f4ee58cd5d4b9f7b7d11774dc295aeb3a1922f20f0c6ddb7f462ac52cee6345c",
+  "scope": "Full unknown-noise/intercept/stationary-state/persistence/volatility posterior on two fixed responses; not production convergence or unconditional recursive calibration",
+  "production_qualified": false
+}

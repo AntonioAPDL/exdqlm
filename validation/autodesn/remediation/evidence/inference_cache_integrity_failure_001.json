@@ -1,0 +1,10 @@
+{
+  "complete": false,
+  "expected_sha256": "fabc982e87bc8c9fc181ee50ff2614b64aa78cff3d58146f93a27bcc9526d5ee",
+  "observed_sha256": "d0be1fe0bfbb10ce97e9e3ab34fa9690088b5e137652fe9a6baf6ee3090603b9",
+  "observed_bytes": 440463360,
+  "observed_reload_error": "error reading from connection",
+  "fork_run_refused": true,
+  "cause": "not established; rebuilding with atomic compressed output and checking again across process boundaries",
+  "posterior_affected": false
+}

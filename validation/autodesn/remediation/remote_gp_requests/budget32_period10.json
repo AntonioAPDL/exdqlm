@@ -1,0 +1,26 @@
+{
+  "registered_utc": "2026-10-25T04:26:02.666754+00:00",
+  "particles": 32,
+  "rows": 2000,
+  "seeds": [
+    7366421,
+    7366422,
+    7366423,
+    7366424
+  ],
+  "period_moves": 10,
+  "max_process_seconds": 14400,
+  "max_cgroup_anon_bytes": 6100000000,
+  "native_revision": "2ad372db2b8bea176e3b32a769bfb5d6cff80866",
+  "training_period_proposal_unchanged": true,
+  "prior_grammar_and_target_unchanged": true,
+  "schedule_and_native_moves_unchanged": true,
+  "reason": "Four completed period16 replicas still show86.858 log-evidence range and effective evidence-replica count1; execute the next32-particle level with four fresh replicas. No heldout scores or best-run selection.",
+  "wall_cap_reason": "Worst completed16-particle wall4159.27s;14400s cap is registered before period32 outcomes and remains an explicit unsuccessful-cost limit.",
+  "heldout_read": false,
+  "forecasts_allowed": false,
+  "pooling": "Allfour same-budget same-policy replicas only; never pool with untouched native16/32/64 controls",
+  "scope": "Successive-budget computational intervention check, not a change to the native model prior or an untouched-native-algorithm result.",
+  "launch_request_revision": 2,
+  "launch_request_reason": "No GP32-period workflow run was returned for the initial archive-heavy69387927 publication. Submit a minimal request-only commit; every scientific and computational setting remains unchanged."
+}

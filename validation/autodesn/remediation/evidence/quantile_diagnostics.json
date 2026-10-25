@@ -1,0 +1,48 @@
+{
+  "complete": true,
+  "passed": true,
+  "checks": [
+    {
+      "kind": "analytic_normal",
+      "probability": 0.05,
+      "error": 3.0531133177191805e-16,
+      "mcse": 4.375005370448455e-33
+    },
+    {
+      "kind": "analytic_normal",
+      "probability": 0.25,
+      "error": 2.220446049250313e-16,
+      "mcse": 0.0
+    },
+    {
+      "kind": "analytic_normal",
+      "probability": 0.5,
+      "error": 6.661338147750939e-16,
+      "mcse": 8.75001074089691e-33
+    },
+    {
+      "kind": "analytic_normal",
+      "probability": 0.75,
+      "error": 0.0,
+      "mcse": 0.0
+    },
+    {
+      "kind": "analytic_normal",
+      "probability": 0.95,
+      "error": 1.7763568394002505e-15,
+      "mcse": 1.750002148179382e-32
+    },
+    {
+      "kind": "separated_symmetric_median",
+      "error": 5e-13,
+      "mcse": 165.75110311958412
+    },
+    {
+      "kind": "translation_equivariance",
+      "error": 5.000444502911705e-13,
+      "mcse_difference": 0.0
+    }
+  ],
+  "invalid_inputs_rejected": 2,
+  "scope": "Fixed-design Gaussian-mixture quantiles and batch influence MCSE; not recursive predictive Monte Carlo qualification"
+}

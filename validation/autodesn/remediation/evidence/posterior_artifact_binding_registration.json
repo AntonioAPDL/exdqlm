@@ -1,0 +1,13 @@
+{
+  "registered_utc": "2026-10-25T04:17:30.770192+00:00",
+  "reason": "Extend qualification to chronological folders while binding RDS/CSV/state indices before any successful two-budget certificate",
+  "requirements": [
+    "four complete exact RDS/status/contract targets",
+    "full trace and fitted-probe CSV parity",
+    "matching coefficient/local checkpoints and trace indices",
+    "input file hashes verified again by cross-budget checker",
+    "existing Rhat/ESS/category and common-coordinate gates unchanged"
+  ],
+  "scientific_target_changed": false,
+  "heldout_read": false
+}

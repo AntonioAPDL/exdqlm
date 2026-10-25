@@ -1,0 +1,12 @@
+{
+  "snapshot": "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_sources/d95cf034ba7984db2cbca393bdb1643e3c77f9cda834df6d97d528eb720d8c2e",
+  "source_hashes": {
+    "prefix_bank.R": "94bf7d72bd672b9b429f70edcc454bd663870eb12bb30ef44923b509925e47c6",
+    "test_prefix_bank.R": "34f19a64a30bb82f90938d3da4eb56fb87c018013d0197533bc7b2bb066be381",
+    "test_prefix_bank.py": "f0e66d08f65659ac3c430bd8848a4d368f7c553706665022fd8f2792e7e2aab5",
+    "qdesn_normal.R": "310f8b4e09bb5d6b33985dd28daa7ad47dff5e16589fbcbc2bb0187e248d8c28",
+    "original_builder_manifest_sha256": "c37b77c436a150f10ba1bab4a53956ef8568777ad1f07a9997cddaa1679cd39b"
+  },
+  "registered_before_execution": true,
+  "production_qualified": false
+}

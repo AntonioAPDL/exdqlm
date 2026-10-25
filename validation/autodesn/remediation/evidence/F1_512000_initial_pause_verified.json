@@ -1,0 +1,41 @@
+{
+  "complete": true,
+  "bounded_pause_verified": true,
+  "full_fit_complete": false,
+  "posterior_qualified": false,
+  "source_snapshot": "7ef16ab301161e5740ae004e1d51a07db731825f6bd8fe2309e9b57bc60615b9",
+  "contract_id": "8fecdf580690cc831f784ebc19f3f6565161b538c39753d294d4c37c259eb6cf",
+  "warmup_per_chain": 128000,
+  "full_retained_budget_per_chain": 512000,
+  "chains": [
+    {
+      "chain": 1,
+      "iteration": 128,
+      "retained": 0,
+      "checkpoint_id": "6df54ff3904d9179d9e5bd6f53bb342255b936d0f86fdd26af5b7f340978291b",
+      "sha256": "403ed2aeb74e989c4a2e454644986e7ed58de4425f491c8fa0d841a9c53fd570"
+    },
+    {
+      "chain": 2,
+      "iteration": 128,
+      "retained": 0,
+      "checkpoint_id": "b1ae15c475d3d5e48f2ec5f3e3e90d6783d7ce0c8626b82a9e1497fe3a6ddc40",
+      "sha256": "591476a80599d4388c9dd8776d090f1a5bee469c8455290385f7b2e0d1ca7a0d"
+    },
+    {
+      "chain": 3,
+      "iteration": 128,
+      "retained": 0,
+      "checkpoint_id": "a8745474cf855623aca8933de5122081aba8b27a254ac17b2e543ceb651239aa",
+      "sha256": "52bc799eefc1996ca45e0199ebd103ad6f1e103e3a583191d06c5d3a58bb246e"
+    },
+    {
+      "chain": 4,
+      "iteration": 128,
+      "retained": 0,
+      "checkpoint_id": "892e987144942cf2be2e3d1686f85a6fd3362870f4d8192be13b06d1b9120a1c",
+      "sha256": "2d4baaef62bdaeea0f18dd8d571f05f849fbebc94c68e2b2221074d88a8b5efe"
+    }
+  ],
+  "scope": "The same four full-budget512k chains are durably paused at128 warmup sweeps after a fresh restart. No retained draws credited. Source, checksum and registered-budget policy verify. Repeating the lost initial invocation adds no independent chains."
+}

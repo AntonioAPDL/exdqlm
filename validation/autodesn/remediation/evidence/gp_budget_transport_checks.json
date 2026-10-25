@@ -1,0 +1,40 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "exit_code": 0,
+      "log_present": true,
+      "passed": true
+    },
+    {
+      "exit_code": 19,
+      "log_present": true,
+      "passed": true
+    },
+    {
+      "exit_code": 124,
+      "log_present": true,
+      "passed": true
+    },
+    {
+      "exit_code": 0,
+      "log_present": false,
+      "passed": true
+    },
+    {
+      "exit_code": 19,
+      "log_present": false,
+      "passed": true
+    },
+    {
+      "exit_code": 124,
+      "log_present": false,
+      "passed": true
+    }
+  ],
+  "cases_passed": 6,
+  "launcher_sha256": "c94c7a13b04e5056682cd888ec3bc7f184415338f81c29d7254b58dc975fc9d8",
+  "budget_exporter_sha256": "bd715587a3283f2829ce25e56ffd44672b7bd722203162c4e596c8d7b0d35548",
+  "empty_budget32_export_roundtrip_verified": true,
+  "scope": "Executes the actual parsed launcher finalization block with a stubbed sampler exit; full gzip byte equality and original failure/success codes verify. Transport-only fixture has no fitted32-particle posterior."
+}

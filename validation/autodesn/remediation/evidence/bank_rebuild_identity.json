@@ -1,0 +1,20 @@
+{
+  "complete": true,
+  "admitted": 426,
+  "original_source_bank_sha256": "0beca3337cda15835b1f84ff96d7f038e229158cdeb4db37820c7f3855caef1d",
+  "rebuilt_source_bank_sha256": "d039f3e6a807129d9aa5775f5223877ddfe0c2c5aba0a9111e297875c7716c7d",
+  "serialized_source_bank_identical": false,
+  "conditional_bank_ids": {
+    "F1": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63",
+    "F2": "b51585c0ff849c9dfb81f0318f6ba46afd8dcfd56f07de7fbcf250a5c80b3fdb",
+    "F2flat": "d78dc44784b5cf2af70ec8238d19009dcdac77eebcc0e6d5477f8ed46edaa795"
+  },
+  "all_three_original_conditional_ids_match": true,
+  "feature_geometry_sha256": "4621f3f3172e6ec6dc7a827a5287cb39c29e7df55b669f3ec747929ec5f68c95",
+  "training_rows": [
+    501,
+    2500
+  ],
+  "source_revision": "fea371fbfa73c425a6f98407095194c1e8098a24",
+  "scope": "Frozen-builder cold rebuild; every y/design/prior/preprocessing conditional hash matches. Serialization/provenance bytes differ and are not relabeled as the old bank file."
+}

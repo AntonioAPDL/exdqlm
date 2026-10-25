@@ -65,6 +65,8 @@
 #'   additional columns in `models`.
 #' @export
 autodesn_diagnostics <- function(fits) {
+  if (is.list(fits) && length(fits) && inherits(fits[[1L]], "autodesn_extended_fit"))
+    return(.ext_diagnostics(fits))
   if (!is.list(fits) || !length(fits) || !all(vapply(fits, inherits, logical(1), "autodesn_fit"))) {
     stop("fits must be a nonempty list of autodesn_fit objects.", call. = FALSE)
   }

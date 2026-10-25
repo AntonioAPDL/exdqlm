@@ -1,0 +1,5 @@
+source('validation/autodesn/load_checkout.R');Rcpp::sourceCpp('src/autodesn_rhs.cpp',cacheDir='validation/autodesn/remediation/artifacts/cpp',showOutput=FALSE)
+x<-seq(-1,1,length.out=8);b<-autodesn_prepare_bank(sin(x),list(matrix(x),cbind(x,sin(2*x))),normalize_features=FALSE,standardize_features=TRUE);e<-autodesn_extend_bank(b,seasonal_control=list(periods=c(4,11),harmonics=2))
+path<-'validation/autodesn/remediation/artifacts/scale_profile.out';Rprof(path,interval=.001)
+f<-autodesn_fit_bank(e,n_burn=500,n_mcmc=3000,beta_prior='rhs',rhs_control=list(tau0=.2,slab_scale=1,interweave_global=TRUE),model_control=list(method='categorical',save_draws=512),backend='cpp',seed=43)
+Rprof(NULL);p<-summaryRprof(path);write.csv(p$by.self,'validation/autodesn/remediation/evidence/small_rhs_profile.csv');print(head(p$by.self,15));print(f$computation)

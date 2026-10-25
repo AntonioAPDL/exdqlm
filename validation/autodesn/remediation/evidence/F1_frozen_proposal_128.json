@@ -1,0 +1,30 @@
+{
+  "complete": true,
+  "path": "validation/autodesn/remediation/artifacts/F1/frozen_proposal_128.rds",
+  "sha256": "af371b53523c1dcb39c6eb1cd2ea2deba8cf09af0075fd15cc170cae4bfcef1c",
+  "bank_id": "fed5df55ab0931ccd5f7067eafacc8f57ba076d753a8609200b7bb74b3bedd63",
+  "source_phase": "production_128000_cache1",
+  "frozen_before_production": true,
+  "training_only": true,
+  "prior_fraction": 0.2,
+  "all_model_period_proposals_positive": true,
+  "sources": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_1.rds",
+      "sha256": "78d3a79fe2e473a535bf6ca34ff82617b34a6696194520de45869a78ee091dbf"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_2.rds",
+      "sha256": "ec7fe3eaa659cfa78514d04f8e92480e151e84ddbcaa5a2e280b18e8253b98da"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_3.rds",
+      "sha256": "8700f842bb0ac1e34492af1f08c7c3f983885ca3a7a6ba41a6012e97911a4d9c"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_cache1/chain_4.rds",
+      "sha256": "63fd326715f2323ddc9067479c12a17af7180e194727aed64104ae4c983ff9b1"
+    }
+  ],
+  "scope": "Computational independence proposal, not a replacement posterior or a changed prior"
+}

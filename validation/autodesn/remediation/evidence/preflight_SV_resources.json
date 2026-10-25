@@ -1,0 +1,14 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/preflight.R",
+    "SV"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 24.07760302400129,
+  "peak_child_rss_kib": 4065648,
+  "user_seconds": 21.512434,
+  "system_seconds": 2.554926,
+  "scope": "Linux wait4 foreground child; completion observed, not a background claim"
+}

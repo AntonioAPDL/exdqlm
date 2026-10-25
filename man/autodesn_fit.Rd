@@ -17,10 +17,17 @@ autodesn_fit(
   model_control = list(),
   backend = c("auto", "R", "cpp"),
   standardize_features = FALSE,
-  feature_sd_tol = 1e-8
+  feature_sd_tol = 1e-8,
+  readout_control = NULL,
+  seasonal_control = NULL,
+  variance_control = NULL
 )
 }
 \arguments{
+\item{readout_control}{Optional frozen lag/group controls from \code{autodesn_readout_control()}. Requires training-standardized features and disabled dimension normalization.}
+\item{seasonal_control}{Optional proper period model from \code{autodesn_seasonal_control()}.}
+\item{variance_control}{Optional constant or stationary latent-volatility controls from \code{autodesn_variance_control()}.}
+
 \item{standardize_features}{Center and scale readout columns using only scored training rows. Stored statistics and any constant-column exclusion mask are frozen for prediction. This is separate from input scaling and sqrt-d normalization.}
 
 \item{feature_sd_tol}{Positive training SD threshold for excluding constant readout columns when standardization is enabled.}

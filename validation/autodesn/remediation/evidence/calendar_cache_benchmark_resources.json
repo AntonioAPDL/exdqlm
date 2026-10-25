@@ -1,0 +1,19 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/artifacts/calendar_cache_sources/af348cd9eca2248ad4800cf01d18fb0dfba809feac66640f8ec2647e30e996d4/validation/autodesn/remediation/benchmark_calendar_cache.R"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1800.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 1,
+  "elapsed_seconds": 90.55818959000317,
+  "peak_child_rss_kib": 1708896,
+  "sampled_peak_process_tree_pss_kib": 1701873,
+  "sampled_peak_environment_cgroup_anon_bytes": 6035161088,
+  "user_seconds": 87.288575,
+  "system_seconds": 2.649098,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

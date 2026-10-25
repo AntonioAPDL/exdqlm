@@ -1,0 +1,22 @@
+{
+  "issue": "Resumption reused an old attempt number because its resource JSON was not uploaded, while its log/invocation had been archived",
+  "old_files_recovered_from": "archive005, verified Git identities and ZIP CRC",
+  "old_records": [
+    {
+      "original_path": "validation/autodesn/remediation/artifacts/recursive_sbc_sv_n200_k24000_attempt2.log",
+      "preserved_path": "validation/autodesn/remediation/artifacts/environment_recovery_prior_invocation/recursive_sbc_sv_n200_k24000_attempt2.log",
+      "sha256": "3d8c823ae2424cf6dfe09076a42b412e7e7ef9799ccfe162608e5692b119d9e8"
+    },
+    {
+      "original_path": "validation/autodesn/remediation/artifacts/recursive_sbc_sv_n200_k24000/invocation_2.json",
+      "preserved_path": "validation/autodesn/remediation/artifacts/environment_recovery_prior_invocation/invocation_2.json",
+      "sha256": "f10b9a88e116abdae8d2b09bcc5ae35bf7291e44feec0acf02e4b676e50b6977",
+      "source": "archive004 inherited unchanged by archive005"
+    }
+  ],
+  "current_execution_log": "validation/autodesn/remediation/artifacts/recursive_sbc_sv_n200_k24000_attempt2.log",
+  "current_execution_invocation": "validation/autodesn/remediation/artifacts/recursive_sbc_sv_n200_k24000/invocation_2.json",
+  "current_execution_source": "4d4d5b5dcc1f0a8ea5f3ae684b58f238aa3533abeed993ee642d002afba83c2a",
+  "fixed_launcher": "Future attempts reserve a fresh number if any resource, log, or invocation exists; exclusive invocation creation",
+  "live_R_source_modified": false
+}

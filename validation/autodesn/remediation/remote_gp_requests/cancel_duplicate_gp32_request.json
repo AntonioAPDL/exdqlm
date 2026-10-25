@@ -1,0 +1,7 @@
+{
+  "cancel_run_id": 40165064445,
+  "keep_run_id": 40165012423,
+  "expected_cancel_sha": "a2fc842ffef50cfaf27a9e5bb50abe145865e713",
+  "expected_keep_sha": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
+  "reason": "An incomplete PR-only status wrapper led to a redundant push. Cancel only that duplicate; identical seed computations do not constitute independent replicas."
+}

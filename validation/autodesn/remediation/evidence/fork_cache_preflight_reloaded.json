@@ -1,0 +1,55 @@
+{
+  "complete": true,
+  "workers": 4,
+  "shared_exact_matrix_cache": true,
+  "warmup": 1000,
+  "retained": 4000,
+  "elapsed_seconds": 181.175,
+  "chains": [
+    {
+      "chain": 1,
+      "complete": true,
+      "computation": {
+        "elapsed_seconds": 175.53,
+        "evidence_evaluations": 35000,
+        "proposals": 30000,
+        "acceptances": 14
+      },
+      "checkpoint_sha256": "c0a6c269789e5b3b6a2589891709e735b41db2d4d0689b686b9d0cc487f3df21"
+    },
+    {
+      "chain": 2,
+      "complete": true,
+      "computation": {
+        "elapsed_seconds": 178.896,
+        "evidence_evaluations": 35000,
+        "proposals": 30000,
+        "acceptances": 14
+      },
+      "checkpoint_sha256": "d57f2281809ffbdae7a046ede7e9b046b2da3a4a9bbb080d9df29e5384f4adfd"
+    },
+    {
+      "chain": 3,
+      "complete": true,
+      "computation": {
+        "elapsed_seconds": 180.748,
+        "evidence_evaluations": 35000,
+        "proposals": 30000,
+        "acceptances": 11
+      },
+      "checkpoint_sha256": "7cf3ad390a0ad9c23dead9fcaf82456d12919e69d4a6250e02c70f883086b3e2"
+    },
+    {
+      "chain": 4,
+      "complete": true,
+      "computation": {
+        "elapsed_seconds": 175.381,
+        "evidence_evaluations": 35000,
+        "proposals": 30000,
+        "acceptances": 7
+      },
+      "checkpoint_sha256": "233d508c76bc613bce9da04328adba79e34ab8607e13ae379bb29a458fdffdfe"
+    }
+  ],
+  "posterior_qualified": false
+}
