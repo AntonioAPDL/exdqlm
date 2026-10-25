@@ -5,6 +5,7 @@ registered invariant proposal. Every invocation gets a fresh output directory.
 """
 import argparse
 import hashlib
+import gzip
 import json
 import os
 from pathlib import Path
@@ -62,4 +63,18 @@ print(json.dumps(dict(snapshot=key, rows=a.rows, particles=a.particles,
                       seed=a.seed, period_moves=a.period_moves)), flush=True)
 reservation=single_large_job(root,label) if a.rows>=512 or a.particles>=32 else nullcontext()
 with reservation:
-    raise SystemExit(subprocess.call(cmd, env=env))
+    code = subprocess.call(cmd, env=env)
+    # Preserve the complete, explicitly whitelisted inference log even on a
+    # failed/capped calculation. Compression keeps log-bundle transport small.
+    console = root/'artifacts'/f'{label}.log'
+    if console.exists():
+        out.mkdir(parents=True, exist_ok=True)
+        temporary = out/'inference.log.gz.writing'
+        with console.open('rb') as source, temporary.open('wb') as destination:
+            with gzip.GzipFile(filename='', mode='wb', fileobj=destination, mtime=0) as zipped:
+                shutil.copyfileobj(source, zipped)
+        with gzip.open(temporary, 'rb') as verified:
+            while verified.read(65536):
+                pass
+        os.replace(temporary, out/'inference.log.gz')
+    raise SystemExit(code)

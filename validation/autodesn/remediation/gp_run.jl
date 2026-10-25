@@ -39,7 +39,7 @@ fn=(;model,step,elapsed,rejuvenated,resampled,kw...)->begin
   end
   model.pf_state.traces[i]=tr
  end
- row=DataFrame(step=step,elapsed=elapsed,ess=AutoGP.effective_sample_size(model),period_updates=updates[],period_acceptances=accepted[],max_log_joint=maximum(Gen.get_score.(model.pf_state.traces)))
+ row=DataFrame(step=step,elapsed=elapsed,ess=AutoGP.effective_sample_size(model),log_marginal_likelihood=AutoGP.log_marginal_likelihood_estimate(model),period_updates=updates[],period_acceptances=accepted[],max_log_joint=maximum(Gen.get_score.(model.pf_state.traces)))
  CSV.write(joinpath(dir,"progress.csv"),row;append=isfile(joinpath(dir,"progress.csv")))
  CSV.write(joinpath(dir,"particles_step_$(step).csv"),DataFrame(component=collect(eachindex(model.pf_state.traces)),weight=AutoGP.particle_weights(model),noise_variance=AutoGP.observation_noise_variances(model),kernel=string.(AutoGP.covariance_kernels(model)),native_log_joint=Gen.get_score.(model.pf_state.traces)))
  if step>0
@@ -83,6 +83,6 @@ for i in eachindex(predictive)
 end
 CSV.write(joinpath(dir,"training_probes.csv"),probe_rows)
 probe_seconds=time()-probe_started
-status=Dict("complete"=>true,"posterior_qualified"=>false,"training_rows"=>N,"training_input_sha256"=>training_sha256,"particles"=>particles,"julia_threads"=>Threads.nthreads(),"seed"=>seed,"native_target_unchanged"=>true,"training_only"=>true,"elapsed_seconds"=>time()-started,"initialization_seconds"=>initialization_seconds,"inference_seconds_including_stage_checkpoints"=>inference_seconds,"checkpoint_transport_seconds"=>transport_seconds,"training_probe_seconds"=>probe_seconds,"period_updates"=>updates[],"period_acceptances"=>accepted[],"period_moves_per_particle_per_stage"=>period_moves,"forecast_issued"=>false,"subsample_feasibility_only"=>(N!=2000),"source_sha256"=>source_identity,"autogp_revision"=>"2ad372db2b8bea176e3b32a769bfb5d6cff80866")
+status=Dict("complete"=>true,"posterior_qualified"=>false,"log_marginal_likelihood_estimate"=>AutoGP.log_marginal_likelihood_estimate(model),"training_rows"=>N,"training_input_sha256"=>training_sha256,"particles"=>particles,"julia_threads"=>Threads.nthreads(),"seed"=>seed,"native_target_unchanged"=>true,"training_only"=>true,"elapsed_seconds"=>time()-started,"initialization_seconds"=>initialization_seconds,"inference_seconds_including_stage_checkpoints"=>inference_seconds,"checkpoint_transport_seconds"=>transport_seconds,"training_probe_seconds"=>probe_seconds,"period_updates"=>updates[],"period_acceptances"=>accepted[],"period_moves_per_particle_per_stage"=>period_moves,"forecast_issued"=>false,"subsample_feasibility_only"=>(N!=2000),"source_sha256"=>source_identity,"autogp_revision"=>"2ad372db2b8bea176e3b32a769bfb5d6cff80866")
 open(joinpath(dir,"status.toml"),"w") do io;TOML.print(io,status);end
 println(status)
