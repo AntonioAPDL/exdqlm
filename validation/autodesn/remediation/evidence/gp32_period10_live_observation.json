@@ -1,5 +1,5 @@
 {
-  "observed_utc": "2026-10-25T05:23:00.595Z",
+  "observed_utc": "2026-10-25T05:52:39.416Z",
   "workflow_run_id": 40165012423,
   "source_commit": "69387927e25ccdc20dc805a6f834ec3d1b3e3a7d",
   "jobs": [
@@ -188,5 +188,5 @@
       ]
     }
   ],
-  "scope": "Live observed workflow step state only; no completed numeric output or qualification credited."
+  "scope": "Observed workflow step state only; no completed numeric posterior or qualification is credited without import and verification."
 }

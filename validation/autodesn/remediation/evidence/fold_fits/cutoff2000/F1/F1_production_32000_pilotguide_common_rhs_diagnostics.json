@@ -1,0 +1,23 @@
+{
+  "complete": true,
+  "screen_passed": true,
+  "phase": "production_32000_pilotguide",
+  "family": "F1",
+  "parameters": 270,
+  "chains": 4,
+  "stored_states_per_chain": 2048,
+  "maximum_rhat": 1.0065087937400075,
+  "minimum_bulk_ess": 1062.0560198794046,
+  "minimum_tail_ess": 1631.4518850336658,
+  "failed_parameters": [],
+  "source_status_sha256": "d8bb3857688098406d04cbf1f05beb7bba98bd38413a3a442d10353d3a721a15",
+  "source_csv_sha256": {
+    "chain_1.csv": "7a64cedf20ea8829da445aa6781bbb20ab285d23e89fc70f69577355437adb48",
+    "chain_2.csv": "eb57c8fec5ddf96b85aee42e5eb16f82d4020d60647425d3bb6b3317c7e0eee0",
+    "chain_3.csv": "215a7ebc187312d50aa040fa4f4b91a1bb651a24a1dd17a9d56cd4212c280a49",
+    "chain_4.csv": "022c40f81d95168fc5ed73949dd1685a832f863b9ebf0211fb934e12947b81c3"
+  },
+  "posterior_qualified": false,
+  "forecast_allowed": false,
+  "scope": "Supplementary all90 common lag-coefficient, local-scale and effective prior-variance monitors, evaluated on matching saved states for the declared mean family. Existing full-trace screens remain separate. Passing finite monitors does not prove convergence of every posterior functional; failures block promotion. No variable selected using outcomes and no held-out data read."
+}

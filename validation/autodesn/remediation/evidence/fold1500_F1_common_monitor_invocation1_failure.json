@@ -1,0 +1,8 @@
+{
+  "observed_utc": "2026-10-25T05:38:08.623278+00:00",
+  "exit_code": 1,
+  "error": "KeyError: 'AUTODESN_SCIENTIFIC_PYTHON'",
+  "stage": "Launcher command construction before either extraction or diagnostic child started",
+  "sampler_affected": false,
+  "correction": "Set the documented scientific-Python environment path and rerun unchanged immutable observer source."
+}

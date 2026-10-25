@@ -259,7 +259,7 @@ set again, including architecture metadata. Existing smaller audit records can
 be extended non-destructively with `supplement_metadata_binding.R`; the original
 record is retained and hashed. The35 mutation/path/missing-gate fixtures pass,
 and explicit/default-directory diagnostics agree exactly on the old F1 pilot.
-The common270-coordinate monitor now applies to every RHS mean family with the
+The common 270-coordinate monitor now applies to every RHS mean family with the
 same90-lag block. On the existing F2 pilot it correctly fails the convergence
 screen (minimum ESS about11); it does not promote that pilot. Early pilot files
 without response-SD display metadata retain their fitted response units, a
@@ -279,3 +279,28 @@ compared with candidate RMSE at different origins. No model prior or
 hyperparameter is changed. The DGP's GJR leverage is also more specific than the
 current independent-innovation log-SV family; seasonal SV should be assessed as
 an approximation, not described as the exact DGP variance mechanism.
+
+
+Workflow observation must include push events. The connected
+`fetch_commit_workflow_runs` wrapper filters to pull-request events and cannot
+establish absence of a push-triggered calculation. Use the full Actions run
+collection with the exact head SHA, or inspect a known run ID. See
+`gp32_period10_duplicate_cancellation.json` for the corrected observation and
+the exact canceled duplicate; identical seeds are never extra replications.
+
+
+The first production fold budgets are also preserved: cutoff 1500 and cutoff 2000
+F1, each with four chains, 8k warmup and 32k retained. Both raw checkpoint
+validations and common 270 screens pass, while overall architecture/full-trace
+screens fail (minimum ESS 83.37/146.51; max R-hat 1.0522/1.0226). Reproduce their
+bound summary from the repository root with
+`python3 validation/autodesn/remediation/summarize_fold_budget.py --output NEW_JSON`.
+No selected-mean certificate or new forecast is implied.
+
+Archives 024/025 add those two complete budgets, all prefix common-coordinate
+monitors and two verified native 64 replicas. Latest full replay verifies 4687
+parts and 8801 members through 24 archives, including the one old incomplete
+prefix. Native 64 seeds 7366322/7366323 are imported; two other native 64 jobs and
+all four additional-period 32 jobs were observed fitting. Check the timestamped
+observation files. Completed local inference invocations have observed exit-zero
+records; no local MCMC job is represented as continuing.

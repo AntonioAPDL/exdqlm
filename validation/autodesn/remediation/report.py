@@ -294,12 +294,21 @@ if gp_training:
         repaired=[read_json(p) for p in sorted(E.glob('gp16_period10_s*_imported.json'))]
         if repaired:table([['Period-intervention replica','Wall (minutes)','Peak PSS (GiB)']]+[[str(v['seed']),fmt(v['wall_seconds']/60,1),fmt(v['peak_pss_kib']/1048576,2)] for v in repaired],[210,135,135])
         add(f'{len(repaired)} of four registered 16-particle replicas with ten additional invariant period moves are verified complete. All four are now complete. The prior/grammar remain fixed and the proposal uses training-only peaks with exact Hastings correction. Keep this computational policy separate from strict native controls. No cohort qualification or forecast is claimed.',True)
-        if read_json(ROOT/'remote_gp_requests/budget64.json'):add('The registered native 64-particle control uses four fresh replicas and the unchanged native target/schedule/move kernels. Its 14,400-second process cap is fixed before 64-particle outputs. All four inference steps were observed active in workflow 40160840831. No completed 64-particle numeric posterior is credited at this checkpoint.',True)
+        if read_json(ROOT/'remote_gp_requests/budget64.json'):add('The registered native 64-particle control uses four fresh replicas and the unchanged native target/schedule/move kernels. Its 14,400-second process cap is fixed before 64-particle outputs. The latest cohort observations and retrieved64-particle replicas appear on the following page.',True)
 
 period16=read_json(E/'gp16_period10_evidence_diagnostics.json')
 if period16:add(f"The complete additional-period 16 cohort still fails: corrected logZ range {period16['log_evidence_range']:.3f}, effective evidence-replica count {period16['effective_evidence_replicas']:.3f}. The registered 32-particle follow-up has four inference steps observed active in workflow 40165012423. This is a separate computational policy; do not pool it with native-control cohorts.",True)
 read_json(E/'gp64_live_observation.json');read_json(E/'gp32_period10_live_observation.json')
 if read_json(E/'gp32_period10_duplicate_cancellation.json'):add('A PR-only status wrapper hid the already launched push run and caused one redundant launch. An identity-guarded job canceled the duplicate 40165064445, retaining original 40165012423. Duplicate seeds are not independent replicas; their attempted compute is a separate unsuccessful cost.',True)
+
+
+imported64=[read_json(p) for p in sorted(E.glob('gp64_s*_imported.json'))]
+if imported64:
+    page();title('Native 64-particle cohort: partial results')
+    table([['Verified replica','Process wall (minutes)','Inference (minutes)','Peak PSS (GiB)']]+[[str(v['seed']),fmt(v['wall_seconds']/60,1),fmt(read_json(E/f"gp64_s{v['seed']}_target_verified.json")['inference_seconds']/60,1),fmt(v['peak_pss_kib']/1048576,2)] for v in imported64],[135,115,115,115])
+    add('Two of four native 64 replicas are complete and imported. Their exact source, 2000 training rows, 64 particles, zero extra period moves, fixed native revision, full terminal-weight evidence and absence of forecasts all verify. All bundle members and full compressed inference logs pass integrity checks. The other two inference steps were observed active.')
+    add('A partial cohort does not qualify native Bayesian averaging or justify selecting a better-looking replica. All four same-policy replicas and successive-budget/mode checks remain required. The native 32 cohort still fails evidence agreement.',True)
+    add('GP calculations use GitHub-hosted runners; R production uses the managed local environment. Reported wall times describe those environments and are not a controlled cross-model speed ranking. Sampler, preparation, transport and prediction costs need separate matched-hardware measurements for that purpose.',True)
 
 page();title('Calibration scope and actual execution status')
 rows=[['Calibration','Executed result / limitation']]
@@ -400,6 +409,14 @@ if fold_pilots:
     add('Every short pilot fails convergence. This is direct evidence that completed sampling and proposal construction do not qualify a posterior. Production fold budgets and successive-budget checks remain necessary before rolling validation or the registered CRPS family-selection rule.')
     add('The first batch attempt omitted the launcher dependency large_job.py and failed before starting another fit. Its source/failure record remains. A new immutable complete dependency snapshot produced the successful batch; no executed sampler snapshot was edited.',True)
     add('SV and seasonal SV must retain the selected mean family, with certificate hashes binding both qualified development folds. The log-SV model approximates the DGP variance; it does not exactly reproduce its GJR leverage dynamics. Mean/variance flexibility and predictive calibration still require measured comparisons.',True)
+
+
+fold_production=read_json(E/'fold_F1_production_32000_bound_summary.json')
+if fold_production:
+    table([['F1 cutoff / budget','Max R-hat','Min ESS','Common 270 ESS','Overall']]+[[f"{v['cutoff']} /32k",fmt(v['maximum_rhat'],3),fmt(v['minimum_ess'],0),fmt(v['common_minimum_ess'],0),'pass' if v['screen_passed'] else 'FAIL'] for v in fold_production['rows']],[150,80,80,100,70])
+    add('The first production ladder level now also completes both F1 folds: four fresh chains each, 8k warmup+32k retained. Both 15-file checkpoint validations pass. Common 270 lag/scale monitors pass, but full-trace and architecture-frequency screens fail. Architecture probabilities remain insufficiently explored even when common coefficients mix.',True)
+    add('Observed process wall times are 441.91s and 412.17s, with peak aggregate PSS 3.30 GiB and 3.81 GiB. F2/F2flat production folds, later budgets, frozen-fit rolling validation and mean selection remain unfinished. The huge pilot categorical R-hat values arise from constant-within-chain indicators that disagree between chains; those monitors remain in the checks.',True)
+read_json(E/'fold_pilot_stuck_indicator_audit.json')
 
 page();title('Historical forecast context - unchanged')
 image(historical_figure,max_height=3.1*inch)

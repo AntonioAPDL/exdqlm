@@ -1,18 +1,21 @@
 {
   "complete": true,
-  "observed_utc": "2026-10-25T05:26:58.861201+00:00",
+  "observed_utc": "2026-10-25T05:57:19.821991+00:00",
   "report": "validation/autodesn/remediation/output/pdf/AutoDESN_Remediation_Execution_Report.pdf",
-  "report_sha256": "2a4e114de66cf4c3b263263623175229f2dfd5ac938bcd196b064b5cdebd024c",
-  "pages": 20,
+  "report_sha256": "f310a7ee16be96deefcd5fd6f85421ac2eb6fba6044adf506fbd67da157d9829",
+  "pages": 21,
   "all_pages_rendered": true,
   "all_pages_contact_sheet_inspected": true,
   "full_size_pages_inspected": [
-    5,
-    9,
-    18
+    13,
+    19
   ],
-  "bound_input_hashes_verified": 144,
-  "render_directory": "validation/autodesn/remediation/artifacts/report_qa_phase10",
-  "layout_result": "No clipping or overflow observed; full production traces now have a separate readable page. Execution checkpoint, not completed scientific comparison.",
+  "unchanged_full_trace_and_oracle_pages_previously_full_size_checked": [
+    5,
+    9
+  ],
+  "bound_input_hashes_verified": 150,
+  "render_directory": "validation/autodesn/remediation/artifacts/report_qa_phase11",
+  "layout_result": "No clipping or overflow observed. Final wording correction changes only page19 pixels, independently verified; all other pages match the inspected rendering. Partial GP cohort and failed fold production tables are explicit.",
   "scientific_study_complete": false
 }

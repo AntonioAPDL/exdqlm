@@ -1,0 +1,129 @@
+{
+  "complete": true,
+  "observed_utc": "2026-10-25T05:33:10.981798+00:00",
+  "monitors": [
+    {
+      "cutoff": 1500,
+      "family": "F2",
+      "monitor": "model_348",
+      "rhat": 4627524136522997.0,
+      "within_chain_indicator_variances": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "chain_means": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "cutoff": 1500,
+      "family": "F2",
+      "monitor": "depth_2",
+      "rhat": 4627524136522997.0,
+      "within_chain_indicator_variances": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "chain_means": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "cutoff": 2000,
+      "family": "F2",
+      "monitor": "model_127",
+      "rhat": 4627524136522997.0,
+      "within_chain_indicator_variances": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "chain_means": [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "cutoff": 2000,
+      "family": "F2flat",
+      "monitor": "period_index_29",
+      "rhat": 4627524136522997.0,
+      "within_chain_indicator_variances": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "chain_means": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "cutoff": 2000,
+      "family": "F2flat",
+      "monitor": "period_index_41",
+      "rhat": 4627524136522997.0,
+      "within_chain_indicator_variances": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "chain_means": [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    }
+  ],
+  "input_sha256": {
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F1/pilot/independent_diagnostics.csv": "d90f1718fdde1650a915c1db1ccb939da326f4a82321e09f794457e47f0f27f3",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F1/pilot/trace_1.csv": "61f20d1851dcafd6041f1330f1b0cba7f059b8381c5c89ad120708c32dbae085",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F1/pilot/trace_2.csv": "832db5256cb3504ee8397d8a38ed7c32b17fb84aa557e7e99d484f0ab0a5c403",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F1/pilot/trace_3.csv": "918cf2d39b61d6878c45a7665f3cef9dc8e525b2cb2825e384bd43f51234b5e5",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F1/pilot/trace_4.csv": "3ee59aab82e0ebb46674ba4a7ccb5dacbcc871dff7e84989944e238a22d32134",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2/pilot/independent_diagnostics.csv": "12756539e71a6a23e9fdfb4d9dd888c33d55301e09bfe099dbc0cc9a5268ae4c",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2/pilot/trace_1.csv": "b37b68c20a92a97939f0f5121075aa36ed8e64eba197f957a638abf93ab6246a",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2/pilot/trace_2.csv": "f4a07f2d22c69f00792cb63f24cc19b23dfc5bc312468747b9adf0f484bdd852",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2/pilot/trace_3.csv": "80ece435112a62dd6607dfa09741bb939f49a83cae808285d14232a12804ddfc",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2/pilot/trace_4.csv": "76fb39ec6b10955e89d727b46b3523bb040d0ac30426256c170643acca25cb06",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2flat/pilot/independent_diagnostics.csv": "53f64838dc4c313d1b60cc80dd6cc45eafda54e91847ac6272bbde29a394353b",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2flat/pilot/trace_1.csv": "e9bbc983e4a8767ccbe61181a6d08bf61de4a3f77e2f97c6284a4f86bea2c399",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2flat/pilot/trace_2.csv": "6d64e4f895336cbe7de8144866fac3403476c59b57aab47fc143402285dd372c",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2flat/pilot/trace_3.csv": "8cafee301c0eee690d05b9b07c996a81b76c94dff477fc0dae4532380cae32f0",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff1500/F2flat/pilot/trace_4.csv": "be30b91fe639a21a6034b081579a7f53bcfc7a7de61ee9c78e0b4b129601623f",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F1/pilot/independent_diagnostics.csv": "310b821eb766abe0a90cbb94f883da18e19511a323a7465d56aefbc33b847ba5",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F1/pilot/trace_1.csv": "621d6e9a5113c7d142227c7ca0a5dc024f5daa8c5b9cf31c754f9d4648405f7e",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F1/pilot/trace_2.csv": "65b7c3d42ad4e653c97991102e00223d960a6ad2f1d43baa512035783559c025",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F1/pilot/trace_3.csv": "ec5993c0fde01074221035448a822f5027c9c639d5e47fa4f6657322a8af397f",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F1/pilot/trace_4.csv": "711c90c3aa743668dbcec1c00773c7650b1b1c48d94e70c6229fe248cb8cf3b0",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2/pilot/independent_diagnostics.csv": "2c04e393968dcd532f5524cdacb8a7d70c1c32ddae9790389b5af0216f2c4aca",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2/pilot/trace_1.csv": "c85bc75ed118936d21823db3a5f4f3105b9e86e8c0fe4f3c9076db76f1ee325c",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2/pilot/trace_2.csv": "b80bacffca17f0a3e586f367244b23233b83181417b26c6f183acda8348ca4d5",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2/pilot/trace_3.csv": "23e0c48cfddb4a649fdacb7d160dc6bc1b0e0a25379e2b6e13ad39a27e1ed64d",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2/pilot/trace_4.csv": "568c4c1b0f3d201ec3ef7bfef1be3ff9fb6d5da96f9816def54b0a09f5c39be9",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2flat/pilot/independent_diagnostics.csv": "7acf3d9db435ee3976cdd4b4e5c0b29a2aacba881549be284992a91222632b1e",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2flat/pilot/trace_1.csv": "fd0ba42819f275a725ee593bc73317e43ef36091619a22ff1d284beb9d068651",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2flat/pilot/trace_2.csv": "a028fc424830cad72c011e285256fc428148ce242176b7d7828ea4d4cfe3bab1",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2flat/pilot/trace_3.csv": "fcf0a3240d045619fa22ba2cd94e36cb8a92f83d4919861268e4f000bb3f5cc4",
+    "validation/autodesn/remediation/artifacts/fold_fits/cutoff2000/F2flat/pilot/trace_4.csv": "735c7e58f93a2950d417ce3a0a475965e9424f6e42532766d4761f025eaf3b3e"
+  },
+  "scope": "Extremely large pilot R-hat comes from architecture/period indicators that are constant within each chain but disagree between chains. Floating-point rank variance gives a huge finite value rather than mathematical infinity. This is a correctly detected exploration failure, not evidence that these monitors should be omitted or a sampler normalization defect. No diagnostic rule is relaxed."
+}

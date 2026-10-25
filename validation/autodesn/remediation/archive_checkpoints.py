@@ -53,6 +53,7 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
                 'gp_cohort_evidence_sources/**/*','gp32_period0_cohort*/*','gp16_period10_cohort*/*',
                 'checkpoint_validation_sources/**/*','oracle_forecastability_sources/**/*',
                 'qualification_sources/**/*','cross_budget_sources/**/*','fold_pilot_sources/**/*',
+                'fold_fits/cutoff*/common_rhs_monitors/**/*',
                 'oracle_forecastability/*/*.csv','oracle_forecastability/*/status.json',
                 'prefix_banks/*/manifest.json','prefix_banks/*/raw_bank/*.csv','prefix_banks/*/raw_bank/status.json','prefix_banks/*/raw_bank/contract.rds',
                 'prefix_banks/*/standardized_bank/*.csv','prefix_banks/*/standardized_bank/status.json','prefix_banks/*/standardized_bank/contract.rds',

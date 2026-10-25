@@ -1,5 +1,5 @@
 {
-  "observed_utc": "2026-10-25T05:22:59.840Z",
+  "observed_utc": "2026-10-25T05:52:38.586Z",
   "workflow_run_id": 40160840831,
   "source_commit": "b88f738a743a238468f5052b4667ca8346d28716",
   "jobs": [
@@ -52,8 +52,8 @@
     {
       "id": 121071869838,
       "name": "native-gp64 (7366322)",
-      "status": "in_progress",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "success",
       "run_id": 40160840831,
       "logs_url": null,
       "steps": [
@@ -77,21 +77,27 @@
         },
         {
           "name": "Independent 64-particle native calculation",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 4
         },
         {
           "name": "Preserve numeric outputs and compressed inference log",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 5
         },
         {
           "name": "Post Run actions/checkout@v4",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 10
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
         }
       ]
     },
@@ -144,8 +150,8 @@
     {
       "id": 121071869884,
       "name": "native-gp64 (7366323)",
-      "status": "in_progress",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "success",
       "run_id": 40160840831,
       "logs_url": null,
       "steps": [
@@ -169,24 +175,30 @@
         },
         {
           "name": "Independent 64-particle native calculation",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 4
         },
         {
           "name": "Preserve numeric outputs and compressed inference log",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 5
         },
         {
           "name": "Post Run actions/checkout@v4",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 10
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
         }
       ]
     }
   ],
-  "scope": "Live observed workflow step state only; no completed numeric output or qualification credited."
+  "scope": "Observed workflow step state only; no completed numeric posterior or qualification is credited without import and verification."
 }

@@ -1,0 +1,27 @@
+{
+  "complete": true,
+  "chain_artifacts_verified": 4,
+  "contract_id": "5e9ba1a9e28d2c26a1b1ccebc02fffe624c057f80dad46f02a41c84aa80a900b",
+  "target_id": "f0c7cbcc9bb31e92eb39fa2022b6e0ed50051fc8307c431f573c77b57ecb9a94",
+  "proposal_verified": false,
+  "matching_joint_states_per_chain": [2048, 2048, 2048, 2048],
+  "input_files_sha256": {
+    "contract.rds": "c592b0194514c62d6cda3e03fc29320f380692f8b79f2dd53b17b235f7af1832",
+    "configuration.json": "765d2c248f4958c4d92f7cc8e602a43e2c52028ff931f7ceb9f1a1771b3cfa0e",
+    "chain_1.rds": "378b2f7e63427627b9335abb7ff0ca4a4132c5172fe8c9f0b3273080b2a066d2",
+    "chain_1_status.json": "1f0f712d004925dcf119d74dd2575f2f0db920e6269477bd0d1e6fca38b140ee",
+    "trace_1.csv": "5d3f526a5f4158af20d507c164828c14a72fb87a0bbfa83755dcf6b69fea811e",
+    "model_metadata.csv": "83378d1272779fa54c4ba74880b1a1e41e26935901037f18b792a7e8bf5243d8",
+    "chain_2.rds": "2c0e2e925bb81414053e69ec50431368588acfd62f274a45fce7dbd9f29a3d32",
+    "chain_2_status.json": "2e7fb09124e092cf895648f8654446993085dc1c957e84d2617120f578a0b705",
+    "trace_2.csv": "cb4df6c407e414ee45fd5f52d309951b0569a53c1fcd0c7536d05c22adc90526",
+    "chain_3.rds": "bf0eef32ca2fbd488254dec94380fa7686d318026e6f2ccac2f92fdc60095016",
+    "chain_3_status.json": "b9d078ae0e8f709bfadddf94c862e4cc73bdedd4b3311b1b1c9797a0f7b1a6ab",
+    "trace_3.csv": "62c4626ad2de2ecdfdcba247e2ef245d8745cbf0f45dc28a251212b5fc8f7d0f",
+    "chain_4.rds": "b18528ec42b2d95a0bd4b40ffbdce896b5ce6aae8b5036497220e914d41558a6",
+    "chain_4_status.json": "f124f91a03dfd616f71783fb58eaadb1bd6fca0c9f7b010a1769c158d566c558",
+    "trace_4.csv": "9d2837d79282e53351066df91ccbd353c03263fbad8b5255c1fb8faf98d2bc03"
+  },
+  "posterior_qualified": false,
+  "scope": "Complete RDS/status/contract identities, trace and fitted-probe CSV parity, exact matching coefficient/local-state indices; launcher completion and posterior qualification remain separate"
+}
