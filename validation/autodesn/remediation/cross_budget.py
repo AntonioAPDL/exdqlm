@@ -17,6 +17,25 @@ from scipy.optimize import brentq
 ROOT = Path(__file__).resolve().parent
 
 
+def common_rhs_screen(phase, target_id):
+    """Bind every supplementary common-coordinate monitor to the final chains."""
+    path=ROOT/'evidence'/f'F1_{phase}_common_rhs_diagnostics.json'
+    if not path.exists():return dict(phase=phase,available=False,screen_passed=False)
+    record=json.loads(path.read_text())
+    assert record['complete'] and record['phase']==phase and record['parameters']==270 and record['chains']==4
+    directory=ROOT/'artifacts/common_rhs_monitors'/phase
+    status_path=directory/'status.json'
+    assert hashlib.sha256(status_path.read_bytes()).hexdigest()==record['source_status_sha256']
+    status=json.loads(status_path.read_text())
+    assert status['complete'] and len(status['source_checkpoints'])==4
+    for k,source in enumerate(status['source_checkpoints'],1):
+        final=json.loads((ROOT/'artifacts/F1'/phase/f'chain_{k}_status.json').read_text())
+        assert final['complete'] and source['sha256']==final['checkpoint_sha256'] and source['target_id']==target_id
+    for name,sha in record['source_csv_sha256'].items():
+        assert Path(name).name==name and hashlib.sha256((directory/name).read_bytes()).hexdigest()==sha
+    return dict(phase=phase,available=True,screen_passed=bool(record['screen_passed']),diagnostics_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+
+
 def summary(values, kind="mean", noise=None):
     """Independent chain batches and delta-method MCSE for a posterior functional."""
     x = np.asarray(values, dtype=float)
@@ -120,7 +139,10 @@ def compare(family, left_name, right_name):
     critical = float(norm.ppf(1 - .01 / (2 * len(table))))
     table["simultaneous_mc_tolerance"] = critical * table.combined_mcse
     table["mc_consistency_passed"] = table.difference <= table.simultaneous_mc_tolerance + 1e-12
+    common_required=family=='F1' and configs[0]['beta_prior']=='rhs'
+    common_checks=[common_rhs_screen(n,qualifications[0]['target_id']) for n in names] if common_required else []
     passed = bool(all(q["screen_passed"] for q in qualifications)
+                  and all(q['screen_passed'] for q in common_checks)
                   and table.practical_passed.all() and table.mc_consistency_passed.all())
     label = f"{family}_{left_name}_vs_{right_name}"
     table.to_csv(ROOT / "evidence" / (label + "_stability.csv"), index=False)
@@ -128,6 +150,7 @@ def compare(family, left_name, right_name):
                   computational_registry_sha256=hashlib.sha256(registry_path.read_bytes()).hexdigest(),
                   target_id=qualifications[0]["target_id"],
                   individual_screens_passed=[q["screen_passed"] for q in qualifications],
+                  supplementary_common_rhs_required=common_required,supplementary_common_rhs_screens=common_checks,
                   practical_stability_passed=bool(table.practical_passed.all()),
                   mc_consistency_passed=bool(table.mc_consistency_passed.all()),
                   familywise_normal_critical_value=critical, checked_quantities=len(table),

@@ -1,0 +1,9 @@
+{
+  "complete": false,
+  "stage": "snapshot preparation",
+  "R_audit_executed": false,
+  "error": "Absolute __file__ discarded the snapshot prefix in Path joining; shutil refused a same-file copy. No source file was overwritten.",
+  "source_sha256": "3f5d82a7d390522d1b01dfb416a505de248a5f8411a8d122e21fd78ad2a6a84c",
+  "source_copy": "validation/autodesn/remediation/artifacts/fit_audit_failures/preparation1/launch_training_function_audit.py",
+  "observed_utc": "2026-10-25T00:41:34.932016+00:00"
+}

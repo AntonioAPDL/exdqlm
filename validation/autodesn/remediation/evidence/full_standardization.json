@@ -1,0 +1,14 @@
+{
+  "complete": true,
+  "passed": true,
+  "reservoir_readouts": 426,
+  "calendar_variants": 202,
+  "maximum_absolute_mean": 8.7559e-14,
+  "maximum_sample_sd_error": 6.6613e-16,
+  "F2_and_F2flat_calendar_matrices_bit_identical": true,
+  "statistics_cache_sha256": "3f8a738d8949d93c915e88c8dc4e74c33e6eef502b3530d887ca43d21f867e58",
+  "intercept_exempt": true,
+  "dimension_division_applied": false,
+  "heldout_used": false,
+  "scope": "Actual inference-Gram audit of every F1 slope, including all90 direct lags and reservoir coordinates, plus direct matrix checks of all101 calendar periods in F2 and F2flat. All readout slopes are centered with unit sample SD on501:2500; the proper-prior intercept is constant. Shared original reservoir inputs retain their first500 conditioning transformation."
+}

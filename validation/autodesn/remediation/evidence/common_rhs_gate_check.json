@@ -1,0 +1,11 @@
+{
+  "complete": true,
+  "verified_real_256000_chains": {
+    "phase": "production_256000_joint128_recoverable",
+    "available": true,
+    "screen_passed": true,
+    "diagnostics_sha256": "fc7637b2662482731d0c432fb0304949061a98218a341a6daeaa017d7cbc46be"
+  },
+  "missing_evidence_blocks": true,
+  "posterior_qualified": false
+}

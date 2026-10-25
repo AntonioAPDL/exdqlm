@@ -133,3 +133,22 @@ local/scale proposals, seasonal SV and C++ in separate operating-system
 processes. It compares every recorded state with an uninterrupted run. These
 are reproducibility checks, not posterior convergence evidence.
 
+The latest training-only audit verifies centering and unit sample SD in the
+actual inference Gram matrices for all 426 readouts and all calendar variants.
+The first individually passing F1 256k level also passes all 270 common lag
+coefficient/log-local/log-prior-variance monitors. Its descriptive true-mean
+training RMSE is 0.1534, versus realized innovation RMSE 0.4604. Latent-mean
+90% bands cover only 54.35% of the known training mean, so remaining mean
+discrepancy must still be investigated. None of these checks qualifies forecasts.
+
+All four full-size native GP16 runs are verified complete. They fail the
+mode/budget review: corrected log-evidence estimates span 365 log units and
+their evidence-weighted effective replica count is essentially one. Native
+AutoGP at the pinned revision reports only the pre-resampling accumulator via
+`log_marginal_likelihood_estimate`; use `gp_evidence.jl` to add the final
+log-mean particle weight, matching `Gen.log_ml_estimate`. The registered pooling
+addendum documents the correction before any forecasts. Independent QMC versus
+64 SMC replicas per arm passes all ten small-target unnormalized-measure checks;
+it does not qualify depth-four production SMC. See the updated checkpoint PDF
+and `execution.json` for completed work and remaining gates.
+

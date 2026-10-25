@@ -43,6 +43,9 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
                 'checkpoint_process_sources/**/*','checkpoint_fresh_process/**/*',
                 'prefix_sources/**/*','prefix_fold_fixture/**/*','capacity_sources/**/*','representation_capacity/**/*','live_chain_snapshots/**/*',
                 'production_scale_sources/**/*','production_scale_reference/*',
+                'fit_audit_sources/**/*','fit_audit_failures/**/*','common_monitor_sources/**/*','common_rhs_monitors/**/*',
+                'remote_gp_runs/**/*','remote_gp_logs/**/*',
+                'gp_audit_sources/**/*','gp_training_audit16/*','gp_evidence_sources/**/*','gp_normalizer_sources/**/*',
                 '*_attempt*.log','gp_n*.log','gp_leaf_reference.log','checkpoint_fresh_process.log','grouped_reference.log','local_reference.log','local_joint_reference.log','local_partial_reference.log','sv_joint_mcmc.log']:
  if a.skip_live_observations and pattern.startswith('live_chain_snapshots/'):
   continue

@@ -1,0 +1,41 @@
+{
+  "complete": true,
+  "verified_pause": true,
+  "full_fit_complete": false,
+  "posterior_qualified": false,
+  "source_snapshot": "7ef16ab301161e5740ae004e1d51a07db731825f6bd8fe2309e9b57bc60615b9",
+  "contract_id": "8fecdf580690cc831f784ebc19f3f6565161b538c39753d294d4c37c259eb6cf",
+  "full_retained_per_chain": 512000,
+  "warmup_per_chain": 128000,
+  "chains": [
+    {
+      "chain": 1,
+      "iteration": 320000,
+      "retained": 192000,
+      "sha256": "20e4324f05cdb88a4e1adb17408aa3f1908bf6ed46f35fc370e038eb53154cb1",
+      "checkpoint_id": "6df54ff3904d9179d9e5bd6f53bb342255b936d0f86fdd26af5b7f340978291b"
+    },
+    {
+      "chain": 2,
+      "iteration": 320000,
+      "retained": 192000,
+      "sha256": "ffdf128b067744fde94bc64f0db2b04c7f8a4a7b96e90f9893b2eede58965926",
+      "checkpoint_id": "b1ae15c475d3d5e48f2ec5f3e3e90d6783d7ce0c8626b82a9e1497fe3a6ddc40"
+    },
+    {
+      "chain": 3,
+      "iteration": 320000,
+      "retained": 192000,
+      "sha256": "3732fde0184ad11f819ffa72ab9445e1d37723182a7cffd91ca32f87c74f289c",
+      "checkpoint_id": "a8745474cf855623aca8933de5122081aba8b27a254ac17b2e543ceb651239aa"
+    },
+    {
+      "chain": 4,
+      "iteration": 320000,
+      "retained": 192000,
+      "sha256": "10ad38a437b85515cae3c5423c778d557da02b872a9997d86b1f5a9d4a96ba15",
+      "checkpoint_id": "892e987144942cf2be2e3d1686f85a6fd3362870f4d8192be13b06d1b9120a1c"
+    }
+  ],
+  "scope": "Four matching whole-budget Markov/RNG states durably paused at320k of640k total sweeps. These192k retained prefixes are not completed512k chains, independent lower-budget chains, or a new convergence certificate."
+}

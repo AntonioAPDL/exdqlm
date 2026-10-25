@@ -1,0 +1,32 @@
+{
+  "complete": true,
+  "replicas": 4,
+  "rows": 2000,
+  "particles": 16,
+  "log_evidence_range": 365.2883929689642,
+  "normalized_evidence_weights": [
+    1.0,
+    1.672561396392561e-39,
+    2.276494630417466e-159,
+    5.483725045442464e-23
+  ],
+  "effective_number_of_evidence_weighted_replicas": 1.0,
+  "maximum_native_probe_error": 7.4870665223159e-14,
+  "all_replicas_included": true,
+  "heldout_used": false,
+  "pooled_forecasts_issued": false,
+  "posterior_qualified": false,
+  "mode_budget_screen_passed": false,
+  "reason": "Four completed runs have grossly different evidence estimates and near-single-replica weight dominance. This budget is not computationally qualified; lower observed training residual error does not establish forecasting quality.",
+  "inputs": {
+    "validation/autodesn/remediation/artifacts/gp_training_audit16/status.toml": "1339ebc4d16cf73b6a1fb3aff5c51fd6eecc184d7c233c824a517f43442d85de",
+    "validation/autodesn/remediation/evidence/F1_production_256000_joint128_recoverable_training_function.csv": "e6b79bd0eea70cf86b6ccd59216388f17b1ef64a0cdefc6d3e209338d05c1e75",
+    "validation/autodesn/remediation/evidence/gp16_evidence_audit.csv": "1f8b0a876812ebcd909a5d7c72e94ae8b230b2c9507f9169b77bd032589140e4",
+    "validation/autodesn/remediation/artifacts/gp_training_audit16/training_s7366021.csv": "a1b93203b625a37cd87ea8493d05a8430d2a83f01cc72be3dfaa92087fb88a2f",
+    "validation/autodesn/remediation/artifacts/gp_training_audit16/training_s7366022.csv": "e67aac1d484246cd260002478c48ff5b409d9ca0e59b9c3eba4ea85feb453f81",
+    "validation/autodesn/remediation/artifacts/gp_training_audit16/training_s7366023.csv": "cebffc1e8c3445e1135bf2a55c6c2d3ff96c1257b05eb93ba7782c3d052003f2",
+    "validation/autodesn/remediation/artifacts/gp_training_audit16/training_s7366024.csv": "fc9647ee91334a7ec0b66598f9a35319fae2c0c39c6b1c2f13c5ba2fd1da1552"
+  },
+  "source_sha256": "ff476684ed049389c75b3d9ecc2c44cc8567f83de7ca6df4dbbacf65c031db5a",
+  "scope": "Descriptive conditional training audit of all four registered replicas. Corrected normalizers agree algebraically with Gen; independent small-target integration is separately recorded. No selection or hyperparameter change uses these outputs."
+}

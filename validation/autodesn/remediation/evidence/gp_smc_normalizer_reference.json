@@ -1,0 +1,34 @@
+{
+  "complete": true,
+  "passed": true,
+  "checks": 10,
+  "replicas_per_arm": 64,
+  "particles": 128,
+  "arms": [
+    "no_rejuvenation",
+    "native_2_structure_1_HMC"
+  ],
+  "fixture": {
+    "times": [
+      0,
+      0.19,
+      0.47,
+      1
+    ],
+    "response": [
+      0.13,
+      -0.24,
+      0.12,
+      0.07
+    ]
+  },
+  "qmc_powers": [
+    16,
+    18
+  ],
+  "qmc_scrambles": 8,
+  "independent_integrand_sha256": "8bf5d3267183acd4690f33f1cb052a4182dd7e5fb3ce9bb637f477dc709fa60b",
+  "maximum_reference_relative_mcse": 6.960781024457545e-05,
+  "full_depth_four_qualified": false,
+  "scope": "Complete continuous depth-one native leaf target; validates final weight accounting and unnormalized replica measures. Does not establish production deep-tree convergence or sufficient numbers of independent runs."
+}

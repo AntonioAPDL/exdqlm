@@ -1,0 +1,15 @@
+{
+  "registered_utc": "2026-10-25T00:53:14.330786+00:00",
+  "before_monitor_outputs": true,
+  "before_full_posterior_qualification": true,
+  "fields": "All90 shared lag slopes/responseSD, all90 log local scales, all90 log effective regularized prior variances",
+  "selection": "Every common lag1:90, no outcome-based subset",
+  "gates": {
+    "maximum_rhat": 1.01,
+    "minimum_bulk_ess": 400,
+    "minimum_tail_ess": 400
+  },
+  "existing_gates_unchanged": true,
+  "failure_blocks_promotion": true,
+  "scope": "Adds direct scale/coefficient diagnostics using already saved matching states. Does not replace full-trace function/architecture or cross-budget screens."
+}

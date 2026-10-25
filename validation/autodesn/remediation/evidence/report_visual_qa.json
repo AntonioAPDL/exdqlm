@@ -1,17 +1,16 @@
 {
   "complete": true,
-  "pages": 11,
+  "pages": 14,
   "all_pages_rendered": true,
   "all_page_contact_sheet_inspected": true,
   "full_size_dense_pages_inspected": [
-    3,
-    4,
-    6,
+    7,
+    8,
     9
   ],
   "no_clipped_or_overlapping_content_observed": true,
-  "report_sha256": "0e8422e22b8a104d9a1724bc929b49ed9cbc1087093530cacfcf039da9006e35",
+  "report_sha256": "46bff2e8f78616230183bf606a00e5949faf9fd81db4111e5e21d7f6dd658db5",
   "report_inputs_verified": true,
   "scientific_study_complete": false,
-  "inspected_utc": "2026-10-25T00:34:56.167546+00:00"
+  "inspected_utc": "2026-10-25T02:09:08.169384+00:00"
 }

@@ -55,7 +55,15 @@
     "All426-model training-only conditional-mean span audit matches frozen feature-geometrySHA and nested-space identities: prior-weighted per-architecture RMSE0.2363 F0,0.1339 F1,0.0838 privileged known-calendar60; no posterior or forecast improvement claimed",
     "Independent7D posterior reference at requestedtau0=.001,slab_scale1,slab_df4: all12 functionals agree with normalized-prior integration; maxRhat1.000693,minbulkESS2018,mintailESS1872; smallconditional scope only",
     "All four F1 chains complete at64k warmup+256k retained; final files/CSV parity verified and first full independent screen passes: maxRhat1.000854,minESS4326,largestcategoryfrequencyrange.020402. No complete posterior/forecast qualification.",
-    "F1joint128/256 training-only cross-budget checker completes: all73 practical/MC functionals pass, but certificate remainsfalse because128 individual frequency screen fails. Failed premature checker attempt is retained."
+    "F1joint128/256 training-only cross-budget checker completes: all73 practical/MC functionals pass, but certificate remainsfalse because128 individual frequency screen fails. Failed premature checker attempt is retained.",
+    "Actual inference-Gram standardization audit passes all426 readouts and202 calendar variants; maximum mean error8.76e-14 and SD error6.66e-16",
+    "All270 shared lag coefficient/log-local/log-prior-variance monitors pass: maxRhat1.001325,minbulkESS7136,mintailESS6332; no full posterior promotion",
+    "Training-function audit verifies8192 matching states against public predict_mu, maximum error1.12e-15; true conditional mean RMSE.1534 and correlation.9696; remaining latent mean discrepancy documented",
+    "Allfour native depth-four GP16 full2000-row runs complete; verified imported serialized posteriors/status/resource outputs; higher-budget/mode qualification pending",
+    "Allfour512k chain states verified paused at128k warmup+192k retained, complete RNG/target/payload/file checks; full512k level incomplete",
+    "Deterministic native GP training moments reproduce all768 native component/time probes; max error7.49e-14",
+    "Pinned AutoGP partial-normalizer defect identified; complete serialized SMC evidence accounting matches Gen exactly for all four full-size runs; no forecasts affected",
+    "Independent continuous complete-leaf QMC versus64 SMC replicas per arm at128 particles passes all10 unnormalized-measure comparisons; no production GP qualification"
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
@@ -72,31 +80,43 @@
   "limitations": {
     "fork_production": "Full-bank construction environments caused the original fork OOM. Exact matrix/augmentation caches passed a longer four-worker preflight and completed all four 32k chains under the memory cap; original/cached completed chains reproduce exactly.",
     "F2_pilot_launcher": "All four saved chains verify, but the driver exited 1 after a live-script edit; this failed invocation is preserved separately.",
-    "full_size_GP": "An intended 2000-row/16-particle run was explicitly interrupted after the R memory failure, with native stages through 256 saved; no final posterior exists.",
+    "full_size_GP": "Earlier interrupted GP run remains incomplete. Four fresh full2000-row/16-particle runs are now verified complete; completion does not establish deep-tree mode or particle-budget adequacy.",
     "peak_memory": "Early process-tree PSS sampling missed descendants on this kernel. Use the per-process wait4 peak and scoped cgroup observations for those records; corrected aggregate sampling passes a controlled 128 MiB descendant fixture.",
     "forecast_templates": "Resolved for all 426 original reservoirs: exact before/after serial and batched transitions, terminal-feature error <=1.8e-13, controlled full-bank recursive and observed-update parity. No new benchmark forecast issued.",
     "execution_environment": "Shell and pinned R runtime restored in a fresh checkout. Recovery observations supersede earlier inaccessible-file status; original manifests were not recovered, newly constructed manifests explicitly retain the truncated archive.",
     "old_job_states": "Prior environment process exits cannot be recovered. The fresh environment has new observed invocations; prior jobs are not represented as continuing.",
     "latest_long_production_interruption": "The fresh256k first-pair invocation was observed running at20:45UTC, but at23:04UTC no R/runner process, completed chain, or resource exit record remained. Its exit status and cause are unknown. No iterations or runtime totals are credited to it. A resumable within-chain checkpoint is needed before another long invocation.",
-    "full_package_CI": "Broader package check on bf347f3 fails155 assertions and four check errors. Two stale fixture contexts now pass47 assertions; shipped-data example executes and repository-only config is excluded from package tarballs. Other legacy integration/numerical/docs issues remain under investigation; scopedAutoDESN suites do not imply package-wide green."
+    "full_package_CI": "Broader package check on bf347f3 fails155 assertions and four check errors. Two stale fixture contexts now pass47 assertions; shipped-data example executes and repository-only config is excluded from package tarballs. Other legacy integration/numerical/docs issues remain under investigation; scopedAutoDESN suites do not imply package-wide green.",
+    "native_gp16": "Four complete full-size runs fail mode/budget review: corrected log evidence range365.29, effective evidence-weighted replica count1.0, one within-run ESS1.08. Retain all runs; no forecast promotion."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
   "execution_context_date": "2026-10-24",
   "running_at_this_checkpoint": [
     {
-      "method": "Native AutoGP",
-      "workflow_run_id": 40146404171,
-      "commit": "48cbedc7ffd576a0d261ec4df9458b59f3d2918e",
-      "seeds": [
-        7366021,
-        7366022,
-        7366023,
-        7366024
+      "method": "AutoDESN RHS F1",
+      "budget_retained_per_chain": 512000,
+      "chains": [
+        1,
+        2
       ],
+      "workers": 2,
+      "snapshot": "7ef16ab301161e5740ae004e1d51a07db731825f6bd8fe2309e9b57bc60615b9",
+      "status": "Resumed from verified320000-total-sweep pause; chains3,4 remain paused"
+    },
+    {
+      "method": "Native AutoGP",
+      "workflow_run_id": 40150738398,
+      "commit": "892fa693715d1b46f2a14e49be3fa943d84942ca",
+      "seeds": [
+        7366121,
+        7366122,
+        7366123,
+        7366124
+      ],
+      "particles": 32,
       "rows": 2000,
-      "particles": 16,
-      "status": "All four inference steps observed active; no completed output yet retrieved"
+      "status": "All four actual inference steps observed in progress; no completed32 output imported"
     }
   ],
   "jobs_with_unknown_state_after_environment_loss": [],
@@ -111,5 +131,5 @@
     "source_and_outside_git_installed_assertions": 478,
     "full_qualified_posterior": false
   },
-  "snapshot_utc": "2026-10-25T00:31:35.720281+00:00"
+  "snapshot_utc": "2026-10-25T02:05:10.051676+00:00"
 }

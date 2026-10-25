@@ -28,7 +28,9 @@ def read_json(path,default=None):
     if not path.exists():return default
     inputs[str(path)]=hashlib.sha256(path.read_bytes()).hexdigest();return json.loads(path.read_text())
 def read_csv(path,**kwargs):
-    path=Path(path);inputs[str(path)]=hashlib.sha256(path.read_bytes()).hexdigest();return pd.read_csv(path,**kwargs)
+    path=Path(path)
+    with path.open('rb') as handle:inputs[str(path)]=hashlib.file_digest(handle,'sha256').hexdigest()
+    return pd.read_csv(path,**kwargs)
 def fmt(x,d=3):return 'not measured' if x is None else f'{x:,.{d}f}'
 def save_plot(fig,name):
     path=FIG/(name+'.png');fig.savefig(path,dpi=180,bbox_inches='tight');plt.close(fig);return path
@@ -52,7 +54,7 @@ latest=max(qualifications,key=lambda item:item[1].get('retained',0)) if qualific
 traces=None;trace_figure=occupancy_figure=None
 if latest:
     q,c=latest;directory=ROOT/'artifacts/F1'/q['phase']
-    traces=[read_csv(directory/f'trace_{k}.csv') for k in range(1,5)]
+    traces=[read_csv(directory/f'trace_{k}.csv',usecols=['model','variance','log_global_1','log_slab','fitted_probe_4','norm_lag','norm_reservoir']) for k in range(1,5)]
     fig,axes=plt.subplots(3,2,figsize=(7,6.0),sharex=True)
     fields=[('variance','Noise variance'),('log_global_1','Log global multiplier'),('log_slab','Log slab variance'),('fitted_probe_4','Training fitted-mean probe'),('norm_lag','Lag coefficient norm'),('norm_reservoir','Reservoir coefficient norm')]
     for ax,(field,label) in zip(axes.flat,fields):
@@ -123,6 +125,25 @@ checkpoint_reference=read_json(E/'checkpoint_fresh_process.json',{})
 checkpoint_execution=read_json(E/'checkpoint_recovery_execution.json',{})
 interruption=read_json(E/'F1_statistics_256_interruption.json',{})
 statistics_pairs=read_csv(E/'statistics_cache_benchmark.csv') if (E/'statistics_cache_benchmark.csv').exists() else None
+
+training_function=None;training_figure=None
+if latest:
+    stem=f"F1_{latest[0]['phase']}_training_function"
+    training_function=read_json(E/(stem+'.json'))
+    if training_function:
+        t=read_csv(E/(stem+'.csv'));display=t[t.time>2200]
+        fig,(ax,bx)=plt.subplots(2,1,figsize=(7,5.3),gridspec_kw={'height_ratios':[1.4,1]})
+        ax.plot(display.time,display.y,color='#a9afb4',lw=.6,label='Observed response')
+        ax.fill_between(display.time,display.q05,display.q95,color=BLUE,alpha=.2,label='90% latent-mean band')
+        ax.plot(display.time,display.conditional_mean,color=NAVY,lw=1,label='Known DGP conditional mean')
+        ax.plot(display.time,display.posterior_mean,color=BLUE,lw=.9,label='RHS posterior mean')
+        ax.set(xlabel='Training time',ylabel='Response',title='Last 300 training observations; no held-out outcomes')
+        ax.legend(fontsize=7,ncol=2,frameon=False);ax.grid(alpha=.12)
+        bx.scatter(t.conditional_mean,t.posterior_mean,s=3,alpha=.25,color=BLUE)
+        limits=[min(t.conditional_mean.min(),t.posterior_mean.min()),max(t.conditional_mean.max(),t.posterior_mean.max())]
+        bx.plot(limits,limits,color=NAVY,ls='--',lw=.8)
+        bx.set(xlabel='Known DGP conditional mean',ylabel='RHS fitted mean',title='All 2,000 training points')
+        bx.grid(alpha=.12);fig.tight_layout();training_figure=save_plot(fig,'training_conditional_mean_audit')
 
 font_path=font_manager.findfont(font_manager.FontProperties(family='DejaVu Sans'))
 bold_path=font_manager.findfont(font_manager.FontProperties(family='DejaVu Sans',weight='bold'))
@@ -209,6 +230,41 @@ if capacity_figure:
     add('Direct lags substantially reduce the per-architecture training approximation error. This is evidence that the added basis can represent useful mean structure. It does not show that the RHS posterior has learned it, that shrinkage is adequate, or that recursive forecasts improve.')
     add('The period60 probe is privileged. It tests a calendar space also present in the automatic model support, but supplies no period information to the automatic fit. The plotted weights are architecture priors, not posterior probabilities. A Bayesian averaged mean combines spaces; these per-model bounds are not lower bounds on its error.',True)
     add('All designs are numerically full rank under the registered SVD threshold. Median condition numbers are about 2022-4269; the maximum is about 1.9e8. Correlated feature directions can make individual coefficients difficult to interpret even when fitted functions are stable.',True)
+
+if training_function:
+    page();title('Retained signal, remaining mean bias')
+    image(training_figure,max_height=4.8*inch)
+    m=training_function['metrics']
+    table([['Training-only diagnostic','Response units'],['RHS mean vs known conditional mean',fmt(m['training_conditional_mean_rmse'],4)],['RHS mean vs observed response',fmt(m['training_observed_rmse'],4)],['Realized innovations: observed minus true mean',fmt(m['realized_innovation_rmse'],4)],['Weighted unpenalized fits vs true mean',fmt(m['weighted_unpenalized_fit_conditional_mean_rmse'],4)],['Weighted privileged projections vs true mean',fmt(m['weighted_privileged_projection_rmse'],4)]],[350,130])
+    add(f"The fitted/true mean correlation is {m['conditional_mean_correlation']:.4f}. Shrinkage improves the descriptive conditional-mean error relative to unpenalized fits of the same stored architecture mixture. The privileged truth projections show additional representational room; neither projection is a fitted forecasting alternative or an error bound for Bayesian averaging.",True)
+    add(f"The latent-mean bands omit observation noise. Their descriptive within-training 90% truth coverage is {100*m['descriptive_training_latent_coverage90']:.1f}%, indicating substantial remaining mean discrepancy. This is not predictive interval coverage or independent repeated-sample coverage. These are 8,192 stored joint states from the first individually passing level; full posterior qualification is pending.",True)
+
+standardization=read_json(E/'full_standardization.json')
+common=read_json(E/f"F1_{latest[0]['phase']}_common_rhs_diagnostics.json") if latest else None
+if standardization or common:
+    page();title('Feature and common-scale audit')
+    if standardization:
+        table([['Executed standardization check','Result'],['All 426 reservoir and direct-lag readouts','PASS'],['All 101 periods, F2 and F2flat','PASS; calendar matrices identical'],['Largest absolute feature mean',f"{standardization['maximum_absolute_mean']:.3g}"],['Largest unit sample-SD error',f"{standardization['maximum_sample_sd_error']:.3g}"],['Intercept','Constant; proper prior; exempt'],['Dimension division','None']],[275,205])
+        add('The audit reads the actual inference Gram matrices and calendar designs. Every slope is centered and scaled using training rows 501:2500. Reservoir input/response conditioning retains the frozen first-500 transformation. These verified fits do not require a standardization redo.')
+    if common:
+        table([['Shared RHS quantities','Four-chain result'],['All 90 lag coefficients, log locals, log prior variances',f"{common['parameters']} monitors"],['Largest rank/folded R-hat',fmt(common['maximum_rhat'],6)],['Minimum bulk / tail ESS',f"{common['minimum_bulk_ess']:,.0f} / {common['minimum_tail_ess']:,.0f}"],['Failed monitors',str(len(common['failed_parameters']))]],[335,145])
+        add('These supplementary checks use 2,048 matching joint states per chain. They cover all common lags rather than a few selected coordinates. Reservoir-specific quantities change dimension; their exploration remains subject to the full-trace architecture and cross-budget checks. Finite diagnostic screens cannot establish convergence of every posterior functional.')
+    pause=read_json(E/'F1_512000_midpoint_pause_verified.json')
+    if pause:add('The independent 512k level was durably verified at 320k total sweeps per chain: 128k warmup and 192k retained. That pause is not a completed 512k fit or an independent shorter-budget fit. Subsequent continuation is recorded in invocation/resource files; it cannot promote the posterior until final validation.',True)
+
+gp_training=read_json(E/'gp16_training_diagnostics.json')
+if gp_training:
+    page();title('Native GP: completion is not qualification')
+    t=read_csv(E/'gp16_training_diagnostics.csv')
+    table([['16-particle seed','Observed RMSE','True-mean RMSE','Particle ESS','Max weight']]+[[str(int(row.seed)),fmt(row.training_observed_rmse,4),fmt(row.training_conditional_mean_rmse,4),fmt(row.particle_ess,2),fmt(row.maximum_particle_weight,3)] for row in t.itertuples()],[100,100,100,90,90])
+    add('All four independent native depth-four, 2,000-row runs completed and their serialized posteriors, training-only inputs, stage records and resource exits were retrieved and verified. Independent streamed Gaussian algebra reproduces all native training probes, with maximum error '+f"{gp_training['maximum_native_probe_error']:.2g}. No forecast has been issued from these runs.")
+    add('The GP fits have smaller observed training residuals than RHS, but larger errors against the DGP conditional mean: 0.240-0.301 versus 0.153 for RHS. This is consistent with some noise fitting. The comparison is descriptive on one training realization; it does not establish forecasting performance, convergence, or superiority.')
+    add('The four GP evidence estimates span '+f"{gp_training['log_evidence_range']:.1f} log units. Correct evidence-weighted aggregation has effective replica count {gp_training['effective_number_of_evidence_weighted_replicas']:.1f}, with virtually all weight on one run. This fails the registered mode/budget review. Four finished jobs are insufficient evidence of reliable Bayesian averaging.")
+    read_json(E/'native_gp_pooling_correction.json');read_csv(E/'gp16_evidence_audit.csv')
+    add('A concrete accounting defect was found in the pinned native API: it returns the evidence accumulated before the last resampling. Native SMC leaves final particle weights unresampled. Correct pooling adds logsumexp(final log weights) - log(particle count), as in Gen.log_ml_estimate. The postprocessing now reproduces Gen exactly; no completed forecast used the old partial field.')
+    gp_normalizer=read_json(E/'gp_smc_normalizer_reference.json')
+    if gp_normalizer:add(f"Independent normalized-prior integration checks the complete depth-one continuous leaf target against 64 native SMC replicas per arm (128 particles), with and without native rejuvenation. All {gp_normalizer['checks']} unnormalized-measure comparisons "+('pass.' if gp_normalizer['passed'] else 'do not pass.')+' This validates small-target normalizer accounting, not depth-four exploration.',True)
+    else:add('Independent normalized-prior integration for small-target SMC normalizers is still pending. Higher particle budgets and deep-tree mode checks remain mandatory.',True)
 
 page();title('Calibration scope and actual execution status')
 rows=[['Calibration','Executed result / limitation']]

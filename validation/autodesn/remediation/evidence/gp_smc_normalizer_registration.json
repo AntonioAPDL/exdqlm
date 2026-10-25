@@ -1,0 +1,47 @@
+{
+  "snapshot": "c99a868871f550c9dfb7fcea218058c01a202b52a0241c3df962f9e6283175b2",
+  "source_sha256": {
+    "gp_evidence.jl": "3383f631df03a5dffaed6208edb08ff78b110a694c2585fdaef4d29cac7a750f",
+    "gp_smc_normalizer_reference.jl": "9729ebbf42cf5615bb94d4ced2323b298cc9c14cbf160ebbaa578cf278422225",
+    "gp_smc_normalizer_reference.py": "302a85c592535c3f85564ee11880b05173722ec51f061f72cb313c6e2bc1fde3",
+    "gp_leaf_prior_integration.py": "8bf5d3267183acd4690f33f1cb052a4182dd7e5fb3ce9bb637f477dc709fa60b",
+    "launch_gp_normalizer_reference.py": "5934a8eac19461ef3ead492fa9fe9a13beb6435b4464527303fff40f5582c423"
+  },
+  "registered_before_execution": true,
+  "replicas": 64,
+  "particles": 128,
+  "seeds": [
+    7466501,
+    7466564,
+    7467501,
+    7467564
+  ],
+  "schedule": [
+    1,
+    2,
+    4
+  ],
+  "arms": {
+    "no_rejuvenation": [
+      0,
+      0
+    ],
+    "native_rejuvenation": [
+      2,
+      1
+    ]
+  },
+  "reference": {
+    "powers": [
+      16,
+      18
+    ],
+    "scrambles": 8,
+    "seeds": [
+      7466101,
+      7466108
+    ]
+  },
+  "tolerance": "6 combined Monte Carlo SE + 2 QMC refinement difference + 0.2% reference magnitude",
+  "posterior_qualified": false
+}
