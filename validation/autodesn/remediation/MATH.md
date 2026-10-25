@@ -72,3 +72,23 @@ normalized-prior integration. The complete 32k full-bank coordinate trial still
 failed architecture exploration; small-target validity does not qualify that
 trial. Its original observations are retained in the interruption inventory.
 
+
+### Shared calendar statistics and recovery
+
+For fixed training geometry write the augmented design as
+\(X_{m,P}=[A,B_m,C_P]\), with the intercept and direct lags in\(A\).
+The block cache assembles\(X^\top X\) from\(A^\top A\),
+\(B_m^\top B_m\),\(C_P^\top C_P\), and the three cross-block products;
+\(X^\top y\) is their corresponding concatenation. Missing blocks are computed
+on demand. Every model/period prior and the full Gaussian determinant remain in
+the likelihood. Weighted SV statistics are recomputed at the current variances.
+
+Separate BLAS products can reorder floating-point sums. The initial strict path
+comparison is preserved as a failure; the block cache does not promise the
+bit-identical paths established for the original pair cache. Same-parameter
+Gaussian conditionals and independent dense response-space integrals provide
+the numerical-law checks. Exact checkpoint identity additionally hashes the
+actual statistics cache, so changing cache type, budget or stored values cannot
+silently continue an old arithmetic trajectory. Recovery with the same partial
+cache reproduces every recorded state in fresh OS processes. None of these
+computational checks replaces posterior or predictive qualification.

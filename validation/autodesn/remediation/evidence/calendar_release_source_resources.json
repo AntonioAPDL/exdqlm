@@ -1,0 +1,20 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/check_calendar_release.R",
+    "source"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1200.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 34.22782650700174,
+  "peak_child_rss_kib": 251468,
+  "sampled_peak_process_tree_pss_kib": 240425,
+  "sampled_peak_environment_cgroup_anon_bytes": 5767122944,
+  "user_seconds": 33.586791,
+  "system_seconds": 0.295878,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/check_calendar_cache.R"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1200.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 4.02220178999778,
+  "peak_child_rss_kib": 205096,
+  "sampled_peak_process_tree_pss_kib": 197079,
+  "sampled_peak_environment_cgroup_anon_bytes": 3788697600,
+  "user_seconds": 3.707966,
+  "system_seconds": 0.135773,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

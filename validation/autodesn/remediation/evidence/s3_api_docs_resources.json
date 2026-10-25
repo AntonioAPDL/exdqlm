@@ -1,0 +1,19 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/repair_s3_docs.R"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 300.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 1,
+  "elapsed_seconds": 9.086378946998593,
+  "peak_child_rss_kib": 428932,
+  "sampled_peak_process_tree_pss_kib": 417284,
+  "sampled_peak_environment_cgroup_anon_bytes": 4302073856,
+  "user_seconds": 8.702917,
+  "system_seconds": 0.17338399999999998,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

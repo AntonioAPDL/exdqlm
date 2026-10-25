@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "roxygen_version": "8.1.0",
+  "pages": ["predict_mu.autodesn_fit", "posterior_predict.autodesn_fit", "predict_mu.qdesn_normal_fit", "posterior_predict.qdesn_normal_fit", "predict_mu.qdesn_fit", "posterior_predict.qdesn_fit", "forecast_paths.qdesn_fit"],
+  "source_sha256": {
+    "R/autodesn.R": "33158be9fbe5e509e05c2f7343f3d5268e25bc87cc981faf62a4be3683d88186",
+    "R/qdesn_normal.R": "310f8b4e09bb5d6b33985dd28daa7ad47dff5e16589fbcbc2bb0187e248d8c28",
+    "R/qdesn_vb.R": "4f51b962836c6842e5444d7d55e287fc85e9bea6999d5e57f90d0a79abdee8fb"
+  }
+}

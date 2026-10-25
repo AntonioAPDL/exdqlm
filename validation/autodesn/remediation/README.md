@@ -152,3 +152,31 @@ addendum documents the correction before any forecasts. Independent QMC versus
 it does not qualify depth-four production SMC. See the updated checkpoint PDF
 and `execution.json` for completed work and remaining gates.
 
+
+`autodesn_cache_calendar_blocks(bank, max_bytes=128*1024^2)` is an optional
+shared-statistics cache for the calendar models. All architecture/period pairs
+retain support. In three alternating-order short full-bank runs, median sampler
+time was21.671s direct and13.546s with blocks, plus4.897s cache preparation.
+These are computational trials under concurrent load. The first strict
+component-relative trajectory comparison failed and is retained. Thirty-eight
+same-hyperparameter Gaussian laws, including independent dense likelihoods,
+agree to the recorded tolerances; reordered sums do not promise bit-identical
+trajectories. Exact recovery now binds the actual cache contents. Identical
+partial-cache grouped-RHS/seasonal-SV/C++ recovery passes across four fresh
+processes. Source and outside-Git installed scoped suites each pass800 assertions.
+The older source snapshots remain necessary to resume their original contracts.
+
+The two large derived block-cache files have identical SHA256 in independent
+processes. They are excluded from the bank-free archives; if needed, recreate
+one with `Rscript validation/autodesn/remediation/restore_calendar_cache_derived.R 1`
+after restoring/rebuilding the original inference-bank inputs. Its SHA256 is
+checked before publication. Fitted benchmark states and executed sources are
+archived separately.
+
+`launch_prefix_bank.py 1500` and `launch_prefix_bank.py 2000` rebuild every
+original candidate from the corresponding response prefix, refit readout
+scalers, verify compact transitions/terminal features and save full-support
+inference/forecast inputs. They require the large-job reservation. Preflight is
+complete; the full fold banks have not yet been executed at this checkpoint.
+Their narrow reference contains only seeded maps and first500 input transforms,
+without the original terminal states or response history.

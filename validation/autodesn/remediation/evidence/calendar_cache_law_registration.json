@@ -1,0 +1,14 @@
+{
+  "registered_utc": "2026-10-25T02:33:03.749607+00:00",
+  "before_law_outputs": true,
+  "immutable_failed_source_snapshot": "af348cd9eca2248ad4800cf01d18fb0dfba809feac66640f8ec2647e30e996d4",
+  "source_sha256": "3083fdceede6d70e43511d82ab731b9eeebaec5f83af8c23d8a2c09c77a32eea",
+  "thresholds": {
+    "gaussian_KL": 1e-14,
+    "absolute_log_evidence_error": 1e-08,
+    "fitted_mean_error_in_response_SD": 1e-08,
+    "dense_response_log_evidence_error": 1e-08
+  },
+  "reason": "Full-bank path check failed mean-relative1e-9 for beta/locals while architecture sequences and other fields agree. Diagnose the unchanged code with same-hyperparameter Gaussian laws, not a relaxed posterior convergence gate.",
+  "original_failure_retained": true
+}

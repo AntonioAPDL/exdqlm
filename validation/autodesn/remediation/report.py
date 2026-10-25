@@ -44,7 +44,7 @@ def archived_case_count(directory):
     partial_observations[str(directory)]=dict(manifest=str(manifest_path),members=list(cases.values()))
     return len(cases)
 
-tests=read_json(E/'extended_tests.json',{});installed=read_json(E/'portable_installed_tests.json',{});legacy=read_json(E/'legacy_tests.json',{})
+tests=read_json(E/'calendar_release_source_tests.json') or read_json(E/'extended_tests.json',{});installed=read_json(E/'calendar_release_installed_tests.json') or read_json(E/'portable_installed_tests.json',{});legacy=read_json(E/'legacy_tests.json',{})
 package_ci=read_json(E/'full_package_ci_audit.json',{})
 qualifications=[]
 for path in sorted(E.glob('F1_production_*_qualification.json')):
@@ -265,6 +265,12 @@ if gp_training:
     gp_normalizer=read_json(E/'gp_smc_normalizer_reference.json')
     if gp_normalizer:add(f"Independent normalized-prior integration checks the complete depth-one continuous leaf target against 64 native SMC replicas per arm (128 particles), with and without native rejuvenation. All {gp_normalizer['checks']} unnormalized-measure comparisons "+('pass.' if gp_normalizer['passed'] else 'do not pass.')+' This validates small-target normalizer accounting, not depth-four exploration.',True)
     else:add('Independent normalized-prior integration for small-target SMC normalizers is still pending. Higher particle budgets and deep-tree mode checks remain mandatory.',True)
+    imported32=[read_json(p) for p in sorted(E.glob('gp32_s*_imported.json'))]
+    if imported32:
+        table([['Verified GP32 replica','Wall (minutes)','Peak PSS (GiB)']]+[[str(v['seed']),fmt(v['wall_seconds']/60,1),fmt(v['peak_PSS_KiB']/1048576,2)] for v in imported32],[210,135,135])
+        add(f"{len(imported32)} of four 32-particle replicas have verified complete outputs, exit-zero resource records and CRC-checked full compressed inference logs at this checkpoint. This does not qualify the cohort. These jobs use immutable source 892fa693.",True)
+    if read_json(E/'gp16_period10_registration.json'):
+        add('A separate 16-particle cohort with ten additional invariant period moves per particle per stage is registered and launched at source680c6f59. The native prior and grammar remain fixed; training-only period peaks define a proposal with exact Hastings correction. The four jobs were observed in checkout/setup. Keep this computational repair distinct from the strict native sampler; no repaired fit is yet counted complete.',True)
 
 page();title('Calibration scope and actual execution status')
 rows=[['Calibration','Executed result / limitation']]
@@ -320,6 +326,20 @@ if checkpoint_execution:
 if level256:add(f"The subsequent full continuation completes all four chains with exit 0. Summing the three observed process invocations gives {level256['known_active_wall_seconds_sum']/60:.2f} active minutes, including repeated startup/checkpoint work and excluding pauses between invocations. Peak process-tree PSS is {level256['peak_process_tree_pss_kib']/1048576:.2f} GiB; sampled environment anonymous memory includes simultaneous audits. The earlier unknown-exit invocation remains uncredited.")
 add('No new full rolling-origin forecast or independent confirmation result is produced by these engineering checks. The model qualification thresholds remain unchanged.',True)
 
+blocks=read_json(E/'calendar_cache_benchmark_lawvalidated.json')
+if blocks:
+    page();title('Calendar computation and exact recovery')
+    table([['Full 426-model / 101-period short computation','Direct','Shared blocks'],['Design panel median (69 pairs)',fmt(blocks['direct_design_median_seconds'],3)+' s',fmt(blocks['block_design_median_seconds'],3)+' s'],['Sampler median (100 warmup + 500 retained)',fmt(blocks['direct_sampler_median_seconds'],3)+' s',fmt(blocks['block_sampler_median_seconds'],3)+' s']],[300,90,90])
+    add(f"The optional block cache uses {blocks['numeric_payload_bytes']/1024**2:.1f} MiB numeric payload and takes {blocks['construction_seconds']:.2f} seconds to construct. It factors common lag, reservoir and calendar cross-products. Only {blocks['cached_reservoir_calendar_interactions']:,} interactions are stored; every other architecture-period pair remains available and is computed on demand.")
+    add('Three alternating-order same-seed short trials give about 37% lower median sampler time under concurrent production load. These are computational repetitions, not independent time-series replications or a whole-study speed claim. The existing long F1 run keeps its original cache and source snapshot.')
+    law=read_json(E/'calendar_cache_law_checks.json')
+    if law:
+        table([['Numerical validation','Largest difference'],['1,572 full-bank design pairs: Gram entries',f"{blocks['maximum_gram_absolute_error']:.2g}"],['38 matching-hyperparameter Gaussian laws: log evidence',f"{law['maximum_log_evidence_error']:.2g}"],['Gaussian conditional KL',f"{law['maximum_gaussian_KL']:.2g}"],['Conditional fitted means',f"{law['maximum_fitted_mean_error']:.2g}"],['Independent dense response-space log evidence',f"{law['maximum_dense_response_log_evidence_error']:.2g}"]],[350,130])
+    add('The original full-bank path comparison failed its component-wise relative 1e-9 threshold for coefficients and local scales. That failure is preserved. Reordered floating-point sums do not promise bit-identical Markov trajectories, even with equal discrete choices. Independent Gaussian-law checks, rather than a relaxed convergence gate, establish the arithmetic accuracy.',True)
+    recovered_blocks=read_json(E/'checkpoint_calendar_fresh_process.json')
+    if recovered_blocks:add('Exact recovery now hashes the actual statistics-cache contents in addition to source, runtime, priors, transition settings and full budget. The same partial block cache reproduces all saved states and counters across four fresh R processes for grouped RHS with seasonal SV and C++. Changing cache type, budget or contents is rejected.',True)
+    add('S3 signature checks fell from seven inconsistencies to zero. The latest source and outside-Git installed extension suites include '+str(tests.get('passed','?'))+' and '+str(installed.get('passed','?'))+' passing assertions, respectively. Broader repository CI remains a separate unresolved requirement.',True)
+
 page();title('Historical forecast context - unchanged')
 image(historical_figure,max_height=3.1*inch)
 rows=[['Historical model','RMSE','MAE','CRPS','NLL','50% cover / width','90% cover / width']]
@@ -340,6 +360,6 @@ def footer(canvas,doc):
 path=PDF/'AutoDESN_Remediation_Execution_Report.pdf'
 doc=SimpleDocTemplate(str(path),pagesize=(595.28,841.89),rightMargin=42,leftMargin=42,topMargin=44,bottomMargin=53,title='AutoDESN remediation: execution and validation checkpoint',author='AntonioAPDL / reproducible execution')
 doc.build(story,onFirstPage=footer,onLaterPages=footer)
-for file in [Path('R/autodesn_checkpoint.R'),Path('R/autodesn_statistics_cache.R'),Path('R/autodesn_gaussian.R'),Path('R/autodesn_extended.R'),Path('R/autodesn_extended_bank.R'),Path('R/autodesn_extended_forecast.R'),Path('R/autodesn_extended_local.R'),ROOT/'execution.json',ROOT/'development_registry.json',Path(__file__)]:inputs[str(file)]=hashlib.sha256(file.read_bytes()).hexdigest()
+for file in [Path('R/autodesn.R'),Path('R/qdesn_normal.R'),Path('R/qdesn_vb.R'),Path('NAMESPACE'),Path('R/autodesn_calendar_cache.R'),Path('R/autodesn_checkpoint.R'),Path('R/autodesn_statistics_cache.R'),Path('R/autodesn_gaussian.R'),Path('R/autodesn_extended.R'),Path('R/autodesn_extended_bank.R'),Path('R/autodesn_extended_forecast.R'),Path('R/autodesn_extended_local.R'),ROOT/'execution.json',ROOT/'development_registry.json',Path(__file__)]:inputs[str(file)]=hashlib.sha256(file.read_bytes()).hexdigest()
 record=dict(complete=True,report=str(path),report_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),execution_context_date='2026-10-24',last_committed_base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),inputs=inputs,partial_observations=partial_observations,scientific_study_complete=False,new_forecast_comparison_complete=False)
 (OUT/'report_inputs.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps({k:record[k] for k in ['complete','report','report_sha256','scientific_study_complete']}))

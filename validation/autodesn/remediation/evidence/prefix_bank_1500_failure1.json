@@ -1,0 +1,82 @@
+{
+  "complete_failure_observation": true,
+  "observed_utc": "2026-10-25T03:26:13.428865+00:00",
+  "source_snapshot": "adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1",
+  "failure": "Fold adapter used default tolerance1e-5 instead of frozen NHS tolerance1e-3",
+  "incorrect_admitted": 375,
+  "frozen_admitted": 426,
+  "frozen_tolerance": 0.001,
+  "frozen_configuration_sha256": "cca71b3541740f1760356350096cad0c45f44828780f9528883032698905cb32",
+  "maximum_warmup_error_difference": 0.0,
+  "all456_audits_retained": true,
+  "posterior_fitted": false,
+  "forecasts_issued": false,
+  "removed_regenerable_files": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/parts",
+      "bytes": 1087623343,
+      "kind": "Regenerable failed construction intermediate; not posterior draws"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/bank.rds",
+      "bytes": 820350996,
+      "kind": "Regenerable failed construction intermediate; not posterior draws"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/standardized_bank/bank.rds",
+      "bytes": 821215878,
+      "kind": "Regenerable failed construction intermediate; not posterior draws"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/standardized_bank/.bank.rds.ehb5Vi",
+      "bytes": 227540992,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/standardized_bank/.bank.rds.ehb5Vi.7r3RcL",
+      "bytes": 191889408,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/bank.rds.partial",
+      "bytes": 784834560,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/.bank.rds.nzExfF",
+      "bytes": 242745344,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/contract.rds",
+      "bytes": 2647943,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/.bank.rds.partial.anS9kh.6voL8O",
+      "bytes": 71303168,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/.bank.rds.partial.anS9kh",
+      "bytes": 158072832,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/.bank.rds.partial.vwb0tl",
+      "bytes": 434110464,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/.bank.rds.nzExfF.2X82PG",
+      "bytes": 227540992,
+      "kind": "Unused failed-construction temporary numeric file"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/prefix_banks/cutoff1500_adb53906a5fa1e64bc616bf9d3461642b92d5400bbc5febc468e31aff7d206f1/raw_bank/.bank.rds.partial.vwb0tl.OpL3d0",
+      "bytes": 186646528,
+      "kind": "Unused failed-construction temporary numeric file"
+    }
+  ],
+  "scope": "Original426-model inference is unaffected. The failed375-model fold was rejected before inference; retained CSV/contracts/source reproduce its construction."
+}

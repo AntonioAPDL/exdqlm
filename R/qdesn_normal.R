@@ -683,9 +683,11 @@ qdesn_fit_normal <- function(..., p0 = 0.5, normal_args = list(), fit_readout = 
 #' Predict fitted means from a Normal Q-DESN fit
 #'
 #' @param object A `qdesn_normal_fit`.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return Numeric vector aligned with `object$y_fit`.
 #' @export
-predict_mu.qdesn_normal_fit <- function(object) {
+predict_mu.qdesn_normal_fit <- function(object, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
   if (!inherits(object, "qdesn_normal_fit") || is.null(object$fit)) {
     .normal_desn_stop("predict_mu.qdesn_normal_fit() requires a fitted qdesn_normal_fit.")
   }
@@ -699,10 +701,12 @@ predict_mu.qdesn_normal_fit <- function(object) {
 #' @param X_new Optional fixed design matrix.
 #' @param seed Optional seed.
 #' @param draws Optional posterior draws.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return Posterior predictive draw list.
 #' @export
 posterior_predict.qdesn_normal_fit <- function(object, nd = 1000L, X_new = NULL,
-                                               seed = NULL, draws = NULL) {
+                                               seed = NULL, draws = NULL, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
   X_use <- if (is.null(X_new)) object$X else as.matrix(X_new)
   normal_desn_posterior_predict(object$fit, X_new = X_use, nd = nd, seed = seed, draws = draws)
 }

@@ -142,7 +142,12 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
   saved <- NULL
   if (!is.null(e$statistics_cache)) {
     if (!identical(e$statistics_cache$bank_id, e$id)) stop("Statistics cache belongs to a different conditional bank.", call. = FALSE)
-    saved <- e$statistics_cache$entries[[paste(m, p, sep = ":")]]
+    if (identical(e$statistics_cache$version,2L)) {
+      saved <- .autodesn_calendar_cached_statistics(e$statistics_cache,cbind(1,e$lag$X),res$X[,-1L,drop=FALSE],S$X,bank$y,m,p,colnames(X))
+    } else {
+      if (!identical(e$statistics_cache$version,1L)) stop("Unsupported statistics cache version.",call.=FALSE)
+      saved <- e$statistics_cache$entries[[paste(m, p, sep = ":")]]
+    }
     if (!is.null(saved) && (!identical(dim(saved$XtX), c(ncol(X), ncol(X))) || length(saved$Xty) != ncol(X))) stop("Statistics cache has invalid dimensions.", call. = FALSE)
   }
   list(X = X, XtX = if (is.null(saved)) crossprod(X) else saved$XtX,
@@ -267,6 +272,7 @@ autodesn_extend_bank <- function(bank, readout_control = NULL, seasonal_control 
   checkpoint_id <- if (!is.null(cp)) digest::digest(list(target_id = target_id,
     kernel = list(mc = mc, rc = rc, vc = vc, ridge_precision = ridge_precision, initial_variance = initial_variance, seed = seed),
     budget = c(n_burn, n_mcmc, thin), backend = backend, source_id = cp$source_id,
+    statistics_cache_id = if (is.null(bank$extension$statistics_cache)) NULL else digest::digest(bank$extension$statistics_cache, algo = "sha256"),
     R_code_id = .ext_checkpoint_code_id(), R_version = R.version$version.string,
     platform = R.version$platform, RNG_kind = RNGkind(), matprod = getOption("matprod"),
     external_versions = extSoftVersion(), LAPACK = La_version(),

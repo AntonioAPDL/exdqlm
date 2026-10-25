@@ -26,7 +26,7 @@ if(use_cache){key<-if(family%in%c('F1','F1ridge'))'F1' else if(family=='F2flat')
 vc<-if(family%in%c('SV','SVseasonal'))list(type='sv',seasonal=family=='SVseasonal',save_state_paths=TRUE) else NULL
 if(nzchar(statistics_path)){
  cached_statistics<-readRDS(statistics_path)
- stopifnot(identical(cached_statistics$bank_id,bank$extension$id),identical(cached_statistics$version,1L))
+ stopifnot(identical(cached_statistics$bank_id,bank$extension$id),cached_statistics$version%in%c(1L,2L))
  bank$extension$statistics_cache<-cached_statistics
  rm(cached_statistics)
 }

@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "S3_signature_inconsistencies": 0,
+  "tests": 29,
+  "assertions": 478,
+  "passed": 478,
+  "failures": 0,
+  "errors": 0,
+  "warnings": 0,
+  "outside_git": true,
+  "installed_database_sha256": "51df8dcddf2e5d7dedc4ae40fce3a6a9f45a16a70869e825853b17155b1417b8",
+  "scope": "Fresh installed extension tests outside Git and complete S3 signature check; not a complete package check"
+}

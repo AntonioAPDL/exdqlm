@@ -4,10 +4,12 @@
 \alias{predict_mu.autodesn_fit}
 \title{Fitted posterior means from Gaussian AutoDESN}
 \usage{
-predict_mu.autodesn_fit(object)
+predict_mu.autodesn_fit(object, ...)
 }
 \arguments{
 \item{object}{An \code{autodesn_fit}.}
+
+\item{...}{Reserved for generic compatibility; additional arguments are rejected.}
 }
 \value{
 Numeric posterior means on the original response scale.

@@ -224,9 +224,11 @@ autodesn_fit <- function(y, candidates = autodesn_candidates(), conditioning = 3
 
 #' Fitted posterior means from Gaussian AutoDESN
 #' @param object An `autodesn_fit`.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return Numeric posterior means on the original response scale.
 #' @export
-predict_mu.autodesn_fit <- function(object) {
+predict_mu.autodesn_fit <- function(object, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
   if (inherits(object,"autodesn_extended_fit")) return(predict_mu.autodesn_extended_fit(object))
   mu <- numeric(object$bank$n)
   for (j in unique(object$draws$model)) {
@@ -247,9 +249,11 @@ predict_mu.autodesn_fit <- function(object) {
 #' @param X_new Optional list of slope matrices, in bank order and before the
 #'   bank's feature normalization. Defaults to the scored training designs.
 #' @param seed Optional seed preserving the caller's RNG state.
+#' @param ... Reserved for generic compatibility; additional arguments are rejected.
 #' @return List with `yrep`, `mu_draws`, and selected posterior draw indices.
 #' @export
-posterior_predict.autodesn_fit <- function(object, nd = 1000L, X_new = NULL, seed = NULL) {
+posterior_predict.autodesn_fit <- function(object, nd = 1000L, X_new = NULL, seed = NULL, ...) {
+  if (length(substitute(list(...))) > 1L) stop("unused arguments in ...", call. = FALSE)
   if (inherits(object,"autodesn_extended_fit")) {
     if (!is.null(X_new)) stop("Use augmented forecast_paths for future designs.",call.=FALSE)
     return(posterior_predict.autodesn_extended_fit(object,nd,seed))

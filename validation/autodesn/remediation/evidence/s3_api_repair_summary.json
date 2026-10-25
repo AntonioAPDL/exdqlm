@@ -1,0 +1,12 @@
+{
+  "complete": true,
+  "before_S3_inconsistencies": 7,
+  "after_S3_inconsistencies": 0,
+  "source_assertions": 478,
+  "installed_assertions": 478,
+  "source_R_files_match_executed_hashes": true,
+  "documentation_first_attempt_failed": "Full-package source-only roxygen environment had no BTflow data binding; failed driver and log preserved",
+  "documentation_second_attempt": "Only affected source modules were processed with the package Markdown options; seven target method pages generated",
+  "frozen_MCMC_source_unchanged": true,
+  "full_package_CI_passed": false
+}

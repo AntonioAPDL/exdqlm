@@ -1,5 +1,21 @@
 # Training-prefix bank construction through the existing candidate builder.
 # Call after sourcing rhs_comparison/helpers.R from the verified builder tree.
+remediation_prefix_compact_template <- function(template) {
+  # Drop unused construction closures before checkpoint serialization. Numeric
+  # maps, terminal states and every input transform remain exactly unchanged.
+  clean<-template;clean$reservoir[c('w_dist','in_dist')]<-NULL
+  clean$meta<-clean$meta[intersect(names(clean$meta),c('D','n','n_tilde','m','m_input','add_bias','input_mode','standardize_inputs','lag_center','lag_scale','input_bound','input_bound_divisor','win_scale_bias','win_scale_global','win_scale_lags','readout_spec'))]
+  for(backend in c('serial','batched')){
+    a<-.normal_desn_transition_engine(template,backend);b<-.normal_desn_transition_engine(clean,backend)
+    history<-seq_len(max(1L,a$m+1L))/max(1L,a$m+1L)
+    stopifnot(identical(a$input(history),b$input(history)))
+    h<-template$states$H_last;u<-a$input(history)
+    if(backend=='batched'){h<-lapply(h,function(v)matrix(v,length(v),2));u<-matrix(u,length(u),2)}
+    stopifnot(identical(a$step(h,u),b$step(h,u)))
+  }
+  clean
+}
+
 remediation_prefix_warmup <- function(template,z,drop=500L) {
   n<-template$reservoir$n;m<-as.integer(template$meta$m_input);stopifnot(m<drop)
   expected<-unlist(lapply(template$states$H_all,function(h)as.numeric(h[drop,])))
@@ -26,7 +42,7 @@ remediation_prefix_bank <- function(y, cutoff, specifications, grid, directory,
   cfg<-list(mode='full',washout=as.integer(washout),fit_start=as.integer(washout+1L),
     fit_end=as.integer(cutoff),n_train=as.integer(cutoff-washout),washout_tolerance=tolerance,
     feature_workers=1L,input_sha256=list(training_prefix=digest::digest(prefix,algo='sha256'),
-      prefix_adapter=digest::digest(list(deparse(body(remediation_prefix_bank)),deparse(body(remediation_prefix_warmup)),deparse(body(.normal_desn_transition_engine))),algo='sha256')))
+      prefix_adapter=digest::digest(list(deparse(body(remediation_prefix_bank)),deparse(body(remediation_prefix_warmup)),deparse(body(remediation_prefix_compact_template)),deparse(body(.normal_desn_transition_engine))),algo='sha256')))
   # Rebind only the documented dataset/specification providers. The original
   # builder, admission calculation, depth-balanced prior and reservoir code run.
   e<-new.env(parent=environment(rhs_build_bank))
@@ -35,6 +51,11 @@ remediation_prefix_bank <- function(y, cutoff, specifications, grid, directory,
   e$c1_data<-evalq(function()input,e)
   e$rhs_specifications<-evalq(function(cfg)definitions,e)
   e$c1_warmup<-remediation_prefix_warmup
+  original_save<-rhs_save
+  e$rhs_save<-function(x,path){
+    if(is.list(x)&&!is.null(x$template)&&!is.null(x$model))x$template<-remediation_prefix_compact_template(x$template)
+    original_save(x,path)
+  }
   builder<-rhs_build_bank;environment(builder)<-e
   raw<-builder(cfg,file.path(directory,'raw_bank'))
   id<-rhs_guard(file.path(directory,'standardized_bank'),list(raw_bank_id=raw$id,

@@ -46,11 +46,18 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
                 'fit_audit_sources/**/*','fit_audit_failures/**/*','common_monitor_sources/**/*','common_rhs_monitors/**/*',
                 'remote_gp_runs/**/*','remote_gp_logs/**/*',
                 'gp_audit_sources/**/*','gp_training_audit16/*','gp_evidence_sources/**/*','gp_normalizer_sources/**/*',
+                's3_doc_sources/**/*',
+                'calendar_cache_sources/**/*','calendar_law_sources/**/*','calendar_checkpoint_sources/**/*','checkpoint_calendar_fresh_process/**/*','calendar_release_runs/**/*',
+                'full_prefix_sources/**/*','prefix_reference_maps/*',
+                'calendar_cache_benchmark/fit_*.rds','calendar_cache_benchmark/dimensions.csv','calendar_cache_benchmark_lawvalidated/fit_*.rds','calendar_cache_benchmark_lawvalidated/dimensions.csv',
                 '*_attempt*.log','gp_n*.log','gp_leaf_reference.log','checkpoint_fresh_process.log','grouped_reference.log','local_reference.log','local_joint_reference.log','local_partial_reference.log','sv_joint_mcmc.log']:
  if a.skip_live_observations and pattern.startswith('live_chain_snapshots/'):
   continue
  files.update(p for p in (root/'artifacts').glob(pattern) if p.is_file() and not p.name.endswith('.partial'))
-for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','ci_fixture_repair_tests.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
+for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','ci_fixture_repair_tests.rds','s3_api_test_results.rds','s3_api_installed_test_results.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
+ f=root/'artifacts'/name
+ if f.exists():files.add(f)
+for name in ['calendar_cache_test_results.rds','calendar_release_source_results.rds','calendar_release_installed_results.rds']:
  f=root/'artifacts'/name
  if f.exists():files.add(f)
 previous={};parent=None
