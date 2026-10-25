@@ -3,7 +3,7 @@
   "baseline": "fea371fbfa73c425a6f98407095194c1e8098a24",
   "audit_baseline": "4916600928337f1ef179fda6100f54c20723bd9a",
   "branch": "feature/autodesn-remediation-20261023",
-  "status": "main_F1_mcmc_gate_passed_both_GP_cohorts_failed_full_comparison_incomplete",
+  "status": "long_computation_paused_environment_and_inference_audit_complete_full_comparison_incomplete",
   "completed": [
     "G0 original score integrity and 51 audit-member hashes",
     "Opt-in augmented readout, period-averaging and normalized grouped-prior implementation",
@@ -136,7 +136,7 @@
     "source_and_outside_git_installed_assertions": 478,
     "full_qualified_posterior": false
   },
-  "snapshot_utc": "2026-10-25T16:38:04.930Z",
+  "snapshot_utc": "2026-10-25T20:54:42.426Z",
   "production_mcmc_two_budget_gate_passed": true,
   "production_mcmc_two_budget_record": "evidence/F1_production_256000_joint128_recoverable_vs_production_512000_joint128_recoverable_stability.json",
   "local_inference_jobs_active_at_snapshot": false,
@@ -149,5 +149,10 @@
     "cohorts_running": 0,
     "julia_Gen_reaudit_in_this_recovery": false,
     "posterior_qualified": false
-  }
+  },
+  "long_computation_paused": true,
+  "new_inference_launched_this_audit": false,
+  "audit_record": "AUDIT_AND_HANDOFF_20261025.md",
+  "audit_manifest": "references/audit_20261025.json",
+  "pause_reason": "Repeated scratch pruning and resource interruptions plus independently demonstrated GP/fold inference instability; migrate production computation to persistent storage after bounded portability and target checks."
 }

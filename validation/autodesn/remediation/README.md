@@ -1,5 +1,14 @@
 # AutoDESN remediation execution
 
+**Long computation paused after the 25 October 2026 forensic audit.** Repeated
+scratch pruning/resource interruptions and separate completed-fit instability
+make a persistent execution host preferable. See
+[AUDIT_AND_HANDOFF_20261025.md](AUDIT_AND_HANDOFF_20261025.md) for the verified
+causes, workflow mistakes, statistical status, open questions and local handoff
+requirements. No new fit or forecast was launched for this audit. Older running
+observations below are historical; both latest GP cohorts have completed and
+failed stability screens. The full scientific comparison remains unfinished.
+
 This branch implements the approved plan in `../nonlinear_heteroscedastic/plans/REMEDIATION_PLAN.md`. The original NHS1 benchmark and audit remain immutable references. Work begins at `fea371fbfa73c425a6f98407095194c1e8098a24` on a separate feature branch.
 
 **Current status:** implementation and training-only development. No new model is scientifically qualified and no confirmation outcomes have been generated or inspected. Passing numerical tests and running short pilots do not establish posterior convergence. See `execution.json` and actual evidence files; a script's presence is not evidence it ran.
