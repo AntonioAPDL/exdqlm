@@ -1,0 +1,19 @@
+{
+  "complete": true,
+  "scope": "Small two-architecture original-builder fold reconstruction, not the full456-candidate folds or qualified forecasts",
+  "future_perturbation_bank_unchanged": true,
+  "raw_states_prefix_invariant": true,
+  "seeded_maps_unchanged": true,
+  "scalers_refitted": true,
+  "identity_warmup_matches_original_exactly": true,
+  "reduced_bridge_warmup_uses_raw_transition_states": true,
+  "cutoffs": [
+    60,
+    80
+  ],
+  "washout": 30,
+  "architectures": 2,
+  "heldout_values_used": false,
+  "production_qualified": false,
+  "source_snapshot": "446695bd4745ae113d27c3000aa98e453c08570836aabfb2adf180c583847074"
+}

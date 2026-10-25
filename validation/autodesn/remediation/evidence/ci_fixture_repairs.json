@@ -1,0 +1,22 @@
+{
+  "complete": true,
+  "passed": 47,
+  "failed": 0,
+  "errors": 0,
+  "warnings": 0,
+  "tests": 6,
+  "source_sha256": {
+    ".Rbuildignore": "4c77758fb2c757c927752d5883525b3eb14bcffd47ee798b8a4cab394caeef48",
+    "R/tfRegMod.R": "4777e45ded4f9fffff4fabd039168eb78fa173e9c9b564b6f3994dcfe2331bd3",
+    "man/tfRegMod.Rd": "429c394b08a6c9ae232f86ac2be6c5890f539f57aa7c32f7eac4e8671b03a060",
+    "tests/testthat/test-exdqlm-forecast-horizon-inputs.R": "55db34ff75f5dca951fec1225e188611d8326537a84a777b026ae19ba26a96ce",
+    "tests/testthat/test-exal-stochastic-al-vb.R": "4f9de94c5f232a1a033ce5e5f1adde03bb4f5bbda0dc39c65ad2da07be76a84e"
+  },
+  "example": {
+    "executed": true,
+    "observations": 516,
+    "regressors": 2,
+    "model_combination_checked": true
+  },
+  "scope": "Two stale test fixtures repaired; real rejection and horizon validation retained. Shipped-data transfer-function example executes. Excluding repository-only config fixes the observed non-portable tarball paths but has not yet been verified by a new complete R CMD check. Broader CI is not green."
+}

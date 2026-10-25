@@ -1,10 +1,10 @@
 """Versioned bank-free numerical checkpoints with part and internal SHA256."""
 import argparse,hashlib,io,json,os,zipfile
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('label');p.add_argument('--previous',type=Path,help='Verified parent manifest; unchanged members are inherited, never duplicated');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('label');p.add_argument('--previous',type=Path,help='Verified parent manifest; unchanged members are inherited, never duplicated');p.add_argument('--skip-live-progress',action='store_true',help='Inherit earlier canonical progress; separately capture immutable advancing-state copies with capture_running_checkpoints.R');p.add_argument('--skip-live-observations',action='store_true',help='Inherit earlier observations without adding redundant intermediate copies; completed canonical fits are still archived');a=p.parse_args()
 root=Path('validation/autodesn/remediation');out=root/'evidence'/'checkpoints';out.mkdir(parents=True,exist_ok=True);base=out/a.label
 assert not Path(str(base)+'.manifest.json').exists(),'A checkpoint archive label is immutable'
-files=set()
+files=set();skipped_live_progress=[]
 for family in ['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']:
  family_dir=root/'artifacts'/family
  for config in family_dir.glob('*/configuration.json'):
@@ -27,6 +27,8 @@ for family in ['F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge']:
    # The verified final fit above supersedes a last-pause marker. Its live
    # continuation file is redundant and may have advanced beyond that marker.
    continue
+  if a.skip_live_progress:
+   skipped_live_progress.append(str(st));continue
   cp=d/f'chain_{status["chain"]}_progress.rds'
   assert hashlib.sha256(cp.read_bytes()).hexdigest()==status['checkpoint_sha256'],'Only archive a quiescent, verified pause; a running checkpoint is not immutable'
   files.update([st,cp])
@@ -39,7 +41,11 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
                 'grouped_reference/*','local_reference/*','local_joint_reference/*','local_partial_reference/*','sv_joint_reference/*','gp_leaf_reference/*','gp_composite_reference/*','*_reference_fixture.json',
                 'proposal_sources/**/*','portable_test_sources/**/*','profile_full_bank/*','environment_recovery_prior_invocation/*',
                 'checkpoint_process_sources/**/*','checkpoint_fresh_process/**/*',
+                'prefix_sources/**/*','prefix_fold_fixture/**/*','capacity_sources/**/*','representation_capacity/**/*','live_chain_snapshots/**/*',
+                'production_scale_sources/**/*','production_scale_reference/*',
                 '*_attempt*.log','gp_n*.log','gp_leaf_reference.log','checkpoint_fresh_process.log','grouped_reference.log','local_reference.log','local_joint_reference.log','local_partial_reference.log','sv_joint_mcmc.log']:
+ if a.skip_live_observations and pattern.startswith('live_chain_snapshots/'):
+  continue
  files.update(p for p in (root/'artifacts').glob(pattern) if p.is_file() and not p.name.endswith('.partial'))
 for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
  f=root/'artifacts'/name
@@ -84,5 +90,7 @@ with zipfile.ZipFile(io.BytesIO(content)) as z:
  assert z.testzip() is None
  for member in members:assert hashlib.sha256(z.read(member['path'])).hexdigest()==member['sha256']
 new_paths={r['path'] for r in members}
-manifest=dict(label=a.label,archive_sha256=sink.digest.hexdigest(),archive_bytes=sink.position,parts=parts,members=members,inherited_members=[r for path,r in previous.items() if path not in new_paths],parent_manifest=parent,storage='Sequential multipart ZIP; fsync and atomic part publication; no monolithic intermediate archive',scope='Bank-free verified completed chains and atomic calibration cases, full recorded source snapshots and completed/interrupted native stages; partial experiments remain partial. Delta archives require their checksum-verified parent.',posterior_qualified=False)
+manifest=dict(label=a.label,archive_sha256=sink.digest.hexdigest(),archive_bytes=sink.position,parts=parts,members=members,inherited_members=[r for path,r in previous.items() if path not in new_paths],parent_manifest=parent,storage='Sequential multipart ZIP; fsync and atomic part publication; no monolithic intermediate archive',scope='Bank-free verified completed chains and atomic calibration cases, recorded source snapshots, immutable observations of incomplete advancing chains, and completed/interrupted native stages; partial experiments remain partial. Delta archives require their checksum-verified parent.',posterior_qualified=False)
+manifest['canonical_progress_status_paths_inherited_without_live_read']=skipped_live_progress
+manifest['new_live_observation_copies_omitted']=a.skip_live_observations
 Path(str(base)+'.manifest.json').write_text(json.dumps(manifest,indent=2)+'\n');print(json.dumps(dict(bytes=len(content),members=len(members),parts=len(parts),manifest=str(base)+'.manifest.json')))

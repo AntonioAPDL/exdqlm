@@ -1,0 +1,30 @@
+{
+  "registered_utc": "2026-10-24T23:47:53.778062+00:00",
+  "registered_before_outputs": true,
+  "scope": "Independent normalized-prior integration versus four MCMC chains at the requested prior controls; six-response fixed-design grouped target, not the high-dimensional production target or recursive calibration",
+  "prior": {
+    "tau0": 0.001,
+    "slab_scale": 1,
+    "slab_df": 4,
+    "intercept_variance": 10,
+    "sigma_shape": 3,
+    "sigma_rate": 1
+  },
+  "chains": 4,
+  "retained_per_chain": 24000,
+  "warmup": 3000,
+  "seeds": "9156021:9156024",
+  "prior_integration_scrambles": 8,
+  "prior_integration_powers": [
+    16,
+    18
+  ],
+  "prior_integration_seeds": "9156101:9156108",
+  "criteria": {
+    "rank_rhat": 1.01,
+    "bulk_tail_ess": 400,
+    "moment_tolerance": "7*combined_MCSE +2*refinement_difference +0.0001"
+  },
+  "hyperparameters_tuned": false,
+  "production_qualified": false
+}

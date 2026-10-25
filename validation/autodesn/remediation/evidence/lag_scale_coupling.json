@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "matching_states": 8192,
+  "source_phase": "production_128000_joint128",
+  "source_target_id": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "source_run_qualified": false,
+  "source_checkpoints": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_joint128/chain_1.rds",
+      "sha256": "10e4d36915888b4d7aba459a8526227b3535c14081f4fcc8eec92ba9a42c5b35"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_joint128/chain_2.rds",
+      "sha256": "1c110cd88b0f1b7c885dd4d8369f448811fab2d4ec5109e017f95a6957530795"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_joint128/chain_3.rds",
+      "sha256": "ce7ef530048d246ab05d562e78596b5554c7235f0d74bfc2ad60bdf07fa18d93"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/F1/production_128000_joint128/chain_4.rds",
+      "sha256": "9558b93aa91340bed892499703567d12bec1373c5ee5e639400840ee8147d51a"
+    }
+  ],
+  "scope": "Descriptive geometry of matching states from an unqualified training-only run. Associations diagnose proposal coupling; they are not certified posterior summaries and do not select or remove architectures."
+}

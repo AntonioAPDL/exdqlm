@@ -1,0 +1,11 @@
+{
+  "complete": true,
+  "source_run_qualified": false,
+  "most_negative_loglocal_global_correlation": -0.45699011,
+  "between_major_model_fraction_logproduct_lag60": 0.001555603,
+  "between_major_model_fraction_logproduct_lag12": 0.003454963,
+  "interpretation": "This descriptive old-run audit does not show strong common-lag/global coupling as the dominant architecture-mixing barrier. No new proposal transformation or coordinate selection is adopted from this analysis. It does not rule out other dependencies or establish convergence.",
+  "scope": "Computational diagnosis only; no heldout outcomes, target, priors, architecture set, or production kernel changed",
+  "source_sha256": "33572fc6a52ba8b81f1ed724b408837d613ff5f44ed24260bcca7e4b4a2ecdff",
+  "source_capture_timing": "Captured after the observed deterministic audit; script was not edited during execution"
+}

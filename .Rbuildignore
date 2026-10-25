@@ -41,6 +41,7 @@
 ^Plan\.txt$
 ^tools$
 ^validation$
+^config$
 ^.*\.Rproj$
 ^exdqlm\.Rproj$
 ^RHS_NS_STAGE9_SUBMISSION_MEMO\.md$

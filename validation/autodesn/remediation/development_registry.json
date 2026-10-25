@@ -69,7 +69,7 @@
       "calibration"
     ],
     "tie_rule": "prefer simpler qualified family when differences are below computational uncertainty",
-    "transform_rule": "rebuild response transforms, PCA and readout scalers at each cutoff"
+    "transform_rule": "Rebuild each training-prefix bank with the fixed candidate seeds/maps and first500 conditioning observations; refit readout/lag/calendar scalers on rows501:cutoff. The456 frozen definitions use identity bridges; no PCA is estimated. Any future data-derived projection must be fitted inside its training boundary."
   },
   "mcmc": {
     "chains": 4,
@@ -119,7 +119,8 @@
     "per_invocation_wall_cap_seconds": 7200,
     "budget_status": "caps and actual unsuccessful costs must be reported; no convergence gate may be waived",
     "cached_matrix_workers": 4,
-    "cached_matrix_condition": "Only the reloaded, cryptographically verified matrix/augmentation cache that passed four chains of 5000 sweeps, aggregate PSS 4838922 KiB, with an environment-anon cap of 6400000000 bytes. Construction environments are excluded and forecasts require the matching original bank."
+    "cached_matrix_condition": "Only the reloaded, cryptographically verified matrix/augmentation cache that passed four chains of 5000 sweeps, aggregate PSS 4838922 KiB, with an environment-anon cap of 6400000000 bytes. Construction environments are excluded and forecasts require the matching original bank.",
+    "exact_within_chain_recovery": "Supported after478 passing source/installed assertions and fresh-process parity. Same complete Markov/RNG state, runtime/source/kernel/full-budget identity; 4000-sweep checkpoints. Paused or observed partial states do not qualify a posterior."
   },
   "confirmation_A": {
     "replications": 30,
@@ -170,5 +171,17 @@
     "simultaneous_MC_consistency": true,
     "scope": "Supplementary gate; recursive predictive MC qualification still required",
     "heldout_data_used": false
+  },
+  "reducer_description_correction": {
+    "date": "2026-10-24",
+    "old_description": "rebuild response transforms, PCA and readout scalers at each cutoff",
+    "observed_definitions": 456,
+    "deep_definitions": 336,
+    "deep_identity_bridges": 336,
+    "deep_reduced_bridges": 0,
+    "PCA_fits": 0,
+    "target_or_hyperparameters_changed": false,
+    "source": "R/qdesn_vb.R make_reducer/identity branch and frozen input/specifications.rds",
+    "evidence": "evidence/reducer_definition_audit.json"
   }
 }

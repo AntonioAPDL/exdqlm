@@ -1,0 +1,21 @@
+{
+  "registered_utc": "2026-10-24T23:32:45.775384+00:00",
+  "registered_before_outputs": true,
+  "data": "Already-viewed NHS1 development series; scored training rows501:2500 only",
+  "targets": [
+    "observed training response",
+    "true one-step conditional mean along observed training history"
+  ],
+  "spaces": [
+    "F0 reservoir",
+    "F1 reservoir+lags1:90",
+    "F2 known-period60 calendar+F1; privileged capacity diagnostic"
+  ],
+  "models": "All426 admitted models from the frozen456 candidate definitions, with original depth-balanced weights; no selection or pruning",
+  "rank_rule": "singular value > max(n,p)*machine_epsilon*largest_singular_value",
+  "geometry_sha256_expected": "4621f3f3172e6ec6dc7a827a5287cb39c29e7df55b669f3ec747929ec5f68c95",
+  "statistical_scope": "Unpenalized in-sample linear-span approximation bound. Does not establish posterior estimation, prior adequacy, automatic seasonal discovery, future performance, or inferential superiority.",
+  "heldout_used": false,
+  "hyperparameters_changed": false,
+  "production_qualified": false
+}

@@ -1,0 +1,19 @@
+{
+  "complete": true,
+  "nested_space_residuals_nonincreasing_for_all_426_models": true,
+  "rank_deficient_counts": {
+    "F0": 0,
+    "F1": 0,
+    "F2_known_period60": 0
+  },
+  "maximum_condition_numbers": {
+    "F0": 136699429.22396,
+    "F1": 188505299.612858,
+    "F2_known_period60": 192726524.543307
+  },
+  "data_sha256": "547479f13644b246804d1b54d92882daf9ebb758e866f92e72a053c6da4bb2d2",
+  "interpretation": "Per-architecture training-span approximation bounds and prior-weighted descriptive averages. The Bayesian averaged mean spans multiple architectures, so this is not a lower bound on its error. Uses privileged conditional-mean truth and a separately identified known-period60 diagnostic. Does not establish future accuracy, automatic period discovery, shrinkage adequacy, or posterior convergence.",
+  "selected_models": 0,
+  "changed_hyperparameters": false,
+  "production_qualified": false
+}
