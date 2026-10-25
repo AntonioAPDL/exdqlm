@@ -20,5 +20,7 @@
   "heldout_read": false,
   "forecasts_allowed": false,
   "pooling": "Allfour same-budget same-policy replicas only; never pool with untouched native16/32/64 controls",
-  "scope": "Successive-budget computational intervention check, not a change to the native model prior or an untouched-native-algorithm result."
+  "scope": "Successive-budget computational intervention check, not a change to the native model prior or an untouched-native-algorithm result.",
+  "launch_request_revision": 2,
+  "launch_request_reason": "No GP32-period workflow run was returned for the initial archive-heavy69387927 publication. Submit a minimal request-only commit; every scientific and computational setting remains unchanged."
 }
