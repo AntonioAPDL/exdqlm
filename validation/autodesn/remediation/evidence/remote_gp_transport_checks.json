@@ -1,0 +1,20 @@
+{
+  "complete": true,
+  "checks": {
+    "valid_bundle": true,
+    "wrong_seed": true,
+    "wrong_commit": true,
+    "truncated": true,
+    "duplicate_part": true,
+    "corrupt_digest": true,
+    "fresh_extraction_hash_parity": true,
+    "overwrite_refused": true
+  },
+  "checks_passed": 8,
+  "executed_commit": "bf347f3cd11ac1cab28b51f6e0d13b375da59670",
+  "source_sha256": {
+    "validation/autodesn/remediation/remote_gp.py": "1c62b7bb5a8ce3736c8600e34cb843cc4fa9f9643fc06e9742673e3734152296",
+    "validation/autodesn/remediation/import_gp_log.py": "2051953f88b4af3eb87115de9514e19acd2e2e8145a77bcf9ddc23b102158a87"
+  },
+  "fixture_scope": "Transport-only empty-run export with eight pinned source members. No native GP fit is claimed."
+}
