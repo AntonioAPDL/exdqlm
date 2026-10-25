@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "chain_artifacts_verified": 4,
+  "contract_id": "c18b3911003b33e1d45b2fca5399740d53af66375c160f7159d95a5dcbb69577",
+  "target_id": "6377f12190ee54226fe2a146dd4674a2aafce1f02bd7dd29a72977056449e1ce",
+  "proposal_verified": true,
+  "matching_joint_states_per_chain": [512, 512, 512, 512],
+  "input_files_sha256": {
+    "contract.rds": "0f0f7c8d17de7f27dcbb92f836f53fb81fc8a158797675131bc262ce10c95d2f",
+    "configuration.json": "76966b68879dfe642f6f1abbd56282601528aba287a5c4aca6280d397a80ee8e",
+    "chain_1.rds": "af4811c1d853671d37122ff792e8750254e9bbee9af0e1d2f6268c71e3ebbb24",
+    "chain_1_status.json": "87fd171ef93128ddeaa6a9bea89febd9e592a3f70ce153d2b5971dbced112387",
+    "trace_1.csv": "6760064b2fb278c4d97037e66f902a80efa648645919553d9ca7c499e7c5a7cc",
+    "chain_2.rds": "1bbe55c34a1957e04db001491a517b85134bbb7dbcef22d77df22756bf0e9a27",
+    "chain_2_status.json": "a6bad51c81f15fcf028b22ffdc587c8f2f68c1eb222b9b9fb07212fb91777faf",
+    "trace_2.csv": "9e141a5d496fa95c1aadc284242ea8373bfa9bdf1ac630ee576d275bcec32873",
+    "chain_3.rds": "0ab21c9459312c6706a1f7392bdbf8f96629440d39401e12843da3166a3f4bb9",
+    "chain_3_status.json": "8e20a6349480bd635db1eeeb4f32791ebab0a4d13bbd7555d9d3e18de65826e3",
+    "trace_3.csv": "c555a371515c718c10bfcf589dfdd237f68e8bbe4410439ccdefc22752293ab5",
+    "chain_4.rds": "c56bfa92891a29761cc8c38997535f176d90cf7ace387ee132dcd13abe2c2cf2",
+    "chain_4_status.json": "38561b66d440fc14864ba4a061e0997442dffe2a8ef839b420242ba6d2332112",
+    "trace_4.csv": "b9b287b78f15b91fe3ed08c63f081995a7f83da6879e3438ef1bed2afcb7a7d8"
+  },
+  "posterior_qualified": false,
+  "scope": "Complete RDS/status/contract identities, trace and fitted-probe CSV parity, exact matching coefficient/local-state indices; launcher completion and posterior qualification remain separate"
+}

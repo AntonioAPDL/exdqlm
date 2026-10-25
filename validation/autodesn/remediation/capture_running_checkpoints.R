@@ -1,10 +1,12 @@
 # Freeze consistent copies of atomic checkpoints while their live paths advance.
-args<-commandArgs(TRUE);stopifnot(length(args)==3L,args[1]%in%c('F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge'),grepl('^[A-Za-z0-9_]+$',args[2]),grepl('^[A-Za-z0-9_]+$',args[3]))
+args<-commandArgs(TRUE);stopifnot(length(args)%in%c(3L,4L),args[1]%in%c('F1','F2','SV','F2flat','SVseasonal','F1ridge','F2ridge'),grepl('^[A-Za-z0-9_]+$',args[2]),grepl('^[A-Za-z0-9_]+$',args[3]))
+selected<-if(length(args)==4L)as.integer(strsplit(args[4],',',fixed=TRUE)[[1]]) else 1:4
+stopifnot(length(selected)>0L,!anyDuplicated(selected),all(selected%in%1:4))
 r<-'validation/autodesn/remediation';directory<-file.path(r,'artifacts',args[1],args[2])
 out<-file.path(r,'artifacts/live_chain_snapshots',args[3]);stopifnot(!dir.exists(out));dir.create(out,recursive=TRUE)
 contract<-readRDS(file.path(directory,'contract.rds'));configuration<-contract$configuration
 stopifnot(identical(contract$id,digest::digest(configuration,algo='sha256')))
-records<-lapply(1:4,function(k){
+records<-lapply(selected,function(k){
   source<-file.path(directory,paste0('chain_',k,'_progress.rds'))
   status<-jsonlite::fromJSON(file.path(directory,paste0('chain_',k,'_progress_status.json')))
   stopifnot(identical(status$contract_id,contract$id))
@@ -29,7 +31,7 @@ result<-list(complete=TRUE,observation_utc=format(Sys.time(),tz='UTC',usetz=TRUE
   contract_file_sha256=digest::digest(file=file.path(out,'contract.rds'),algo='sha256'),records=records,
   live_paths_may_advance=TRUE,original_process_exit_inferred=FALSE,posterior_qualified=FALSE,
   source_snapshot=configuration$source_sha256,forecast_allowed=FALSE,
-  scope='Immutable observation of completed sweep-boundary files from an advancing invocation. File/internal payload/source-contract checks pass. These are the same four incomplete chains, not new chains or completed posteriors. Restore only while no writer holds the large-job reservation, using the matching full budget and immutable source snapshot.')
+  scope='Immutable observation of selected existing sweep-boundary files from an advancing invocation. File/internal payload/source-contract checks pass. These are the same chains, not new chains or completed posteriors. Restore only while no writer holds the large-job reservation, using the matching full budget and immutable source snapshot.')
 jsonlite::write_json(result,file.path(out,'manifest.json'),pretty=TRUE,auto_unbox=TRUE)
 jsonlite::write_json(result,file.path(r,'evidence',paste0('live_chain_snapshot_',args[3],'.json')),pretty=TRUE,auto_unbox=TRUE)
 cat('VERIFIED_LIVE_SNAPSHOT',paste(vapply(records,`[[`,0L,'iteration'),collapse=','),'\n')

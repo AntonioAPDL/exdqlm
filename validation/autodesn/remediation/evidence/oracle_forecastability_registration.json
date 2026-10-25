@@ -1,0 +1,35 @@
+{
+  "registered_utc": "2026-10-25T04:23:47.337605+00:00",
+  "origins": [
+    1000,
+    1134,
+    1267,
+    1401,
+    1535,
+    1668,
+    1802,
+    1935,
+    2069,
+    2203,
+    2336,
+    2470
+  ],
+  "horizons": 30,
+  "path_ladder": [
+    25000,
+    100000,
+    400000
+  ],
+  "seed_base": 8866000,
+  "mean_mcse_response_sd": 0.0025,
+  "relative_variance_mcse": 0.005,
+  "mean_stability_response_sd": 0.01,
+  "relative_variance_stability": 0.02,
+  "simultaneous_mc_family_error": 0.01,
+  "stop": "First two successive individually precise budgets with practical and simultaneous-MC stability; otherwise explicitly unresolved",
+  "privileged": true,
+  "known_parameters_and_true_origin_state": true,
+  "training_only": true,
+  "candidate_models_fitted": false,
+  "scope": "Model-independent squared-error predictability audit of the already examined NHS1 training series. Frozen12-origin panel, no realized future outcomes scored, no model hyperparameters changed. Origins are dependent; Monte Carlo path sets are independent within and across registered levels."
+}

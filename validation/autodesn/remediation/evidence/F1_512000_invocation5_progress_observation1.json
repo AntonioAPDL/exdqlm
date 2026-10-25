@@ -1,0 +1,25 @@
+{
+  "complete_observation": true,
+  "observed_utc": "2026-10-25 04:10:13 UTC",
+  "chains": {
+    "3": {
+      "chain": 3,
+      "iteration": 468000,
+      "retained": 340000,
+      "checkpoint_id": "a8745474cf855623aca8933de5122081aba8b27a254ac17b2e543ceb651239aa",
+      "payload_sha256": "fc0206f38a3a481b082ea20e9296f39a0a97c4b4098698a6b533bdb43d72e9b8",
+      "complete": false,
+      "scope": "Read-only observation of an advancing exact checkpoint; no completed posterior credited"
+    },
+    "4": {
+      "chain": 4,
+      "iteration": 468000,
+      "retained": 340000,
+      "checkpoint_id": "892e987144942cf2be2e3d1686f85a6fd3362870f4d8192be13b06d1b9120a1c",
+      "payload_sha256": "58920360b3320c04531720b6a29103fd77335c2021ec6ad4f8938dea14066a44",
+      "complete": false,
+      "scope": "Read-only observation of an advancing exact checkpoint; no completed posterior credited"
+    }
+  },
+  "posterior_qualified": false
+}

@@ -49,7 +49,9 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
                 's3_doc_sources/**/*',
                 'calendar_cache_sources/**/*','calendar_law_sources/**/*','calendar_checkpoint_sources/**/*','checkpoint_calendar_fresh_process/**/*','calendar_release_runs/**/*',
                 'full_prefix_sources/**/*','prefix_reference_maps/*',
-                'gp_cohort_evidence_sources/**/*','gp32_period0_cohort*/*',
+                'gp_cohort_evidence_sources/**/*','gp32_period0_cohort*/*','gp16_period10_cohort*/*',
+                'checkpoint_validation_sources/**/*','oracle_forecastability_sources/**/*',
+                'oracle_forecastability/*/*.csv','oracle_forecastability/*/status.json',
                 'prefix_banks/*/manifest.json','prefix_banks/*/raw_bank/*.csv','prefix_banks/*/raw_bank/status.json','prefix_banks/*/raw_bank/contract.rds',
                 'prefix_banks/*/standardized_bank/*.csv','prefix_banks/*/standardized_bank/status.json','prefix_banks/*/standardized_bank/contract.rds',
                 'calendar_cache_benchmark/fit_*.rds','calendar_cache_benchmark/dimensions.csv','calendar_cache_benchmark_lawvalidated/fit_*.rds','calendar_cache_benchmark_lawvalidated/dimensions.csv',
@@ -57,6 +59,19 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
  if a.skip_live_observations and pattern.startswith('live_chain_snapshots/'):
   continue
  files.update(p for p in (root/'artifacts').glob(pattern) if p.is_file() and not p.name.endswith('.partial'))
+# Broad source/observation globs must not admit filesystem serialization or
+# synchronization scratch files as if they were verified numeric checkpoints.
+files={p for p in files if not any(part.startswith('.') or part=='__pycache__' for part in p.relative_to(root/'artifacts').parts)
+       and not p.name.endswith(('.partial','.writing','.tmp'))}
+for p in files:
+ if 'live_chain_snapshots' not in p.parts or p.suffix!='.rds':continue
+ manifest=json.loads((p.parent/'manifest.json').read_text());assert manifest['complete']
+ if p.name=='contract.rds':expected=manifest['contract_file_sha256']
+ else:
+  matches=[v for v in manifest['records'] if v['path']==str(p)]
+  assert len(matches)==1,'Only manifested complete observation records are eligible'
+  expected=matches[0]['sha256']
+ assert hashlib.sha256(p.read_bytes()).hexdigest()==expected,'Observation changed since independent internal/file validation'
 for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_test_results.rds','portable_installed_tests.rds','installed_tests.rds','legacy_test_results.rds','ci_fixture_repair_tests.rds','s3_api_test_results.rds','s3_api_installed_test_results.rds','gp_training_proposal.toml','F1_pilot.log','F2_pilot.log','sbc_rhs.log','gp_128_16.log','gp_512_16.log','gp_2000_16.log','inference_cache_manifest.json','forecast_templates.rds','frozen_bank_builder/source_manifest.json']:
  f=root/'artifacts'/name
  if f.exists():files.add(f)

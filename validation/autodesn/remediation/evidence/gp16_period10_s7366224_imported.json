@@ -1,0 +1,16 @@
+{
+  "complete": true,
+  "seed": 7366224,
+  "particles": 16,
+  "rows": 2000,
+  "period_moves_per_stage": 10,
+  "status_sha256": "24a9388f36f191d92c798845bfee6fe03ccf2e94da4191b10c38e0c1f8661044",
+  "resource_sha256": "8f98a9421749064e503dc5483bb94d25572d05eb0d3185b3ed1c8391e55db99c",
+  "wall_seconds": 4021.571422954,
+  "inference_seconds": 3967.934900999069,
+  "peak_pss_kib": 3884913,
+  "full_log_crc_verified": true,
+  "full_log_bytes": 16062,
+  "posterior_qualified": false,
+  "scope": "Complete registered additional-period-rejuvenation replica, separately labeled from native controls; cohort/budget/mode qualification required."
+}

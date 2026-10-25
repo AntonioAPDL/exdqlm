@@ -16,20 +16,35 @@ from scipy.optimize import brentq
 
 ROOT = Path(__file__).resolve().parent
 
+def verify_validation_inputs(directory,validation):
+    """Require complete filenames and exact content identities, including groups."""
+    expected={'contract.rds','configuration.json'}
+    expected.update(f'{stem}_{k}{suffix}' for k in range(1,5)
+                    for stem,suffix in [('chain','.rds'),('chain','_status.json'),('trace','.csv')])
+    if (directory/'model_metadata.csv').exists():expected.add('model_metadata.csv')
+    files=validation.get('input_files_sha256',{})
+    assert expected.issubset(files),'Revalidate all checkpoint/trace/metadata input identities'
+    for name,sha in files.items():
+        assert Path(name).name==name and hashlib.sha256((directory/name).read_bytes()).hexdigest()==sha
 
-def common_rhs_screen(phase, target_id):
+
+def common_rhs_screen(phase, target_id, family='F1', artifact_root=None,evidence_root=None):
     """Bind every supplementary common-coordinate monitor to the final chains."""
-    path=ROOT/'evidence'/f'F1_{phase}_common_rhs_diagnostics.json'
+    artifact_root=Path(artifact_root) if artifact_root else ROOT/'artifacts'
+    evidence_root=Path(evidence_root) if evidence_root else ROOT/'evidence'
+    path=evidence_root/f'{family}_{phase}_common_rhs_diagnostics.json'
     if not path.exists():return dict(phase=phase,available=False,screen_passed=False)
     record=json.loads(path.read_text())
     assert record['complete'] and record['phase']==phase and record['parameters']==270 and record['chains']==4
-    directory=ROOT/'artifacts/common_rhs_monitors'/phase
+    assert record.get('family','F1')==family
+    directory=artifact_root/'common_rhs_monitors'
+    directory=directory/phase if family=='F1' else directory/family/phase
     status_path=directory/'status.json'
     assert hashlib.sha256(status_path.read_bytes()).hexdigest()==record['source_status_sha256']
     status=json.loads(status_path.read_text())
     assert status['complete'] and len(status['source_checkpoints'])==4
     for k,source in enumerate(status['source_checkpoints'],1):
-        final=json.loads((ROOT/'artifacts/F1'/phase/f'chain_{k}_status.json').read_text())
+        final=json.loads((artifact_root/family/phase/f'chain_{k}_status.json').read_text())
         assert final['complete'] and source['sha256']==final['checkpoint_sha256'] and source['target_id']==target_id
     for name,sha in record['source_csv_sha256'].items():
         assert Path(name).name==name and hashlib.sha256((directory/name).read_bytes()).hexdigest()==sha
@@ -78,17 +93,23 @@ def quantile_summary(means, variances, probability):
     return q,float(batches.std(ddof=1)/np.sqrt(len(batches)))
 
 
-def compare(family, left_name, right_name):
+def compare(family, left_name, right_name, artifact_root=None, evidence_root=None, validation_paths=None):
     names = [left_name, right_name]
-    directories = [ROOT / "artifacts" / family / n for n in names]
+    artifact_root=Path(artifact_root) if artifact_root else ROOT/'artifacts'
+    evidence_root=Path(evidence_root) if evidence_root else ROOT/'evidence'
+    directories = [artifact_root / family / n for n in names]
     configs, qualifications, traces, validations = [], [], [], []
     for directory in directories:
         config = json.loads((directory / "configuration.json").read_text())
         status = json.loads((directory / "status.json").read_text())
         qualification = json.loads((directory / "qualification.json").read_text())
-        validation_path = ROOT / "evidence" / f"{family}_{directory.name}_checkpoint_validation.json"
+        validation_path = Path(validation_paths[len(configs)]) if validation_paths else evidence_root / f"{family}_{directory.name}_checkpoint_validation.json"
         validation = json.loads(validation_path.read_text())
         assert status["complete"] and validation["complete"]
+        assert validation['chain_artifacts_verified']==4
+        # A screen over CSVs must be bound to the exact RDS/CSV identities that
+        # passed the independent consistency audit, not just a target label.
+        verify_validation_inputs(directory,validation)
         assert validation["target_id"] == qualification["target_id"] == status["target_id"]
         assert config["phase"] == "production" and config["chains"] == 4
         for file, sha in qualification["trace_sha256"].items():
@@ -139,13 +160,13 @@ def compare(family, left_name, right_name):
     critical = float(norm.ppf(1 - .01 / (2 * len(table))))
     table["simultaneous_mc_tolerance"] = critical * table.combined_mcse
     table["mc_consistency_passed"] = table.difference <= table.simultaneous_mc_tolerance + 1e-12
-    common_required=family=='F1' and configs[0]['beta_prior']=='rhs'
-    common_checks=[common_rhs_screen(n,qualifications[0]['target_id']) for n in names] if common_required else []
+    common_required=configs[0]['beta_prior']=='rhs'
+    common_checks=[common_rhs_screen(n,qualifications[0]['target_id'],family,artifact_root,evidence_root) for n in names] if common_required else []
     passed = bool(all(q["screen_passed"] for q in qualifications)
                   and all(q['screen_passed'] for q in common_checks)
                   and table.practical_passed.all() and table.mc_consistency_passed.all())
     label = f"{family}_{left_name}_vs_{right_name}"
-    table.to_csv(ROOT / "evidence" / (label + "_stability.csv"), index=False)
+    table.to_csv(evidence_root / (label + "_stability.csv"), index=False)
     record = dict(complete=True, cross_budget_passed=passed, family=family, phases=names,
                   computational_registry_sha256=hashlib.sha256(registry_path.read_bytes()).hexdigest(),
                   target_id=qualifications[0]["target_id"],
@@ -158,7 +179,7 @@ def compare(family, left_name, right_name):
                   validation_contract_ids=[v["contract_id"] for v in validations],
                   scope="Successive fresh posterior budgets; fixed training-probe means, marginal constant-noise predictive SDs and 5/25/50/75/95 percent quantiles, major model/period masses; no held-out outcomes read",
                   pending=["independent calibration/mode review", "predictive Monte Carlo sensitivity", "full scientific promotion"])
-    (ROOT / "evidence" / (label + "_stability.json")).write_text(json.dumps(record, indent=2) + "\n")
+    (evidence_root / (label + "_stability.json")).write_text(json.dumps(record, indent=2) + "\n")
     return record
 
 
@@ -167,7 +188,10 @@ if __name__ == "__main__":
     parser.add_argument("family")
     parser.add_argument("left")
     parser.add_argument("right")
+    parser.add_argument('--artifact-root',type=Path)
+    parser.add_argument('--evidence-root',type=Path)
+    parser.add_argument('--validations',type=Path,nargs=2)
     args = parser.parse_args()
-    result = compare(args.family, args.left, args.right)
+    result = compare(args.family, args.left, args.right,args.artifact_root,args.evidence_root,args.validations)
     print(json.dumps(result, indent=2))
     raise SystemExit(0 if result["cross_budget_passed"] else 2)

@@ -1,0 +1,21 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/artifacts/oracle_forecastability_sources/59211564a27b186066b7bfa66ba198a05c2278e5d2d29854bdd4de0f26cb2c2c/run_oracle_forecastability.R",
+    "validation/autodesn/remediation/artifacts/oracle_forecastability_sources/59211564a27b186066b7bfa66ba198a05c2278e5d2d29854bdd4de0f26cb2c2c",
+    "validation/autodesn/remediation/artifacts/oracle_forecastability/59211564a27b186066b7bfa66ba198a05c2278e5d2d29854bdd4de0f26cb2c2c"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 900.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 1,
+  "elapsed_seconds": 0.5030011439957889,
+  "peak_child_rss_kib": 75540,
+  "sampled_peak_process_tree_pss_kib": 267,
+  "sampled_peak_environment_cgroup_anon_bytes": 3908198400,
+  "user_seconds": 0.279558,
+  "system_seconds": 0.042713,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

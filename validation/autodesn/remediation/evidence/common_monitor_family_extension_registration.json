@@ -1,0 +1,14 @@
+{
+  "registered_utc": "2026-10-25T04:16:34.368588+00:00",
+  "parameters": 270,
+  "coordinates": "All90 standardized lag coefficients, log locals and log effective prior variances, matching saved joint states",
+  "families": [
+    "F1",
+    "F2",
+    "F2flat"
+  ],
+  "rhat_max": 1.01,
+  "bulk_tail_ess_min": 400,
+  "scope": "Extend the existing common-coordinate screen to every RHS mean candidate and isolated chronological folds before any promotion; no outcome-based coordinate selection. SV cross-budget variance monitors remain a separate unresolved requirement.",
+  "heldout_used": false
+}

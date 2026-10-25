@@ -1,0 +1,8 @@
+{
+  "complete": true,
+  "checks": 35,
+  "all_passed": true,
+  "source_sha256": "fd2d763481a31b4467bf2f4bfa96718dc6b53d29ae6de04bb07ffdb85413f771",
+  "test_sha256": "f0ece2c700740471dd9b0c3486ef70309adc404f1832f79e965e5741049f1dee",
+  "scope": "Hash completeness, all-file mutation rejection, path confinement, missing/failed common-coordinate gate, and exact default/explicit-directory diagnostic agreement. Temporary bytes are identity fixtures, never MCMC evidence or a posterior convergence test."
+}

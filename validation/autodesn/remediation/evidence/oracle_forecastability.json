@@ -1,0 +1,126 @@
+{
+  "complete": true,
+  "known_state_oracle": true,
+  "privileged_diagnostic": true,
+  "training_only": true,
+  "heldout_outcomes_read": false,
+  "rows_read": 2500,
+  "training_response_sd": 0.7617197173846201,
+  "prefix_truth_sha256": "085ae6f62697def0220541111b6ec066a6cc3fe0cd44db2c7214dde91eda71a0",
+  "origins": [
+    1000,
+    1134,
+    1267,
+    1401,
+    1535,
+    1668,
+    1802,
+    1935,
+    2069,
+    2203,
+    2336,
+    2470
+  ],
+  "horizons": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30
+  ],
+  "path_screens": [
+    {
+      "paths": 25000,
+      "individual_mcse_passed": false
+    },
+    {
+      "paths": 100000,
+      "individual_mcse_passed": true,
+      "successive_mc_passed": false
+    },
+    {
+      "paths": 400000,
+      "individual_mcse_passed": true,
+      "successive_mc_passed": true
+    }
+  ],
+  "monte_carlo_screen_passed": true,
+  "independent_scalar_checks": 22,
+  "maximum_analytic_h1_error": 1.5543122344752192e-15,
+  "source_snapshot": "6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4",
+  "candidate_models_fitted": 0,
+  "independent_DGP_replications": 0,
+  "scope": "Known DGP parameters, deterministic season and true origin volatility/error state. Irreducible conditional squared-error risk over a fixed training-origin panel, not a candidate-model forecast, a population bound, or twelve independent series. Future responses are simulated recursively; unavailable observations never enter a path. Monte Carlo SEs use independent simulated paths, not rolling forecast pairs.",
+  "artifact_directory": "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4",
+  "source_status_sha256": "54ea75316b2609ed722fdbea6c47262e0e60180303f4c6acf84e90815d2e0d80",
+  "figure": "validation/autodesn/remediation/output/figures/oracle_forecastability.png",
+  "figure_sha256": "b1f97bea02bcbccb26d062b131df260540c72e071f60f2281242932cd28d81a1",
+  "horizon_results": [
+    {
+      "horizon": 1,
+      "predictive_variance": 0.194893301735689,
+      "expected_innovation_variance": 0.194893301735689,
+      "dynamic_mean_variance": 0.0,
+      "oracle_rmse_floor": 0.441467214791415,
+      "rmse_floor_over_training_sd": 0.579566479265105
+    },
+    {
+      "horizon": 5,
+      "predictive_variance": 0.292291274616256,
+      "expected_innovation_variance": 0.198155690198425,
+      "dynamic_mean_variance": 0.0941355844178304,
+      "oracle_rmse_floor": 0.540639690196951,
+      "rmse_floor_over_training_sd": 0.709761973936094
+    },
+    {
+      "horizon": 15,
+      "predictive_variance": 0.31393695290522,
+      "expected_innovation_variance": 0.19537152719153,
+      "dynamic_mean_variance": 0.11856542571369,
+      "oracle_rmse_floor": 0.560300770038039,
+      "rmse_floor_over_training_sd": 0.735573410075091
+    },
+    {
+      "horizon": 30,
+      "predictive_variance": 0.33664536895028,
+      "expected_innovation_variance": 0.200672920057409,
+      "dynamic_mean_variance": 0.135972448892872,
+      "oracle_rmse_floor": 0.580211486399813,
+      "rmse_floor_over_training_sd": 0.761712573742978
+    }
+  ],
+  "maximum_relative_variance_mcse": 0.0015356006647938496,
+  "maximum_mean_mcse": 0.0006465619138454,
+  "inputs": {
+    "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4/status.json": "54ea75316b2609ed722fdbea6c47262e0e60180303f4c6acf84e90815d2e0d80",
+    "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4/paths_400000.csv": "271a7a53a25b86609e6be9e89cdc776747c703f7154d12634c3308a2e36a53a4",
+    "validation/autodesn/remediation/artifacts/oracle_forecastability/6694bd2020dc8e939d09fd8bf5c9ad063f1e301f8f2d4aa5032b0ee9823afbb4/horizon_summary.csv": "545a5dd5d2b87865db7a4c78cc72a9abf2d06e44ba6c49040444793da3910aa9",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/summarize_oracle_forecastability.py": "4c036061277bd463bc4b4623bcbdc06ed0a19682ed2122400a19993bb57d920b"
+  },
+  "interpretation": "At the fixed training-origin panel, even the privileged known-state predictor has a conditional RMSE floor about0.44 at horizon1 and0.58 at horizon30. These are conditional future risks, not scores on realized test observations. Do not compare them numerically to held-out model RMSE from different origins or claim population bounds. About40% of horizon30 variance comes from nonlinear propagation of future innovations; the rest is expected innovation variance. This does not qualify any candidate posterior or full benchmark."
+}

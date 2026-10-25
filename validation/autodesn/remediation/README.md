@@ -220,3 +220,32 @@ qualification. The64-particle control is explicitly registered in
 before asserting that it started or completed. Its14400-second process cap is
 registered before64-particle outcomes. The additional invariant-period cohort
 remains a separate algorithm policy and is never pooled with native controls.
+
+The postprocessing helpers accept isolated fold directories and evidence roots.
+`launch_checkpoint_validation.py` freezes its R validator before checking every
+RDS/status/contract identity, exported scalar trace and fitted probe, and joint
+coefficient/local-state index. `cross_budget.py` requires the complete input hash
+set again, including architecture metadata. Existing smaller audit records can
+be extended non-destructively with `supplement_metadata_binding.R`; the original
+record is retained and hashed. The35 mutation/path/missing-gate fixtures pass,
+and explicit/default-directory diagnostics agree exactly on the old F1 pilot.
+The common270-coordinate monitor now applies to every RHS mean family with the
+same90-lag block. On the existing F2 pilot it correctly fails the convergence
+screen (minimum ESS about11); it does not promote that pilot. Early pilot files
+without response-SD display metadata retain their fitted response units, a
+fixed positive rescaling that cannot change rank R-hat or ESS. SV cross-budget
+latent-variance checks remain unresolved and cannot be replaced by constant-noise
+predictive checks.
+
+`launch_oracle_forecastability.py` executes a separate privileged known-DGP,
+known-origin-state audit on12 frozen training origins. It simulates responses
+recursively without observed futures. The100k/400k independent-path budgets
+pass the registered individual MCSE and successive-budget checks;25k fails its
+precision screen. Scalar continuation, future perturbation and analytic horizon1
+checks pass. The oracle conditional RMSE floor over this panel is about0.44 at
+horizon1 and0.58 at horizon30. These are conditional expected risks, not realized
+held-out scores or independent series replications; they cannot be numerically
+compared with candidate RMSE at different origins. No model prior or
+hyperparameter is changed. The DGP's GJR leverage is also more specific than the
+current independent-innovation log-SV family; seasonal SV should be assessed as
+an approximation, not described as the exact DGP variance mechanism.

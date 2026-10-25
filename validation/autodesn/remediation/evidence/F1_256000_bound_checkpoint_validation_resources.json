@@ -1,0 +1,23 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/artifacts/checkpoint_validation_sources/b124ae0a1155028b5a049a09c9efbfaca5b058c4ad9774011a00d8b0884256b6/validation/autodesn/remediation/validate_checkpoints.R",
+    "F1",
+    "production_256000_joint128_recoverable",
+    "validation/autodesn/remediation/artifacts/F1/production_256000_joint128_recoverable",
+    "validation/autodesn/remediation/evidence/F1_256000_bound_checkpoint_validation.json"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 900.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 65.38034382600017,
+  "peak_child_rss_kib": 1052216,
+  "sampled_peak_process_tree_pss_kib": 1033156,
+  "sampled_peak_environment_cgroup_anon_bytes": 4706603008,
+  "user_seconds": 64.130715,
+  "system_seconds": 0.624307,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

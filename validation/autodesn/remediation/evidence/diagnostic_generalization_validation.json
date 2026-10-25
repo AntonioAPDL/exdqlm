@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "default_explicit_directory_identical": true,
+  "F1_pilot_screen_passed": false,
+  "new_maximum_probability_mcse": 0.14496019469059643,
+  "legacy_difference": "Only the newly recorded maximum_probability_mcse field was absent in the old historical pilot record; all shared results are identical",
+  "F2_common_screen_passed": false,
+  "identity_failure_fixture_checks": 35,
+  "production_posterior_promoted": false
+}
