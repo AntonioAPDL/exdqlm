@@ -1,0 +1,20 @@
+{
+  "complete": true,
+  "mode": "installed",
+  "tests": 34,
+  "assertions": 830,
+  "passed": 830,
+  "failures": 0,
+  "errors": 0,
+  "warnings": 0,
+  "outside_git": true,
+  "test_source_sha256": {
+    "test-autodesn-extended.R": "7f5bf658b869f6afff4f045f75bc1ddcb0e4745b08035517f509d66ea93e3d90",
+    "test-autodesn-statistics-cache.R": "0cce5a352a45df1bd0f9d769a24973f4f94a2ebd4ec0363192185fe5515aea4c",
+    "test-autodesn-checkpoint.R": "640b3796565b8550c645dfc1173a702c2e8ed98a6f4691ff76357b99d8928a1c",
+    "test-autodesn-calendar-cache.R": "fc7e30998aae7f68fd00e351dbb705c9f9dd2540cd0ac7ee70abf69d00c34ced",
+    "test-autodesn-variance-only-seasonality.R": "83dbb66adc06c81c357a9cff3573df2ea2c6aebd684801b29b1daa15865d2751"
+  },
+  "scope": "Complete scoped AutoDESN extension, pair/block statistics and recovery regression; not a complete repository check or posterior qualification",
+  "installed_database_sha256": "2c4216b4e8bac8302a1cfd9a3b50a035972aa6b89c01213568c1fe000bb8ee1d"
+}

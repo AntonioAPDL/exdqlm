@@ -21,6 +21,8 @@ p.add_argument('--particles', type=int, choices=[8, 16, 32, 64], default=16)
 p.add_argument('--seed', type=int, required=True)
 p.add_argument('--period-moves', type=int, choices=[0, 10], default=0)
 p.add_argument('--snapshot')
+p.add_argument('--max-seconds',type=int,choices=[7200,14400],default=7200,
+               help='Explicit wall cap; the registered native64 extension uses14400')
 p.add_argument('--julia', type=Path, required=True)
 p.add_argument('--project', type=Path, required=True)
 p.add_argument('--depot', type=Path, required=True)
@@ -49,13 +51,14 @@ out = root/'artifacts'/label
 assert not out.exists() or not any(out.iterdir()), 'Use a fresh seed; do not append old stages'
 record = root/'evidence'/f'{label}_resources.json'
 assert not record.exists(), 'Preserve existing invocation evidence'
+record.parent.mkdir(parents=True,exist_ok=True)
 env = os.environ.copy()
 env.pop('LD_LIBRARY_PATH', None)
 env.update(JULIA_DEPOT_PATH=str(a.depot.resolve()), JULIA_NUM_THREADS='2',
            OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1',
            AUTOGP_FROZEN_PROPOSAL=str((snapshot/'gp_training_proposal.toml').resolve()))
 cmd = [sys.executable, str(root/'run_process.py'), '--record', str(record),
-       '--log', str(root/'artifacts'/f'{label}.log'), '--max-seconds', '7200',
+       '--log', str(root/'artifacts'/f'{label}.log'), '--max-seconds', str(a.max_seconds),
        '--max-cgroup-anon-bytes', '6100000000', str(a.julia.resolve()),
        '--startup-file=no', '--project='+str(a.project.resolve()),
        str(snapshot/'gp_run.jl'), str(a.rows), str(a.particles), str(a.seed), str(a.period_moves)]

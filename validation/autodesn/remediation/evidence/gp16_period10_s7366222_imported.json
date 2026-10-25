@@ -1,0 +1,17 @@
+{
+  "complete": true,
+  "seed": 7366222,
+  "particles": 16,
+  "rows": 2000,
+  "period_moves_per_stage": 10,
+  "status_sha256": "aea6bcf7fbb316c05d6c658d822de5ebc18026645723538755b08687b4d74a98",
+  "resource_sha256": "b98f215cb00d74cc8bcf65d14dded6f689aeb3ca343599dd45f05e6f5d948372",
+  "wall_seconds": 2771.260978667,
+  "inference_seconds": 2732.058814048767,
+  "peak_pss_kib": 3877182,
+  "full_log_crc_verified": true,
+  "full_log_bytes": 16068,
+  "cohort_complete": false,
+  "posterior_qualified": false,
+  "scope": "One complete registered additional invariant period-rejuvenation replica. Cohort/mode/successive-budget qualification remains pending."
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/check_prefix_forecast_binding.R",
+    "F2",
+    "validation/autodesn/remediation/evidence/prefix_bank_2000.json",
+    "validation/autodesn/remediation/evidence/prefix2000_forecast_binding.json"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 300.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 16.137493107999035,
+  "peak_child_rss_kib": 944928,
+  "sampled_peak_process_tree_pss_kib": 893095,
+  "sampled_peak_environment_cgroup_anon_bytes": 4556742656,
+  "user_seconds": 15.256855999999999,
+  "system_seconds": 0.5943959999999999,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

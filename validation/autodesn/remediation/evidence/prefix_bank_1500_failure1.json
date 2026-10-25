@@ -78,5 +78,5 @@
       "kind": "Unused failed-construction temporary numeric file"
     }
   ],
-  "scope": "Original426-model inference is unaffected. The failed375-model fold was rejected before inference; retained CSV/contracts/source reproduce its construction."
+  "scope": "Original426-model inference is unaffected. Failed375-model fold was rejected before inference. Admission/scaling CSVs, standardized contract, source and input hashes are retained. The regenerable2.65MB raw construction contract was also removed during failed-intermediate cleanup; its removal is explicitly inventoried."
 }

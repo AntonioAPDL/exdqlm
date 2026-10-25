@@ -1,0 +1,11 @@
+{
+  "complete": true,
+  "assertions": 30,
+  "passed": 30,
+  "failures": 0,
+  "errors": 0,
+  "warnings": 0,
+  "source_sha256": "668ee366022f4bbd55f91423af2380414d0670e5a3f88f8bf69e5cccd4ee0ef2",
+  "test_sha256": "83dbb66adc06c81c357a9cff3573df2ea2c6aebd684801b29b1daa15865d2751",
+  "scope": "Variance-only seasonal period integration and selected nonseasonal mean, R/C++ agreement; not production convergence or forecast qualification"
+}

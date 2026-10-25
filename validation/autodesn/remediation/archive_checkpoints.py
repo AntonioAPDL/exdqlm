@@ -44,11 +44,14 @@ for pattern in ['sbc_*/*.rds','sbc_*/*.csv','gp_n*/*','source_snapshots/*/manife
                 'prefix_sources/**/*','prefix_fold_fixture/**/*','capacity_sources/**/*','representation_capacity/**/*','live_chain_snapshots/**/*',
                 'production_scale_sources/**/*','production_scale_reference/*',
                 'fit_audit_sources/**/*','fit_audit_failures/**/*','common_monitor_sources/**/*','common_rhs_monitors/**/*',
-                'remote_gp_runs/**/*','remote_gp_logs/**/*',
+                'remote_gp_runs/**/*','remote_gp_logs/**/*','remote_ci_logs/*',
                 'gp_audit_sources/**/*','gp_training_audit16/*','gp_evidence_sources/**/*','gp_normalizer_sources/**/*',
                 's3_doc_sources/**/*',
                 'calendar_cache_sources/**/*','calendar_law_sources/**/*','calendar_checkpoint_sources/**/*','checkpoint_calendar_fresh_process/**/*','calendar_release_runs/**/*',
                 'full_prefix_sources/**/*','prefix_reference_maps/*',
+                'gp_cohort_evidence_sources/**/*','gp32_period0_cohort*/*',
+                'prefix_banks/*/manifest.json','prefix_banks/*/raw_bank/*.csv','prefix_banks/*/raw_bank/status.json','prefix_banks/*/raw_bank/contract.rds',
+                'prefix_banks/*/standardized_bank/*.csv','prefix_banks/*/standardized_bank/status.json','prefix_banks/*/standardized_bank/contract.rds',
                 'calendar_cache_benchmark/fit_*.rds','calendar_cache_benchmark/dimensions.csv','calendar_cache_benchmark_lawvalidated/fit_*.rds','calendar_cache_benchmark_lawvalidated/dimensions.csv',
                 '*_attempt*.log','gp_n*.log','gp_leaf_reference.log','checkpoint_fresh_process.log','grouped_reference.log','local_reference.log','local_joint_reference.log','local_partial_reference.log','sv_joint_mcmc.log']:
  if a.skip_live_observations and pattern.startswith('live_chain_snapshots/'):
@@ -58,6 +61,9 @@ for name in ['test_results.rds','statistics_cache_test_results.rds','checkpoint_
  f=root/'artifacts'/name
  if f.exists():files.add(f)
 for name in ['calendar_cache_test_results.rds','calendar_release_source_results.rds','calendar_release_installed_results.rds']:
+ f=root/'artifacts'/name
+ if f.exists():files.add(f)
+for name in ['family_release_source_results.rds','family_release_installed_results.rds','variance_only_seasonality_results.rds']:
  f=root/'artifacts'/name
  if f.exists():files.add(f)
 previous={};parent=None

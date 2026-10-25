@@ -29,7 +29,9 @@ autodesn_readout_control <- function(lags = integer(0), prior = c("flat", "group
 
 #' Seasonal period averaging controls
 #' @param periods Distinct periods in observation-index units; numeric(0) disables seasonality.
-#' @param harmonics Maximum Fourier order, excluding the Nyquist term.
+#' @param harmonics Maximum Fourier order, excluding the Nyquist term. Zero
+#'   retains period averaging without calendar terms in the conditional mean,
+#'   for example when only the volatility model is seasonal.
 #' @param prior Positive period masses; NULL is uniform over declared periods.
 #' @param ... Unknown controls are rejected.
 #' @return Validated seasonal controls. Supplied single periods represent known-calendar information.
@@ -37,7 +39,7 @@ autodesn_readout_control <- function(lags = integer(0), prior = c("flat", "group
 autodesn_seasonal_control <- function(periods = numeric(0), harmonics = 16L, prior = NULL, ...) {
   if (length(list(...))) stop("Unknown seasonal controls.", call. = FALSE)
   if (!is.numeric(periods) || any(!is.finite(periods) | periods <= 2) || anyDuplicated(periods)) stop("periods must be distinct finite numbers greater than two.", call. = FALSE)
-  .autodesn_integer(harmonics, "harmonics")
+  .autodesn_integer(harmonics, "harmonics", lower = 0L)
   if (is.null(prior)) prior <- rep(1, length(periods))
   if (!is.numeric(prior) || length(prior) != length(periods) || any(!is.finite(prior) | prior <= 0)) stop("period prior must have positive finite masses.", call. = FALSE)
   if (length(prior)) prior <- prior / max(prior) / sum(prior / max(prior))

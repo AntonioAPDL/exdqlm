@@ -14,7 +14,9 @@ autodesn_seasonal_control(
 \arguments{
 \item{periods}{Distinct periods in observation-index units; numeric(0) disables seasonality.}
 
-\item{harmonics}{Maximum Fourier order, excluding the Nyquist term.}
+\item{harmonics}{Maximum Fourier order, excluding the Nyquist term. Zero
+retains period averaging without calendar terms in the conditional mean,
+for example when only the volatility model is seasonal.}
 
 \item{prior}{Positive period masses; NULL is uniform over declared periods.}
 

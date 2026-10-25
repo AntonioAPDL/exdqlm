@@ -1,0 +1,17 @@
+{
+  "complete": true,
+  "seed": 7366221,
+  "particles": 16,
+  "rows": 2000,
+  "period_moves_per_stage": 10,
+  "status_sha256": "2c05d754b0d7965a6be95f18e0541a5984e19abf1c4416cd86b6a38a458324e0",
+  "resource_sha256": "97f9fcc59235f0aa327c9413ffa7ad20ac4fba06d9e8902ae8be096e8b84910a",
+  "wall_seconds": 2042.464289904,
+  "inference_seconds": 2007.6417300701141,
+  "peak_pss_kib": 3955659,
+  "full_log_crc_verified": true,
+  "full_log_bytes": 16083,
+  "cohort_complete": false,
+  "posterior_qualified": false,
+  "scope": "One observed complete registered16-particle replica with additional invariant period rejuvenation; not the untouched native algorithm or a qualified cohort."
+}

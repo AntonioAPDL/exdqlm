@@ -1,0 +1,8 @@
+{
+  "complete": true,
+  "tests_passed": true,
+  "source_sha256": "eb11f11c7ba8de94140bd379457ca5c8817fdec5b337343ac8d9825aa4f9352d",
+  "test_sha256": "eb97446efaffad9d91447cc68ec6dc7ca3a4d607b12594285e7ad50181a7cdd2",
+  "production_selection_created": false,
+  "scope": "Isolated certificate/mean-family control unit checks. Full-bank input preflights and actual fold inference are separate."
+}

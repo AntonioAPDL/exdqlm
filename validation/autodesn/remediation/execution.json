@@ -70,12 +70,18 @@
     "Exact recovery now binds cache contents;32 scoped tests and800 assertions pass in source and fresh outside-Git installation, with zero errors/warnings",
     "Partial calendar cache reproduces every saved grouped-RHS/seasonal-SV/C++ state and counter across four fresh OS processes",
     "Three native GP32 full2000-row runs verified complete and imported with resource exit0 and CRC-checked full compressed inference logs; seed7366123 still pending",
-    "Static fold reference maps extracted without terminal states or response history; full1500/2000 original-builder adapters pass input/source preflight. Full fold banks are not yet built"
+    "Static fold reference maps extracted without terminal states or response history; full1500/2000 original-builder adapters pass input/source preflight. Full fold banks are not yet built",
+    "First512k chain pair completes with exit0,69.77 active minutes; remaining pair resumes the same immutable source/cache/proposals and full-budget contract",
+    "Both complete456-definition chronological-prefix preparations retain426 admitted architectures and train-only scaler fits; both full-bank input and426-model forecast-state binding audits pass",
+    "Variance-only period support retains the selected nonseasonal mean;830 source and outside-Git installed assertions pass with zero errors/warnings",
+    "Generic fold driver and frozen selected-mean certificate guards pass isolated fixtures; no actual fold posterior or mean selection completed",
+    "Allfour native32 full2000-row posteriors/logs imported and verified; full Gen evidence agrees exactly but range222.4485 and evidence-replica ESS1 block qualification",
+    "Two additional invariant-period GP16 replicas complete and verify; two remain active; no completed qualified cohort"
   ],
   "pending": [
     "Complete and qualify fresh four-chain production fits at two successive budgets",
     "Composite/depth-four native GP stress references and four full-size runs at successive budgets",
-    "Chronological fold refits, family selection and conditional prior-predictive/representation audits",
+    "Qualified chronological fold inference/forecasts, family selection and conditional prior-predictive/representation audits",
     "Predictive Monte Carlo and conditional state-filter budget qualification",
     "Independent confirmatory replications, stress cases and complete scoring/plots",
     "Final complete scientific comparison and PDF report"
@@ -93,9 +99,10 @@
     "execution_environment": "Shell and pinned R runtime restored in a fresh checkout. Recovery observations supersede earlier inaccessible-file status; original manifests were not recovered, newly constructed manifests explicitly retain the truncated archive.",
     "old_job_states": "Prior environment process exits cannot be recovered. The fresh environment has new observed invocations; prior jobs are not represented as continuing.",
     "latest_long_production_interruption": "The fresh256k first-pair invocation was observed running at20:45UTC, but at23:04UTC no R/runner process, completed chain, or resource exit record remained. Its exit status and cause are unknown. No iterations or runtime totals are credited to it. A resumable within-chain checkpoint is needed before another long invocation.",
-    "full_package_CI": "Broader package check on bf347f3 fails155 assertions and four check errors. Two stale fixture contexts now pass47 assertions; shipped-data example executes and repository-only config is excluded from package tarballs. Other legacy integration/numerical/docs issues remain under investigation; scopedAutoDESN suites do not imply package-wide green.",
+    "full_package_CI": "Broad release check at680c6f59 still fails152 assertions (50warnings,9skips,6548passes); this supersedes the earlier155-failure check. New830-assertion scoped suites do not imply full package green. Native/backend, repository-only integration and legacy numerical/doc failures remain unresolved.",
     "native_gp16": "Four complete full-size runs fail mode/budget review: corrected log evidence range365.29, effective evidence-weighted replica count1.0, one within-run ESS1.08. Retain all runs; no forecast promotion.",
-    "calendar_block_rounding": "Reordered Gram sums preserve Gaussian laws to tested numerical accuracy but may alter trajectories. The strict first path check failed and remains recorded. Cache contents are part of exact checkpoint identity; production512k keeps its old source/pair cache."
+    "calendar_block_rounding": "Reordered Gram sums preserve Gaussian laws to tested numerical accuracy but may alter trajectories. The strict first path check failed and remains recorded. Cache contents are part of exact checkpoint identity; production512k keeps its old source/pair cache.",
+    "native_gp32": "Allfour native32 runs complete and agree with full Gen evidence accounting, but log-evidence range222.4485 and replica-weight ESS1 fail computational qualification. No best-run selection."
   },
   "production_posterior_qualified": false,
   "new_benchmark_forecasts_issued": false,
@@ -105,43 +112,33 @@
       "method": "AutoDESN RHS F1",
       "budget_retained_per_chain": 512000,
       "chains": [
+        3,
+        4
+      ],
+      "completed_chains": [
         1,
         2
       ],
       "workers": 2,
       "snapshot": "7ef16ab301161e5740ae004e1d51a07db731825f6bd8fe2309e9b57bc60615b9",
-      "status": "First pair still observed active; chain1 checkpoint observed at600000 total sweeps,472000 retained. Chains3/4 remain paused at320000. No complete four-chain512k posterior."
-    },
-    {
-      "method": "Native AutoGP32",
-      "workflow_run_id": 40150738398,
-      "commit": "892fa693715d1b46f2a14e49be3fa943d84942ca",
-      "completed_imported_seeds": [
-        7366121,
-        7366122,
-        7366124
-      ],
-      "pending_seeds": [
-        7366123
-      ],
-      "particles": 32,
-      "rows": 2000,
-      "status": "Three verified complete, one inference step observed active; no cohort qualification"
+      "status": "Last pair observed active under invocation5; first pair verified complete. No complete four-chain512k posterior or cross-budget certificate."
     },
     {
       "method": "AutoGP with additional invariant period rejuvenation",
       "workflow_run_id": 40156723959,
       "commit": "680c6f5907eead9297ecde1d5de121876905052f",
-      "seeds": [
-        7366221,
-        7366222,
-        7366223,
-        7366224
-      ],
       "particles": 16,
       "period_moves": 10,
       "rows": 2000,
-      "status": "All four jobs observed in checkout/setup. Fitting not yet confirmed; do not count completed inference."
+      "completed_imported_seeds": [
+        7366221,
+        7366222
+      ],
+      "active_seeds": [
+        7366223,
+        7366224
+      ],
+      "status": "Two replicas complete and verified; two inference steps observed active. Additional policy, no same-cohort qualification or forecasts."
     }
   ],
   "jobs_with_unknown_state_after_environment_loss": [],
@@ -156,5 +153,5 @@
     "source_and_outside_git_installed_assertions": 478,
     "full_qualified_posterior": false
   },
-  "snapshot_utc": "2026-10-25T03:10:10.321279+00:00"
+  "snapshot_utc": "2026-10-25T04:01:35.264995+00:00"
 }

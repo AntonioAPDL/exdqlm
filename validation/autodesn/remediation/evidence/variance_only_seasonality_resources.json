@@ -1,0 +1,19 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "validation/autodesn/remediation/check_variance_only_seasonality.R"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 120.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 3.516433157001302,
+  "peak_child_rss_kib": 208580,
+  "sampled_peak_process_tree_pss_kib": 197592,
+  "sampled_peak_environment_cgroup_anon_bytes": 3982094336,
+  "user_seconds": 3.059755,
+  "system_seconds": 0.068645,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

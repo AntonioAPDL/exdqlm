@@ -1,0 +1,7 @@
+args<-commandArgs(TRUE);stopifnot(length(args)==3L,!file.exists(args[3]))
+source('validation/autodesn/load_checkout.R')
+source('validation/autodesn/remediation/load_forecast_bank.R')
+b<-remediation_study_forecast_bank(args[1],args[2])
+binding<-attr(b,'remediation_forecast_binding')
+jsonlite::write_json(c(list(complete=TRUE,architectures=length(b$models),forecast_issued=FALSE,posterior_qualified=FALSE,source_sha256=digest::digest(file='validation/autodesn/remediation/load_forecast_bank.R',algo='sha256'),scope='All prefix-specific reservoir terminal states reproduce their matching training-row features; no held-out or validation outcomes read.'),binding),args[3],pretty=TRUE,auto_unbox=TRUE,digits=16)
+cat('PREFIX_FORECAST_BINDING_CHECK_COMPLETE\n')

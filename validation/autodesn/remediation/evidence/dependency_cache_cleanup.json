@@ -1,0 +1,1292 @@
+{
+  "complete": true,
+  "removed": [
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-pkgbuild-1.4.8-r45hc72bb7e_1.conda",
+      "bytes": 221277,
+      "sha256": "3d1b97a5616663fabcb165968e2d1ad3732d316a0d38be259ca84533986a0093",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-pkgbuild-1.4.8-r45hc72bb7e_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-pracma-2.4.4-r45hc72bb7e_2.conda",
+      "bytes": 1735698,
+      "sha256": "81cd7a5862f0975acc12d6aa70b678d8757b2c8ec56e071f53d226ee26e76a4a",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-pracma-2.4.4-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/fonts-conda-ecosystem-1-0.tar.bz2",
+      "bytes": 3667,
+      "sha256": "a997f2f1921bb9c9d76e6fa2f6b408b7fa549edd349a77639c9fe7a23ea93e61",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/fonts-conda-ecosystem-1-0.tar.bz2",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-bh-1.90.0_1-r45hc72bb7e_0.conda",
+      "bytes": 11604825,
+      "sha256": "50bada081238bfefe0cf50030e57222c5449da693194627c2a7cf4ffbc04920e",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-bh-1.90.0_1-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-progress-1.2.3-r45hc72bb7e_2.conda",
+      "bytes": 96260,
+      "sha256": "7dc34860af66a0305601d70714269d8e24766bc9780a43683c1b7989970a61a3",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-progress-1.2.3-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/fonts-conda-forge-1-hc364b38_1.conda",
+      "bytes": 4059,
+      "sha256": "54eea8469786bc2291cc40bca5f46438d3e062a399e8f53f013b6a9f50e98333",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/fonts-conda-forge-1-hc364b38_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-brew-1.0_10-r45hc72bb7e_2.conda",
+      "bytes": 68849,
+      "sha256": "9324cbb93b6c3a2903b5f12c57eb7f03355b35ca1f1db15becf57f15fc40b796",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-brew-1.0_10-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-rematch2-2.1.2-r45hc72bb7e_5.conda",
+      "bytes": 56155,
+      "sha256": "20ec2130c80ac4b9f5488ea5b1d207b932e99b8a41beae62a58a3fcb98480025",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-rematch2-2.1.2-r45hc72bb7e_5.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/sysroot_linux-64-2.39-hc4b9eeb_6.conda",
+      "bytes": 42049621,
+      "sha256": "7d235e4337f122f3439d0196e1c1c6e715a5b88fcbf24f944510186c84168e45",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/sysroot_linux-64-2.39-hc4b9eeb_6.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-praise-1.0.0-r45hc72bb7e_1009.conda",
+      "bytes": 25995,
+      "sha256": "2f4b33c16d01df7d3a65cbb7a75989a2e3a1e068a354430da225d01d50870732",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-praise-1.0.0-r45hc72bb7e_1009.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-sandwich-3.1_3-r45hacb3a79_0.conda",
+      "bytes": 1537072,
+      "sha256": "bde11c669008dd1f2f751e048ae6f4aa0d00427ad4502af629968cfdee988d70",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-sandwich-3.1_3-r45hacb3a79_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/font-ttf-source-code-pro-2.038-h77eed37_0.tar.bz2",
+      "bytes": 700814,
+      "sha256": "00925c8c055a2275614b4d983e1df637245e19058d79fc7dd1a93b8d9fb4b139",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/font-ttf-source-code-pro-2.038-h77eed37_0.tar.bz2",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-laplacesdemon-16.1.8-r45hc72bb7e_0.conda",
+      "bytes": 3985035,
+      "sha256": "9ec1b99fc8fbfd30e2c837474d3bae7c3ebb833803595c84826fc6eeed1064e3",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-laplacesdemon-16.1.8-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/libstdcxx-devel_linux-64-15.3.0-hb2c5482_107.conda",
+      "bytes": 20673146,
+      "sha256": "4b2d94a9abf2feedea354e4256756c5dc255b84080e7faed9a324a101cf20e74",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/libstdcxx-devel_linux-64-15.3.0-hb2c5482_107.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-knitr-1.52-r45hacb3a79_0.conda",
+      "bytes": 1003590,
+      "sha256": "839c58fe659e379965c6fb28b85190482cba82b2e49bddea603423cfc3a8bd2c",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-knitr-1.52-r45hacb3a79_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-coda-0.19_4.1-r45hc72bb7e_2.conda",
+      "bytes": 342172,
+      "sha256": "9bc21969322aca5a5ea34115e3e68a76742bc6a7d7752dee2dedf2bf49c0e72b",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-coda-0.19_4.1-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-tidyselect-1.2.1-r45hc72bb7e_2.conda",
+      "bytes": 220192,
+      "sha256": "fca09d6b9940f1e1cda0425a0f55716bba202d6f55d6bd25fedec391006c7dc7",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-tidyselect-1.2.1-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-magic-1.6_1-r45hc72bb7e_3.conda",
+      "bytes": 416798,
+      "sha256": "63b5d7403f3c91f0381b065263286bb41a963306a94ae247e7301c446aafe809",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-magic-1.6_1-r45hc72bb7e_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-lifecycle-1.0.5-r45hc72bb7e_0.conda",
+      "bytes": 132636,
+      "sha256": "b7a4d8d98a96d17d18c80fb7e1c8e6cb09b9bd2542e74d91a7f483afccb30ee6",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-lifecycle-1.0.5-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-r6-2.6.1-r45hc72bb7e_1.conda",
+      "bytes": 95073,
+      "sha256": "bd92e91332eba5f0c689583e80adec85ef272c4e0d0b36ee17cb7c11b5693cf2",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-r6-2.6.1-r45hc72bb7e_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/libgcc-devel_linux-64-15.3.0-h2b852eb_107.conda",
+      "bytes": 3085843,
+      "sha256": "5200a1402eb3c3e9b0e4ba38b3cf163be136d020a15477fb86ce6e754d3ae515",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/libgcc-devel_linux-64-15.3.0-h2b852eb_107.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-assertthat-0.2.1-r45hc72bb7e_6.conda",
+      "bytes": 72543,
+      "sha256": "90e7ae8aa427274d7d2e510060b68925e60e897ecaa5ea135bb33afa7eb12134",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-assertthat-0.2.1-r45hc72bb7e_6.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-numderiv-2016.8_1.1-r45hc72bb7e_7.conda",
+      "bytes": 128918,
+      "sha256": "ccfca3e2ec6b95cbea1d937e4749946b61c7cf5e6620e5217baea136c85d733e",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-numderiv-2016.8_1.1-r45hc72bb7e_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/font-ttf-ubuntu-0.83-h77eed37_3.conda",
+      "bytes": 1620504,
+      "sha256": "2821ec1dc454bd8b9a31d0ed22a7ce22422c0aef163c59f49dfdf915d0f0ca14",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/font-ttf-ubuntu-0.83-h77eed37_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-pillar-1.11.1-r45hc72bb7e_0.conda",
+      "bytes": 629867,
+      "sha256": "b3f281041ecff2d4a9f40073ad5e7ec6fa7e0c841068ce85c550bcce0ff8938d",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-pillar-1.11.1-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-pkgload-1.5.3-r45hc72bb7e_0.conda",
+      "bytes": 243868,
+      "sha256": "4b06f639e351305cd5ea983549d5d28ee574a042100584728e1404a7334ac3fe",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-pkgload-1.5.3-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-callr-3.7.6-r45hc72bb7e_2.conda",
+      "bytes": 454090,
+      "sha256": "f9f49b2b845f279af84a33c8af19a915b2731c0bd892c608205cbad8a34f423d",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-callr-3.7.6-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/tzdata-2026e-h5d301ff_0.conda",
+      "bytes": 119208,
+      "sha256": "2b7ca858879f183ce2dcc65b300f48a0133d5430550f35b23d80d405a0788dbf",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/tzdata-2026e-h5d301ff_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/font-ttf-dejavu-sans-mono-2.37-hab24e00_0.tar.bz2",
+      "bytes": 397370,
+      "sha256": "58d7f40d2940dd0a8aa28651239adbf5613254df0f75789919c4e6762054403b",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/font-ttf-dejavu-sans-mono-2.37-hab24e00_0.tar.bz2",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-generics-0.1.4-r45hc72bb7e_1.conda",
+      "bytes": 88225,
+      "sha256": "88a5cf4bac0a553943996bc930b1ea28f2635c262c1b2c5a42b026b69f227f02",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-generics-0.1.4-r45hc72bb7e_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-formula-1.2_6-r45hacb3a79_0.conda",
+      "bytes": 91829,
+      "sha256": "45a2e5b2a3cf415b5e956dec799a8a8b7c7af5f312b9f36c508091b7d4bb37d7",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-formula-1.2_6-r45hacb3a79_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-evaluate-1.0.5-r45hc72bb7e_1.conda",
+      "bytes": 111914,
+      "sha256": "d3accfeab1416151515c37e5edc94b18868998db4936183459f8040117d5c83c",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-evaluate-1.0.5-r45hc72bb7e_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-tictoc-1.2.1-r45hc72bb7e_2.conda",
+      "bytes": 318413,
+      "sha256": "c9f6b39efe92b743a24f90ca4414ee9512bb603b62963dffa949c232bba96281",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-tictoc-1.2.1-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-clipr-0.8.1-r45hc72bb7e_0.conda",
+      "bytes": 73497,
+      "sha256": "4a956729c98dc05bce7bbef52755b6d3a9cc25655f3b7f05b129d97dfb132b4c",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-clipr-0.8.1-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.10.23-hbd8a1cb_0.conda",
+      "bytes": 130057,
+      "sha256": "95619b9c1184be7175392eeb0ee7eeb5ccf25d280951f4225f2d62e725790be3",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.10.23-hbd8a1cb_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-crayon-1.5.3-r45hc72bb7e_2.conda",
+      "bytes": 168201,
+      "sha256": "9126a0408696133893e674549ca7aef317768dba503765a7ed032616aabe5b49",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-crayon-1.5.3-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-highr-0.12-r45hc72bb7e_0.conda",
+      "bytes": 57308,
+      "sha256": "e676112aac0dbfe123fcb3108cce376782211a096c898a3af46fdf32a37e12e9",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-highr-0.12-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-withr-3.0.3-r45hc72bb7e_0.conda",
+      "bytes": 235287,
+      "sha256": "56f318c90bfc74f01339c83f0e1d0817c1b762ea46cd9e527fec9dcf244c5900",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-withr-3.0.3-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/font-ttf-inconsolata-3.000-h77eed37_0.tar.bz2",
+      "bytes": 96530,
+      "sha256": "c52a29fdac682c20d252facc50f01e7c2e7ceac52aa9817aaf0bb83f7559ec5c",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/font-ttf-inconsolata-3.000-h77eed37_0.tar.bz2",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-prettyunits-1.2.0-r45hc72bb7e_2.conda",
+      "bytes": 161043,
+      "sha256": "0306580de6e867b9060595f5eedde4dbf531ee89c16dd3738dde995b30f3fe14",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-prettyunits-1.2.0-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/kernel-headers_linux-64-6.12.0-he073ed8_6.conda",
+      "bytes": 1539218,
+      "sha256": "73b11f31db6c9ebe63d900334fa4f46859aa1ddd8f37cfa5f25a043e0a59253c",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/kernel-headers_linux-64-6.12.0-he073ed8_6.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-cpp11-0.5.5-r45h785f33e_0.conda",
+      "bytes": 246247,
+      "sha256": "5993a1b5c08c78a35cdbcf20376773eb7c4def2d28615e49f96008b43a4c05c0",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-cpp11-0.5.5-r45h785f33e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-rprojroot-2.1.1-r45hc72bb7e_1.conda",
+      "bytes": 117773,
+      "sha256": "9e359973b9433ffaef7a65a1f3483723048427aee4a3208512863c4c70c409a4",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-rprojroot-2.1.1-r45hc72bb7e_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-pkgconfig-2.0.3-r45hc72bb7e_5.conda",
+      "bytes": 27236,
+      "sha256": "fda425435a533e86da5f0fc89cf45c9f889a4e6f1e2ed536ca23662a8461602c",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-pkgconfig-2.0.3-r45hc72bb7e_5.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-abind-1.4_8-r45hc72bb7e_1.conda",
+      "bytes": 82526,
+      "sha256": "5055913d786b82f33a14f493f32945b3b2b5d528ea2f52856ca02b296f6511eb",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-abind-1.4_8-r45hc72bb7e_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-hms-1.1.4-r45hc72bb7e_0.conda",
+      "bytes": 112799,
+      "sha256": "be67527b52f98832ab2871d0182fb76499538ca7eb333506084620b7489ce6a0",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-hms-1.1.4-r45hc72bb7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/_r-mutex-1.0.1-anacondar_1.tar.bz2",
+      "bytes": 3566,
+      "sha256": "e58f9eeb416b92b550e824bcb1b9fb1958dee69abfe3089dfd1a9173e3a0528a",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/_r-mutex-1.0.1-anacondar_1.tar.bz2",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-waldo-0.6.2-r45hc72bb7e_1.conda",
+      "bytes": 144204,
+      "sha256": "57eb80cb919524dde77b4c19f257ac9b327aba900e28298d990fa622f30b6f09",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-waldo-0.6.2-r45hc72bb7e_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/noarch/r-desc-1.4.3-r45hc72bb7e_2.conda",
+      "bytes": 339976,
+      "sha256": "b54c00d2ab9cca150f92120664a8a24cd63213d28c3e951c19575b24d9b57b61",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/r-desc-1.4.3-r45hc72bb7e_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libcblas-3.11.0-11_h0358290_openblas.conda",
+      "bytes": 18196,
+      "sha256": "f7d1bbdea61cf94ba219d17b2cb571a29830f8025385af799bff5a7ad1ef45e6",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libcblas-3.11.0-11_h0358290_openblas.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libgfortran5-16.2.0-h6b99dfc_7.conda",
+      "bytes": 2528180,
+      "sha256": "04dbab12c925b92977bb835dd2f5eda413607afa79f95a554e5a04b07a380322",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libgfortran5-16.2.0-h6b99dfc_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libssh2-1.11.1-h6154650_1.conda",
+      "bytes": 306045,
+      "sha256": "7e463000fa1cba3f3a6597b776f6ab301d425a96e3bc20d0d9d76a3b9f237aa3",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libssh2-1.11.1-h6154650_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/sed-4.10-h19d0853_0.conda",
+      "bytes": 268482,
+      "sha256": "b013d2085ce4ac01daec7b30472e9f3b6c2d69eb3a3a85a6cee3e01a3cb4f61a",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/sed-4.10-h19d0853_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libwebp-base-1.6.0-hd42ef1d_1.conda",
+      "bytes": 428430,
+      "sha256": "8415001414f488c85b72b9d8cc2071dfb3981a47bc3c8eb56ef91a57d12eae7f",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libwebp-base-1.6.0-hd42ef1d_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/conda-gcc-specs-15.3.0-h8846f6e_7.conda",
+      "bytes": 32760,
+      "sha256": "395a5928fc78e8545afdb4e9bf074cf90e37ff8287a1f34cd98c9350da6c3095",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/conda-gcc-specs-15.3.0-h8846f6e_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libcurl-8.23.0-ha042cf0_0.conda",
+      "bytes": 505683,
+      "sha256": "d2db14d80efb4f2e76e76561c633f1767f7543987f2bcb54a067a9d264d432ab",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libcurl-8.23.0-ha042cf0_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/cairo-1.18.6-h3c89d7e_0.conda",
+      "bytes": 1007110,
+      "sha256": "5d0efc6f9981468aca72897460d9b2d17b74dff72787f20a9d2330e214064515",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/cairo-1.18.6-h3c89d7e_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-magrittr-2.0.5-r45h54b55ab_0.conda",
+      "bytes": 211086,
+      "sha256": "5b09fdee8ef5426082844d17d360756922ba74f9e3c428f501373295a5e9228d",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-magrittr-2.0.5-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libpsl-0.23.1-hd9e3e90_1.conda",
+      "bytes": 72519,
+      "sha256": "09e8effdc89bc5d021349318d32b85594f5b8d8e3ab8f90a85b81f8fe695a566",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libpsl-0.23.1-hd9e3e90_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libuv-1.52.1-h280c20c_1.conda",
+      "bytes": 420040,
+      "sha256": "67761d0206f84140047a367eaf9befe03a7e157a29ee25aee0047b40801cc6b6",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libuv-1.52.1-h280c20c_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libffi-3.7.0-h81df57d_1.conda",
+      "bytes": 68004,
+      "sha256": "c8c7583ef063bc3c430f1d48298e5ad24f796a35c22ed5b14183325825a61106",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libffi-3.7.0-h81df57d_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-xfun-0.61-r45hddc5280_1.conda",
+      "bytes": 651372,
+      "sha256": "12e95ce13d7f8f47b575eca3994003e58bdecc351648b8bef25557d3b22ee90c",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-xfun-0.61-r45hddc5280_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-purrr-1.2.2-r45h54b55ab_0.conda",
+      "bytes": 547035,
+      "sha256": "dc5f0ace59844125b92304324000770c7e2e466bab442826cee50a32eef731bf",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-purrr-1.2.2-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-glue-1.8.1-r45h54b55ab_0.conda",
+      "bytes": 171639,
+      "sha256": "c2760270ffabd95e9d0a0caa9cc705c5a0370ad119ace5495acc043b1a35d198",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-glue-1.8.1-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-truncnorm-1.0_9-r45h54b55ab_5.conda",
+      "bytes": 41574,
+      "sha256": "8a4451c2bf487d8ac70e9f9ef4e23b49a76dddb085d12e401d12cdf7728576e4",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-truncnorm-1.0_9-r45h54b55ab_5.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-vctrs-0.7.3-r45h3697838_0.conda",
+      "bytes": 1805012,
+      "sha256": "73b0cdea9f85496b80e75ffa20f94aa4ab746f4b7af566742e22381bffa6772d",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-vctrs-0.7.3-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/binutils_linux-64-2.46.1-default_h4852527_103.conda",
+      "bytes": 36335,
+      "sha256": "606a42c754752fb905fe2012d52ff370d47b5b6adefd5f7befc4ec30ce758f23",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/binutils_linux-64-2.46.1-default_h4852527_103.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-xml2-1.6.0-r45he78afff_0.conda",
+      "bytes": 354030,
+      "sha256": "395b4465db1a0027157907c626eb1ebe749a1b2394441c8d319862766ffb36a6",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-xml2-1.6.0-r45he78afff_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/readline-8.3-hd6e31c0_1.conda",
+      "bytes": 348899,
+      "sha256": "01b3fe073a66e321970d09e04b388708f8cbdca5cdfbfcb7c9eeb470ad10383d",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/readline-8.3-hd6e31c0_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libglib-2.90.0-h569388d_0.conda",
+      "bytes": 4819130,
+      "sha256": "9e688e046550415c030c3d08ed9a3fd13a51d7bc56295283b858b6c3070bb9f8",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libglib-2.90.0-h569388d_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-roxygen2-8.1.0-r45h3697838_0.conda",
+      "bytes": 842449,
+      "sha256": "aa1e9aca3cd1cf39c958e1687e5802c86bd3f05e5c5f9516111d49f797a70673",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-roxygen2-8.1.0-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.2-h25fd6f3_3.conda",
+      "bytes": 63713,
+      "sha256": "eb8a0db0aa570124f7d2a93d7c7f596e3390df5e047818d873baad32985fc736",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.2-h25fd6f3_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-tzdb-0.5.0-r45h3697838_2.conda",
+      "bytes": 555420,
+      "sha256": "d5e6baaf4063a7fb2c462e6f1a5ffda1c8928eb4b943887e4989e8eac9a98916",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-tzdb-0.5.0-r45h3697838_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libgfortran-16.2.0-h69a702a_7.conda",
+      "bytes": 28571,
+      "sha256": "9682ae4dd11487e10b904b3cb3ab6379cad25233d45fdfdf90d54349df244494",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libgfortran-16.2.0-h69a702a_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libgcc-ng-16.2.0-h69a702a_7.conda",
+      "bytes": 28616,
+      "sha256": "03b54d7008de080a17cc2174b0e4acd6d06e1c981b2eb19846f46d8f59966034",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-16.2.0-h69a702a_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/graphite2-1.3.15-h54a6638_1.conda",
+      "bytes": 102835,
+      "sha256": "7fa3b6a9c081fa3e545573152a788d061a0a0ba57df7251cc0f4f75225fc93e7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/graphite2-1.3.15-h54a6638_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-lattice-0.23_1-r45hddc5280_0.conda",
+      "bytes": 1424843,
+      "sha256": "9fe621a1149e7027b10fd0c7ea0c9eaa2de9fd0b863bd3bd971951fe7c02cf23",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-lattice-0.23_1-r45hddc5280_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gxx_impl_linux-64-15.3.0-h90d9265_7.conda",
+      "bytes": 17023748,
+      "sha256": "23e396ca14d05c645f431175379ec010676827d0b7791131ef4f1422f522a755",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gxx_impl_linux-64-15.3.0-h90d9265_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libxau-1.0.12-h7cc23a3_2.conda",
+      "bytes": 18793,
+      "sha256": "3ec065b94554dc48a4ca582a960a5484bc166b26e83ce0954653e08d17e8bd53",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libxau-1.0.12-h7cc23a3_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-jsonlite-2.0.0-r45h54b55ab_1.conda",
+      "bytes": 638574,
+      "sha256": "bd24c57226192b0decdcddd6fd5fa74db1f29685904e4aff87f2c16eb6493416",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-jsonlite-2.0.0-r45h54b55ab_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-fansi-1.0.7-r45h54b55ab_0.conda",
+      "bytes": 329435,
+      "sha256": "68dcc5aa6fc4408f9cac5aeaa03a7e6a5d127a949fc72b3fed31fd1af3bbeee5",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-fansi-1.0.7-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/ld_impl_linux-64-2.46.1-default_hbd61a6d_103.conda",
+      "bytes": 742109,
+      "sha256": "901649b1edbe841fd4ee7e2d491a05184ed540eb01cdae506872f344babc1d28",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/ld_impl_linux-64-2.46.1-default_hbd61a6d_103.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libfreetype6-2.14.3-h5e6c136_2.conda",
+      "bytes": 387671,
+      "sha256": "ec607dd5445dd17ff6bf8b7fe6832e5504c226dd91d3aaea7ba83569808b0ce4",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libfreetype6-2.14.3-h5e6c136_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libuuid-2.42.4-hcfc3c73_0.conda",
+      "bytes": 34442,
+      "sha256": "f34b8d1de9a2bf62476d8608057d9b8a918d97444236dc53a47128f2fae79041",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libuuid-2.42.4-hcfc3c73_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h1df4ec4_4.conda",
+      "bytes": 3566806,
+      "sha256": "a1a241d172c1ccab067ba245206dd048bc3c2d1b84504b53c9468e99adfc16a1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h1df4ec4_4.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-testthat-3.3.2-r45h3697838_0.conda",
+      "bytes": 1848754,
+      "sha256": "0b526259e82140c26311dba589e65fd2fdcf3a559f8b07640464c2e5141f6468",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-testthat-3.3.2-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gcc_impl_linux-64-15.3.0-h6ad849d_7.conda",
+      "bytes": 83849972,
+      "sha256": "3c6deaf411a00aef601fb37f3a5e00aa4b85bace1fd2ebad347033aadc543c55",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gcc_impl_linux-64-15.3.0-h6ad849d_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-diffobj-0.3.9-r45hddc5280_0.conda",
+      "bytes": 1011151,
+      "sha256": "f2f21438201e9427b9c5da9f7b9d55ec5143b500a1403a40ddc5ac39a6e8a507",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-diffobj-0.3.9-r45hddc5280_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libharfbuzz-15.0.0-h23af247_0.conda",
+      "bytes": 1628948,
+      "sha256": "d3190aedc31b449627ba5bdb8423a62fd234623ab99959c0a5a580e4d6ef6420",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libharfbuzz-15.0.0-h23af247_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libxt-1.3.1-h7cc23a3_1.conda",
+      "bytes": 384261,
+      "sha256": "dff31677674be86f98ee929a796edf2cf7c78bf38610b122a63af9af752d5bf7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libxt-1.3.1-h7cc23a3_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-ordinal-2026.7_26-r45h54b55ab_0.conda",
+      "bytes": 1284212,
+      "sha256": "1fefb94b03d2ffd941b78fd9e017f41b72590051e734b67067cb2563f58bc4be",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-ordinal-2026.7_26-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/pcre2-10.47-h8b3dc9c_1.conda",
+      "bytes": 1218833,
+      "sha256": "9ebb10a4eb3be51ae67d85c679f5a7a50cb040ed25c783e6331a225ea09991d4",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/pcre2-10.47-h8b3dc9c_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libedit-3.1.20260512-pl5321h373387f_0.conda",
+      "bytes": 135877,
+      "sha256": "45301f14f4eb66da57cfaf2d265f3eeee73f8b07e99614ee3afc5b26eea91126",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libedit-3.1.20260512-pl5321h373387f_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-gigrvg-0.8-r45h54b55ab_3.conda",
+      "bytes": 48100,
+      "sha256": "5092b77b91985b4fa079998efb1cc94217884d431a176cbf12695830150af3f6",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-gigrvg-0.8-r45h54b55ab_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_7.conda",
+      "bytes": 601301,
+      "sha256": "47d682b9f6d6ec9eb1a6e6c3e75ea6273e899e78fb7fc59f81d39745009fbc60",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hda65f42_10.conda",
+      "bytes": 257808,
+      "sha256": "1a0d382c515ebf55f8ee1f38c8b81bc95af5c2acc42ad53b66bc5df932032f96",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hda65f42_10.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libxrender-0.9.13-h7cc23a3_0.conda",
+      "bytes": 34604,
+      "sha256": "008d610d6ec1d021ad678024afd5dcf534ff84d9c1e9d2877ff36d112c89896f",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libxrender-0.9.13-h7cc23a3_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-rlang-1.3.0-r45h3697838_0.conda",
+      "bytes": 1593782,
+      "sha256": "13aed8664cbf46946eed067d1708ee1a8dcbd7cf32d361c7a03a9bf3f83ac425",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-rlang-1.3.0-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libpango-1.58.2-hce4e988_3.conda",
+      "bytes": 343535,
+      "sha256": "251dfa10f843dfb14ccc8c33d7ec0f18ac75f51be119100f65468a046b1b33ce",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libpango-1.58.2-hce4e988_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libpng-1.6.59-h922cc85_0.conda",
+      "bytes": 316872,
+      "sha256": "c7381be8ef713501f6cd2f5ad473e401f2edeaec3c46788296b8dbf0de165e15",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libpng-1.6.59-h922cc85_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-nlme-3.1_170-r45heaba542_0.conda",
+      "bytes": 2356999,
+      "sha256": "83964b5b1ea49ed78be1fd7606650cf1ea68b92febe3d0bbdb9fda1be30f2d5b",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-nlme-3.1_170-r45heaba542_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/ncurses-6.6-hdb14827_1.conda",
+      "bytes": 911196,
+      "sha256": "5d46557214ed184381dafe835b7c94a474a1c3b307a08a250b1ea4779b44ffb3",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.6-hdb14827_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-fnn-1.1.4.1-r45h3697838_2.conda",
+      "bytes": 149277,
+      "sha256": "9200fa9086dce9f701c2c62453d251cf5ba2b385b0f9cc0103b81e42bddabd00",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-fnn-1.1.4.1-r45h3697838_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/pixman-0.46.4-h54a6638_3.conda",
+      "bytes": 376704,
+      "sha256": "829d8288764282de5a9f7b9169acb75cc7dc0b6c3fe2535cfe87dea3436bbc5d",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/pixman-0.46.4-h54a6638_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libjpeg-turbo-3.2.0-hb03c661_1.conda",
+      "bytes": 650434,
+      "sha256": "bba8538e6538ed58a8479b332337b96986561f975d06cfa2039a016c2d246ee4",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libjpeg-turbo-3.2.0-hb03c661_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libiconv-1.18-h0cb94f2_3.conda",
+      "bytes": 789471,
+      "sha256": "f943117edb9cd4d9c61cc972eee5a34291dc55ea7a6e9e38da104995841cbcb6",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libiconv-1.18-h0cb94f2_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libxml2-16-2.15.4-hf3af7cc_1.conda",
+      "bytes": 569062,
+      "sha256": "d1906463070c21f3215cd5de93164f31c44d5bac6ae9b5d8f5adf42b1e304039",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libxml2-16-2.15.4-hf3af7cc_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libdeflate-1.25-hd45a770_1.conda",
+      "bytes": 73710,
+      "sha256": "82e134c8a08b1eed9a2ed8ab578b89aa1730dcde3dea8dd87645ed0637878e54",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libdeflate-1.25-hd45a770_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-cli-3.6.6-r45h3697838_0.conda",
+      "bytes": 1323795,
+      "sha256": "a894e558a680a31444090de217b73f8fc06a3f4c07746d2cde4b6f86acdae0b1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-cli-3.6.6-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-ucminf-1.2.3-r45heaba542_0.conda",
+      "bytes": 55686,
+      "sha256": "7339ebebf3bc781c80c30ea2ffae853d289f891fc728cc786f9ff3514594f412",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-ucminf-1.2.3-r45heaba542_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libopenblas-0.3.34-pthreads_hf13c14d_2.conda",
+      "bytes": 6845411,
+      "sha256": "69a722751e14eab2eb3bfdcb9acb1187afbd962b0c49b48d829341e0f6787f60",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libopenblas-0.3.34-pthreads_hf13c14d_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-bit64-4.8.6-r45hddc5280_0.conda",
+      "bytes": 574782,
+      "sha256": "9c856c046d0613473d19cc3e27c26e51a585f543a84d5f86b6dc95daa2686a1d",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-bit64-4.8.6-r45hddc5280_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libsm-1.2.6-h0d788c3_1.conda",
+      "bytes": 30739,
+      "sha256": "ef907caee0665cf3b0f775602cc50e388e3bade8ce22ecade0873ff26604b2fd",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libsm-1.2.6-h0d788c3_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-vroom-1.7.1-r45h3697838_0.conda",
+      "bytes": 934319,
+      "sha256": "c322b1115a9e066505deb292ab38c76ad9d2a983c8269c82e89229dbf6bf5494",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-vroom-1.7.1-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/bwidget-1.10.1-hfc2019e_3.conda",
+      "bytes": 134624,
+      "sha256": "5451e5d9abe192438f9efe8c0737c6ac0ddd6cfb932cb88e2ef2f88e97fc3c3a",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/bwidget-1.10.1-hfc2019e_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/lerc-4.2.0-hdb68285_0.conda",
+      "bytes": 271158,
+      "sha256": "bf9fdebf55d8bc99d83531cdffda00703f4dc5f93a1a956768c147362c72feda",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/lerc-4.2.0-hdb68285_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/liblzma-5.8.3-hb03c661_1.conda",
+      "bytes": 112995,
+      "sha256": "9787df8c22a59c9a70d3e5a10db9ad663485e75e9ccc3f09bd092cb7b95e0dab",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/liblzma-5.8.3-hb03c661_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gmp-6.3.0-hfd2156b_3.conda",
+      "bytes": 493498,
+      "sha256": "f36c336efc874f346a53a9011f67e997f9faac505562cc18c13b6d399cfe61c7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gmp-6.3.0-hfd2156b_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-dplyr-1.2.1-r45h3697838_0.conda",
+      "bytes": 1445950,
+      "sha256": "42067805b0742b933de7e1ca4311645797ac687cee6aacd630d9d4c585dfa830",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-dplyr-1.2.1-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libev-4.33-h280c20c_3.conda",
+      "bytes": 43220,
+      "sha256": "e4418f68d01a6307c4431b585c71b584f40189877364e542ee87deb777f5e85b",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libev-4.33-h280c20c_3.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-commonmark-2.0.0-r45h54b55ab_1.conda",
+      "bytes": 139818,
+      "sha256": "211423381b2e832619cdb964e7fe3833b09871d0140066ca90fd3e91eb86231b",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-commonmark-2.0.0-r45h54b55ab_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-bit-4.6.0-r45h54b55ab_1.conda",
+      "bytes": 621466,
+      "sha256": "f5e7c54332bb79d1f992fa97088e206a1ba8037a1be8c77886e2f63b94a97a85",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-bit-4.6.0-r45h54b55ab_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gsl-2.7-he838d99_0.tar.bz2",
+      "bytes": 3376423,
+      "sha256": "132a918b676dd1f533d7c6f95e567abf7081a6ea3251c3280de35ef600e0da87",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gsl-2.7-he838d99_0.tar.bz2",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/c-ares-1.34.9-hebe6cf0_0.conda",
+      "bytes": 233759,
+      "sha256": "bd95dd25b80b5c4faf5349542377bf89b2794e23d0f7aa7f1c431e4f3b633f3c",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/c-ares-1.34.9-hebe6cf0_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-tibble-3.3.1-r45h54b55ab_0.conda",
+      "bytes": 589666,
+      "sha256": "256d782fb5773d678f29b88a2c987eb47065e2393a080ca16f400b0256de65bb",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-tibble-3.3.1-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-processx-3.9.0-r45h54b55ab_0.conda",
+      "bytes": 411030,
+      "sha256": "7f69cd631f28279b4c706fe2341d8ffbd13cc10ed98e648d0c214ceecce4f877",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-processx-3.9.0-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/keyutils-1.6.3-h7cc23a3_1.conda",
+      "bytes": 135295,
+      "sha256": "dd053c96dcb0dcfd59422aefea9d2fe937a190167f34fba7893ec1e10a7e8963",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/keyutils-1.6.3-h7cc23a3_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/openssl-3.6.5-h781a0a9_0.conda",
+      "bytes": 3195299,
+      "sha256": "9c1533f1cf784f0e250919c0c9762d0b0e6bc727a79290ffb7cea1ceca1d038c",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/openssl-3.6.5-h781a0a9_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-readr-2.2.0-r45h3697838_0.conda",
+      "bytes": 808559,
+      "sha256": "06a42932d182259540fd53dca6ac6e988bb28b70d4b09d5786b4260928090598",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-readr-2.2.0-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-rcppeigen-0.3.4.0.2-r45h3704496_1.conda",
+      "bytes": 1496128,
+      "sha256": "fd1cc8ec804fede96bbd07867c58fd15c9fdb3fbae800ba0eb7b2779910734dc",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-rcppeigen-0.3.4.0.2-r45h3704496_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libxcb-1.17.0-hb83e432_2.conda",
+      "bytes": 395120,
+      "sha256": "7b49e6fd2a584b7f072943e6adf4149677af5121246975278804782d37752837",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libxcb-1.17.0-hb83e432_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-base-4.5.3-h502d0c9_4.conda",
+      "bytes": 27356848,
+      "sha256": "a4e1f0240161f453ceadbe63f21a115131e23e16a908e0043cbdf477af944766",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-base-4.5.3-h502d0c9_4.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gcc_linux-64-15.3.0-h7df7c86_2.conda",
+      "bytes": 30359,
+      "sha256": "0bb23a0685853c749490e9cd147da18397113c9ebb770f13363673b214012c86",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gcc_linux-64-15.3.0-h7df7c86_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libstdcxx-16.2.0-h934c35e_7.conda",
+      "bytes": 6615436,
+      "sha256": "fa7018298629fc429971fffd6ecba3d27a7b02e4e890d6a93ea01ffebe8cb745",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libstdcxx-16.2.0-h934c35e_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gfortran_impl_linux-64-15.3.0-h27ced10_7.conda",
+      "bytes": 20647168,
+      "sha256": "944f5bd6737a4bb6b079f228ef6eaf7f5c9ce6ac76ccdfef71e95fd940b14870",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gfortran_impl_linux-64-15.3.0-h27ced10_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libfreetype-2.14.3-ha770c72_2.conda",
+      "bytes": 8407,
+      "sha256": "fb12ecb46c30d18d928c0e8fc346ab13b5f6fc8a9cacae4f2f4bb188782586f5",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libfreetype-2.14.3-ha770c72_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/fontconfig-2.18.3-h4db4eae_1.conda",
+      "bytes": 296288,
+      "sha256": "5a3eb10b18a97223ab06b3a7f0d7f56658db2f2800e2f2af95836fe3bf55ba63",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/fontconfig-2.18.3-h4db4eae_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-zoo-1.9_0-r45h54b55ab_0.conda",
+      "bytes": 964934,
+      "sha256": "55828cbfe69d8966afee6217a439a169726579897203fd69072eaf099d15182a",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-zoo-1.9_0-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libxdmcp-1.1.5-h7cc23a3_2.conda",
+      "bytes": 22606,
+      "sha256": "8a095df9bc1d2e50f2504ce8858a047ae29ea634aad6cc0b43298c63361da6d9",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libxdmcp-1.1.5-h7cc23a3_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-ellipsis-0.3.3-r45h54b55ab_0.conda",
+      "bytes": 33411,
+      "sha256": "19d03273f9d5e1aa41302e1cf080dcb95ced5b955bc978df39eee71a9686a86c",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-ellipsis-0.3.3-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-rdtools-0.1.0-r45h54b55ab_0.conda",
+      "bytes": 74726,
+      "sha256": "6809ad578eb1b9a69f2b85164d441c0d91536398effd76567e5239ac726b1ee1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-rdtools-0.1.0-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-igraph-2.3.4-r45h58b3285_0.conda",
+      "bytes": 5766094,
+      "sha256": "96fa53b983cef491e80cec84077840c0dc8a3709b97d7876f363ccbd8d2d1801",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-igraph-2.3.4-r45h58b3285_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-ps-1.9.3-r45h54b55ab_0.conda",
+      "bytes": 414722,
+      "sha256": "598576cd282f2b9c8280696c77b3a9e05d52a8f688174d6c6ed1b3bdad57bcdf",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-ps-1.9.3-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gxx-15.3.0-hc6a0c74_7.conda",
+      "bytes": 28905,
+      "sha256": "b4d8243c72c114f3bc5189659f0ad7745d35b3c08fbd529d7dd32b7fbb631a5e",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gxx-15.3.0-hc6a0c74_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/icu-78.3-py310h44b86e0_2.conda",
+      "bytes": 14459115,
+      "sha256": "9f07834f0c546ab14d885ce0366285f61f44e326c0edd1fc63b8294e113ae432",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/icu-78.3-py310h44b86e0_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-rcpp-1.1.2-r45h3697838_0.conda",
+      "bytes": 2122066,
+      "sha256": "dabb73c4d43f352a3154067a20a46cbda1e1027636e72d133010f6f052e8d260",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-rcpp-1.1.2-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-rspectra-0.16_2-r45h3704496_2.conda",
+      "bytes": 497380,
+      "sha256": "df7a99f6848ab4e7adb188aa973dac04e9f43aa31fd0536971ac904c6724598f",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-rspectra-0.16_2-r45h3704496_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-matrixstats-1.5.0-r45h54b55ab_1.conda",
+      "bytes": 484755,
+      "sha256": "06177df6c2f39df0a90b456557d226c2ffa9eaf55505b35d0ca9a81fe793dc49",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-matrixstats-1.5.0-r45h54b55ab_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda",
+      "bytes": 28948,
+      "sha256": "1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb3c9",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gxx_linux-64-15.3.0-h39dd401_2.conda",
+      "bytes": 28776,
+      "sha256": "e2930d886fe946f7e15f79950d766911b4c523f354f6ce29b9b7f204bfa1fe91",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gxx_linux-64-15.3.0-h39dd401_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-fs-2.1.0-r45h3697838_0.conda",
+      "bytes": 243286,
+      "sha256": "748304679610fe9f5d078f5b9be7c8693858ff5f66db55e43fb98d0e4e07d375",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-fs-2.1.0-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/glpk-5.0-h445213a_0.tar.bz2",
+      "bytes": 1047292,
+      "sha256": "0e19c61198ae9e188c43064414a40101f5df09970d4a2c483c0c46a6b1538966",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/glpk-5.0-h445213a_0.tar.bz2",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/fribidi-1.0.17-h7cc23a3_0.conda",
+      "bytes": 64102,
+      "sha256": "3ba79ebfbd14ca5db4affaf10ee8001064e907de5baabc2dbe5bcd9aec856c9f",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/fribidi-1.0.17-h7cc23a3_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/krb5-1.22.2-hbc21106_2.conda",
+      "bytes": 1394333,
+      "sha256": "2a5c38c85e63df84c4e69ee71439841ce570d259ae3060627bb9a49a938d66f4",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/krb5-1.22.2-hbc21106_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/cxx-compiler-2.0.0-hdab9b82_0.conda",
+      "bytes": 6972,
+      "sha256": "384ab445d260e0d69e701c32eb0ed870d348ec7e3efc78d944823855d4512ca1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/cxx-compiler-2.0.0-hdab9b82_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/gcc-15.3.0-hc6a0c74_7.conda",
+      "bytes": 29624,
+      "sha256": "f362d14caab740de46f60d5ca8a4340066704ff573bc0a618030ceca3a2b7f87",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/gcc-15.3.0-hc6a0c74_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/tktable-2.10-h0eb2ad0_11.conda",
+      "bytes": 103903,
+      "sha256": "14096a4de75555f72db8e2b9a76e202623169de1a81330684dedb3be70010537",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/tktable-2.10-h0eb2ad0_11.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/pthread-stubs-0.4-h7cc23a3_1004.conda",
+      "bytes": 9630,
+      "sha256": "4a44fd00ea73b79ca2c89b0727b9ccf61c506ead71e67a9abfa4c590042b5a4a",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/pthread-stubs-0.4-h7cc23a3_1004.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-brio-1.1.5-r45h54b55ab_2.conda",
+      "bytes": 44436,
+      "sha256": "3711f8f1b22725994382eb3253035c8b5190343a6724a7ceb0746637386a4f2e",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-brio-1.1.5-r45h54b55ab_2.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-mass-7.3_66-r45h54b55ab_0.conda",
+      "bytes": 1141176,
+      "sha256": "89218d4083593e5eae881fe5136befa358333d90a7de1a0ede13e8cd7bb5244e",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-mass-7.3_66-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-utf8-1.2.6-r45h54b55ab_1.conda",
+      "bytes": 147244,
+      "sha256": "97186abdf7c29872e012c9fe05ec16c019b58c43ac7b778baa480a8acae9c914",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-utf8-1.2.6-r45h54b55ab_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libtiff-4.7.2-hcc2c06a_1.conda",
+      "bytes": 459753,
+      "sha256": "10e125da82ca93e09191e66e5a94d566b2cf8d4024e2a0db3a9114297447e0d9",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libtiff-4.7.2-hcc2c06a_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-rcpparmadillo-15.6.2_1-r45h1fcd065_0.conda",
+      "bytes": 881463,
+      "sha256": "c132d6481107a58c78871eeec29bbb43d671d293469026b4b7d0f417fa650e50",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-rcpparmadillo-15.6.2_1-r45h1fcd065_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/liblapack-3.11.0-11_h47877c9_openblas.conda",
+      "bytes": 18227,
+      "sha256": "1ad3f43c9319ef398a8ef45989f4903a06e3965b51e77fc669a4c894168a8411",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/liblapack-3.11.0-11_h47877c9_openblas.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libxml2-2.15.4-h7df9aa5_1.conda",
+      "bytes": 46570,
+      "sha256": "8c32be9e8720bc413d2b4267517459d7d71fad4a5f398a2aa8319b6d7b8a00e6",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libxml2-2.15.4-h7df9aa5_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libnghttp2-1.68.1-h74cf4be_1.conda",
+      "bytes": 649974,
+      "sha256": "11a2f54a6f391e25738bce0023e6ef499600147bbcf21c1fa69d2e251b03cc6a",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libnghttp2-1.68.1-h74cf4be_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libgcc-16.2.0-ha9f2e26_7.conda",
+      "bytes": 1058444,
+      "sha256": "e031634c3a928f9594eba868bc46ef5230d6571a364a0c63215b06c4563bfcea",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libgcc-16.2.0-ha9f2e26_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-yaml-2.3.12-r45h54b55ab_0.conda",
+      "bytes": 124461,
+      "sha256": "f8944d47eccfdb2c04e27fd65797de7468ccc5d9f3fc3d9af296da613d75d79c",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-yaml-2.3.12-r45h54b55ab_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libblas-3.11.0-11_h4a7cf45_openblas.conda",
+      "bytes": 18246,
+      "sha256": "d942e0c820d60a613a6f786d074f0820fb6343e3f1ccfb110b1d98b44fb75968",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libblas-3.11.0-11_h4a7cf45_openblas.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-nimble-1.4.3-r45h9e3647d_0.conda",
+      "bytes": 8976345,
+      "sha256": "11cab706c289ce31da6459d820bc0414cca6de23bd5fa5cf75b8f643de671df5",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-nimble-1.4.3-r45h9e3647d_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libx11-1.8.14-hb83e432_0.conda",
+      "bytes": 846774,
+      "sha256": "1815dc9900bf3a4678caeb343bccbbc74cd5e5a5ff3f6e0a2c01c5e19cd9d30b",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libx11-1.8.14-hb83e432_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libice-1.1.2-h280c20c_0.conda",
+      "bytes": 62517,
+      "sha256": "49b532d1df875c6749d9078b56a76f3f5db49a5abe0ca620b593ed474ef0ebf1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libice-1.1.2-h280c20c_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/binutils_impl_linux-64-2.46.1-default_hfdba357_103.conda",
+      "bytes": 3706604,
+      "sha256": "98f9ddc6dc5d56a824b7eaea5bab6ad4bb47642288fc70d6b1b4024ac39d5595",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/binutils_impl_linux-64-2.46.1-default_hfdba357_103.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/xorg-libxext-1.3.7-h7cc23a3_1.conda",
+      "bytes": 53124,
+      "sha256": "aa9bbe8b278aacc194e280ff5037f9f9a1f2c5b33ed97de8e7f01cfbe90dda43",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/xorg-libxext-1.3.7-h7cc23a3_1.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libexpat-2.8.5-hd2095e1_0.conda",
+      "bytes": 77893,
+      "sha256": "6de73033a7c5f712c9c5a54124e4581e025691029835e5bceaf10a333a7e7bc0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libexpat-2.8.5-hd2095e1_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-survival-3.8_12-r45hddc5280_0.conda",
+      "bytes": 7888232,
+      "sha256": "9075d3145d34039fbffb6c1fb5c54f43d980b05fc0382093b7d4347e00411c1a",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-survival-3.8_12-r45hddc5280_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-dlm-1.1_6.1-r45h4752da4_0.conda",
+      "bytes": 543816,
+      "sha256": "07e22bf56cccf2298cf5962070431b883bff5d9ebf18e2daf6fbbfc7e42e7349",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-dlm-1.1_6.1-r45h4752da4_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libgomp-16.2.0-he0feb66_7.conda",
+      "bytes": 640566,
+      "sha256": "92a0bb350c7be6a4eedcb4e111c60aefd176018e6b1c009a6e025dbe9bbcd758",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libgomp-16.2.0-he0feb66_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/libsanitizer-15.3.0-h54950a5_7.conda",
+      "bytes": 8073659,
+      "sha256": "9e5518e38502568f4591be965d48c1a3f79e2da4d74567f1a62e00244cf40222",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libsanitizer-15.3.0-h54950a5_7.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-digest-0.6.39-r45h3697838_0.conda",
+      "bytes": 218412,
+      "sha256": "33ce40552bc1810252c4445082392638ff2fb883147cf36c3e4017e9b0dc5474",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-digest-0.6.39-r45h3697838_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/curl-8.23.0-ha042cf0_0.conda",
+      "bytes": 197652,
+      "sha256": "c34fd476d8ad5eede00a3742f33bf52400e01b35bc2777ab2306d6fc21121949",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/curl-8.23.0-ha042cf0_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/make-4.4.1-h1114479_4.conda",
+      "bytes": 553374,
+      "sha256": "d6a81e5c142d7be6a992f618097351e7996f81a6295045df3f9b4f498e1066a8",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/make-4.4.1-h1114479_4.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    },
+    {
+      "path": "../runtime/mamba/pkgs/https/conda.anaconda.org/conda-forge/linux-64/r-matrix-1.7_6-r45h0e4624f_0.conda",
+      "bytes": 4317135,
+      "sha256": "f9a011394c44b1e5f1a710b45cbf793fcac0753ab3bb4137c5ebb0d70152fd46",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/r-matrix-1.7_6-r45h0e4624f_0.conda",
+      "kind": "Verified dependency download cache, installed runtime unchanged"
+    }
+  ],
+  "freed_bytes": 383930366,
+  "unmatched_retained": [],
+  "unused_extracted_cache_cleaned_with_micromamba": true,
+  "cleaner_exit_code": 0,
+  "cleaner_log_sha256": "a93d64ee89b2373f84413fc0d0cd6438253cead5e982a9606d562601a60f28a3",
+  "installed_runtime_unchanged_and_retested": "Fresh family installation and830 outside-Git installed assertions pass after cache cleanup"
+}

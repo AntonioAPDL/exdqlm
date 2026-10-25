@@ -180,3 +180,43 @@ inference/forecast inputs. They require the large-job reservation. Preflight is
 complete; the full fold banks have not yet been executed at this checkpoint.
 Their narrow reference contains only seeded maps and first500 input transforms,
 without the original terminal states or response history.
+
+The completed chronological-prefix preparations are recorded in
+`evidence/prefix_bank_1500.json` and `evidence/prefix_bank_2000.json`. They retain
+all426 admitted architectures, use the frozen NHS washout tolerance0.001, and
+refit readout/lag/calendar scalers inside each training boundary. The failed
+first adapter attempt used the helper default0.00001 and was rejected before
+inference; its audits, failure and cleanup inventories remain available.
+Preparation is reproducible with `launch_prefix_bank.py CUTOFF`. Large derived
+matrix caches are excluded from the bank-free checkpoint archives; their exact
+file and conditional-target hashes, original builder and complete numeric map
+reference are retained. Raw construction and serialization intermediates can be
+removed after final bank/map/cache hash checks. No posterior checkpoint is
+removed by these cleanup helpers.
+
+`launch_fit.py --prefix-manifest PATH` isolates each fold's fits and frozen
+proposals under `artifacts/fold_fits/cutoffCUTOFF`. The ordinary pilot/production
+budgets and sampler are unchanged. `--input-preflight FRESH_JSON` validates the
+full inputs without running inference. Both completed full-bank input preflights
+and both426-model forecast-map binding checks are recorded separately; these
+are not completed fold fits or validation forecasts.
+
+New SV runs require `--mean-selection CERTIFICATE`. The certificate must bind
+both qualified chronological development folds and their unchanged input hashes.
+The selected F1/F2/F2flat readout is retained. In particular, F1 with seasonal
+volatility uses `autodesn_seasonal_control(periods=20:120, harmonics=0)`:
+periods are averaged for the four variance harmonics without adding any mean
+calendar coefficients. The normalized period prior integrates to one when its
+mean likelihood is period-independent. The830-assertion source and outside-Git
+installed regressions,30 variance-only checks and separate certificate fixtures
+pass; no production SV selection or fit has been completed.
+
+The four completed native32-particle AutoGP outputs are imported with checked
+member hashes and gzip CRCs. The complete serialized-state evidence audit agrees
+with `Gen.log_ml_estimate` and finds a222.4485 log-evidence range and effective
+number of evidence-weighted replicas1. This budget fails computational
+qualification. The64-particle control is explicitly registered in
+`remote_gp_requests/budget64.json`; check the actual workflow/status records
+before asserting that it started or completed. Its14400-second process cap is
+registered before64-particle outcomes. The additional invariant-period cohort
+remains a separate algorithm policy and is never pooled with native controls.

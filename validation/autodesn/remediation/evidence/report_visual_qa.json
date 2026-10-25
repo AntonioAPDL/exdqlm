@@ -1,15 +1,17 @@
 {
   "complete": true,
-  "pages": 15,
+  "pages": 17,
   "all_pages_rendered": true,
   "all_page_contact_sheet_inspected": true,
   "full_size_dense_pages_inspected": [
-    9,
-    13
+    3,
+    10,
+    15
   ],
   "no_clipped_or_overlapping_content_observed": true,
-  "report_sha256": "7591814efd88363e6719ad62af0ed82356d1ac8ad01969f36ac153e93ba01772",
+  "report_sha256": "7646435d5c0389d1980538d22a2dff54a7e3ae6ee4e5d363ae56691352741776",
   "report_inputs_verified": true,
   "scientific_study_complete": false,
-  "inspected_utc": "2026-10-25T03:19:36.455308+00:00"
+  "inspected_utc": "2026-10-25T04:06:28.503224+00:00",
+  "last_change": "Spacing cleanup only after full-size pages3/10/15 inspection; all17 final pages rerendered and inspected in a contact sheet."
 }

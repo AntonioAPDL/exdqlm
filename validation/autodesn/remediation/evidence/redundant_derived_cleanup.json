@@ -1,0 +1,78 @@
+{
+  "complete": true,
+  "canonical_posterior_removed": false,
+  "removed": [
+    {
+      "path": "validation/autodesn/remediation/artifacts/calendar_cache_benchmark/blocks.rds",
+      "bytes": 122430592,
+      "sha256": "5a0d239363f35ad5d5094995a72c60e21e0883c80d1a8df571a3ccd75cf8e610",
+      "kind": "Pure derived identical block cache; 4.9 second reconstruction tested"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/calendar_cache_benchmark_lawvalidated/blocks.rds",
+      "bytes": 122430592,
+      "sha256": "5a0d239363f35ad5d5094995a72c60e21e0883c80d1a8df571a3ccd75cf8e610",
+      "kind": "Pure derived identical block cache; 4.9 second reconstruction tested"
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_1/chain_3_sweep_320000.rds",
+      "bytes": 48762704,
+      "sha256": "3732fde0184ad11f819ffa72ab9445e1d37723182a7cffd91ca32f87c74f289c",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_1/chain_4_sweep_320000.rds",
+      "bytes": 48726464,
+      "sha256": "10ad38a437b85515cae3c5423c778d557da02b872a9997d86b1f5a9d4a96ba15",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_1/contract.rds",
+      "bytes": 9172,
+      "sha256": "5c0c9991d4721d57a47cd634cd9ec0974a4fcf5b3ea51034683889c19d855274",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_1/chain_1_sweep_356000.rds",
+      "bytes": 57892096,
+      "sha256": "c4d0901eaf3dd54e513e84bbb112c366dd810854b279f4262eb88849f7d4cc1e",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_1/chain_2_sweep_356000.rds",
+      "bytes": 57860864,
+      "sha256": "fc92567f271c4ffe1789711e3a93f7935fe6771180abd904da471ca669205ab0",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_2/chain_1_sweep_408000.rds",
+      "bytes": 71093312,
+      "sha256": "a5a28e7fa898e8138bb17695d1e00c073e5d889df6d8cf6de3d0e9d20b870eda",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_2/chain_3_sweep_320000.rds",
+      "bytes": 48762704,
+      "sha256": "3732fde0184ad11f819ffa72ab9445e1d37723182a7cffd91ca32f87c74f289c",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_2/chain_4_sweep_320000.rds",
+      "bytes": 48726464,
+      "sha256": "10ad38a437b85515cae3c5423c778d557da02b872a9997d86b1f5a9d4a96ba15",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_2/contract.rds",
+      "bytes": 9172,
+      "sha256": "5c0c9991d4721d57a47cd634cd9ec0974a4fcf5b3ea51034683889c19d855274",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    },
+    {
+      "path": "validation/autodesn/remediation/artifacts/live_chain_snapshots/mid512_second_half_2/chain_2_sweep_408000.rds",
+      "bytes": 71052160,
+      "sha256": "f34ed657804dd9573a89e0b5e4cc8d41383e25c3d33a668760a020d7aa8fb4e1",
+      "kind": "Redundant observation of incomplete advancing chain, superseded by canonical verified complete chains1/2 in archive017 and four quiescent pauses in committed013. Metadata retained."
+    }
+  ]
+}

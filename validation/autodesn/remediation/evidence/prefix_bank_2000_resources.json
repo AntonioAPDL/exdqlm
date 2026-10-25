@@ -1,0 +1,23 @@
+{
+  "command": [
+    "Rscript",
+    "--vanilla",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/full_prefix_sources/346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c/validation/autodesn/remediation/prepare_prefix_bank.R",
+    "2000",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/full_prefix_sources/346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery",
+    "/workspace/scratch/9cf6195923f9/exdqlm-recovery/validation/autodesn/remediation/artifacts/prefix_banks/cutoff2000_346b4d81e054180ef6079292b9cf62100c6c8bd66d1a2564489c3a8acfe3d28c"
+  ],
+  "cap_trigger": null,
+  "max_seconds": 1800.0,
+  "max_cgroup_anon_bytes": 6400000000,
+  "exit_code": 0,
+  "elapsed_seconds": 175.42956933800087,
+  "peak_child_rss_kib": 3046168,
+  "sampled_peak_process_tree_pss_kib": 2875738,
+  "sampled_peak_environment_cgroup_anon_bytes": 3100860416,
+  "user_seconds": 170.023995,
+  "system_seconds": 3.936894,
+  "runner_sha256": "fe75f9e2ce173f95ba06f1ffe282b55c90d1336527c8d3e10fe811227262d629",
+  "scope": "Observed Linux wait4 child completion; host-PID-resolved process-tree PSS sampled every 0.5s; cgroup anon includes other active jobs"
+}

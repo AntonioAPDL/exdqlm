@@ -92,3 +92,14 @@ actual statistics cache, so changing cache type, budget or stored values cannot
 silently continue an old arithmetic trajectory. Recovery with the same partial
 cache reproduces every recorded state in fresh OS processes. None of these
 computational checks replaces posterior or predictive qualification.
+
+For a selected nonseasonal mean and seasonal volatility, retain the proper
+period mass pi(P) but set the mean Fourier order to zero. Then X_(m,P)=X_m and
+its coefficient-integrated Gaussian likelihood is independent of P when the
+observation variances do not depend on P. Summing pi(P) times that likelihood
+returns the original mean likelihood exactly. In seasonal SV the period enters
+the centered four-harmonic log-variance design, so its posterior can depend on
+the data while the selected mean dimension and coefficient prior remain fixed.
+The period and architecture MH updates retain their complete prior/proposal
+ratios. No variance-only extension is permitted to silently change the selected
+mean family or to substitute the DGP's privileged period.
