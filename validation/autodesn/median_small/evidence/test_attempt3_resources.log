@@ -1,0 +1,30 @@
+PASS ten validation origins 
+PASS 600 unique test targets 
+PASS test exact coverage 
+PASS validation chronology 
+PASS frozen 144 reservoir definitions / 576 ridge configurations 
+PASS strictly monotone transform 
+PASS analytic quantile 1 0.05 
+PASS analytic quantile 1 0.5 
+PASS analytic quantile 1 0.95 
+PASS analytic quantile 2 0.05 
+PASS analytic quantile 2 0.5 
+PASS analytic quantile 2 0.95 
+PASS analytic quantile 60 0.05 
+PASS analytic quantile 60 0.5 
+PASS analytic quantile 60 0.95 
+PASS Gaussian integrated likelihood vs independent multivariate t 
+PASS training-only feature centering 
+PASS training-only unit slope SD 
+PASS shared transition matches original builder 
+PASS batched vs scalar recursive forecast 
+PASS future perturbation leaves fitting features unchanged 
+PASS future perturbation leaves issued forecasts unchanged 
+PASS future perturbation leaves scalers unchanged 
+PASS AL median parameterization equals Laplace scale 2 sigma 
+PASS AL noise median zero 
+PASS normalized RHS explicit controls 
+PASS existing AL-RHS kernel finite smoke chain 
+PASS AL shape stays fixed zero 
+PASS latent draw arrays disabled 
+TESTS_COMPLETE 29 

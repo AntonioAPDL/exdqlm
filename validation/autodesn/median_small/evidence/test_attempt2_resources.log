@@ -1,0 +1,20 @@
+PASS ten validation origins 
+PASS 600 unique test targets 
+PASS test exact coverage 
+PASS validation chronology 
+PASS frozen 144 reservoir definitions / 576 ridge configurations 
+PASS strictly monotone transform 
+PASS analytic quantile 1 0.05 
+PASS analytic quantile 1 0.5 
+PASS analytic quantile 1 0.95 
+PASS analytic quantile 2 0.05 
+PASS analytic quantile 2 0.5 
+PASS analytic quantile 2 0.95 
+PASS analytic quantile 60 0.05 
+PASS analytic quantile 60 0.5 
+PASS analytic quantile 60 0.95 
+PASS Gaussian integrated likelihood vs independent multivariate t 
+PASS training-only feature centering 
+Error in check(max(abs(apply(b$X_fit[, -1], 2, sd) - 1)) < 1e-10, "training-only unit slope SD") : 
+  training-only unit slope SD
+Execution halted

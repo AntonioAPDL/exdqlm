@@ -1,0 +1,31 @@
+{
+  "complete": true,
+  "checks_passed": 17,
+  "checks": [
+    "canonical3500 observations",
+    "independent observed transform",
+    "observed origin identifies state 1900",
+    "observed origin identifies state 2345",
+    "observed origin identifies state 2840",
+    "observed origin identifies state 2900",
+    "observed origin identifies state 3440",
+    "Cauchy convolution (1, 0.05)",
+    "Cauchy convolution (1, 0.5)",
+    "Cauchy convolution (1, 0.95)",
+    "Cauchy convolution (2, 0.05)",
+    "Cauchy convolution (2, 0.5)",
+    "Cauchy convolution (2, 0.95)",
+    "Cauchy convolution (60, 0.05)",
+    "Cauchy convolution (60, 0.5)",
+    "Cauchy convolution (60, 0.95)",
+    "SciPy independent Gaussian coefficient/noise integrated likelihood"
+  ],
+  "inputs": {
+    "validation/autodesn/median_small/output/data.csv": "5827f6644a17a0f32edadd8c2c3a54de1689f09755de0820a67db4f2daba4017",
+    "validation/autodesn/median_small/configuration.json": "0d1ef747cee391abd543efa07580f6ea1912860b8a3eea7b3bd0d9b87de2b2e6",
+    "validation/autodesn/median_small/common.R": "d4bd7383fb64dd960d9552e238bd7b302a39aa40441d8d84a7a7a667f664b8f4",
+    "validation/autodesn/median_small/tests.R": "14e42899cd014ce04c9e5fa5716ff9c5d41c02d7074c0c4572611d18915e80c0"
+  },
+  "source_sha256": "f65476d62580a4c9a94a7922f41f0817e2edc1b86e37bd27c22610b48a868c08",
+  "scope": "Independent numerical references; not convergence"
+}

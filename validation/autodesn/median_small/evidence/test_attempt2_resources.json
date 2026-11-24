@@ -1,0 +1,17 @@
+{
+  "stage": "test",
+  "attempt": 2,
+  "command": [
+    "/workspace/scratch/9cf6195923f9/runtime_r/bin/Rscript",
+    "validation/autodesn/median_small/tests.R"
+  ],
+  "exit_code": 1,
+  "cap_trigger": null,
+  "elapsed_seconds": 25.381428573999983,
+  "sampled_peak_process_tree_pss_bytes": 801402880,
+  "memory_cap_bytes": 3221225472,
+  "wall_cap_seconds": 1800,
+  "source_sha256": "9e54e75ec7187996f2450ce810037dc130bbb2b508c0ab8f28044405491b38a0",
+  "log_sha256": "e0ee617a3a21e4d70d5544e0801a13edc7e3d8374037e2657456a0ee02b001c8",
+  "observed_utc": "2026-11-24T23:34:03.261489+00:00"
+}
